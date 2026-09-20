@@ -3,7 +3,7 @@
 ChatGPT owns priority/order unless the user explicitly overrides it.
 Antigravity executes the highest-priority unblocked work, tests it, commits, pushes, and reports through coordination/AI_SYNC.md.
 
-Last prioritized: 2026-09-20 17:44 ET
+Last prioritized: 2026-09-20 18:57 ET
 
 ## Strategic finish line
 
@@ -20,6 +20,23 @@ Path:
 After V1.6, stop broad development and request strategy review.
 
 ## Current checkpoint
+
+### EXECUTION PRIORITY — V1.4 LIVE-READINESS ASAP
+
+Until the V1.4 packet-safety gate passes, Antigravity should treat V1.4 P0 as the sole engineering priority.
+
+Do not spend implementation cycles on:
+- additional dashboard features,
+- new ATS adapters,
+- LinkedIn/networking features,
+- V2/V3 infrastructure,
+- optional analytics,
+- non-blocking V1.2 polish.
+
+Only do work outside V1.4 P0 if it is strictly necessary to make the real application packet safe and independently verifiable.
+
+The target is not "more features." The target is:
+**a truthful, immutable, inspectable application packet that can safely proceed to V1.5.**
 
 ### V1.1 — ACCEPTED
 
@@ -126,7 +143,11 @@ Acceptance for V1.4 repair:
 - all screening answers have canonical provenance or are unresolved,
 - packet can be independently inspected by ChatGPT/user without relying on an unverified local-only claim.
 
-## P1 — Finish V1.2 engineering readiness while P0 is being repaired
+## P1 — DEFER UNTIL V1.4 P0 PASSES
+
+V1.2 engineering readiness work is temporarily deprioritized. Resume only after ChatGPT accepts V1.4 packet safety, unless a V1.4 blocker specifically depends on one of these items.
+
+### Deferred V1.2 engineering readiness
 
 1. Candidate-fact provenance report
 - produce a local/private provenance report for every non-null candidate fact,
