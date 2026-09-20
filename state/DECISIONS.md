@@ -143,3 +143,34 @@ When an existing job matches, its `last_seen_at` is refreshed and a new `JobSour
 Reason:
 Job alerts from LinkedIn, Indeed, ZipRecruiter, and Dice frequently broadcast the same opening with varying tracking links, title formatting, or slight delays. Deduplicating to a single job entity prevents redundant applications while retaining all discovered sourcing channels.
 
+## 2026-09-20 - Deterministic hard filtering precedes semantic scoring
+
+Decision:
+Jobs must pass deterministic hard filters (compensation floor, location/remote constraints, security clearance exclusions, title disqualifiers, and unverified citizenship/sponsorship prerequisites) before scoring. Disqualified jobs are marked `FILTERED_OUT` with explicit reason codes and bypassed from LLM inference.
+
+Reason:
+Eliminates LLM spend on non-viable roles and prevents subtle hallucination or softening of strict candidate constraints.
+
+## 2026-09-20 - Multi-factor scoring with clear threshold bands
+
+Decision:
+Semantic scoring weights title alignment (30%), must-have skills (25%), preferred skills (15%), compensation (10%), location (10%), seniority (5%), and freshness (5%). Scores map directly to deterministic action bands: `SHORTLIST` (>= 70), `CONSIDER` (>= 55), and `REJECT` (< 55). Jobs in the `CONSIDER` band or with unverified sponsorship requirements automatically generate `NEEDS_REVIEW` tasks.
+
+Reason:
+Provides an auditable numerical score with human-in-the-loop review for borderline opportunities.
+
+## 2026-09-20 - Strict prohibition on demographic auto-fill and fact fabrication
+
+Decision:
+The screening question answering service is strictly prohibited from answering demographic questions (race, ethnicity, gender, disability, veteran status) or unverified candidate facts (unconfirmed relocation, unconfirmed sponsorship). These questions are flagged as `unresolved` and require human completion via the review queue.
+
+Reason:
+Candidate self-identification and legal declarations must never be automated or guessed by an AI model.
+
+## 2026-09-20 - Deterministic packet hashing and immutable artifacts
+
+Decision:
+Every generated application packet computes a SHA-256 digest over the selected resume variant, candidate answers, and cover letter. Resumes and cover letters are stored as immutable `ArtifactModel` records linked to the job and application.
+
+Reason:
+Guarantees full auditability and idempotency for downstream assisted and automated submission workflows.

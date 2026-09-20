@@ -395,5 +395,152 @@ def mailbox_status() -> None:
             console.print(class_table)
 
 
+@cli.command(name="evaluate-jobs")
+@click.option("--config-dir", default="config", help="Path to config directory.")
+@click.option("--limit", default=100, help="Max jobs to evaluate.")
+def evaluate_jobs(config_dir: str, limit: int) -> None:
+    """Evaluate discovered jobs using hard filters and multi-dimensional scoring."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Job Evaluation & Scoring[/bold blue]"))
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    search_config, _ = loader.load_job_search()
+
+    from jobs_automation.evaluation.engine import JobEvaluationEngine
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        eval_engine = JobEvaluationEngine(
+            session=session,
+            candidate_profile=profile,
+            job_search_config=search_config,
+        )
+        summary = eval_engine.run_evaluation_batch(limit=limit)
+
+        summary_table = Table(title="Evaluation Batch Summary", header_style="bold green")
+        summary_table.add_column("Metric", style="bold")
+        summary_table.add_column("Count", justify="right")
+        summary_table.add_row("Jobs Evaluated", str(summary.total_evaluated))
+        summary_table.add_row(
+            "[green]Shortlisted (Ready for Preparation)[/green]", str(summary.shortlisted)
+        )
+        summary_table.add_row(
+            "[yellow]Considered (Borderline / Review)[/yellow]", str(summary.considered)
+        )
+        summary_table.add_row(
+            "[yellow]Hard Filter Review Needed[/yellow]", str(summary.needs_review)
+        )
+        summary_table.add_row("[dim]Rejected (Disqualified)[/dim]", str(summary.rejected))
+
+        console.print(summary_table)
+
+
+@cli.command(name="prepare-packets")
+@click.option("--config-dir", default="config", help="Path to config directory.")
+@click.option("--limit", default=50, help="Max shortlisted jobs to prepare.")
+def prepare_packets(config_dir: str, limit: int) -> None:
+    """Build reproducible application packets for shortlisted jobs."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Application Packet Builder[/bold blue]"))
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+
+    from sqlalchemy import select
+
+    from jobs_automation.adapters.models import MockModelGateway
+    from jobs_automation.db.models import JobModel
+    from jobs_automation.preparation.packet_builder import ApplicationPacketBuilder
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        builder = ApplicationPacketBuilder(
+            session=session,
+            candidate_profile=profile,
+            model_gateway=MockModelGateway(),
+        )
+
+        stmt = (
+            select(JobModel)
+            .where(JobModel.status == "shortlisted")
+            .order_by(JobModel.first_seen_at.desc())
+            .limit(limit)
+        )
+        jobs = session.execute(stmt).scalars().all()
+
+        if not jobs:
+            console.print("[yellow]No shortlisted jobs waiting for packet preparation.[/yellow]")
+            return
+
+        packet_table = Table(title="Prepared Application Packets", header_style="bold cyan")
+        packet_table.add_column("Job Title", style="bold")
+        packet_table.add_column("Company")
+        packet_table.add_column("Resume Variant")
+        packet_table.add_column("Packet Hash (SHA-256)", style="dim")
+        packet_table.add_column("Status")
+
+        for job in jobs:
+            packet, res = builder.build_packet(job)
+            status_str = (
+                "[yellow]Review Needed[/yellow]"
+                if res.has_unresolved_questions
+                else "[green]Prepared[/green]"
+            )
+            co_name = job.company.normalized_name if job.company else "Unknown"
+            packet_table.add_row(
+                job.normalized_title,
+                co_name,
+                res.resume_variant,
+                res.packet_hash[:16] + "...",
+                status_str,
+            )
+
+        session.commit()
+        console.print(packet_table)
+
+
+@cli.command(name="review-queue")
+def review_queue() -> None:
+    """List pending review tasks awaiting candidate input."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Human Review Queue[/bold blue]"))
+
+    from sqlalchemy import select
+
+    from jobs_automation.db.models import TaskModel
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        stmt = (
+            select(TaskModel)
+            .where(TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending")
+            .order_by(TaskModel.due_at.desc().nulls_last())
+        )
+        tasks = session.execute(stmt).scalars().all()
+
+        if not tasks:
+            console.print("[green]Review queue is clean! No pending items require review.[/green]")
+            return
+
+        table = Table(title="Pending Review Items", header_style="bold yellow")
+        table.add_column("Task ID", style="dim")
+        table.add_column("Reason", style="bold")
+        table.add_column("Due / Created")
+
+        for t in tasks:
+            reason = t.payload_json.get("reason", "Unknown reason") if t.payload_json else "Unknown"
+            time_str = t.due_at.strftime("%Y-%m-%d %H:%M") if t.due_at else "Immediate"
+            table.add_row(str(t.id)[:8] + "...", reason, time_str)
+
+        console.print(table)
+
+
 if __name__ == "__main__":
     cli()
