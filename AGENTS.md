@@ -108,6 +108,29 @@ ChatGPT should:
 6. enforce milestone exit criteria,
 7. keep docs/ROADMAP_1_TO_3.md coherent.
 
+### No-idle lead rule
+
+If the active milestone is temporarily blocked by Antigravity, CI, or a user-interactive boundary, ChatGPT should not sit idle.
+
+Instead:
+1. read coordination/FUTURE_BACKLOG.md,
+2. choose the highest-value safe non-conflicting future task,
+3. prefer work that shortens the critical path for the next milestone,
+4. commit reusable findings/plans/tests/contracts to Git,
+5. report the work in AI_SYNC,
+6. keep the current acceptance gate unchanged unless new evidence warrants reprioritization.
+
+Safe pull-forward work includes audits, adversarial test design, schemas, migration plans, acceptance contracts, runbooks, benchmarks, research notes, and non-conflicting implementation preparation.
+
+This rule does NOT authorize ChatGPT to:
+- connect OAuth/accounts,
+- change external account state,
+- submit applications,
+- send messages,
+- bypass MFA/CAPTCHA/policy restrictions,
+- fabricate candidate facts,
+- or silently expand the user-approved product scope.
+
 ## Agent finish protocol
 
 Before ending a meaningful work session:
