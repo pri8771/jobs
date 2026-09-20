@@ -3,7 +3,7 @@
 ChatGPT owns priority/order unless the user explicitly overrides it.
 Antigravity executes the highest-priority unblocked work, tests it, commits, pushes, and reports through coordination/AI_SYNC.md.
 
-Last prioritized: 2026-09-20 18:57 ET
+Last prioritized: 2026-09-20 19:44 ET
 
 ## Strategic finish line
 
@@ -236,25 +236,31 @@ No live submission without explicit user authorization for that exact job/packet
 - External confirmation is required for real submission state.
 - V2/V3 remains tentative reference only until after the first-real-application proof.
 
-
 ## Artifact-backed future worker TODOs
 
 These are prepared in advance. Do not start blocked tasks until dependencies are accepted or ChatGPT moves them to READY.
 
-### Artifact A-V15-ASSISTED-APPLICATION
+### Artifact A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION
 
 | Task ID | SP | Status | Task | Depends on |
 |---|---:|---|---|---|
-| J15-01 | 2 | BLOCKED | Implement form-field classification + canonical provenance mapping | A-V14 ACCEPTED |
-| J15-02 | 2 | BLOCKED | Implement manual-barrier classifier for login/MFA/CAPTCHA/EEO/unknown fields | A-V14 ACCEPTED |
-| J15-03 | 3 | BLOCKED | Build pre-submit review manifest from accepted packet + mapped form | J15-01, J15-02 |
-| J15-04 | 2 | BLOCKED | Verify uploaded resume/cover-letter hashes match accepted packet artifacts | J15-01 |
+| J15-00 | 2 | BLOCKED | Require explicit lead-accepted packet ID; prohibit implicit latest-packet selection in real assisted runs | A-V14 ACCEPTED |
+| J15-01 | 2 | BLOCKED | Inspect form before write; classify fields and attach canonical provenance mappings | A-V14 ACCEPTED |
+| J15-02 | 2 | BLOCKED | Implement manual-barrier classifier for login/MFA/CAPTCHA/consent/EEO/unknown fields | A-V14 ACCEPTED |
+| J15-03 | 3 | BLOCKED | Build pre-submit review manifest from accepted packet + inspected/mapped form | J15-00, J15-01, J15-02 |
+| J15-04 | 2 | BLOCKED | Read back uploaded resume/cover-letter bytes and verify hashes against accepted packet immediately before upload | J15-00 |
 | J15-05 | 3 | BLOCKED | Capture external confirmation evidence after assisted user submit | user-approved proof job + assisted run |
 | J15-06 | 2 | BLOCKED | Persist assisted application audit/lifecycle evidence | J15-05 |
+| J15-07 | 3 | BLOCKED | Use one persistent visible Playwright context for inspect/prefill/upload/review; do not close after fixed short wait | A-V14 ACCEPTED |
+| J15-08 | 2 | BLOCKED | Enforce unresolved consequential questions and UNKNOWN_REQUIRED fields as stop/review conditions | J15-01, J15-02 |
+| J15-09 | 2 | BLOCKED | Require external evidence before real SUBMITTED; generic/local receipt or auto_confirm alone is insufficient | A-V14 ACCEPTED |
+| J15-10 | 1 | BLOCKED | Mark mock browser evidence simulation-only and forbid it from satisfying real submission state | A-V14 ACCEPTED |
 
 Artifact docs:
+- coordination/artifacts/A-V15-BROWSER-SAFETY-CONTRACT.md
 - coordination/artifacts/A-V15-ASSISTED-APPLICATION.md
 - docs/V1_5_FAST_START.md
+- docs/V1_5_BROWSER_SAFETY_CONTRACT.md
 
 ### Artifact A-V16-SUBMISSION-CONTRACT / A-V16-FIRST-REAL-SUBMISSION
 
