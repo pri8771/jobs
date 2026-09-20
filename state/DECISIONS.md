@@ -241,3 +241,12 @@ The `LifecycleAlertService` inspects communication timelines to detect unanswere
 
 Reason:
 Keeps the candidate responsive to live recruiter outreach while identifying stalled hiring processes without sending unapproved automated replies.
+
+## 2026-09-20 - Embedded portable dashboard architecture
+
+Decision:
+The operations dashboard and REST API are built with Python's standard library `http.server.ThreadingHTTPServer` with an embedded modern responsive Single Page Application rather than introducing heavy third-party web frameworks (FastAPI, Flask, Starlette).
+
+Reason:
+Maximizes cross-environment portability, guarantees zero external dependency bloat, starts instantly, and ensures out-of-the-box operation across desktop CLI, cloud VMs, and containerized Docker environments.
+

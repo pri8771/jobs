@@ -949,5 +949,30 @@ def update_lifecycle() -> None:
         )
 
 
+@cli.command(name="dashboard")
+@click.option("--host", default="127.0.0.1", help="Host interface to bind dashboard.")
+@click.option("--port", default=8080, type=int, help="Port to run dashboard.")
+def dashboard(host: str, port: int) -> None:
+    """Launch embedded interactive web dashboard and REST API."""
+    console.print(
+        Panel.fit(
+            f"[bold blue]Jobs Automation — Web Dashboard & Analytics[/bold blue]\n[green]http://{host}:{port}[/green]"
+        )
+    )
+    from jobs_automation.dashboard.server import DashboardServer
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    server = DashboardServer(session_factory, host=host, port=port)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Stopping dashboard server...[/yellow]")
+        server.shutdown()
+
+
 if __name__ == "__main__":
     cli()
+
