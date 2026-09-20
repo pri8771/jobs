@@ -1,0 +1,63 @@
+version: 1
+
+identity:
+  full_name: null
+  preferred_name: null
+  email: null
+  phone: null
+  city: null
+  state: null
+  country: "US"
+
+links:
+  linkedin: null
+  github: null
+  portfolio: null
+  personal_site: null
+
+target:
+  headline: null
+  target_role_families:
+    - "SAP BTP / Integration / Automation"
+    - "Applied AI / AI Automation"
+    - "Enterprise Platform / Integration"
+  minimum_base_salary_usd: null
+  desired_base_salary_usd: null
+  remote_preference: null
+  relocation: null
+  travel_percent_max: null
+
+work_authorization:
+  authorized_to_work_in_us: null
+  requires_sponsorship_now: null
+  requires_sponsorship_future: null
+  notes: null
+
+experience:
+  current_role: null
+  roles: []
+
+education: []
+
+skills:
+  primary: []
+  secondary: []
+  certifications: []
+
+resume:
+  base_resume_paths: []
+  default_resume_id: null
+
+application_answers:
+  willing_to_relocate: null
+  willing_to_travel: null
+  notice_period_days: null
+  earliest_start_date: null
+  salary_expectation_text: null
+
+demographic_answers:
+  policy: "do_not_guess"
+  values: {}
+
+notes:
+  - "Replace null values only with confirmed facts."
