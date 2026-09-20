@@ -28,26 +28,38 @@ Checkpoint:
 
 ## V0.2 - Job alerts + Gmail ingestion
 
-Goal: job alerts become normalized job records automatically.
+Goal: job alerts and recruiting/application email become normalized records automatically.
 
 Deliverables:
 - Gmail OAuth setup
 - configurable Gmail queries/labels
-- polling worker
-- raw message storage
+- polling worker with a 4-hour default interval
+- configurable 3-4 hour polling cadence
+- incremental checkpointing with overlap window
+- once-daily reconciliation pass
+- raw/normalized message storage
+- Gmail message + thread ID persistence
+- inbound/outbound direction tracking
 - LinkedIn alert parser
 - Indeed alert parser
 - ZipRecruiter alert parser
 - Dice alert parser
 - generic parser fallback
+- basic recruiter/company/application email classification
+- thread preservation
 - URL normalization
 - deduplication
 - fixture tests
-- alert health/status reporting
+- polling idempotency tests
+- alert/mailbox health/status reporting
+
+No real-time Gmail push architecture is required.
 
 Checkpoint:
 - a test set of real/sanitized alert emails produces deduplicated job records
-- re-running ingestion creates no duplicates
+- recruiting/application messages are preserved with message/thread IDs
+- re-running ingestion creates no duplicate jobs/messages/events
+- a failed sweep does not skip unprocessed messages
 
 ## V0.3 - Filtering and application preparation
 
@@ -114,13 +126,21 @@ Checkpoint:
 
 Goal: track applications from submission to outcome.
 
+Canonical communication rules:
+- docs/EMAIL_TRACKING.md
+
 Deliverables:
-- classification of confirmation/recruiter/interview/rejection/offer emails
-- entity linking
+- full classification of confirmation/recruiter/screening/interview/rejection/offer/background/onboarding emails
+- company/job/application/contact entity linking
+- complete chronological recruiter/company threads
+- inbound and outbound communication tracking
 - lifecycle event engine
-- recruiter/contact timeline
+- recruiter/contact records and timelines
 - interview extraction
+- new-role detection inside existing recruiter threads
+- ambiguous-link NEEDS_REVIEW queue
 - follow-up task generation
+- unanswered-recruiter detection
 - stale-application reminders
 - manual correction tools
 
@@ -128,7 +148,10 @@ Optional:
 - Google Calendar integration for interviews after explicit setup
 
 Checkpoint:
-- application timelines update from incoming email with traceable evidence
+- application timelines update from incoming/outgoing email with traceable evidence
+- source Gmail messages remain authoritative
+- recruiter threads stay intact across the application lifecycle
+- ambiguous messages do not silently change application state
 
 ## V0.7 - Dashboard and analytics
 
