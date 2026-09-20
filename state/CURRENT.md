@@ -12,10 +12,17 @@ V0.1 - Portable foundation + profiles
 - repository initialized
 - canonical cross-IDE agent contract defined
 - product specification defined
+- candidate positioning and targeted-resume strategy added
+- target compensation direction seeded at $150K+
+- target role families seeded
 - architecture defined
 - platform automation constraints documented
 - runtime data model defined
 - initial profile/alert plan defined
+- tools/infrastructure plan defined
+- Antigravity rules/skills/workflows added
+- Cursor, Claude Code, Copilot, and generic agent entry points added
+- non-secret candidate/search/platform/model/policy config templates added
 - roadmap defined
 
 ## Decisions currently in force
@@ -31,34 +38,46 @@ V0.1 - Portable foundation + profiles
 - LiteLLM-compatible model routing is preferred.
 - MVP scheduler stays simple; do not introduce Celery/Redis prematurely.
 - Browser execution is separated from the always-on controller.
+- Primary career positioning is Enterprise Automation & Solutions Architect.
+- Maintain multiple targeted resume variants rather than one generic resume.
+- Search should cover enterprise automation/SAP BTP, AI automation/software, technical product/platform, iOS/mobile leadership, and IT applications/infrastructure leadership.
+- Target compensation is $150K+; implementation must confirm base vs total-comp semantics before using this as a hard rejection rule.
 
 ## Next implementation tasks for V0.1
 
 1. Create Python project scaffold and Docker Compose PostgreSQL.
-2. Add config models and loaders.
-3. Add example candidate/search/platform configuration.
-4. Add policy registry with deny-by-default behavior.
-5. Add database models/migrations for foundational entities.
-6. Add CLI commands:
+2. Add config models and loaders using the committed YAML contracts.
+3. Add policy registry with deny-by-default behavior.
+4. Add database models/migrations for foundational entities.
+5. Add CLI commands:
    - validate-config
    - db-check
    - status
-7. Add tests.
-8. Generate a profile setup worksheet from validated config.
+6. Add tests.
+7. Generate a profile setup worksheet from validated config.
+8. Use that worksheet to complete/verify LinkedIn, Indeed, ZipRecruiter, and Dice profiles.
 9. Update this file with verification results.
 
 ## User-input tasks during V0.1
 
-The user will eventually need to provide/confirm:
-- canonical resume(s)
-- preferred target titles
-- compensation floor/range
-- location and remote preferences
+Already known:
+- primary candidate positioning
+- target role families
+- Pittsburgh + US-remote search seed
+- $150K+ compensation target direction
+- targeted resume strategy
+- known education and recent role history
+
+Still needs user confirmation/input:
+- canonical resume file(s) to use
+- exact base-vs-total-comp interpretation for the $150K+ threshold
+- remote/hybrid/on-site preferences beyond the current search seed
 - work authorization / sponsorship answers
 - relocation/travel preferences
+- phone/email and profile URLs
 - reusable application answers
-- profile links
 - account/profile status for LinkedIn, Indeed, ZipRecruiter, Dice
+- any missing exact employment dates/details
 
 Unknown answers must remain TODO; agents must not infer them.
 
