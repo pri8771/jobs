@@ -1,12 +1,12 @@
 version: 1
 
 identity:
-  full_name: null
-  preferred_name: null
+  full_name: "Priyansh Chordia"
+  preferred_name: "Priyansh"
   email: null
   phone: null
-  city: null
-  state: null
+  city: "Pittsburgh"
+  state: "PA"
   country: "US"
 
 links:
@@ -16,16 +16,38 @@ links:
   personal_site: null
 
 target:
-  headline: null
+  primary_headline: "Enterprise Automation & Solutions Architect"
+  alternate_headlines:
+    - "Senior Software Engineer - AI Workflow Automation & Enterprise Systems"
+    - "Senior iOS Engineer / Mobile Engineering Lead"
+    - "IT Applications & Infrastructure Manager"
   target_role_families:
-    - "SAP BTP / Integration / Automation"
-    - "Applied AI / AI Automation"
-    - "Enterprise Platform / Integration"
-  minimum_base_salary_usd: null
-  desired_base_salary_usd: null
+    - "Enterprise Automation & Solutions Architecture"
+    - "SAP BTP / Enterprise Automation"
+    - "AI Automation / Business Systems Architecture"
+    - "Senior Software Engineering / AI Workflow Automation"
+    - "Technical Product / Platform Product"
+    - "Senior iOS / Mobile Engineering Leadership"
+    - "IT Applications / Infrastructure / Automation Management"
+  target_compensation_usd_min: 150000
+  compensation_basis: "confirm_base_vs_total_comp"
   remote_preference: null
   relocation: null
   travel_percent_max: null
+
+positioning:
+  summary: "Senior technical operator who can build software, automate business processes, manage enterprise systems, and lead vendors/projects."
+  differentiators:
+    - "Software engineering + enterprise systems"
+    - "SAP exposure + automation"
+    - "AI/OCR/LLM workflow automation"
+    - "Infrastructure + business applications"
+    - "Vendor/project leadership"
+    - "Manufacturing/pharma experience"
+  avoid_positioning_as:
+    - "generic IT generalist"
+    - "helpdesk/basic support"
+    - "only a developer"
 
 work_authorization:
   authorized_to_work_in_us: null
@@ -34,19 +56,98 @@ work_authorization:
   notes: null
 
 experience:
-  current_role: null
-  roles: []
+  current_role:
+    company: "Viatris"
+    role: "Contractor - SAP BTP / Enterprise Automation"
+    start: "2024-10"
+  roles:
+    - company: "Thar Process"
+      role: "Head of IT / Business Operations"
+      start: "2019"
+      end: "2024"
+    - company: "Nootry"
+      role: "Co-founder"
+      start: "2017"
+      end: "2019"
+    - company: "Veeva"
+      role: "iOS Developer"
+      start: null
+      end: null
 
-education: []
+education:
+  - school: "Carnegie Mellon University"
+    credential: "B.S. Chemical Engineering"
+  - school: "Flatiron School"
+    credential: "Software Development / iOS Certificate"
 
 skills:
-  primary: []
-  secondary: []
+  primary:
+    - "SAP BTP"
+    - "SAP integrations / ERP workflows"
+    - "AI/OCR/LLM extraction"
+    - "document automation"
+    - "Python"
+    - "FastAPI"
+    - "React / Next.js"
+    - "Docker"
+    - "Swift / iOS"
+    - "enterprise infrastructure"
+    - "vendor management"
+    - "project delivery"
+  secondary:
+    - "Java"
+    - "Objective-C"
+    - "TypeScript"
+    - "Firebase"
+    - "Azure"
+    - "AWS"
+    - "GCP"
+    - "VMware"
+    - "Meraki"
+    - "Microsoft 365"
   certifications: []
 
 resume:
+  strategy: "maintain_targeted_versions"
+  recommended_versions:
+    - id: "enterprise_automation_solutions_architect"
+      priority: 1
+      emphasize:
+        - "SAP BTP"
+        - "AI/OCR automation"
+        - "ERP workflows"
+        - "integrations"
+        - "vendors"
+        - "infrastructure"
+    - id: "senior_software_ai_automation"
+      priority: 2
+      emphasize:
+        - "Python"
+        - "FastAPI"
+        - "React / Next.js"
+        - "Firebase"
+        - "Docker"
+        - "Swift / iOS"
+        - "OCR/LLM workflows"
+    - id: "senior_ios_mobile_lead"
+      priority: 3
+      emphasize:
+        - "Veeva CRM"
+        - "HCP app"
+        - "Swift / Objective-C"
+        - "regulated apps"
+        - "founder experience"
+    - id: "it_apps_infrastructure_manager"
+      priority: 4
+      emphasize:
+        - "Microsoft 365"
+        - "VMware / Meraki"
+        - "endpoint management"
+        - "vendors"
+        - "business systems"
+        - "automation"
   base_resume_paths: []
-  default_resume_id: null
+  default_resume_id: "enterprise_automation_solutions_architect"
 
 application_answers:
   willing_to_relocate: null
@@ -60,4 +161,6 @@ demographic_answers:
   values: {}
 
 notes:
-  - "Replace null values only with confirmed facts."
+  - "Do not list certifications unless they are real, current, and defensible."
+  - "Do not use one generic resume across every role family."
+  - "Replace remaining null values only with confirmed facts."
