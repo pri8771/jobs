@@ -6,21 +6,55 @@ This file is the cross-IDE contract for every AI agent that works in this reposi
 
 Build and operate a portable personal job-search automation system that discovers relevant jobs, prepares high-quality applications, submits only through permitted workflows, and tracks the complete application lifecycle and related communications.
 
+## Operating model
+
+- User = product owner and final authority.
+- ChatGPT = lead agent, architect, reviewer, prioritizer, and quality gate.
+- Antigravity = primary execution workhorse.
+- Antigravity should keep executing the highest-priority unblocked work from coordination/WORK_QUEUE.md, test it, commit it, push it, and report progress.
+- ChatGPT reviews/audits Antigravity output, changes priority, resolves architecture ambiguity, and decides whether milestone exit criteria are actually met.
+- Explicit user instructions override both agents.
+
 ## Source of truth
 
-Do not rely on conversation memory as project state. Before meaningful work, read:
+Do not rely on conversation memory as project state.
 
-1. README.md
-2. docs/PROJECT_SPEC.md
-3. docs/CANDIDATE_POSITIONING.md
-4. docs/ARCHITECTURE.md
-5. docs/PLATFORM_CONSTRAINTS.md
-6. docs/ROADMAP.md
-7. state/CURRENT.md
-8. state/DECISIONS.md
+Before meaningful work, read in this order:
+
+1. coordination/CONTEXT.md
+2. coordination/WORK_QUEUE.md
+3. recent entries in coordination/AI_SYNC.md
+4. README.md
+5. docs/PROJECT_SPEC.md
+6. docs/CANDIDATE_POSITIONING.md
+7. docs/ARCHITECTURE.md
+8. docs/PLATFORM_CONSTRAINTS.md
+9. docs/ROADMAP_1_TO_3.md
+10. state/CURRENT.md
+11. state/DECISIONS.md
+
+Only load deeper historical docs/code needed for the task at hand.
 
 If these conflict, use this precedence:
-AGENTS.md > docs/PROJECT_SPEC.md > explicit architecture decisions in state/DECISIONS.md > other docs > code comments.
+explicit user instruction > AGENTS.md > coordination/WORK_QUEUE.md > docs/PROJECT_SPEC.md > state/DECISIONS.md > coordination/CONTEXT.md > other docs > code comments.
+
+## Inter-agent coordination
+
+Use coordination/AI_SYNC.md as the primary ChatGPT <-> Antigravity message channel.
+
+While actively working on this project:
+- check the sync channel at the beginning of work,
+- post at least one check-in per hour,
+- post immediately on milestone completion, meaningful blocker, architecture/policy question, or test failure requiring the other agent,
+- every check-in must state Done, Next, Blockers/risks, Commits, and Message to other agent.
+
+Do not put durable architecture truth only in AI_SYNC:
+- durable project memory -> coordination/CONTEXT.md
+- execution priorities -> coordination/WORK_QUEUE.md
+- implementation/milestone truth -> state/CURRENT.md
+- architecture decisions -> state/DECISIONS.md
+
+Keep compact context compact; do not reload the whole repository/conversation every hour.
 
 ## Non-negotiable rules
 
@@ -39,16 +73,40 @@ AGENTS.md > docs/PROJECT_SPEC.md > explicit architecture decisions in state/DECI
 - Follow docs/CANDIDATE_POSITIONING.md for role targeting and resume strategy.
 - Maintain targeted resume versions; do not collapse the candidate into one generic resume.
 - A model may recommend or draft; deterministic code owns state transitions, deduplication, policy checks, and audit logging.
+- Simulation/mock behavior must never masquerade as a real external action.
 
 ## Agent start protocol
 
 At the start of a task:
 
-1. Read the canonical files listed above.
-2. Inspect git status and recent commits.
-3. Read the current checkpoint in state/CURRENT.md.
-4. Work only on tasks inside that checkpoint unless the user explicitly changes scope.
+1. Pull/fetch the latest repository state.
+2. Read compact context, queue, recent sync, and current state.
+3. Inspect recent commits relevant to the current task.
+4. Work from the highest-priority unblocked queue item unless ChatGPT/user gave a newer instruction.
 5. Prefer tests and small interfaces before broad implementation.
+
+## Antigravity execution protocol
+
+Antigravity is expected to keep moving the queue while active.
+
+1. Take the highest-priority unblocked task.
+2. Implement a coherent batch.
+3. Run relevant tests/lint/type checks.
+4. Commit and push.
+5. Post a sync message.
+6. Continue to the next unblocked task when the queue and milestone boundaries make it safe to do so.
+7. Escalate architectural/safety uncertainty through AI_SYNC instead of silently changing strategy.
+
+## ChatGPT lead protocol
+
+ChatGPT should:
+1. review new Antigravity commits,
+2. audit claims against implementation,
+3. update WORK_QUEUE priority,
+4. update CONTEXT when durable memory changes,
+5. communicate directives through AI_SYNC,
+6. enforce milestone exit criteria,
+7. keep docs/ROADMAP_1_TO_3.md coherent.
 
 ## Agent finish protocol
 
@@ -61,10 +119,12 @@ Before ending a meaningful work session:
    - current blockers
    - exact next task
 3. Update state/DECISIONS.md if an architectural or behavioral decision changed.
-4. Update docs when implementation changes the truth.
-5. Commit with a clear message.
-6. Push the branch if credentials permit.
-7. Stop at the checkpoint boundary. Do not silently continue into the next version.
+4. Update coordination/CONTEXT.md if durable context changed.
+5. Update coordination/WORK_QUEUE.md if execution priority changed.
+6. Append an AI_SYNC check-in.
+7. Update docs when implementation changes the truth.
+8. Commit with a clear message.
+9. Push the branch if credentials permit.
 
 ## Development style
 
@@ -101,4 +161,5 @@ A feature is not done until:
 - state is updated,
 - failure behavior is explicit,
 - secrets are not exposed,
-- and a different agent can understand how to continue by reading the repo alone.
+- simulation is clearly separated from real external success,
+- and a different agent can understand how to continue by reading compact context + queue + recent sync.
