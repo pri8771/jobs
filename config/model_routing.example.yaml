@@ -1,0 +1,44 @@
+version: 1
+
+gateway: "litellm_compatible"
+
+defaults:
+  temperature: 0
+  timeout_seconds: 60
+  max_retries: 2
+
+tasks:
+  email_classification:
+    model: null
+    sensitivity: "normal"
+    fallback_models: []
+
+  alert_extraction:
+    model: null
+    sensitivity: "normal"
+    fallback_models: []
+
+  job_matching:
+    model: null
+    sensitivity: "normal"
+    fallback_models: []
+
+  resume_tailoring:
+    model: null
+    sensitivity: "contains_candidate_data"
+    fallback_models: []
+
+  cover_letter:
+    model: null
+    sensitivity: "contains_candidate_data"
+    fallback_models: []
+
+  screening_answers:
+    model: null
+    sensitivity: "contains_candidate_data"
+    fallback_models: []
+
+privacy:
+  allow_external_models_for_candidate_data: true
+  redact_unrelated_email_content: true
+  local_only_tasks: []
