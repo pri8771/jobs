@@ -95,6 +95,8 @@ Maintain targeted resume variants. Do not collapse to one generic resume.
 - Missing personal facts -> review, not guessing.
 - Separate discovery source from application destination policy.
 - Employer/ATS automation must have explicit current approval.
+- A simulated application must never be recorded as a real submission.
+- Real APPLICATION_SUBMITTED requires external confirmation evidence.
 
 ## Current implementation reality
 
@@ -125,11 +127,62 @@ Important audit findings still to resolve:
 8. state/CURRENT.md overstates production readiness.
 9. Package/documented maturity versions are inconsistent.
 
+## Current strategic priority
+
+Near-term goal:
+
+**Build only as far as necessary to prove one genuine, externally confirmed application workflow for the user.**
+
+Current milestone path:
+- V1.1 stabilize current implementation
+- V1.2 connect real candidate/account/Gmail inputs
+- V1.3 ingest/select a real job
+- V1.4 build a truthful real application packet
+- V1.5 complete a real assisted application path
+- V1.6 prove one genuine system-submitted application with external confirmation
+
+After V1.6:
+- stop broad development,
+- perform ChatGPT review,
+- reassess priorities before expanding further.
+
+Detailed near-term plan:
+- docs/FIRST_REAL_APPLICATION_PLAN.md
+
+The V2/V3 vision remains tentative future direction only:
+- docs/TENTATIVE_V3_ARCHITECTURE.md
+- docs/ROADMAP_1_TO_3.md
+
+Do not implement Temporal, LangGraph, Jobs MCP, MinIO, pgvector, or other V2/V3 infrastructure merely because it is in the tentative plan.
+
+## Account/integration expectations before a real application
+
+Likely required in V1.2+:
+- real candidate facts
+- canonical resume source(s)
+- Google Cloud project for runtime Gmail OAuth
+- Gmail read-only connection
+- LinkedIn account/profile
+- Indeed account/profile
+- ZipRecruiter account/profile
+- Dice account/profile
+- dedicated authenticated browser profile for application work as needed
+
+Likely manual checkpoints:
+- login
+- MFA
+- CAPTCHA
+- phone/email verification
+- profile confirmation
+- missing personal facts
+
+The runtime should own its own OAuth/API state; it must not depend on ChatGPT/Antigravity being open.
+
 ## Immediate objective
 
 Current milestone: V1.1 Stabilization and truthful integration.
 
-Priority is to fix correctness, wiring, safety, and CI before adding new product breadth.
+Priority is to fix correctness, wiring, safety, and CI before connecting real data.
 
 ## Repo portability
 
