@@ -92,8 +92,6 @@ class WorkerDaemon:
         # Determine if reconciliation should run
         if reconcile is not None:
             should_reconcile = reconcile
-            if should_reconcile:
-                self.last_reconciliation_at = now
         else:
             if (
                 self.last_reconciliation_at is None
@@ -101,7 +99,6 @@ class WorkerDaemon:
                 >= self.reconciliation_interval_seconds
             ):
                 should_reconcile = True
-                self.last_reconciliation_at = now
             else:
                 should_reconcile = False
 
@@ -112,7 +109,7 @@ class WorkerDaemon:
             "lifecycle_transitions": 0,
             "unanswered_alerts": 0,
             "stale_alerts": 0,
-            "reconciliation_performed": should_reconcile,
+            "reconciliation_performed": False,
             "errors": [],
         }
 
@@ -140,6 +137,10 @@ class WorkerDaemon:
                     results["jobs_discovered"] = summary.jobs_discovered_new
                     if summary.errors:
                         results["errors"].extend(summary.errors)
+                    else:
+                        if should_reconcile:
+                            self.last_reconciliation_at = now
+                            results["reconciliation_performed"] = True
                 except Exception as exc:
                     logger.error(
                         "Error during scheduled email ingestion sweep: %s",

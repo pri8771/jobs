@@ -196,3 +196,58 @@ def test_worker_polling_exception_does_not_crash(
     results = daemon.run_sweep()
     assert any("Network timeout" in err for err in results["errors"])
     assert results["messages_ingested"] == 0
+
+
+def test_worker_reconciliation_remains_due_when_adapter_unavailable(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    # When email adapter is unavailable, reconciliation must NOT be recorded as performed
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        email_adapter=None,
+    )
+
+    assert daemon.last_reconciliation_at is None
+    res1 = daemon.run_sweep()
+    assert res1["reconciliation_performed"] is False
+    assert daemon.last_reconciliation_at is None
+
+    # Next sweep without arguments must still attempt reconciliation
+    res2 = daemon.run_sweep()
+    assert res2["reconciliation_performed"] is False
+    assert daemon.last_reconciliation_at is None
+
+
+def test_worker_reconciliation_remains_due_when_polling_fails(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    class FailingAdapter(EmailAdapter):
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            raise ConnectionResetError("Connection lost during reconciliation")
+
+        def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
+            return []
+
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        email_adapter=FailingAdapter(),
+        candidate_emails=["candidate@example.com"],
+    )
+
+    assert daemon.last_reconciliation_at is None
+    res1 = daemon.run_sweep()
+    assert res1["reconciliation_performed"] is False
+    assert daemon.last_reconciliation_at is None
+    assert any("Connection lost" in err for err in res1["errors"])
+
+    # Reconciliation remains due
+    res2 = daemon.run_sweep()
+    assert res2["reconciliation_performed"] is False
+    assert daemon.last_reconciliation_at is None
