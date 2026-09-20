@@ -23,6 +23,8 @@ V0.1 - Portable foundation + profiles
 - Antigravity rules/skills/workflows added
 - Cursor, Claude Code, Copilot, and generic agent entry points added
 - non-secret candidate/search/platform/model/policy config templates added
+- Gmail polling cadence standardized at 4 hours by default, configurable around 3-4 hours
+- recruiter/company communication tracking rules added
 - roadmap defined
 
 ## Decisions currently in force
@@ -30,6 +32,11 @@ V0.1 - Portable foundation + profiles
 - Git is the development/project-context source of truth.
 - PostgreSQL will be the normal runtime database.
 - Gmail email ingestion is the primary cross-platform discovery/status bus.
+- Gmail does not need real-time processing; use a 4-hour default polling interval with a configurable 3-4 hour operating range.
+- Perform an optional daily reconciliation pass to catch gaps.
+- Track both inbound and outbound recruiter/company email and preserve full Gmail thread history.
+- Raw Gmail message/thread IDs remain authoritative evidence for email-derived lifecycle changes.
+- Ambiguous email/application links must route to NEEDS_REVIEW rather than guessing.
 - LinkedIn, Indeed, ZipRecruiter, and Dice are the initial four job boards.
 - Dice is the fourth board because it is technology-focused and supports profile + alerts.
 - LinkedIn and Indeed submission automation is disabled under their current rules.
@@ -47,16 +54,17 @@ V0.1 - Portable foundation + profiles
 
 1. Create Python project scaffold and Docker Compose PostgreSQL.
 2. Add config models and loaders using the committed YAML contracts.
-3. Add policy registry with deny-by-default behavior.
-4. Add database models/migrations for foundational entities.
-5. Add CLI commands:
+3. Ensure the email configuration model supports the committed 4-hour default cadence.
+4. Add policy registry with deny-by-default behavior.
+5. Add database models/migrations for foundational entities.
+6. Add CLI commands:
    - validate-config
    - db-check
    - status
-6. Add tests.
-7. Generate a profile setup worksheet from validated config.
-8. Use that worksheet to complete/verify LinkedIn, Indeed, ZipRecruiter, and Dice profiles.
-9. Update this file with verification results.
+7. Add tests.
+8. Generate a profile setup worksheet from validated config.
+9. Use that worksheet to complete/verify LinkedIn, Indeed, ZipRecruiter, and Dice profiles.
+10. Update this file with verification results.
 
 ## User-input tasks during V0.1
 
@@ -67,6 +75,7 @@ Already known:
 - $150K+ compensation target direction
 - targeted resume strategy
 - known education and recent role history
+- email polling does not need to be real-time; 3-4 hour cadence is sufficient
 
 Still needs user confirmation/input:
 - canonical resume file(s) to use
