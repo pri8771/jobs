@@ -3,7 +3,7 @@
 ChatGPT owns priority/order unless the user explicitly overrides it.
 Antigravity executes the highest-priority unblocked work, tests it, commits, pushes, and reports through coordination/AI_SYNC.md.
 
-Last prioritized: 2026-09-20 15:46 ET
+Last prioritized: 2026-09-20 17:44 ET
 
 ## Strategic finish line
 
@@ -19,105 +19,158 @@ Path:
 
 After V1.6, stop broad development and request strategy review.
 
-## Current milestone
+## Current checkpoint
 
-V1.1 lead-review repair, then V1.2 preparation.
+### V1.1 — ACCEPTED
 
-Antigravity's commit `60a4c91` materially satisfies the V1.1 stabilization goals and current CI is green. Lead audit found one remaining scheduler correctness issue before V1.1 is accepted.
+Commit `0b0c255` fixes the lead-review reconciliation bug: failed adapter/polling paths no longer consume the 24-hour reconciliation slot. Regression coverage was added and CI on current main is green.
 
-## P0 — V1.1 lead-review repair
+### V1.2 — PARTIAL, NOT ACCEPTED
 
-### 1. Do not consume the daily reconciliation slot when ingestion fails
+Antigravity prepared a private candidate profile and reported zero unresolved facts, but the underlying local `jobs/profile.md` / private YAML is not available in Git for lead verification. The milestone also originally includes real account/Gmail onboarding, which has not occurred and remains user-interactive.
 
-Current behavior in `WorkerDaemon.run_sweep()` sets `last_reconciliation_at` before Gmail ingestion is known to have succeeded. If the adapter is unavailable or polling returns an error, the worker can suppress another reconciliation attempt for roughly 24 hours even though no reconciliation succeeded.
+Do not call V1.2 complete until the required private candidate facts/resume sources are provenance-checked and the user-authorized account/Gmail onboarding boundary is satisfied.
+
+### V1.3 — IMPLEMENTATION PROGRESS, NOT ACCEPTED
+
+`JobImporter` and `import-jobs` exist, and the Snorkel AI posting `6150440004` is externally verified live as of 2026-09-20. It is a hybrid New York City / San Francisco role, so it must not be treated as the user's chosen proof job until location/relocation fit is explicitly confirmed.
+
+V1.3 exit still requires a real ingestion canary from the intended discovery path and a reviewed proof-job selection grounded in verified candidate constraints.
+
+### V1.4 — REJECTED PENDING SAFETY/ATTRIBUTION REPAIR
+
+The current packet-preparation implementation is not safe enough for a real application. Fix the P0 items below before presenting any packet for user authorization.
+
+## P0 — Application packet safety and truthfulness
+
+### 1. Fail closed when the selected resume source is missing
+
+Current `ApplicationPacketBuilder` silently creates a synthetic stub resume when no base resume file is found.
 
 Required:
-- compute whether reconciliation is due without mutating `last_reconciliation_at`,
-- update `last_reconciliation_at` only after a reconciliation ingestion sweep completes successfully,
-- adapter-unavailable and polling-error paths must leave the reconciliation due state eligible for the next worker run,
-- explicit `reconcile=True` failure must likewise not mark reconciliation successful,
-- add regression tests for adapter-unavailable/polling-error retry behavior,
-- preserve the 4-hour normal cadence and existing DB checkpoint safety.
+- remove the synthetic resume fallback from operational packet building,
+- if the exact selected resume cannot be resolved/read, stop with a clear error / NEEDS_REVIEW,
+- never mark a packet real/reviewable when the resume bytes were not actually available.
 
-Acceptance:
+### 2. Map resume family/variant to the exact source artifact
+
+Current builder selects a variant name, then uses the first existing `base_resume_paths` entry rather than resolving the file corresponding to that variant.
+
+Required:
+- explicit mapping from resume family/variant ID -> exact source file,
+- immutable resume variant/version record as required by `docs/RESUME_OUTCOME_TRACKING.md` and `docs/DATA_MODEL.md`,
+- persistent `application_packet.resume_variant_id` linkage (with migration/model),
+- preserve parent/base version and job-specific tailoring identity where applicable,
+- add tests proving the wrong family cannot be silently used.
+
+### 3. Materialize real immutable artifacts
+
+Current packet builder creates `ArtifactModel.storage_uri` values but does not write the resume/cover-letter contents to those URIs.
+
+Required:
+- artifact URI must reference bytes that actually exist and whose SHA-256 matches the database record,
+- content must be immutable once a packet is submitted,
+- tests must read the stored artifact back and verify the hash.
+
+### 4. Remove hard-coded candidate facts from preparation code
+
+`CoverLetterDrafter` currently hard-codes candidate-specific claims in prompts/fallback copy. `MockModelGateway` also contains candidate-specific claims (including an `8+ years` Python answer).
+
+Required:
+- operational code derives candidate claims only from canonical profile/resume evidence,
+- no hard-coded candidate employment, education, achievement, tenure, or skill-duration claims,
+- test fixtures may use synthetic test candidates, but must not become runtime truth.
+
+### 5. No mock/known-answer fallback in real application preparation
+
+`LiteLLMModelGateway` defaults to `fallback_mock=True`; a provider/configuration failure can therefore silently substitute deterministic mock answers/cover-letter copy.
+
+Required:
+- real packet/application mode must fail closed on model/provider failure,
+- mock gateway is test/dev-only and must be explicitly selected,
+- runtime must expose whether output came from a real model, deterministic rules, or test mock,
+- no packet can be considered real if any consequential content came from a mock fallback.
+
+### 6. Screening answers must be provenance-checked
+
+Current `ScreeningQuestionAnsweringService` sends only the question to the model and trusts any `{resolved: true, answer: ...}` response.
+
+Required:
+- deterministic answers must cite the exact canonical candidate field/source used,
+- model-assisted answers may draft wording but cannot assert a candidate fact absent from canonical evidence,
+- unknown experience-duration/skill/eligibility questions must route to unresolved review,
+- add regression tests for hallucinated `resolved=true` model responses and missing profile facts.
+
+### 7. Demographic/EEO questions always require candidate choice
+
+Existing architecture decision says demographic self-identification must never be auto-filled. Current code will auto-answer if demographic values exist in profile config.
+
+Required:
+- race/ethnicity/gender/disability/veteran/sexual-orientation questions always remain unresolved/manual,
+- do not auto-submit stored demographic values.
+
+### 8. Rebuild the Snorkel packet only after repairs
+
+After P0 passes:
+- rebuild from exact verified resume bytes,
+- produce a machine-readable packet manifest with resume family, immutable variant/version, actual artifact hashes, cover letter, every screening question/answer, and provenance,
+- report any unresolved fields honestly,
+- do not claim `0 unresolved` based on mock/LLM-only answers.
+
+Acceptance for V1.4 repair:
 - pytest, ruff, mypy green,
-- CI green on pushed commit,
-- tests prove failed reconciliation does not consume the 24-hour reconciliation interval.
+- GitHub CI green,
+- no operational mock fallback,
+- exact resume artifact can be read back and hash-verified,
+- exact resume variant is permanently linked to packet/application,
+- all screening answers have canonical provenance or are unresolved,
+- packet can be independently inspected by ChatGPT/user without relying on an unverified local-only claim.
 
-### 2. Correct project state after the repair
+## P1 — Finish V1.2 engineering readiness while P0 is being repaired
 
-After the above passes:
-- mark V1.1 ACCEPTED in state/CURRENT.md,
-- update coordination/CONTEXT.md so the old V1.1 audit findings are no longer listed as unresolved,
-- post `READY FOR V1.2` in AI_SYNC with commit and CI evidence.
-
-## V1.2 — work authorized after P0 repair
-
-Engineering preparation may continue without waiting for repeated prompts. Do not connect real accounts or OAuth without the user's required interactive action.
-
-### P1 — unblocked engineering preparation
-
-1. Candidate onboarding contract
-- validate required canonical candidate fields,
-- clearly distinguish required, optional, sensitive, and review-only facts,
-- never invent missing values,
-- support canonical resume source registration without committing private resume contents to Git.
+1. Candidate-fact provenance report
+- produce a local/private provenance report for every non-null candidate fact,
+- distinguish user-confirmed, source-document-derived, inferred, and unknown,
+- inferred values may not become application truth without user confirmation,
+- do not commit private candidate contents to Git.
 
 2. Gmail OAuth readiness
-- add exact runtime configuration validation and diagnostics,
-- document Google Cloud project/OAuth setup,
-- support read-only Gmail scopes first,
-- provide a harmless connection/canary check that does not mutate mailbox state,
+- exact runtime configuration validation and diagnostics,
+- Google Cloud/OAuth setup documentation,
+- read-only Gmail scopes first,
+- harmless canary check design,
 - fail closed when credentials are absent.
 
 3. Source/account onboarding checklist
 - LinkedIn, Indeed, ZipRecruiter, Dice profile/alert readiness,
-- record profile/alert status without storing passwords,
-- identify the smallest user actions required for login/MFA/verification.
+- record status without passwords,
+- identify smallest user actions for login/MFA/verification.
 
 4. Real-ingestion canary plan
-- define how to run the first read-only Gmail sweep,
-- exact evidence required to prove no fixture/mock path was used,
-- exact rollback/recovery steps if parsing is wrong.
+- first read-only Gmail sweep,
+- evidence proving no mock/fixture path,
+- rollback/recovery if parsing is wrong.
 
-### User-blocked V1.2 actions
+## User-interactive boundaries
 
-Do not fabricate or bypass these. Surface them only when engineering prep is complete:
-- canonical private candidate facts that are still missing,
+Do not fabricate or bypass:
+- missing/private candidate facts,
 - canonical resume source files,
+- relocation/location preference for the Snorkel hybrid role,
 - Google Cloud OAuth consent/credentials,
 - Gmail authorization,
-- job-board login/MFA/phone/email verification as needed.
+- job-board login/MFA/phone/email verification,
+- approval of the exact proof job,
+- approval of the exact application packet,
+- live submission.
 
-## Later milestones
+## V1.5 — blocked
 
-### V1.3 — Real job ingestion/matching
-- ingest real alerts,
-- dedupe jobs,
-- detect actual application destination,
-- score/filter,
-- choose strong proof-job candidates.
+Do not prefill or open a live application session until V1.4 is accepted and the user has reviewed the exact safe packet.
 
-### V1.4 — Real application packet
-- correct resume family,
-- immutable exact resume variant/version/artifact/hash,
-- truthful tailoring,
-- screening answers,
-- unresolved-question block,
-- permanent application -> packet -> resume attribution for later response/interview/offer analytics.
+## V1.6 — blocked
 
-### V1.5 — Assisted real application
-- authenticated browser worker/profile,
-- form inspection/prefill/upload,
-- user review,
-- real confirmation capture.
-
-### V1.6 — First genuine system submission
-- approved real destination/method,
-- exact live application explicitly authorized by user,
-- execute real external submission,
-- capture external confirmation,
-- only then record APPLICATION_SUBMITTED.
+No live submission without explicit user authorization for that exact job/packet/method and external confirmation evidence.
 
 ## Standing safety rules
 
@@ -125,6 +178,6 @@ Do not fabricate or bypass these. Surface them only when engineering prep is com
 - Indeed submission: MANUAL_ONLY.
 - No CAPTCHA bypass or anti-bot evasion.
 - No fabricated candidate facts.
-- Simulation never equals submission.
+- Simulation/mock fallback never equals real preparation or submission.
 - External confirmation is required for real submission state.
 - V2/V3 remains tentative reference only until after the first-real-application proof.
