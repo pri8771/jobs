@@ -1,0 +1,43 @@
+version: 1
+
+default:
+  capability: "submit_application"
+  decision: "blocked"
+  reason: "deny_by_default"
+
+entries:
+  - platform: "linkedin"
+    domain_pattern: "*.linkedin.com"
+    capability: "submit_application"
+    decision: "manual_only"
+    reviewed_at: "2026-09-20"
+    review_due_at: "2026-12-20"
+    evidence:
+      - "https://www.linkedin.com/legal/jobs-terms-conditions"
+      - "https://www.linkedin.com/help/linkedin/answer/a8068422"
+
+  - platform: "indeed"
+    domain_pattern: "*.indeed.com"
+    capability: "submit_application"
+    decision: "manual_only"
+    reviewed_at: "2026-09-20"
+    review_due_at: "2026-12-20"
+    evidence:
+      - "https://www.indeed.com/legal"
+      - "https://support.indeed.com/hc/en-us/articles/360028540531-Indeed-Job-Seeker-Guidelines"
+
+  - platform: "ziprecruiter"
+    domain_pattern: "*.ziprecruiter.com"
+    capability: "submit_application"
+    decision: "assisted"
+    reviewed_at: "2026-09-20"
+    review_due_at: "2026-10-20"
+    notes:
+      - "Re-check candidate-side automation terms before enabling any submit adapter."
+
+  - platform: "dice"
+    domain_pattern: "*.dice.com"
+    capability: "submit_application"
+    decision: "assisted"
+    reviewed_at: "2026-09-20"
+    review_due_at: "2026-10-20"
