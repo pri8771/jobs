@@ -4,57 +4,58 @@ Updated: 2026-09-20
 
 ## Current checkpoint
 
-V0.5 — Controlled automatic application (IMPLEMENTED & VERIFIED)
+V0.6 — Communication and lifecycle automation (IMPLEMENTED & VERIFIED)
 
-## Completed in V0.5
+## Completed in V0.6
 
-- **ATS Submission Base** (`src/jobs_automation/automation/base.py`):
-  - Defined abstract `ATSAdapter` class with typed methods: `platform_name`, `can_handle`, `validate_packet`, and `submit_application`.
-  - Defined Pydantic models `ValidationResult` and `SubmissionResult` capturing atomic receipts (receipt ID, confirmation URL, submitted fields, response payload).
-- **Allowlisted ATS Adapters** (`src/jobs_automation/automation/adapters/`):
-  - `GreenhouseATSAdapter`: Validates standard required fields (name, email, resume) and submits structured Greenhouse payloads with atomic receipt capture.
-  - `LeverATSAdapter`: Validates required fields and submits structured Lever payloads.
-  - `ATSAdapterRegistry`: Modular registry for platform discovery and routing.
-- **Safety Gates & Kill Switch** (`src/jobs_automation/automation/kill_switch.py`):
-  - Global emergency shutdown via `JOBS_AUTOMATION_KILL_SWITCH` environment variable or manual override.
-  - Per-platform shutdown via `JOBS_AUTOMATION_KILL_SWITCH_<PLATFORM>`.
-  - Automatic expiration check: halts automation if policy review date (`review_due_at`) has elapsed.
-- **Domain Rate Limiter** (`src/jobs_automation/automation/rate_limiter.py`):
-  - Enforces polite submission intervals (min 5s pacing) and hourly caps (max 15/hr) per domain.
-- **Controlled Auto-Application Engine** (`src/jobs_automation/automation/auto_engine.py`):
-  - Strict policy gate: requires `AUTO_ALLOWED` decision from `PolicyEvaluator`.
-  - Idempotency guard: prevents duplicate submissions to already submitted jobs.
-  - **Unknown-question stop condition**: immediately halts with `STOPPED_UNKNOWN_QUESTION` and enqueues a `NEEDS_REVIEW` task if any required question is unaddressed; never invents candidate facts.
-  - Exponential backoff retry policy for transient submission errors.
-  - Full audit logging and lifecycle event creation (`APPLICATION_SUBMITTED`, `action_type="auto_application_submitted"`).
+- **Recruiter CRM Service** (`src/jobs_automation/lifecycle/crm.py`):
+  - Extracts clean contact names and email addresses from RFC 2822 sender strings.
+  - Automatically manages `ContactModel` records linked to `CompanyModel` and tracked applications.
+  - Tracks `first_contact_at` and `last_contact_at` touchpoints across full conversation history.
+  - Assembles chronological communication timelines with provider message and thread IDs.
+- **Interview Details Extractor** (`src/jobs_automation/lifecycle/interview.py`):
+  - Detects interview round types (`recruiter_screen`, `technical_screen`, `system_design`, `hiring_manager`, `panel`).
+  - Regex extractor for video conferencing links (Zoom, Google Meet, Microsoft Teams, Webex, Calendly).
+  - Persists and links `InterviewModel` records to active applications.
+- **Proactive Lifecycle Alert Service** (`src/jobs_automation/lifecycle/alerts.py`):
+  - `check_unanswered_recruiters`: Flags inbound recruiter inquiries that have gone > 48h without a candidate reply, enqueuing `UNANSWERED_RECRUITER` tasks in `TaskModel`. Ignores threads where the candidate has already responded.
+  - `check_stale_applications`: Detects applications in `SUBMITTED` or `CONFIRMED` status with > 14 days of silence, generating `STALE_APPLICATION_FOLLOW_UP` tasks.
+- **Lifecycle Transition Engine** (`src/jobs_automation/lifecycle/engine.py`):
+  - Drives deterministic application status progression:
+    - `APPLICATION_CONFIRMATION` -> `CONFIRMED`
+    - `RECRUITER_OUTREACH` / `SCREENING_REQUEST` -> `SCREENING`
+    - `INTERVIEW_REQUEST` / `INTERVIEW_CONFIRMATION` -> `INTERVIEWING`
+    - `OFFER` -> `OFFER_RECEIVED`
+    - `REJECTION` -> `REJECTED` (with `closed_at` timestamp)
+  - Records granular `ApplicationEventModel` records and audit entries (`action_type="lifecycle_state_transition"`).
+  - **Ambiguity quarantine**: Inbound messages with low link confidence (< 0.80) or matching multiple plausible applications are strictly quarantined to `NEEDS_REVIEW` tasks without mutating application status.
 - **CLI Commands**:
-  - Added `jobs-automation auto-apply` with `--job-id`, `--packet-id`, `--next`, `--mock-mode`, and `--kill-switch` options.
+  - Added `jobs-automation lifecycle-status` (rich table of applications, stages, modes, applied dates, interview counts).
+  - Added `jobs-automation contacts` (CRM directory of recruiter contacts, companies, roles, touchpoints).
+  - Added `jobs-automation update-lifecycle` (sweeps messages, triggers transitions, extracts interviews, generates follow-up alerts).
 - **Testing & Verification**:
-  - Added `tests/test_auto_application.py` (6 tests covering adapter validation, auto-apply success, unknown-question stop, global kill switch, expired policy kill switch, and rate limiting).
-  - Full test suite: 65 passing tests.
+  - Added `tests/test_lifecycle.py` (5 tests covering recruiter CRM, interview extraction, state transitions, ambiguity review queue routing, and unanswered/stale alerts).
+  - Full test suite: 70 passing tests.
 
 ## Verification performed
 
-1. `pytest -v`: All 65 tests passing in 0.87s.
+1. `pytest -v`: All 70 tests passing in 1.04s.
 2. `ruff check .`: All checks passed.
 3. `ruff format --check .`: All source files formatted cleanly.
-4. `mypy src tests`: Strict type checking passed with zero errors across 71 source files.
-5. Integration verification:
-   - Verified unknown-question halt triggers `NEEDS_REVIEW` queue insertion and prevents submission.
-   - Verified global and platform kill switches abort execution.
-   - Verified policy review date expiration enforces immediate kill switch.
-   - Verified rate limiter rejects burst submissions.
+4. `mypy src tests`: Strict type checking passed with zero errors across 77 source files.
+5. Live PostgreSQL CLI integration test:
+   - Executed `jobs-automation update-lifecycle`: Swept recruiting messages, verified state transition processing and alert checking.
+   - Executed `jobs-automation lifecycle-status`: Verified display of active applications, status (`SUBMITTED`), and interview columns.
+   - Executed `jobs-automation contacts`: Verified CRM table formatting against live database.
 
 ## Current blockers
 
 None.
 
-## Exact next task (V0.6)
+## Exact next task (V0.7)
 
-Implement **V0.6 — Communication and lifecycle automation**:
-- Recruiter outreach, application confirmation, screening, interview, rejection, and offer email ingestion and linking.
-- Chronological recruiter threads with `ContactModel` and `CompanyModel` CRM records.
-- Lifecycle event state transitions (`SUBMITTED` -> `SCREENING` -> `INTERVIEWING` -> `OFFER` / `REJECTED`).
-- Unanswered outreach alerts and follow-up task creation.
-- Interview extraction (`InterviewModel`) with scheduled timestamps, timezone, and meeting links.
-- CLI commands `lifecycle-status` and `contacts`.
+Implement **V0.7 — Dashboard and analytics**:
+- Fast, clean operations web UI (FastAPI backend + interactive dashboard, review queue, application Kanban, interview calendar, and communication timeline).
+- Funnel and pipeline analytics API: discovery-to-submission, conversion rates, response times.
+- Human review queue UI with one-click resolution of pending tasks.
+- CLI command `dashboard` to launch the local web server.

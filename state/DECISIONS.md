@@ -217,3 +217,27 @@ The `KillSwitchManager` provides three independent layers of emergency shutdown:
 
 Reason:
 Ensures immediate operational control and prevents stale policy assumptions from allowing outdated automation behaviors.
+
+## 2026-09-20 - Evidence-based lifecycle state machine
+
+Decision:
+Application status progression (`SUBMITTED` -> `CONFIRMED` -> `SCREENING` -> `INTERVIEWING` -> `OFFER_RECEIVED` / `REJECTED`) is driven strictly by verified communication evidence from `InboundMessageModel`. Every transition is accompanied by an immutable `ApplicationEventModel` and `AuditLogModel`.
+
+Reason:
+Prevents arbitrary or unverified status changes and ensures complete traceability back to provider message IDs.
+
+## 2026-09-20 - Ambiguous communications must never mutate application state
+
+Decision:
+If a recruiting email links to multiple active applications or has link confidence below 0.80, the lifecycle engine refuses to transition any application status and instead enqueues a `NEEDS_REVIEW` item.
+
+Reason:
+Incorrect lifecycle transitions (e.g. marking the wrong job as rejected or interviewing) corrupt candidate operational reality. Human resolution is always preferred over speculative state mutations.
+
+## 2026-09-20 - Proactive recruiter responsiveness and pipeline health alerting
+
+Decision:
+The `LifecycleAlertService` inspects communication timelines to detect unanswered recruiter outreach (> 48h without candidate outbound reply) and stale applications (> 14 days without employer response), surfacing actionable follow-up tasks in the review queue.
+
+Reason:
+Keeps the candidate responsive to live recruiter outreach while identifying stalled hiring processes without sending unapproved automated replies.

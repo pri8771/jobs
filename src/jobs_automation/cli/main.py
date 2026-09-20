@@ -797,5 +797,157 @@ def auto_apply(
             console.print(f"[bold red]❌ Submission failed:[/bold red] {res.message}")
 
 
+@cli.command(name="lifecycle-status")
+def lifecycle_status() -> None:
+    """Display current application lifecycle pipeline stages, interviews, and activity."""
+    console.print(
+        Panel.fit("[bold blue]Jobs Automation — Application Lifecycle Pipeline[/bold blue]")
+    )
+
+    from sqlalchemy import select
+
+    from jobs_automation.db.models import ApplicationModel
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        stmt = select(ApplicationModel).order_by(ApplicationModel.last_activity_at.desc())
+        apps = session.scalars(stmt).all()
+
+        if not apps:
+            console.print("[yellow]No tracked applications found in database.[/yellow]")
+            return
+
+        table = Table(title="Active Applications Pipeline", header_style="bold green")
+        table.add_column("Company", style="bold")
+        table.add_column("Title")
+        table.add_column("Status", style="bold")
+        table.add_column("Mode", style="dim")
+        table.add_column("Applied Date")
+        table.add_column("Interviews")
+
+        for app in apps:
+            co = app.job.company_name if app.job else "Unknown"
+            title = app.job.title if app.job else "Unknown"
+            applied_str = app.applied_at.strftime("%Y-%m-%d") if app.applied_at else "Pending"
+            int_count = len(app.interviews) if app.interviews else 0
+            int_str = (
+                f"[bold green]{int_count} scheduled[/bold green]"
+                if int_count > 0
+                else "[dim]0[/dim]"
+            )
+
+            status_style = {
+                "SUBMITTED": "[cyan]SUBMITTED[/cyan]",
+                "CONFIRMED": "[blue]CONFIRMED[/blue]",
+                "SCREENING": "[yellow]SCREENING[/yellow]",
+                "INTERVIEWING": "[bold green]INTERVIEWING[/bold green]",
+                "OFFER_RECEIVED": "[bold magenta]OFFER RECEIVED[/bold magenta]",
+                "REJECTED": "[dim red]REJECTED[/dim red]",
+            }.get(app.status, app.status)
+
+            table.add_row(co, title, status_style, app.application_mode, applied_str, int_str)
+
+        console.print(table)
+
+
+@cli.command(name="contacts")
+def contacts_crm() -> None:
+    """List recruiter and hiring manager CRM contact records."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Recruiter CRM Directory[/bold blue]"))
+
+    from sqlalchemy import select
+
+    from jobs_automation.db.models import ContactModel
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        contacts = session.scalars(
+            select(ContactModel).order_by(ContactModel.last_contact_at.desc().nulls_last())
+        ).all()
+
+        if not contacts:
+            console.print("[yellow]No recruiter contacts recorded yet.[/yellow]")
+            return
+
+        table = Table(title="Recruiter & Hiring Team Contacts", header_style="bold cyan")
+        table.add_column("Name", style="bold")
+        table.add_column("Email")
+        table.add_column("Role")
+        table.add_column("Company")
+        table.add_column("Last Contact")
+
+        for c in contacts:
+            co = c.company.normalized_name if c.company else "Unknown"
+            last_dt = c.last_contact_at.strftime("%Y-%m-%d") if c.last_contact_at else "Never"
+            table.add_row(c.name, c.email or "[dim]N/A[/dim]", c.role or "Recruiter", co, last_dt)
+
+        console.print(table)
+
+
+@cli.command(name="update-lifecycle")
+def update_lifecycle() -> None:
+    """Sweep recruiting messages, trigger lifecycle transitions, and check follow-up alerts."""
+    console.print(
+        Panel.fit("[bold blue]Jobs Automation — Lifecycle & Communication Engine[/bold blue]")
+    )
+
+    from sqlalchemy import select
+
+    from jobs_automation.db.models import InboundMessageModel
+    from jobs_automation.lifecycle.alerts import LifecycleAlertService
+    from jobs_automation.lifecycle.engine import LifecycleEngine
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        lifecycle_engine = LifecycleEngine(session)
+        alert_service = LifecycleAlertService(session)
+
+        # Process recruiting messages
+        messages = session.scalars(
+            select(InboundMessageModel)
+            .where(InboundMessageModel.classification != "JOB_ALERT")
+            .order_by(InboundMessageModel.received_at.asc())
+        ).all()
+
+        transitions_count = 0
+        interviews_count = 0
+
+        for msg in messages:
+            res = lifecycle_engine.process_message(msg)
+            if res:
+                transitions_count += 1
+                if res.interview_scheduled:
+                    interviews_count += 1
+
+        # Check follow-up alerts
+        unanswered_tasks = alert_service.check_unanswered_recruiters()
+        stale_tasks = alert_service.check_stale_applications()
+
+        session.commit()
+
+        console.print(f"  • Messages processed: [bold]{len(messages)}[/bold]")
+        console.print(
+            f"  • Lifecycle state transitions: [bold green]{transitions_count}[/bold green]"
+        )
+        console.print(
+            f"  • Interviews scheduled / extracted: [bold cyan]{interviews_count}[/bold cyan]"
+        )
+        console.print(
+            f"  • Unanswered recruiter alerts created: [bold yellow]{len(unanswered_tasks)}[/bold yellow]"
+        )
+        console.print(
+            f"  • Stale application reminders created: [bold magenta]{len(stale_tasks)}[/bold magenta]"
+        )
+
+
 if __name__ == "__main__":
     cli()
