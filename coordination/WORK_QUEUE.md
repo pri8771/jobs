@@ -23,6 +23,8 @@ After V1.6, stop broad development and request strategy review.
 
 ### EXECUTION PRIORITY — V1.4 LIVE-READINESS ASAP
 
+Artifact: A-V14-PACKET-SAFETY
+
 Until the V1.4 packet-safety gate passes, Antigravity should treat V1.4 P0 as the sole engineering priority.
 
 Do not spend implementation cycles on:
@@ -233,3 +235,80 @@ No live submission without explicit user authorization for that exact job/packet
 - Simulation/mock fallback never equals real preparation or submission.
 - External confirmation is required for real submission state.
 - V2/V3 remains tentative reference only until after the first-real-application proof.
+
+
+## Artifact-backed future worker TODOs
+
+These are prepared in advance. Do not start blocked tasks until dependencies are accepted or ChatGPT moves them to READY.
+
+### Artifact A-V15-ASSISTED-APPLICATION
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| J15-01 | 2 | BLOCKED | Implement form-field classification + canonical provenance mapping | A-V14 ACCEPTED |
+| J15-02 | 2 | BLOCKED | Implement manual-barrier classifier for login/MFA/CAPTCHA/EEO/unknown fields | A-V14 ACCEPTED |
+| J15-03 | 3 | BLOCKED | Build pre-submit review manifest from accepted packet + mapped form | J15-01, J15-02 |
+| J15-04 | 2 | BLOCKED | Verify uploaded resume/cover-letter hashes match accepted packet artifacts | J15-01 |
+| J15-05 | 3 | BLOCKED | Capture external confirmation evidence after assisted user submit | user-approved proof job + assisted run |
+| J15-06 | 2 | BLOCKED | Persist assisted application audit/lifecycle evidence | J15-05 |
+
+Artifact docs:
+- coordination/artifacts/A-V15-ASSISTED-APPLICATION.md
+- docs/V1_5_FAST_START.md
+
+### Artifact A-V16-SUBMISSION-CONTRACT / A-V16-FIRST-REAL-SUBMISSION
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| J16-01 | 2 | BLOCKED | Persist exact job/packet/method-specific user authorization record | A-V15 ACCEPTED |
+| J16-02 | 2 | BLOCKED | Implement stable idempotency key + duplicate submission guard | A-V15 ACCEPTED |
+| J16-03 | 3 | BLOCKED | Implement PREPARED/AUTHORIZED/SUBMITTING/UNCONFIRMED/SUBMITTED/FAILED states | A-V15 ACCEPTED |
+| J16-04 | 3 | BLOCKED | Implement ambiguous-submit recovery that checks external evidence before retry | J16-02, J16-03 |
+| J16-05 | 2 | BLOCKED | Require external confirmation before APPLICATION_SUBMITTED | J16-03 |
+| J16-06 | 2 | BLOCKED | Produce exact preflight/audit manifest for first system submission | J16-01..J16-05 |
+
+Artifact docs:
+- docs/V1_6_SUBMISSION_CONTRACT.md
+- coordination/artifacts/A-V16-SUBMISSION-CONTRACT.md
+- coordination/artifacts/A-V16-FIRST-REAL-SUBMISSION.md
+
+### Artifact A-V12-CANDIDATE-PROVENANCE
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| J12-01 | 2 | BLOCKED | Implement machine-readable candidate fact provenance record | V1.4 gate cleared |
+| J12-02 | 2 | BLOCKED | Enforce allowed_for_application against inferred/unknown facts | J12-01 |
+| J12-03 | 1 | BLOCKED | Add private-safe provenance validation/report command | J12-01 |
+
+### Artifact A-V12-GMAIL-CANARY
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| J12-04 | 2 | BLOCKED | Add Gmail OAuth/runtime diagnostics without secrets | V1.4 gate cleared |
+| J12-05 | 2 | BLOCKED | Add bounded read-only dry-run canary command/evidence output | J12-04 + user OAuth |
+| J12-06 | 2 | BLOCKED | Add bounded write-enabled idempotency canary | J12-05 accepted |
+
+Runbook:
+- docs/GMAIL_CANARY_RUNBOOK.md
+
+### Artifact A-PROOF-JOB-SELECTION
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| J13-01 | 2 | BLOCKED | Produce proof-job candidate record/shortlist format | V1.4 gate cleared |
+| J13-02 | 2 | BLOCKED | Add hard-gate checks for compensation/location/authorization/already-applied | J13-01 |
+| J13-03 | 1 | BLOCKED | Produce user-facing approve/reject/hold proof-job review | J13-01, J13-02 |
+
+Criteria:
+- docs/PROOF_JOB_SELECTION.md
+
+### Artifact A-RESUME-OUTCOME-METRICS
+
+| Task ID | SP | Status | Task | Depends on |
+|---|---:|---|---|---|
+| JMET-01 | 2 | BLOCKED | Add outcome query contract by resume family/version | first real application data |
+| JMET-02 | 3 | BLOCKED | Implement conversion/time-to-stage aggregation service | JMET-01 |
+| JMET-03 | 2 | BLOCKED | Add sample-size/correlation warnings to resume performance output | JMET-02 |
+
+Performance:
+- coordination/WORKER_PERFORMANCE.md
