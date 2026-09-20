@@ -223,3 +223,25 @@ Default:
 - ChatGPT should keep adding bounded tasks to WORK_QUEUE rather than taking easy implementation itself.
 - Worker performance by SP bucket is recorded in coordination/WORKER_PERFORMANCE.md.
 - See docs/WORKER_STORY_POINTS.md.
+
+
+## Artifact-oriented management
+
+Project management is now artifact-oriented.
+
+Canonical registry:
+- coordination/ARTIFACT_INDEX.md
+
+Artifact cards:
+- coordination/artifacts/
+
+Process:
+- tasks exist to create/modify/verify/accept artifacts,
+- WORK_QUEUE is an execution view over artifact work,
+- milestone truth comes from accepted required artifacts,
+- Antigravity owns most implementation artifacts,
+- ChatGPT defines/reviews/accepts artifacts and prepares future artifacts when waiting,
+- worker story-point tracking remains attached to artifact-backed tasks.
+
+Detailed contract:
+- docs/ARTIFACT_ORIENTED_PM.md
