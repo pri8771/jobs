@@ -5,6 +5,7 @@ This repository has a canonical cross-agent contract.
 Before doing meaningful work, read:
 - AGENTS.md
 - docs/PROJECT_SPEC.md
+- docs/CANDIDATE_POSITIONING.md
 - docs/ARCHITECTURE.md
 - docs/PLATFORM_CONSTRAINTS.md
 - docs/ROADMAP.md
