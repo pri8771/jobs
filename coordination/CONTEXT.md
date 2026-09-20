@@ -184,6 +184,31 @@ Current milestone: V1.1 Stabilization and truthful integration.
 
 Priority is to fix correctness, wiring, safety, and CI before connecting real data.
 
+
+## Open-ended future objective: LinkedIn network growth
+
+The system should eventually help grow the user's LinkedIn professional circle in a useful, career-relevant way.
+
+This is intentionally open-ended for now.
+
+Potential future capabilities:
+- identify relevant recruiters, hiring managers, peers, alumni, former coworkers, and industry contacts,
+- track existing vs new LinkedIn relationships,
+- find warm/referral paths into target companies,
+- suggest high-value people worth connecting with based on active jobs and career strategy,
+- draft personalized connection notes or follow-ups,
+- track whether networking creates conversations, referrals, interviews, or opportunities,
+- preserve relationship history in the recruiter/contact CRM.
+
+Guardrails:
+- no indiscriminate connection farming,
+- no bulk spam or automated mass messaging,
+- human-governed outreach,
+- comply with LinkedIn platform restrictions and current project policy.
+
+Exact implementation is deliberately deferred until after the first-real-application milestone.
+
+
 ## Repo portability
 
 Critical project knowledge must remain in Git.
