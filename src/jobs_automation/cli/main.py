@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 import click
 from rich.console import Console
@@ -11,7 +12,7 @@ from rich.table import Table
 
 from jobs_automation.core.config import AppSettings, ConfigLoader
 from jobs_automation.db.base import Base
-from jobs_automation.db.session import check_db_connection, get_engine, init_db
+from jobs_automation.db.session import check_db_connection, get_engine, get_sessionmaker, init_db
 from jobs_automation.policy.evaluator import PolicyEvaluator
 from jobs_automation.worksheets.generator import ProfileWorksheetGenerator
 
@@ -217,6 +218,181 @@ def generate_worksheet(config_dir: str, output: str) -> None:
     console.print(
         f"[bold green]✅ Profile setup worksheet generated successfully at:[/bold green] [cyan]{out_path}[/cyan]"
     )
+
+
+@cli.command(name="poll-emails")
+@click.option("--reconcile", is_flag=True, default=False, help="Run 48-hour reconciliation sweep.")
+@click.option("--dry-run", is_flag=True, default=False, help="Simulate polling without saving.")
+@click.option(
+    "--mock-fixtures", is_flag=True, default=False, help="Use realistic offline test fixtures."
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir: str) -> None:
+    """Execute periodic Gmail mailbox sweep (4-hour cadence, thread-preserving, idempotent)."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Mailbox Polling Sweep[/bold blue]"))
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    candidate_emails = (
+        [profile.identity.email] if profile.identity.email else ["priyansh.chordia@gmail.com"]
+    )
+
+    from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
+    from jobs_automation.ingestion.engine import EmailIngestionEngine
+    from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+
+    adapter: Any
+    if mock_fixtures:
+        console.print(
+            "[dim cyan]Using offline test fixtures adapter (7 sample messages)...[/dim cyan]"
+        )
+        adapter = MockEmailAdapter(get_sample_email_fixtures())
+    else:
+        try:
+            adapter = GmailAdapter()
+        except Exception as e:
+            console.print(
+                f"[yellow]Live Gmail API adapter not ready ({e}). Falling back to test fixtures.[/yellow]"
+            )
+            adapter = MockEmailAdapter(get_sample_email_fixtures())
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        ingestion_engine = EmailIngestionEngine(
+            session=session,
+            adapter=adapter,
+            candidate_emails=candidate_emails,
+        )
+
+        console.print(
+            f"Starting sweep (Reconciliation: [bold]{reconcile}[/bold], Dry-run: [bold]{dry_run}[/bold])..."
+        )
+        summary = ingestion_engine.run_sweep(reconcile=reconcile)
+
+        table = Table(title="Ingestion Sweep Summary", header_style="bold green")
+        table.add_column("Metric", style="bold")
+        table.add_column("Count / Value")
+
+        table.add_row("Messages Polled", str(summary.messages_polled))
+        table.add_row("Messages Ingested", f"[bold green]{summary.messages_ingested}[/bold green]")
+        table.add_row("Duplicate Messages Skipped", str(summary.messages_skipped_duplicate))
+        table.add_row(
+            "New Jobs Discovered", f"[bold cyan]{summary.jobs_discovered_new}[/bold cyan]"
+        )
+        table.add_row("Existing Jobs Updated", str(summary.jobs_updated_existing))
+        table.add_row("Review Tasks Created", str(summary.review_tasks_created))
+        table.add_row(
+            "Checkpoint Advanced To", summary.checkpoint_advanced_to or "None (Unchanged)"
+        )
+
+        console.print(table)
+        console.print()
+
+        if summary.errors:
+            console.print("[bold red]Errors during sweep:[/bold red]")
+            for err in summary.errors:
+                console.print(f"  • {err}")
+        else:
+            console.print("[bold green]✅ Ingestion sweep completed successfully.[/bold green]")
+
+
+@cli.command(name="mailbox-status")
+def mailbox_status() -> None:
+    """Display mailbox health, checkpointing status, and ingested message statistics."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Mailbox & Ingestion Status[/bold blue]"))
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    from sqlalchemy import distinct, func, select
+
+    from jobs_automation.db.models import InboundMessageModel, JobModel, TaskModel
+
+    with session_factory() as session:
+        # Checkpoint
+        chk_stmt = (
+            select(TaskModel)
+            .where(TaskModel.task_type == "email_checkpoint")
+            .order_by(TaskModel.due_at.desc())
+        )
+        last_chk = session.execute(chk_stmt).scalars().first()
+
+        # Message totals
+        total_msgs = session.execute(select(func.count(InboundMessageModel.id))).scalar() or 0
+        inbound_count = (
+            session.execute(
+                select(func.count(InboundMessageModel.id)).where(
+                    InboundMessageModel.direction == "inbound"
+                )
+            ).scalar()
+            or 0
+        )
+        outbound_count = (
+            session.execute(
+                select(func.count(InboundMessageModel.id)).where(
+                    InboundMessageModel.direction == "outbound"
+                )
+            ).scalar()
+            or 0
+        )
+
+        # Unique threads
+        threads_count = (
+            session.execute(
+                select(func.count(distinct(InboundMessageModel.provider_thread_id)))
+            ).scalar()
+            or 0
+        )
+
+        # Jobs discovered
+        jobs_count = session.execute(select(func.count(JobModel.id))).scalar() or 0
+
+        # Pending review tasks
+        review_count = (
+            session.execute(
+                select(func.count(TaskModel.id)).where(
+                    TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+                )
+            ).scalar()
+            or 0
+        )
+
+        overview = Table(title="Mailbox & Ingestion Overview", show_header=False)
+        overview.add_column("Property", style="bold cyan")
+        overview.add_column("Value")
+
+        overview.add_row(
+            "Last Checkpoint", str(last_chk.due_at) if last_chk else "None (Fresh Mailbox)"
+        )
+        overview.add_row("Total Messages Ingested", str(total_msgs))
+        overview.add_row("Inbound Messages", str(inbound_count))
+        overview.add_row("Outbound Messages (Candidate Replies)", str(outbound_count))
+        overview.add_row("Conversation Threads Preserved", str(threads_count))
+        overview.add_row("Total Jobs in Database", str(jobs_count))
+        overview.add_row(
+            "Tasks Awaiting Review (NEEDS_REVIEW)",
+            f"[bold yellow]{review_count}[/bold yellow]" if review_count else "0",
+        )
+
+        console.print(overview)
+        console.print()
+
+        # Breakdown by classification
+        class_stmt = select(
+            InboundMessageModel.classification, func.count(InboundMessageModel.id)
+        ).group_by(InboundMessageModel.classification)
+        class_rows = session.execute(class_stmt).all()
+        if class_rows:
+            class_table = Table(title="Messages by Classification", header_style="bold magenta")
+            class_table.add_column("Classification", style="bold")
+            class_table.add_column("Count")
+            for cat, count in sorted(class_rows, key=lambda x: x[1], reverse=True):
+                class_table.add_row(cat, str(count))
+            console.print(class_table)
 
 
 if __name__ == "__main__":

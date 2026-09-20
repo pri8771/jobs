@@ -122,10 +122,24 @@ Docker Compose maps PostgreSQL container port 5432 to host port 5433 by default 
 Reason:
 Prevents port collisions on developer workstations and host servers where a local PostgreSQL service is already active on default port 5432.
 
-## 2026-09-20 - Policy expiration enforcement in policy evaluator
+## 2026-09-20 - Incremental mailbox checkpointing with safety overlap window
 
 Decision:
-If a policy rule has a `review_due_at` date in the past, the policy evaluator automatically overrides the decision to `BLOCKED` with reason `policy_review_expired`, rather than permitting automation under stale policy terms.
+The email ingestion engine tracks checkpoints in the database via completed `email_checkpoint` task records. Incremental sweeps only advance the checkpoint upon complete successful commit of a batch. Sweeps look back from the last checkpoint minus a 15-minute safety overlap window to prevent missing messages delivered with slight delay or clock drift. Idempotency is enforced by the unique constraint on `provider_message_id`. A separate 48-hour reconciliation sweep can run periodically without overriding standard checkpoint advancement.
 
 Reason:
-Platform terms of service change frequently. Default-deny must protect the user against automated actions performed under expired assessments.
+Protects against message loss during worker interruptions or network failures while guaranteeing strict idempotency and avoiding duplicate jobs or duplicate inbound message records.
+
+## 2026-09-20 - 4-level deduplication hierarchy for job discovery
+
+Decision:
+Incoming job alerts from all providers are deduplicated into the canonical `JobModel` through a 4-tier evidence order:
+1. Exact requisition ID (if extracted).
+2. Canonical destination apply URL (cleaned of tracking query parameters).
+3. Source provider + provider job ID.
+4. Normalized company name + normalized title within a 60-day discovery window.
+When an existing job matches, its `last_seen_at` is refreshed and a new `JobSourceModel` is linked if the provider/source ID combination has not yet been recorded.
+
+Reason:
+Job alerts from LinkedIn, Indeed, ZipRecruiter, and Dice frequently broadcast the same opening with varying tracking links, title formatting, or slight delays. Deduplicating to a single job entity prevents redundant applications while retaining all discovered sourcing channels.
+

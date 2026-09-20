@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from jobs_automation.ingestion.models import RawEmailMessage
 
 
 class EmailMessagePayload(ABC):
@@ -20,11 +23,11 @@ class EmailAdapter(ABC):
         query: str | None = None,
         since_timestamp: str | None = None,
         max_results: int = 100,
-    ) -> list[dict[str, Any]]:
+    ) -> list[RawEmailMessage]:
         """Fetch messages matching query with checkpoint window."""
 
     @abstractmethod
-    def get_thread(self, thread_id: str) -> list[dict[str, Any]]:
+    def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
         """Fetch complete chronological thread history."""
 
 

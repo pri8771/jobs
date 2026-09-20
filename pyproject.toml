@@ -19,6 +19,10 @@ dependencies = [
     "psycopg[binary]>=3.1.18",
     "click>=8.1.7",
     "rich>=13.7.0",
+    "beautifulsoup4>=4.12.0",
+    "google-api-python-client>=2.120.0",
+    "google-auth-oauthlib>=1.2.0",
+    "google-auth-httplib2>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -28,6 +32,7 @@ dev = [
     "ruff>=0.4.0",
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.12",
+    "types-beautifulsoup4>=4.12.0",
 ]
 
 [project.scripts]
@@ -51,6 +56,20 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
+[[tool.mypy.overrides]]
+module = [
+    "google_auth_oauthlib.*",
+    "googleapiclient.*",
+    "google.oauth2.*",
+    "google.auth.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "jobs_automation.adapters.gmail"
+disallow_untyped_calls = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+pythonpath = ["src", "."]
