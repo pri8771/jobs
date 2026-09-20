@@ -70,13 +70,18 @@ ORM/migrations:
 Gmail API + OAuth.
 
 MVP model:
-- scheduled polling every few minutes
-- incremental query using received time and stored provider message IDs
+- scheduled polling every 4 hours by default
+- configurable roughly every 3-4 hours
+- incremental query using stored checkpoints plus a small overlap window
+- Gmail message/thread ID deduplication
+- optional once-daily reconciliation pass
 
-Later option:
-- Gmail push notifications / Google Pub/Sub if useful
+Real-time Gmail push/PubSub is not needed for this project.
 
 Start read-only.
+
+Detailed communication rules:
+- docs/EMAIL_TRACKING.md
 
 ## LLM provider layer
 
@@ -114,7 +119,9 @@ Do not run persistent browser sessions inside the main controller container unle
 ## Scheduler
 
 V0.x:
-- APScheduler, a simple asyncio worker loop, or OS/GitHub scheduling for development tasks
+- APScheduler, a simple asyncio worker loop, cron/systemd timer, or equivalent
+- default Gmail sweep: every 4 hours
+- optional daily reconciliation sweep
 
 Avoid Celery/Redis initially.
 
@@ -164,6 +171,7 @@ Start with:
 - job-run table
 - audit log
 - failed-task/review queue
+- last successful Gmail poll/checkpoint
 
 Later:
 - Prometheus/Grafana or OpenTelemetry only if useful
