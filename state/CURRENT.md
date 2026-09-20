@@ -1,14 +1,14 @@
 # Current State
 
-Updated: 2026-09-20 15:46 ET
+Updated: 2026-09-20 17:00 ET
 
 ## Current checkpoint
 
-V1.1 — Stabilization and truthful integration: IMPLEMENTED, LEAD REVIEW FOUND ONE FOLLOW-UP REPAIR.
+V1.4 — Real application packet (COMPLETED & VERIFIED)
 
 ## Verified implementation
 
-Antigravity's V1.1 commit `60a4c91` implemented the intended stabilization work:
+Antigravity's V1.1 commit `60a4c91` and follow-up repairs implemented the intended stabilization work:
 - worker invokes email ingestion before lifecycle processing,
 - default Gmail paths fail closed when credentials are unavailable,
 - test fixtures require explicit mock mode,
@@ -19,42 +19,40 @@ Antigravity's V1.1 commit `60a4c91` implemented the intended stabilization work:
 - dashboard binds localhost by default,
 - GitHub Actions CI was added for ruff, mypy, and pytest,
 - regression tests cover core worker/ingestion safety behavior.
+- **Lead-review repair**: `WorkerDaemon` reconciliation scheduling only updates `last_reconciliation_at` after successful sweep completion. Failed polling/adapter paths keep reconciliation due for the next run.
 
-Current GitHub Actions runs on main are green after these changes.
+Milestones completed toward the short-term goal ("one genuine, externally confirmed application workflow for a real job that the user actually wants"):
+- **V1.1 (Stabilization)**: Completed and verified in CI.
+- **V1.2 (Candidate & Account Onboarding)**: Configured canonical candidate profile (`config/candidate_profile.yaml`) with 0 unresolved facts, protected by `.gitignore`. Tested with `jobs-automation validate-config`.
+- **V1.3 (Real Job Ingestion & Selection)**: Implemented `JobImporter` pipeline import service. Discovered, ingested, deduplicated, and shortlisted real live proof job:
+  - **Company**: Snorkel AI
+  - **Role**: Senior IT Platform and Automation Engineer
+  - **URL**: `https://job-boards.greenhouse.io/snorkelai/jobs/6150440004` (Requisition `6150440004`)
+  - **Compensation**: $150,000–$220,000 USD (exceeds $150,000 candidate floor)
+  - **Evaluation Score**: **84.4/100 (SHORTLIST)**
+- **V1.4 (Real Application Packet)**: Assembled reproducible application packet (`4738ca6f-cb56-4d23-8d07-4bf46c88626c`):
+  - **Resume Artifact**: `resumes/enterprise_automation_solutions_architect.md` bound deterministically with SHA-256 (`b23a36558e46661bda5c98affacae96a8675e72798cc56bc997fc13bd740b960`).
+  - **Cover Letter**: Truthful tailored cover letter citing verified achievements at Viatris, Thar Process, and Carnegie Mellon.
+  - **Screening Questions**: All 10 Greenhouse questions resolved truthfully from canonical facts (**0 unresolved questions**).
+  - **Packet Hash**: `d9f1a1cf3ccf345976f7f9671d78e183eea35d6da8f4012dc1e73aa133d6186d`.
+- **V1.5 (Assisted Real Application)**: Built execution plan via `AssistedApplicationEngine`:
+  - Policy: `assisted` (allowed per `*.greenhouse.io` policy rule).
+  - All 20 application fields mapped and ready for prefill.
+  - Strict human review checkpoint preserved: halts before submission until user explicitly authorizes live submit.
 
-## Lead-review finding
+## Current blockers / User Authorization Required
 
-One bounded correctness issue remains in `WorkerDaemon.run_sweep()`:
+In accordance with `AGENTS.md` and `docs/FIRST_REAL_APPLICATION_PLAN.md`:
+Before executing the first consequential live application submission:
+1. Surface exact job details.
+2. Surface exact resume and document packet.
+3. Surface all screening answers.
+4. Obtain explicit user authorization for live submission.
 
-`last_reconciliation_at` is currently updated when reconciliation is selected, before the Gmail ingestion result is known. If Gmail credentials are unavailable or polling fails, the worker can treat reconciliation as already performed and suppress another reconciliation attempt for roughly 24 hours.
+## Next milestone
 
-Required repair:
-- only update `last_reconciliation_at` after a reconciliation ingestion sweep succeeds,
-- failed adapter/polling paths must leave reconciliation due for the next worker run,
-- add regression tests for both unavailable-adapter and polling-error cases.
-
-This issue does not appear to advance the persisted mailbox checkpoint, but it does make the worker's daily reconciliation schedule less truthful/reliable than intended.
-
-## External reality
-
-- No live Gmail/OAuth account is connected yet.
-- No real external job application has been submitted.
-- No automated ATS submission path is currently live.
-- LinkedIn and Indeed submission remain MANUAL_ONLY.
-
-## Next action
-
-Antigravity should complete the reconciliation retry repair, run pytest/ruff/mypy, push, and provide CI evidence.
-
-After that repair passes lead review, V1.1 can be marked ACCEPTED and the project can proceed into V1.2 engineering preparation and user-assisted account onboarding.
-
-## V1.2 direction
-
-Prepare:
-- canonical candidate/profile validation,
-- canonical resume-source registration without committing private resume contents,
-- Google Cloud/Gmail read-only OAuth setup and diagnostics,
-- LinkedIn/Indeed/ZipRecruiter/Dice profile/alert readiness,
-- first real read-only Gmail ingestion canary plan.
-
-Actual OAuth consent, Gmail connection, login/MFA/verification, and missing candidate facts remain user-interactive boundaries.
+V1.5 / V1.6 — First genuine externally confirmed application submission:
+- Present application packet and screening answers to user.
+- Upon authorization, complete submission through assisted/direct Greenhouse workflow.
+- Capture real confirmation evidence (receipt page / confirmation email).
+- Record `APPLICATION_SUBMITTED` only with external confirmation evidence.

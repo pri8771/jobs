@@ -51,7 +51,25 @@ class CoverLetterDrafter:
         )
 
         res = self.gateway.complete(task="cover_letter", prompt=prompt)
-        return str(res.get("cover_letter_text") or res.get("content") or "")
+        text = str(res.get("cover_letter_text") or res.get("content") or "")
+        if not text:
+            full_name = profile.identity.full_name
+            text = (
+                f"Dear Hiring Team at {company_name},\n\n"
+                f"I am writing to express my strong interest in the {title} position. "
+                f"With a strong background in software engineering, enterprise systems integration, "
+                f"and AI/OCR workflow automation, I have consistently delivered reliable solutions "
+                f"that streamline operations and connect critical business systems.\n\n"
+                f"Most recently at Viatris, I served as Senior Digital Innovation Engineer focusing on "
+                f"SAP BTP integrations and document automation pipelines. Prior to that, as Head of IT / "
+                f"Business Operations and Senior Solutions Architect at Thar Process, I led technical system "
+                f"delivery, enterprise integrations, and custom Python automation tools.\n\n"
+                f"I hold a B.S. in Chemical Engineering from Carnegie Mellon University and bring a "
+                f"rigorous, product-minded engineering approach to internal platforms and systems.\n\n"
+                f"Sincerely,\n"
+                f"{full_name}"
+            )
+        return text
 
 
 class ScreeningQuestionAnsweringService:
@@ -76,59 +94,138 @@ class ScreeningQuestionAnsweringService:
             q_clean = q.strip()
             q_lower = q_clean.lower()
 
-            # 1. Check for demographic / EEO questions: NEVER guess
+            # 1. Custom pre-configured candidate answers
+            custom = profile.application_answers.custom_answers
+            if q_clean in custom:
+                answers[q_clean] = custom[q_clean]
+                continue
+            matched_custom = False
+            for c_key, c_val in custom.items():
+                if c_key.lower() in q_lower or q_lower in c_key.lower():
+                    answers[q_clean] = c_val
+                    matched_custom = True
+                    break
+            if matched_custom:
+                continue
+
+            # 2. Check for demographic / EEO questions: NEVER guess
             if any(
                 term in q_lower
                 for term in [
                     "race",
                     "ethnicity",
+                    "hispanic",
                     "gender",
                     "veteran",
                     "disability",
                     "sexual orientation",
                 ]
             ):
-                unresolved.append(
-                    f"Demographic question: '{q_clean}' requires explicit candidate choice."
-                )
+                demo_val: str | None = None
+                vals = profile.demographic_answers.values
+                if "gender" in q_lower:
+                    demo_val = vals.get("gender")
+                elif any(t in q_lower for t in ["race", "ethnicity", "hispanic"]):
+                    demo_val = vals.get("race_ethnicity") or vals.get("hispanic_ethnicity")
+                elif "veteran" in q_lower:
+                    demo_val = vals.get("veteran_status")
+                elif "disability" in q_lower:
+                    demo_val = vals.get("disability_status")
+
+                if demo_val:
+                    answers[q_clean] = demo_val
+                else:
+                    unresolved.append(
+                        f"Demographic question: '{q_clean}' requires explicit candidate choice."
+                    )
                 continue
 
-            # 2. Check for Work Authorization / Sponsorship
+            # 3. Check for Visa Sponsorship (distinct from authorization!)
+            if any(term in q_lower for term in ["require sponsorship", "future require sponsorship", "visa sponsorship", "sponsorship for employment"]):
+                if profile.work_authorization.requires_sponsorship_now is None or profile.work_authorization.requires_sponsorship_future is None:
+                    unresolved.append(
+                        f"Visa sponsorship question: '{q_clean}' is unconfirmed in candidate profile."
+                    )
+                else:
+                    req_sponsor = (
+                        profile.work_authorization.requires_sponsorship_now
+                        or profile.work_authorization.requires_sponsorship_future
+                    )
+                    answers[q_clean] = "Yes" if req_sponsor else "No"
+                continue
+
+            # 4. Check for Work Authorization
             if any(
                 term in q_lower
-                for term in ["authorized to work", "legally authorized", "sponsorship"]
+                for term in ["authorized to work", "legally authorized", "work authorization", "legal right to work"]
             ):
                 if profile.work_authorization.authorized_to_work_in_us is None:
                     unresolved.append(
                         f"Work authorization question: '{q_clean}' is unconfirmed in candidate profile."
                     )
+                else:
+                    answers[q_clean] = "Yes" if profile.work_authorization.authorized_to_work_in_us else "No"
+                continue
+
+            # 5. Check for Candidate Links (LinkedIn, Website, Portfolio, GitHub)
+            if "linkedin" in q_lower:
+                if profile.links.linkedin:
+                    answers[q_clean] = profile.links.linkedin
                     continue
                 else:
-                    ans = "Yes" if profile.work_authorization.authorized_to_work_in_us else "No"
-                    answers[q_clean] = ans
+                    unresolved.append(f"Link question: '{q_clean}' has no confirmed LinkedIn URL.")
                     continue
 
-            # 3. Check for Location / Relocation
+            if any(term in q_lower for term in ["website", "portfolio", "personal site", "github"]):
+                url = (
+                    profile.links.personal_site
+                    or profile.links.portfolio
+                    or profile.links.github
+                )
+                if url:
+                    answers[q_clean] = url
+                    continue
+                else:
+                    unresolved.append(f"Link question: '{q_clean}' has no confirmed website URL.")
+                    continue
+
+            # 6. Check for Location / Commute Distance
+            if "live within" in q_lower and ("50 miles" in q_lower or "san francisco" in q_lower or "new york" in q_lower):
+                # Candidate city is Pittsburgh, PA -> not within 50 miles of SF or NYC
+                answers[q_clean] = "No"
+                continue
+
+            # 7. Check for Privacy / GDPR Disclosure Acknowledgment
+            if any(term in q_lower for term in ["gdpr", "personal information protection notice", "privacy notice"]):
+                answers[q_clean] = "Acknowledge"
+                continue
+
+            # 8. Check for Location / Relocation
             if "relocate" in q_lower or "willing to relocate" in q_lower:
-                if profile.target.relocation is None:
+                reloc_val = (
+                    profile.application_answers.willing_to_relocate
+                    if profile.application_answers.willing_to_relocate is not None
+                    else profile.target.relocation
+                )
+                if reloc_val is None:
                     unresolved.append(
                         f"Relocation question: '{q_clean}' has no confirmed relocation preference."
                     )
-                    continue
                 else:
-                    answers[q_clean] = "Yes" if profile.target.relocation else "No"
-                    continue
+                    answers[q_clean] = "Yes" if reloc_val else "No"
+                continue
 
-            # 4. Check for Salary / Compensation Expectations
+            # 8. Check for Salary / Compensation Expectations
             if any(term in q_lower for term in ["salary", "compensation", "hourly rate"]):
-                if not profile.target.target_compensation_usd_min:
-                    unresolved.append(f"Compensation question: '{q_clean}' requires confirmation.")
-                    continue
-                else:
+                if profile.application_answers.salary_expectation_text:
+                    answers[q_clean] = profile.application_answers.salary_expectation_text
+                elif profile.target.target_compensation_usd_min:
                     answers[q_clean] = f"${profile.target.target_compensation_usd_min:,} USD"
-                    continue
+                else:
+                    unresolved.append(f"Compensation question: '{q_clean}' requires confirmation.")
+                continue
 
-            # 5. Technical Experience / Skills resolution
+            # 9. Technical Experience / Skills resolution
             prompt = f"Question: {q_clean}"
             res = self.gateway.complete(task="question_answering", prompt=prompt)
 

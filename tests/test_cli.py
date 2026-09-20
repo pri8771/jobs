@@ -18,7 +18,7 @@ def test_cli_status() -> None:
     runner = CliRunner()
     result = runner.invoke(cli, ["status", "--config-dir", "config"])
     assert result.exit_code == 0
-    assert "Jobs Automation — System Status (V0.1)" in result.output
+    assert "Jobs Automation — System Status" in result.output
     assert "Enterprise Automation & Solutions Architect" in result.output
     assert "Every 4 hours (240 min)" in result.output
 

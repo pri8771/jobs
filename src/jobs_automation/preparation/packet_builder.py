@@ -54,7 +54,17 @@ class ApplicationPacketBuilder:
         """Build a complete versioned packet for a shortlisted job."""
         # 1. Select targeted resume variant
         variant_name = ResumeVariantSelector.select_variant(job, matched_role_family)
-        resume_content = f"# Resume Variant: {variant_name}\nCandidate: {self.profile.identity.full_name}\nTarget: {job.normalized_title}\n"
+        resume_content: str | None = None
+        from pathlib import Path
+        for rpath in self.profile.resume.base_resume_paths:
+            p = Path(rpath)
+            if p.exists() and p.is_file():
+                resume_content = p.read_text(encoding="utf-8")
+                break
+
+        if not resume_content:
+            resume_content = f"# Resume Variant: {variant_name}\nCandidate: {self.profile.identity.full_name}\nTarget: {job.normalized_title}\n"
+
         resume_sha = hashlib.sha256(resume_content.encode("utf-8")).hexdigest()
 
         resume_artifact = ArtifactModel(

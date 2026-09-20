@@ -122,6 +122,7 @@ class ApplicationAnswersConfig(BaseModel):
     notice_period_days: int | None = None
     earliest_start_date: str | None = None
     salary_expectation_text: str | None = None
+    custom_answers: dict[str, Any] = Field(default_factory=dict)
 
 
 class DemographicAnswersConfig(BaseModel):

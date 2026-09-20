@@ -138,13 +138,13 @@ def db_check(url: str | None, init_tables: bool) -> None:
 @click.option("--config-dir", default="config", help="Path to config directory.")
 def status(config_dir: str) -> None:
     """Display comprehensive status of the Jobs Automation system."""
-    console.print(Panel.fit("[bold blue]Jobs Automation — System Status (V0.1)[/bold blue]"))
+    console.print(Panel.fit("[bold blue]Jobs Automation — System Status (V1.2)[/bold blue]"))
 
     # 1. Checkpoint & Architecture info
     info_table = Table(title="System Overview", show_header=False)
     info_table.add_column("Property", style="bold cyan")
     info_table.add_column("Value")
-    info_table.add_row("Active Checkpoint", "V0.1 — Portable foundation + profiles")
+    info_table.add_row("Active Checkpoint", "V1.2 — Candidate & account onboarding")
     info_table.add_row("Primary Positioning", "Enterprise Automation & Solutions Architect")
     info_table.add_row("Target Compensation", "$150,000+ USD")
     info_table.add_row("Email Polling Default", "Every 4 hours (240 min) — Non-realtime periodic")
@@ -310,6 +310,54 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
                 console.print(f"  • {err}")
         else:
             console.print("[bold green]✅ Ingestion sweep completed successfully.[/bold green]")
+
+
+@cli.command(name="import-jobs")
+@click.option(
+    "--file",
+    "file_path",
+    required=True,
+    type=click.Path(exists=True),
+    help="Path to JSONL job pipeline file.",
+)
+@click.option(
+    "--skip-gone/--include-gone", default=True, help="Skip listings marked as gone/expired."
+)
+@click.option("--limit", default=None, type=int, help="Maximum number of postings to import.")
+def import_jobs(file_path: str, skip_gone: bool, limit: int | None) -> None:
+    """Import and deduplicate real job postings from JSONL pipeline files."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Job Pipeline Importer[/bold blue]"))
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    from jobs_automation.ingestion.importer import JobImporter
+
+    with session_factory() as session:
+        importer = JobImporter(session)
+        summary = importer.import_from_jsonl(file_path=file_path, skip_gone=skip_gone, limit=limit)
+
+        table = Table(title="Job Import Results", header_style="bold green")
+        table.add_column("Metric", style="bold")
+        table.add_column("Count", justify="right")
+        table.add_row("Total Processed", str(summary.total_processed))
+        table.add_row(
+            "[bold green]New Jobs Discovered & Persisted[/bold green]", str(summary.new_jobs_added)
+        )
+        table.add_row("Existing Jobs Deduplicated / Updated", str(summary.existing_jobs_updated))
+        table.add_row("[dim]Skipped (Gone / Expired)[/dim]", str(summary.skipped_gone))
+
+        console.print(table)
+
+        if summary.errors:
+            console.print("[bold red]Errors encountered:[/bold red]")
+            for err in summary.errors[:10]:
+                console.print(f"  • {err}")
+            if len(summary.errors) > 10:
+                console.print(f"  ... and {len(summary.errors) - 10} more errors.")
+        else:
+            console.print("[bold green]✅ Job pipeline import completed successfully.[/bold green]")
 
 
 @cli.command(name="mailbox-status")

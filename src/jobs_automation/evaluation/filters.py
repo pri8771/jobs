@@ -66,7 +66,6 @@ class HardFilterService:
                 )
 
         # 4. Location & Remote Compatibility
-        # If candidate prefers Pittsburgh or Remote US
         allowed_locations = [loc.lower() for loc in self.search_config.locations.include]
         job_loc = (job.location_text or "").lower()
         job_remote = (job.remote_type or "").lower()
@@ -75,18 +74,30 @@ class HardFilterService:
         is_pgh = "pittsburgh" in job_loc or "pa" in job_loc
         is_hybrid_pgh = job_remote == "hybrid" and ("pittsburgh" in job_loc or not job_loc)
 
+        matched_allowed_location = False
         if allowed_locations:
-            location_match = is_remote or is_pgh or is_hybrid_pgh
-            # If job explicitly mentions other non-remote city and hybrid/on_site, reject
+            for loc in allowed_locations:
+                parts = [p.strip() for p in loc.split(",") if len(p.strip()) > 2]
+                if loc in job_loc or (parts and any(p in job_loc for p in parts)):
+                    matched_allowed_location = True
+                    break
+
+        location_match = (
+            is_remote
+            or is_pgh
+            or is_hybrid_pgh
+            or matched_allowed_location
+            or (self.profile.target.relocation is True)
+        )
+
+        for exc_loc in self.search_config.locations.exclude:
+            if exc_loc.lower() in job_loc:
+                reasons.append(f"excluded_location:{exc_loc}")
+                break
+        else:
             if not location_match and job_loc and not is_remote:
-                # Check if it contains any explicitly excluded locations
-                for exc_loc in self.search_config.locations.exclude:
-                    if exc_loc.lower() in job_loc:
-                        reasons.append(f"excluded_location:{exc_loc}")
-                        break
-                else:
-                    if job_remote in {"on_site", "hybrid"}:
-                        reasons.append(f"incompatible_location:{job.location_text}")
+                if job_remote in {"on_site", "hybrid"}:
+                    reasons.append(f"incompatible_location:{job.location_text}")
 
         # 5. Clearance Requirement
         clearance_terms = ["security clearance", "ts/sci", "top secret", "polygraph", "dod secret"]

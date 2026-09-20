@@ -29,7 +29,10 @@ storage-state*.json
 private/
 data/private/
 artifacts/
-resumes/private/
+resumes/
+!resumes/.gitkeep
+config/*.yaml
+!config/*.example.yaml
 
 # Runtime
 *.db

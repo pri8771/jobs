@@ -40,7 +40,7 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def candidate_profile() -> CandidateProfileConfig:
     loader = ConfigLoader("config")
-    profile, _ = loader.load_candidate_profile()
+    profile, _ = loader.load_candidate_profile("config/candidate_profile.example.yaml")
     return profile
 
 

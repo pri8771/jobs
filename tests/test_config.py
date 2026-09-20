@@ -33,7 +33,7 @@ def test_load_all_example_configs() -> None:
 
 def test_candidate_profile_unresolved_facts_detected() -> None:
     loader = ConfigLoader("config")
-    profile, _ = loader.load_candidate_profile()
+    profile, _ = loader.load_candidate_profile("config/candidate_profile.example.yaml")
     unresolved = profile.check_unresolved_facts()
 
     # Verify that unconfirmed facts are tracked and not silently guessed

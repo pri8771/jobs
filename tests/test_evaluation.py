@@ -30,8 +30,8 @@ def db_session() -> Generator[Session, None, None]:
 @pytest.fixture
 def sample_configs() -> tuple[CandidateProfileConfig, JobSearchConfig]:
     loader = ConfigLoader("config")
-    profile, _ = loader.load_candidate_profile()
-    search, _ = loader.load_job_search()
+    profile, _ = loader.load_candidate_profile("config/candidate_profile.example.yaml")
+    search, _ = loader.load_job_search("config/job_search.example.yaml")
     return profile, search
 
 
