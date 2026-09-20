@@ -206,6 +206,18 @@ Only when real scale/complexity justifies them, evaluate:
 
 Do not introduce them merely because they appear in the long-term plan.
 
+## Delegating pulled-forward work
+
+When ChatGPT identifies future implementation work:
+- prefer adding it to WORK_QUEUE for Antigravity instead of implementing it directly,
+- assign a task ID and SP1-SP5 estimate,
+- split anything >SP5,
+- keep dependencies minimal,
+- give Antigravity the bulk of SP1-SP3 implementation,
+- retain lead ownership of architecture, hard debugging, and acceptance.
+
+If ChatGPT produces a design/runbook/test plan, translate obvious follow-on implementation into bounded worker TODOs rather than leaving the next step implicit.
+
 ## Lead output standard
 
 Any pulled-forward future work should end as one or more of:
