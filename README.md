@@ -9,11 +9,23 @@ Build a personal job-search operating system that can:
 1. Create and keep job-board profiles consistent.
 2. Receive job-alert emails from LinkedIn, Indeed, ZipRecruiter, Dice, employer career sites, and ATS platforms.
 3. Parse, normalize, deduplicate, and score jobs against configurable criteria.
-4. Prepare tailored application materials.
+4. Prepare targeted application materials using the correct resume track.
 5. Apply automatically where the destination permits automation, and fall back to assisted/manual submission where it does not.
 6. Track every application from discovery through application, recruiter contact, interviews, rejection, offer, acceptance, or withdrawal.
 7. Attach all relevant email communication and events to the correct company/job/application.
 8. Keep a complete audit trail of what the automation did and why.
+
+## Candidate strategy
+
+The durable career targeting and resume strategy is in:
+
+docs/CANDIDATE_POSITIONING.md
+
+Current high-level direction:
+- primary positioning: Enterprise Automation & Solutions Architect
+- also target AI Automation / Senior Software Engineering, SAP BTP / Integration, Technical Product / Platform, iOS/Mobile leadership, and IT Applications/Infrastructure leadership
+- target $150K+ roles
+- maintain multiple targeted resume variants rather than one generic resume
 
 ## Initial platform set
 
@@ -28,12 +40,13 @@ Dice is the fourth initial board because it is technology-focused and supports p
 
 Every agent must read these files before making meaningful changes:
 
-1. `AGENTS.md`
-2. `docs/PROJECT_SPEC.md`
-3. `docs/ARCHITECTURE.md`
-4. `docs/PLATFORM_CONSTRAINTS.md`
-5. `docs/ROADMAP.md`
-6. `state/CURRENT.md`
+1. AGENTS.md
+2. docs/PROJECT_SPEC.md
+3. docs/CANDIDATE_POSITIONING.md
+4. docs/ARCHITECTURE.md
+5. docs/PLATFORM_CONSTRAINTS.md
+6. docs/ROADMAP.md
+7. state/CURRENT.md
 
 The repository—not a chat transcript—is the source of truth.
 
@@ -41,11 +54,11 @@ The repository—not a chat transcript—is the source of truth.
 
 Thin instruction adapters are included for multiple tools:
 
-- Antigravity: `.agents/rules/`, `.agents/skills/`, `.agents/workflows/`, and `GEMINI.md`
-- Cursor: `.cursor/rules/project.mdc`
-- Claude Code: `CLAUDE.md`
-- GitHub Copilot: `.github/copilot-instructions.md`
-- Generic agents / Codex: `AGENTS.md`
+- Antigravity: .agents/rules/, .agents/skills/, .agents/workflows/, and GEMINI.md
+- Cursor: .cursor/rules/project.mdc
+- Claude Code: CLAUDE.md
+- GitHub Copilot: .github/copilot-instructions.md
+- Generic agents / Codex: AGENTS.md
 
 All adapters point back to the same canonical project documents to prevent rules from drifting.
 
@@ -74,6 +87,6 @@ The eventual automatic-submit path should prioritize employer career sites and A
 
 Clone/open this repository as the project root, then paste the prompt in:
 
-`prompts/ANTIGRAVITY_START.md`
+prompts/ANTIGRAVITY_START.md
 
 Antigravity should work only through the current checkpoint, update repository state, run verification, commit, push, and then stop for the next checkpoint.
