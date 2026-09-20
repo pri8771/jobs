@@ -16,8 +16,10 @@ from sqlalchemy.orm import Session
 
 from jobs_automation.dashboard.analytics import FunnelAnalyticsService
 from jobs_automation.db.models import (
+    AuditLogModel,
     ContactModel,
     InterviewModel,
+    JobModel,
     TaskModel,
 )
 
@@ -48,7 +50,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
     h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     .status-badge { background: #064e3b; color: #34d399; font-size: 0.75rem; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
-    nav { display: flex; gap: 8px; margin-bottom: 24px; }
+    nav { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
     nav button { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
     nav button.active, nav button:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
@@ -76,6 +78,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     button.btn-sm:hover { background: var(--primary-hover); }
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+    input.search-input { width: 100%; padding: 10px 14px; background: #0f172a; border: 1px solid var(--border); border-radius: 6px; color: var(--text); margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -87,9 +90,11 @@ DASHBOARD_HTML = """<!DOCTYPE html>
   <nav>
     <button class="active" onclick="switchTab('analytics')">Funnel Analytics</button>
     <button onclick="switchTab('kanban')">Kanban Pipeline</button>
+    <button onclick="switchTab('jobs')">Discovered Jobs</button>
     <button onclick="switchTab('reviews')">Review Queue <span id="review-pill" style="display:none; background:var(--danger); color:white; border-radius:10px; padding:1px 6px; font-size:0.75rem;"></span></button>
     <button onclick="switchTab('interviews')">Interviews</button>
     <button onclick="switchTab('crm')">Recruiter CRM</button>
+    <button onclick="switchTab('audit')">Audit Trail</button>
   </nav>
 
   <main>
@@ -144,7 +149,29 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- TAB 3: Review Queue -->
+    <!-- TAB 3: Jobs Inbox -->
+    <div id="tab-jobs" class="tab-content">
+      <input type="text" id="jobs-search" class="search-input" placeholder="Search discovered jobs by title, company, or remote type..." onkeyup="filterJobs()">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role Title</th>
+              <th>Remote Type</th>
+              <th>Status</th>
+              <th>First Seen</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="jobs-body">
+            <tr><td colspan="6">Loading discovered jobs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: Review Queue -->
     <div id="tab-reviews" class="tab-content">
       <div class="table-container">
         <table>
@@ -164,7 +191,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- TAB 4: Interviews -->
+    <!-- TAB 5: Interviews -->
     <div id="tab-interviews" class="tab-content">
       <div class="table-container">
         <table>
@@ -183,7 +210,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       </div>
     </div>
 
-    <!-- TAB 5: CRM -->
+    <!-- TAB 6: CRM -->
     <div id="tab-crm" class="tab-content">
       <div class="table-container">
         <table>
@@ -202,18 +229,43 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         </table>
       </div>
     </div>
+
+    <!-- TAB 7: Audit Trail -->
+    <div id="tab-audit" class="tab-content">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Action</th>
+              <th>Entity</th>
+              <th>Actor</th>
+              <th>Result</th>
+              <th>Details</th>
+            </tr>
+          </thead>
+          <tbody id="audit-body">
+            <tr><td colspan="6">Loading audit entries...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </main>
 
   <script>
+    let allJobs = [];
+
     function switchTab(tabId) {
       document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
       event.target.classList.add('active');
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
       if (tabId === 'kanban') loadKanban();
+      if (tabId === 'jobs') loadJobs();
       if (tabId === 'reviews') loadReviews();
       if (tabId === 'interviews') loadInterviews();
       if (tabId === 'crm') loadCRM();
+      if (tabId === 'audit') loadAudit();
     }
 
     async function loadFunnel() {
@@ -274,6 +326,42 @@ DASHBOARD_HTML = """<!DOCTYPE html>
         colHtml += `</div>`;
         container.innerHTML += colHtml;
       }
+    }
+
+    async function loadJobs() {
+      const res = await fetch('/api/jobs');
+      allJobs = await res.json();
+      renderJobs(allJobs);
+    }
+
+    function renderJobs(jobs) {
+      const tbody = document.getElementById('jobs-body');
+      tbody.innerHTML = '';
+      if (jobs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No jobs matching criteria.</td></tr>';
+        return;
+      }
+      jobs.forEach(j => {
+        tbody.innerHTML += `
+          <tr>
+            <td><strong>${j.company}</strong></td>
+            <td>${j.title}</td>
+            <td>${j.remote_type || '-'}</td>
+            <td><span class="badge badge-assisted">${j.status}</span></td>
+            <td>${j.first_seen_at ? new Date(j.first_seen_at).toLocaleDateString() : '-'}</td>
+            <td>${j.apply_url ? `<a href="${j.apply_url}" target="_blank" style="color:var(--primary); font-weight:600;">Apply Link</a>` : '-'}</td>
+          </tr>`;
+      });
+    }
+
+    function filterJobs() {
+      const q = document.getElementById('jobs-search').value.toLowerCase();
+      const filtered = allJobs.filter(j => 
+        j.company.toLowerCase().includes(q) || 
+        j.title.toLowerCase().includes(q) || 
+        (j.remote_type && j.remote_type.toLowerCase().includes(q))
+      );
+      renderJobs(filtered);
     }
 
     async function loadReviews() {
@@ -350,6 +438,28 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       });
     }
 
+    async function loadAudit() {
+      const res = await fetch('/api/audit');
+      const entries = await res.json();
+      const tbody = document.getElementById('audit-body');
+      tbody.innerHTML = '';
+      if (entries.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No recent audit events.</td></tr>';
+        return;
+      }
+      entries.forEach(e => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${new Date(e.occurred_at).toLocaleString()}</td>
+            <td><strong>${e.action_type}</strong></td>
+            <td>${e.entity_type}</td>
+            <td>${e.actor}</td>
+            <td><span class="badge ${e.result === 'success' ? 'badge-auto' : 'badge-manual'}">${e.result}</span></td>
+            <td><pre style="font-size:0.7rem; max-width:250px; white-space:pre-wrap;">${JSON.stringify(e.metadata)}</pre></td>
+          </tr>`;
+      });
+    }
+
     // Init
     loadFunnel();
     document.getElementById('refresh-time').innerText = 'Last updated: ' + new Date().toLocaleTimeString();
@@ -404,13 +514,34 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(service.get_kanban_board())
                 return
 
+            if path == "/api/jobs":
+                jobs = session.scalars(
+                    select(JobModel).order_by(JobModel.first_seen_at.desc()).limit(100)
+                ).all()
+                data = [
+                    {
+                        "id": str(j.id),
+                        "company": j.company_name,
+                        "title": j.title,
+                        "remote_type": j.remote_type,
+                        "status": j.status,
+                        "apply_url": j.apply_url,
+                        "first_seen_at": j.first_seen_at.isoformat()
+                        if j.first_seen_at
+                        else None,
+                    }
+                    for j in jobs
+                ]
+                self._send_json(data)
+                return
+
             if path == "/api/reviews":
                 tasks = session.scalars(
                     select(TaskModel)
                     .where(TaskModel.status == "pending")
                     .order_by(TaskModel.due_at.asc().nulls_last())
                 ).all()
-                data = [
+                review_data: list[dict[str, Any]] = [
                     {
                         "id": str(t.id),
                         "job_id": str(t.job_id) if t.job_id else None,
@@ -421,7 +552,7 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     }
                     for t in tasks
                 ]
-                self._send_json(data)
+                self._send_json(review_data)
                 return
 
             if path == "/api/interviews":
@@ -472,6 +603,27 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     for c in contacts
                 ]
                 self._send_json(data)
+                return
+
+            if path == "/api/audit":
+                entries = session.scalars(
+                    select(AuditLogModel)
+                    .order_by(AuditLogModel.occurred_at.desc())
+                    .limit(50)
+                ).all()
+                audit_data: list[dict[str, Any]] = [
+                    {
+                        "id": str(e.id),
+                        "action_type": e.action_type,
+                        "entity_type": e.entity_type,
+                        "actor": e.actor,
+                        "result": e.result,
+                        "occurred_at": e.occurred_at.isoformat(),
+                        "metadata": e.metadata_json,
+                    }
+                    for e in entries
+                ]
+                self._send_json(audit_data)
                 return
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")

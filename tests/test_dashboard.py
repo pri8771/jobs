@@ -243,3 +243,19 @@ def test_dashboard_server_endpoints() -> None:
         assert task.status == "completed"
         assert task.payload_json["resolution_notes"] == "Approved range 200k-250k"
 
+    # 6. GET /api/jobs
+    h_jobs = DummyRequestHandler("GET", "/api/jobs", session_factory=session_factory)
+    h_jobs.do_GET()
+    assert h_jobs.status_code == 200
+    jobs_data = json.loads(h_jobs.mock_wfile.getvalue().decode("utf-8"))
+    assert len(jobs_data) == 1
+    assert jobs_data[0]["title"] == "Platform Lead"
+
+    # 7. GET /api/audit
+    h_audit = DummyRequestHandler("GET", "/api/audit", session_factory=session_factory)
+    h_audit.do_GET()
+    assert h_audit.status_code == 200
+    audit_data = json.loads(h_audit.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(audit_data, list)
+
+
