@@ -190,3 +190,30 @@ In assisted mode (`ASSISTED`), the browser runner inspects the target ATS form, 
 
 Reason:
 Prevents platform terms violations and ensures candidates maintain 100% human oversight before any external application is submitted.
+
+## 2026-09-20 - Allowlisted ATS adapters for structured auto-submission
+
+Decision:
+Automated submission is only executed through explicit, allowlisted ATS adapters (`GreenhouseATSAdapter`, `LeverATSAdapter`) against domains with an unexpired `AUTO_ALLOWED` policy decision. Third-party job boards (LinkedIn, Indeed) remain strictly prohibited from automatic submission.
+
+Reason:
+Direct employer ATS endpoints provide structured, reliable, and compliant submission boundaries without violating general board anti-automation terms.
+
+## 2026-09-20 - Unknown-question stop condition prevents hallucinated submissions
+
+Decision:
+Prior to submitting any automatic application, the ATS adapter validates all required fields against verified candidate profile facts and pre-computed packet answers. If any required field is missing or any screening question is unresolved, submission immediately halts (`STOPPED_UNKNOWN_QUESTION`), enqueuing a `NEEDS_REVIEW` task. The engine will never invent answers to bypass form requirements.
+
+Reason:
+Upholds the fundamental contract rule: never fabricate candidate facts, sponsorship needs, or background details.
+
+## 2026-09-20 - Multi-tier kill switch and automatic policy expiration
+
+Decision:
+The `KillSwitchManager` provides three independent layers of emergency shutdown:
+1. Global kill switch flag (via `JOBS_AUTOMATION_KILL_SWITCH` environment variable or manual override).
+2. Per-platform kill switch flags (`JOBS_AUTOMATION_KILL_SWITCH_<PLATFORM>`).
+3. Automated policy review date expiration: if current date exceeds `review_due_at` in the policy registry, automatic submission is instantly disabled for that platform.
+
+Reason:
+Ensures immediate operational control and prevents stale policy assumptions from allowing outdated automation behaviors.

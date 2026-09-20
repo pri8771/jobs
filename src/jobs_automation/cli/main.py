@@ -684,5 +684,118 @@ def assisted_apply(
             console.print(f"  Message: {res.message}")
 
 
+@cli.command(name="auto-apply")
+@click.option("--job-id", type=str, default=None, help="Specific Job ID to apply for.")
+@click.option("--packet-id", type=str, default=None, help="Specific Application Packet ID.")
+@click.option(
+    "--next", "pick_next", is_flag=True, default=False, help="Pick next prepared shortlisted job."
+)
+@click.option("--mock-mode", is_flag=True, default=True, help="Run with simulated ATS submission.")
+@click.option(
+    "--kill-switch", is_flag=True, default=False, help="Force trigger global kill switch."
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def auto_apply(
+    job_id: str | None,
+    packet_id: str | None,
+    pick_next: bool,
+    mock_mode: bool,
+    kill_switch: bool,
+    config_dir: str,
+) -> None:
+    """Execute controlled automated application to allowlisted ATS platforms."""
+    console.print(
+        Panel.fit("[bold blue]Jobs Automation — Controlled Auto-Apply Engine[/bold blue]")
+    )
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    policy_cfg, _ = loader.load_policy_registry()
+
+    from sqlalchemy import select
+
+    from jobs_automation.automation.auto_engine import ControlledAutoApplicationEngine
+    from jobs_automation.automation.kill_switch import KillSwitchManager
+    from jobs_automation.db.models import ApplicationModel, ApplicationPacketModel, JobModel
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        target_job_id: uuid.UUID | None = uuid.UUID(job_id) if job_id else None
+        target_packet_id: uuid.UUID | None = uuid.UUID(packet_id) if packet_id else None
+
+        if target_job_id is None and pick_next:
+            stmt = (
+                select(ApplicationPacketModel)
+                .join(JobModel, ApplicationPacketModel.job_id == JobModel.id)
+                .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
+                .where(
+                    JobModel.status.in_(["shortlisted", "packet_prepared"]),
+                    (ApplicationModel.status.is_(None)) | (ApplicationModel.status != "SUBMITTED"),
+                )
+                .order_by(ApplicationPacketModel.created_at.desc())
+                .limit(1)
+            )
+            pkt = session.scalar(stmt)
+            if pkt:
+                target_job_id = pkt.job_id
+                target_packet_id = pkt.id
+            else:
+                console.print(
+                    "[yellow]No eligible shortlisted jobs with packets waiting for application.[/yellow]"
+                )
+                return
+
+        if target_job_id is None:
+            console.print("[red]Please specify --job-id <uuid> or use --next.[/red]")
+            return
+
+        policy_evaluator = PolicyEvaluator(policy_cfg)
+        ks_manager = KillSwitchManager(
+            global_override=True if kill_switch else None, policy_config=policy_cfg
+        )
+
+        auto_engine = ControlledAutoApplicationEngine(
+            session=session,
+            policy_evaluator=policy_evaluator,
+            candidate_profile=profile,
+            kill_switch=ks_manager,
+        )
+
+        res = auto_engine.execute_auto_apply(
+            job_id=target_job_id,
+            packet_id=target_packet_id,
+            mock_mode=mock_mode,
+        )
+
+        if res.status == "SUBMITTED":
+            console.print(
+                "[bold green]✅ Application Successfully Submitted Automatically![/bold green]"
+            )
+            console.print(f"  Platform: [bold]{res.platform}[/bold]")
+            console.print(f"  Receipt ID: [cyan]{res.receipt_id}[/cyan]")
+            console.print(f"  Confirmation URL: [underline]{res.confirmation_url}[/underline]")
+            console.print(f"  Retries Performed: {res.retries_performed}")
+        elif res.status == "KILL_SWITCH_ACTIVE":
+            console.print("[bold red]🛑 Aborted: Kill switch is active[/bold red]")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "STOPPED_UNKNOWN_QUESTION":
+            console.print("[bold yellow]⚠️  Stopped on unknown required question[/bold yellow]")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "RATE_LIMITED":
+            console.print("[bold yellow]⏱️  Rate limited[/bold yellow]")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "BLOCKED":
+            console.print("[bold red]🚫 Blocked by policy[/bold red]")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "ALREADY_SUBMITTED":
+            console.print("[bold cyan]ℹ️  Already submitted (Idempotent)[/bold cyan]")
+            console.print(f"  Message: {res.message}")
+        else:
+            console.print(f"[bold red]❌ Submission failed:[/bold red] {res.message}")
+
+
 if __name__ == "__main__":
     cli()
