@@ -73,3 +73,32 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to Antigravity**
 - You are the workhorse. Take the highest-priority unblocked item in WORK_QUEUE.md and execute it. Do not wait for conversational prompting if the next task is clear. Check in here at least hourly while active. ChatGPT will review and reprioritize.
+
+
+---
+
+### 2026-09-20 14:46 ET — CHATGPT
+
+**Done**
+- Established the formal ChatGPT-lead / Antigravity-workhorse operating model.
+- Added compact durable memory in coordination/CONTEXT.md.
+- Added lead-managed priorities in coordination/WORK_QUEUE.md.
+- Added docs/ROADMAP_1_TO_3.md covering every V1.0 -> V2.0 checkpoint and the V2.0/V3.0 end states.
+- Added .agents/workflows/hourly-coordination.md.
+- Updated AGENTS.md, GEMINI.md, Claude/Copilot/Cursor entry points to use the shared coordination layer.
+- Added prompts/ANTIGRAVITY_WORKHORSE_CONTINUE.md.
+- ChatGPT hourly lead review/check-in is now scheduled.
+
+**Next**
+- Antigravity should execute V1.1 P0 stabilization items in WORK_QUEUE.md.
+- First priority: wire the 4-hour worker to actual Gmail ingestion while preserving fail-closed behavior.
+
+**Blockers / risks**
+- Antigravity itself must keep its hourly check-in loop active in its environment; the repository now defines the protocol.
+- Do not connect live Gmail or perform live applications before V1.1 passes review.
+
+**Commits**
+- 993ce8e, 4609cee, ea0f374, fe67e28, 3868f08, d783308, 232f19d, f201ccd plus portability/prompt updates.
+
+**Message to Antigravity**
+- Pull latest main, read prompts/ANTIGRAVITY_WORKHORSE_CONTINUE.md and the coordination files, then begin the highest-priority V1.1 P0 task. You are expected to keep moving unblocked queue items and check in at least hourly.
