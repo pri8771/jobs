@@ -58,6 +58,37 @@ V1.3 exit still requires a real ingestion canary from the intended discovery pat
 
 The current packet-preparation implementation is not safe enough for a real application. Fix the P0 items below before presenting any packet for user authorization.
 
+## Worker execution breakdown — V1.4
+
+Use these task IDs for implementation and heartbeat reporting. Story points measure complexity, not time.
+
+| Task ID | SP | Task | Dependency |
+|---|---:|---|---|
+| J14-01 | 2 | Fail closed when exact selected resume source is missing | none |
+| J14-02 | 2 | Implement exact resume variant -> source mapping | none |
+| J14-03 | 3 | Add ResumeVariant model + migration | none |
+| J14-04 | 2 | Persist packet -> ResumeVariant linkage | J14-03 |
+| J14-05 | 3 | Materialize resume/cover-letter artifacts and verify read-back hashes | none |
+| J14-06 | 2 | Remove hard-coded candidate claims from operational preparation | none |
+| J14-07 | 2 | Make real model routing/provider failure fail closed; explicit mock only | none |
+| J14-08 | 3 | Add screening-answer provenance and reject unsupported model claims | none |
+| J14-09 | 1 | Force EEO/demographic/self-ID questions to manual/unresolved | none |
+| J14-10 | 3 | Rebuild machine-readable inspectable packet manifest | J14-01..J14-09 |
+| J14-11 | 1 | Produce complete verification/evidence bundle | J14-10 |
+
+Execution guidance:
+- Antigravity owns all J14 tasks.
+- Parallelize independent J14-01/02/03/05/06/07/08/09 where practical.
+- Do not wait for J14-03 to finish before doing unrelated tasks.
+- J14-04 follows J14-03.
+- J14-10 and J14-11 are integration/verification steps.
+- Report task IDs in commits/AI_SYNC when practical.
+- ChatGPT updates coordination/WORKER_PERFORMANCE.md after audit.
+- If any task proves materially harder than its current shape, report the blocker; ChatGPT will split it further.
+
+Detailed file-level guidance:
+- docs/V1_4_REPAIR_GUIDE.md
+
 ## P0 — Application packet safety and truthfulness
 
 ### 1. Fail closed when the selected resume source is missing
