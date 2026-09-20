@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Environment/secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local OAuth/browser state
+.local/
+secrets/
+tokens/
+browser-data/
+playwright/.auth/
+storage-state*.json
+
+# Candidate/application private artifacts
+private/
+data/private/
+artifacts/
+resumes/private/
+
+# Runtime
+*.db
+*.sqlite
+*.sqlite3
+logs/
+tmp/
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/settings.local.json
+
+# Generated
+dist/
+build/
+coverage.xml
+htmlcov/
