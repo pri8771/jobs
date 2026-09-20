@@ -135,6 +135,23 @@ class JobModel(Base):
     evaluations: Mapped[list[JobEvaluationModel]] = relationship(back_populates="job")
     applications: Mapped[list[ApplicationModel]] = relationship(back_populates="job")
 
+    @property
+    def apply_url(self) -> str | None:
+        for s in self.sources:
+            if s.canonical_apply_url:
+                return s.canonical_apply_url
+            if s.source_url:
+                return s.source_url
+        return None
+
+    @property
+    def title(self) -> str:
+        return self.normalized_title
+
+    @property
+    def company_name(self) -> str:
+        return self.company.normalized_name if self.company else "Unknown"
+
 
 class JobSourceModel(Base):
     __tablename__ = "job_source"

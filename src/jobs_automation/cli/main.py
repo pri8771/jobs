@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import uuid
 from typing import Any
 
 import click
@@ -540,6 +541,147 @@ def review_queue() -> None:
             table.add_row(str(t.id)[:8] + "...", reason, time_str)
 
         console.print(table)
+
+
+@cli.command(name="assisted-apply")
+@click.option("--job-id", type=str, default=None, help="Specific Job ID to apply for.")
+@click.option("--packet-id", type=str, default=None, help="Specific Application Packet ID.")
+@click.option(
+    "--next", "pick_next", is_flag=True, default=False, help="Pick next prepared shortlisted job."
+)
+@click.option(
+    "--mock-browser",
+    is_flag=True,
+    default=False,
+    help="Use mock browser runner for testing/offline.",
+)
+@click.option(
+    "--auto-confirm",
+    is_flag=True,
+    default=False,
+    help="Confirm submission without interactive pause.",
+)
+@click.option(
+    "--receipt", type=str, default=None, help="Optional submission receipt or confirmation message."
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def assisted_apply(
+    job_id: str | None,
+    packet_id: str | None,
+    pick_next: bool,
+    mock_browser: bool,
+    auto_confirm: bool,
+    receipt: str | None,
+    config_dir: str,
+) -> None:
+    """Execute assisted application flow with safe prefilling and human review checkpoint."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Assisted Application Runner[/bold blue]"))
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    policy_cfg, _ = loader.load_policy_registry()
+
+    from sqlalchemy import select
+
+    from jobs_automation.browser.assisted_engine import AssistedApplicationEngine
+    from jobs_automation.browser.mock_runner import MockBrowserRunner
+    from jobs_automation.browser.playwright_runner import PlaywrightBrowserRunner
+    from jobs_automation.db.models import ApplicationModel, ApplicationPacketModel, JobModel
+    from jobs_automation.policy.evaluator import PolicyEvaluator
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        target_job_id: uuid.UUID | None = uuid.UUID(job_id) if job_id else None
+        target_packet_id: uuid.UUID | None = uuid.UUID(packet_id) if packet_id else None
+
+        if target_job_id is None and pick_next:
+            # Find next shortlisted job that has a packet and no completed application
+            stmt = (
+                select(ApplicationPacketModel)
+                .join(JobModel, ApplicationPacketModel.job_id == JobModel.id)
+                .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
+                .where(
+                    JobModel.status.in_(["shortlisted", "packet_prepared"]),
+                    (ApplicationModel.status.is_(None)) | (ApplicationModel.status != "SUBMITTED"),
+                )
+                .order_by(ApplicationPacketModel.created_at.desc())
+                .limit(1)
+            )
+            pkt = session.scalar(stmt)
+            if pkt:
+                target_job_id = pkt.job_id
+                target_packet_id = pkt.id
+            else:
+                console.print(
+                    "[yellow]No eligible shortlisted jobs with packets waiting for application.[/yellow]"
+                )
+                return
+
+        if target_job_id is None:
+            console.print(
+                "[red]Please specify --job-id <uuid> or use --next to pick the highest priority job.[/red]"
+            )
+            return
+
+        policy_evaluator = PolicyEvaluator(policy_cfg)
+        runner = MockBrowserRunner() if mock_browser else PlaywrightBrowserRunner(headless=False)
+
+        assisted_engine = AssistedApplicationEngine(
+            session=session,
+            policy_evaluator=policy_evaluator,
+            browser_runner=runner,
+            candidate_profile=profile,
+        )
+
+        plan = assisted_engine.build_plan(job_id=target_job_id, packet_id=target_packet_id)
+
+        console.print(f"Target: [bold]{plan.job_title}[/bold] at [cyan]{plan.company_name}[/cyan]")
+        console.print(
+            f"Destination: [underline]{plan.apply_url}[/underline] ([dim]{plan.destination_domain}[/dim])"
+        )
+        console.print(
+            f"Policy Decision: [bold]{plan.policy.decision.value.upper()}[/bold] ({plan.policy.reason})"
+        )
+        console.print(f"Instructions: {plan.instructions}\n")
+
+        if plan.unresolved_questions:
+            console.print(
+                "[bold yellow]⚠️  Unresolved screening questions exist for this job:[/bold yellow]"
+            )
+            for uq in plan.unresolved_questions:
+                console.print(f"  • {uq}")
+            console.print()
+
+        res = assisted_engine.execute(
+            job_id=target_job_id,
+            packet_id=target_packet_id,
+            auto_confirm=auto_confirm,
+            receipt_text=receipt,
+        )
+
+        if res.status == "SUBMITTED":
+            console.print(
+                "[bold green]✅ Application Successfully Submitted & Recorded![/bold green]"
+            )
+            console.print(f"  Application ID: [dim]{res.application_id}[/dim]")
+            console.print(f"  Receipt: [cyan]{res.receipt_text}[/cyan]")
+            console.print(f"  Prefilled Fields: [dim]{res.prefilled_count}[/dim]")
+        elif res.status == "MANUAL_RECORDED":
+            console.print("[bold green]✅ Manual Application Confirmed & Recorded![/bold green]")
+            console.print(f"  Application ID: [dim]{res.application_id}[/dim]")
+        elif res.status == "REVIEW_REQUIRED":
+            console.print("[bold yellow]⏸️  Review Required / Prefill Complete[/bold yellow]")
+            console.print(f"  Status: {res.status}")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "BLOCKED":
+            console.print("[bold red]🚫 Submission Blocked by Policy[/bold red]")
+            console.print(f"  Message: {res.message}")
+        elif res.status == "ALREADY_SUBMITTED":
+            console.print("[bold cyan]ℹ️  Already Submitted (Idempotent Guard)[/bold cyan]")
+            console.print(f"  Message: {res.message}")
 
 
 if __name__ == "__main__":

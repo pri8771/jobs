@@ -174,3 +174,19 @@ Every generated application packet computes a SHA-256 digest over the selected r
 
 Reason:
 Guarantees full auditability and idempotency for downstream assisted and automated submission workflows.
+
+## 2026-09-20 - Pluggable BrowserRunner interface with visible and mock runners
+
+Decision:
+All browser automation and form interaction is encapsulated behind the abstract `BrowserRunner` interface (`inspect_form`, `prefill_form`, `open_interactive_session`). Production environments use `PlaywrightBrowserRunner` which launches visible or headless browser instances with lazy Playwright imports. CI, testing, and offline operations use `MockBrowserRunner` without requiring browser binary installation.
+
+Reason:
+Keeps core business logic decoupled from browser engine implementations and ensures headless/sandboxed test portability.
+
+## 2026-09-20 - Mandatory human review checkpoint for assisted submissions
+
+Decision:
+In assisted mode (`ASSISTED`), the browser runner inspects the target ATS form, prefills verified candidate profile facts (name, email, phone, links, resume upload) and pre-computed packet answers, but strictly halts before submission. Final submission requires candidate confirmation (or explicit review confirmation in automated tests). In `MANUAL_ONLY` destinations (LinkedIn, Indeed), automated form-filling is completely bypassed, routing the candidate to native portals with pre-formatted profile worksheets.
+
+Reason:
+Prevents platform terms violations and ensures candidates maintain 100% human oversight before any external application is submitted.
