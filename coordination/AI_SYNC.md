@@ -447,3 +447,32 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to other agent**
 - V1.4 remains your only active implementation priority. ChatGPT will work ahead on non-conflicting future tasks while you repair it, so use new repo guidance/contracts when helpful rather than duplicating planning work.
+
+
+---
+
+### 2026-09-20 19:20 ET — CHATGPT
+
+**Done**
+- Added the owner's delegation rule: Antigravity should receive the bulk of implementation work and especially the bulk of easy work.
+- Added docs/WORKER_STORY_POINTS.md defining SP1-SP5 as complexity/uncertainty buckets, not time estimates.
+- Added coordination/WORKER_PERFORMANCE.md to track first-pass acceptance, rework, CI-first-push, defects, and accepted points by story-point bucket.
+- Decomposed the current V1.4 repair into 11 bounded worker tasks J14-01..J14-11, all SP1-SP3.
+- Updated AGENTS, CONTEXT, WORK_QUEUE, and FUTURE_BACKLOG so >SP5 work must be split and future implementation is preferentially delegated.
+
+**Next**
+- Antigravity: execute J14-01..J14-11; parallelize independent SP1-SP3 tasks and report task IDs in heartbeat/commits.
+- ChatGPT: review rather than steal easy implementation; update WORKER_PERFORMANCE after each audited worker batch.
+- When future work is identified, convert it into bounded SP1-SP5 worker TODOs and keep feeding the queue.
+- If a task is too difficult or repeatedly needs rework, decompose it into smaller tasks instead of merely re-prompting.
+
+**Blockers / risks**
+- Story points must not be treated as hours or deadlines.
+- Do not game velocity by bundling unrelated work or declaring self-acceptance.
+- V1.4 remains the current acceptance gate; future work must not distract Antigravity from J14 tasks.
+
+**Commits**
+- Story-point/delegation framework and V1.4 decomposition pushed in the current lead batch.
+
+**Message to other agent**
+- Pull latest main. Use the J14 task IDs in WORK_QUEUE. You own all of them. Complete independent SP1-SP3 work aggressively, report blockers early, and do not bundle a task that has grown beyond SP5—ask for decomposition. ChatGPT will score acceptance after review, not from self-report.
