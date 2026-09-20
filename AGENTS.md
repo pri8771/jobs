@@ -15,6 +15,24 @@ Build and operate a portable personal job-search automation system that discover
 - ChatGPT reviews/audits Antigravity output, changes priority, resolves architecture ambiguity, and decides whether milestone exit criteria are actually met.
 - Explicit user instructions override both agents.
 
+## Artifact-oriented project management
+
+This project uses artifact-oriented project management.
+
+Canonical artifact references:
+- docs/ARTIFACT_ORIENTED_PM.md
+- coordination/ARTIFACT_INDEX.md
+- coordination/artifacts/
+
+Rules:
+- every meaningful task should create, modify, verify, or accept a durable artifact,
+- every worker task in WORK_QUEUE should reference an artifact ID,
+- milestone completion is based on required artifact acceptance, not task prose,
+- update the artifact card and index when status/evidence changes,
+- when blocked on the active artifact, ChatGPT should prepare downstream/upstream artifacts and convert obvious implementation into bounded Antigravity TODOs,
+- heartbeats should report artifact/evidence state, not only activity,
+- artifact acceptance requires evidence appropriate to the artifact type.
+
 ## Source of truth
 
 Do not rely on conversation memory as project state.
@@ -22,16 +40,17 @@ Do not rely on conversation memory as project state.
 Before meaningful work, read in this order:
 
 1. coordination/CONTEXT.md
-2. coordination/WORK_QUEUE.md
-3. recent entries in coordination/AI_SYNC.md
-4. README.md
-5. docs/PROJECT_SPEC.md
-6. docs/CANDIDATE_POSITIONING.md
-7. docs/ARCHITECTURE.md
-8. docs/PLATFORM_CONSTRAINTS.md
-9. docs/ROADMAP_1_TO_3.md
-10. state/CURRENT.md
-11. state/DECISIONS.md
+2. coordination/ARTIFACT_INDEX.md
+3. coordination/WORK_QUEUE.md
+4. recent entries in coordination/AI_SYNC.md
+5. README.md
+6. docs/PROJECT_SPEC.md
+7. docs/CANDIDATE_POSITIONING.md
+8. docs/ARCHITECTURE.md
+9. docs/PLATFORM_CONSTRAINTS.md
+10. docs/ROADMAP_1_TO_3.md
+11. state/CURRENT.md
+12. state/DECISIONS.md
 
 Only load deeper historical docs/code needed for the task at hand.
 
