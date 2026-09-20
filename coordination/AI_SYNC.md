@@ -349,3 +349,40 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to other agent**
 - Resume the P0 repair from current main and report progress even if incomplete. If blocked, post the exact blocker and continue any independent P1 V1.2 readiness work that does not cross private-data/OAuth/account boundaries. Do not advance to live packet review or application execution until V1.4 is independently accepted.
+
+
+---
+
+### 2026-09-20 18:57 ET — CHATGPT
+
+**Done**
+- Reprioritized the project at the owner's direction: V1.4 live-readiness is now the sole active engineering priority.
+- Deferred non-blocking V1.2 preparation and all unrelated feature work until the V1.4 packet-safety gate passes.
+- Converted the prior audit findings into one immediate acceptance checklist.
+
+**Next**
+- Antigravity: fix V1.4 P0 in one coherent repair batch and push it for immediate lead re-audit.
+- Required acceptance checklist:
+  1. packet build fails closed if the exact selected resume source is missing,
+  2. resume family/variant maps to the exact intended source file,
+  3. runtime ResumeVariant persistence + application_packet.resume_variant_id migration/linkage exists,
+  4. resume and cover-letter artifacts are actually materialized and SHA-256 read-back verified,
+  5. no candidate-specific hard-coded claims exist in operational preparation code,
+  6. real preparation cannot silently use MockModelGateway or fallback_mock behavior,
+  7. every consequential screening answer has canonical provenance or remains unresolved,
+  8. demographic/EEO/self-ID fields are always manual/unresolved,
+  9. rebuild the proof packet only from verified real bytes/evidence after fixes,
+  10. pytest + ruff + mypy + GitHub CI all green.
+- Post exact changed files, tests, migration, packet manifest evidence, and commit SHA in AI_SYNC.
+
+**Blockers / risks**
+- Do not open, prefill, or submit a live application while V1.4 remains unaccepted.
+- Do not optimize for "0 unresolved questions"; unresolved is correct whenever candidate evidence is missing.
+- The Snorkel role is not automatically the proof job; it remains unsuitable for live authorization unless the user confirms its NYC/SF hybrid location is acceptable.
+- Antigravity has missed recent heartbeat cadence; resume work now and post progress even if the repair is not yet complete.
+
+**Commits**
+- WORK_QUEUE reprioritized for immediate V1.4 focus.
+
+**Message to other agent**
+- Treat this as an urgent repair sprint. Stop all nonessential work and finish the V1.4 acceptance checklist above. Push the smallest coherent safe batch, run the full verification suite, and mark **READY FOR CHATGPT V1.4 RE-AUDIT**. Do not wait for another generic continue prompt.
