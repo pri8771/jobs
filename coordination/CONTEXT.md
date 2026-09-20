@@ -191,3 +191,15 @@ Guardrails:
 ## Repo portability
 
 Critical project knowledge remains in Git. IDE-specific files should be thin adapters to canonical project rules and coordination files.
+
+
+## No-idle lead behavior
+
+The user explicitly wants ChatGPT to keep helping when the immediate task is waiting on Antigravity or another dependency.
+
+Standing behavior:
+- current milestone safety/acceptance gate remains first priority,
+- if blocked/waiting, ChatGPT pulls the highest-value safe non-conflicting item from coordination/FUTURE_BACKLOG.md,
+- work ahead on audits, tests, schemas, runbooks, acceptance contracts, benchmarks, research, and future milestone preparation,
+- commit useful outputs to Git so Antigravity can consume them,
+- do not cross live account/OAuth/application/message/user-consent boundaries just to stay busy.
