@@ -139,18 +139,44 @@ Fields:
 
 Unique active application per job unless explicitly overridden.
 
+## resume_variant
+
+Immutable/versioned resume strategy record.
+
+Fields:
+- id
+- resume_family
+- name
+- version
+- parent_variant_id nullable
+- source_template_version nullable
+- target_job_id nullable
+- target_role_family nullable
+- tailoring_method
+- model_provider nullable
+- model_name nullable
+- prompt_version nullable
+- content_hash
+- created_at
+- superseded_at nullable
+
+A submitted resume variant must never be silently modified in place.
+
 ## application_packet
 
 Fields:
 - id
 - job_id
 - candidate_profile_version
+- resume_variant_id
 - resume_artifact_id
 - cover_letter_artifact_id
 - answers_json
 - unresolved_questions_json
 - packet_hash
 - created_at
+
+The application packet is immutable once submitted. It permanently identifies the exact resume family, resume variant, and final artifact used for that application.
 
 ## artifact
 
@@ -261,6 +287,22 @@ Fields:
 - occurred_at
 - metadata_json
 
+## Resume outcome attribution
+
+Application lifecycle events are the source of truth for resume performance.
+
+The application -> packet -> resume_variant/artifact linkage must support derived metrics such as:
+- recruiter response rate by resume family
+- screen rate by resume family / exact variant
+- interview rate
+- final interview rate
+- offer rate
+- acceptance rate
+- time-to-response and time-to-stage
+- performance by role family, title, source, company, compensation band, and work arrangement
+
+See docs/RESUME_OUTCOME_TRACKING.md.
+
 ## Core invariants
 
 - provider message IDs are unique
@@ -269,3 +311,4 @@ Fields:
 - every application state change emits an application_event
 - every external write emits an audit_log record
 - automatic submit requires an unexpired AUTO_ALLOWED policy decision
+- every submitted application permanently references the exact immutable packet/resume variant/artifact used
