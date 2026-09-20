@@ -12,11 +12,12 @@ Do not rely on conversation memory as project state. Before meaningful work, rea
 
 1. README.md
 2. docs/PROJECT_SPEC.md
-3. docs/ARCHITECTURE.md
-4. docs/PLATFORM_CONSTRAINTS.md
-5. docs/ROADMAP.md
-6. state/CURRENT.md
-7. state/DECISIONS.md
+3. docs/CANDIDATE_POSITIONING.md
+4. docs/ARCHITECTURE.md
+5. docs/PLATFORM_CONSTRAINTS.md
+6. docs/ROADMAP.md
+7. state/CURRENT.md
+8. state/DECISIONS.md
 
 If these conflict, use this precedence:
 AGENTS.md > docs/PROJECT_SPEC.md > explicit architecture decisions in state/DECISIONS.md > other docs > code comments.
@@ -35,6 +36,8 @@ AGENTS.md > docs/PROJECT_SPEC.md > explicit architecture decisions in state/DECI
 - Submission must be idempotent: never intentionally submit twice to the same job.
 - Never fabricate answers to application questions. Unknown candidate facts must pause or route to a review queue.
 - Never invent work authorization, sponsorship, salary history, education, certifications, dates, or employment details.
+- Follow docs/CANDIDATE_POSITIONING.md for role targeting and resume strategy.
+- Maintain targeted resume versions; do not collapse the candidate into one generic resume.
 - A model may recommend or draft; deterministic code owns state transitions, deduplication, policy checks, and audit logging.
 
 ## Agent start protocol
