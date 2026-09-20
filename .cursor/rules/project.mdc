@@ -5,12 +5,14 @@ alwaysApply: true
 
 Read and follow @AGENTS.md.
 
-Also read the active project context in:
-- @docs/PROJECT_SPEC.md
-- @docs/ARCHITECTURE.md
-- @docs/PLATFORM_CONSTRAINTS.md
-- @docs/ROADMAP.md
+Start with the compact operating context:
+- @coordination/CONTEXT.md
+- @coordination/WORK_QUEUE.md
+- recent entries in @coordination/AI_SYNC.md
 - @state/CURRENT.md
 - @state/DECISIONS.md
+- @docs/ROADMAP_1_TO_3.md
 
 Do not create a separate Cursor-only architecture or state system. Update the canonical repository files so other IDEs can continue the work.
+
+ChatGPT is the lead/reviewer. Antigravity is the primary workhorse, but any IDE/agent taking over execution should follow the same queue and sync protocol.
