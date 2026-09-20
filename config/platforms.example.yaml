@@ -1,0 +1,47 @@
+version: 1
+
+email:
+  provider: "gmail"
+  account: null
+  polling_minutes: 5
+  readonly: true
+
+platforms:
+  linkedin:
+    enabled: true
+    profile_status: "not_verified"
+    alert_status: "not_verified"
+    submission_mode: "manual_only"
+    alert_cadence: "daily"
+    notes:
+      - "Do not automate LinkedIn Easy Apply with a third-party bot."
+
+  indeed:
+    enabled: true
+    profile_status: "not_verified"
+    alert_status: "not_verified"
+    submission_mode: "manual_only"
+    alert_cadence: "daily"
+    notes:
+      - "Do not automate Indeed Apply with a third-party bot."
+
+  ziprecruiter:
+    enabled: true
+    profile_status: "not_verified"
+    alert_status: "not_verified"
+    submission_mode: "assisted_pending_policy_review"
+    alert_cadence: "daily"
+
+  dice:
+    enabled: true
+    profile_status: "not_verified"
+    alert_status: "not_verified"
+    submission_mode: "assisted_pending_policy_review"
+    alert_cadence: "daily"
+
+gmail_queries:
+  alerts: null
+  applications: null
+  recruiters: null
+  interviews: null
+  offers: null
