@@ -1,0 +1,72 @@
+version: 1
+
+global:
+  enabled: true
+  freshness_days: 7
+  max_jobs_per_source_email: 100
+  require_compensation: false
+
+locations:
+  include:
+    - "Remote - United States"
+  include_radius_miles: []
+  exclude: []
+
+employment_types:
+  include:
+    - "full_time"
+  exclude: []
+
+hard_reject:
+  title_keywords: []
+  company_names: []
+  clearance_requirements: []
+  max_travel_percent: null
+  minimum_base_salary_usd: null
+
+role_families:
+  - id: "sap_btp"
+    enabled: true
+    include_titles:
+      - "SAP BTP"
+      - "SAP Integration"
+      - "SAP Automation"
+      - "Integration Architect"
+    include_skills:
+      - "SAP BTP"
+      - "SAP Integration Suite"
+    exclude_keywords: []
+
+  - id: "applied_ai"
+    enabled: true
+    include_titles:
+      - "AI Automation"
+      - "Applied AI"
+      - "AI Platform"
+      - "AI Solutions"
+    include_skills:
+      - "LLM"
+      - "automation"
+      - "agent"
+    exclude_keywords: []
+
+  - id: "enterprise_platform"
+    enabled: true
+    include_titles:
+      - "Platform Engineer"
+      - "Enterprise Integration"
+      - "Solutions Architect"
+    include_skills: []
+    exclude_keywords: []
+
+scoring:
+  threshold_shortlist: 70
+  threshold_review: 55
+  weights:
+    title_match: 25
+    must_have_skills: 25
+    preferred_skills: 15
+    compensation: 15
+    location: 10
+    seniority: 5
+    freshness: 5
