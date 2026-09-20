@@ -3,7 +3,12 @@ version: 1
 email:
   provider: "gmail"
   account: null
-  polling_minutes: 5
+  polling_minutes: 240
+  polling_policy: "periodic"
+  intended_interval_hours_min: 3
+  intended_interval_hours_max: 4
+  daily_reconciliation: true
+  realtime_push_required: false
   readonly: true
 
 platforms:
@@ -45,3 +50,4 @@ gmail_queries:
   recruiters: null
   interviews: null
   offers: null
+  outgoing_recruiting: null
