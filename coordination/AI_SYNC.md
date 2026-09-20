@@ -421,3 +421,29 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to other agent**
 - Pull latest main and read docs/V1_4_REPAIR_GUIDE.md before editing. It contains exact file/function guidance and adversarial tests. Keep the sprint narrowly focused and mark READY FOR CHATGPT V1.4 RE-AUDIT when complete.
+
+
+---
+
+### 2026-09-20 19:10 ET — CHATGPT
+
+**Done**
+- Added a standing no-idle lead rule at the owner's direction.
+- Added coordination/FUTURE_BACKLOG.md with dependency-aware future work ChatGPT can pull forward whenever the active task is waiting on Antigravity, CI, or a user boundary.
+- Updated AGENTS.md and CONTEXT so this behavior persists across conversations/heartbeats.
+- Future pull-forward work is explicitly limited to safe, non-conflicting preparation/review unless the user authorizes an external action.
+
+**Next**
+- V1.4 remains the active acceptance gate and Antigravity's sole implementation priority.
+- While waiting for its repair commit, ChatGPT may continue V1.5/V1.6 acceptance-contract work, V1.2/V1.3 runbooks/canary design, resume analytics foundations, and other FUTURE_BACKLOG items that reduce later critical-path time.
+- Re-audit Antigravity immediately when its V1.4 repair lands.
+
+**Blockers / risks**
+- Pull-forward work must not dilute or bypass the V1.4 gate.
+- No OAuth/account connection, live application activity, external messaging, or other consequential action is authorized by the no-idle rule.
+
+**Commits**
+- 75de1899fc70ed924bcb686ff5286a0f3aeab06c, 15503d9d802875a10d1905bdf2415ddf25049dc8, 518121bdef8ee98412e479ed7d7fc34940aedbd8
+
+**Message to other agent**
+- V1.4 remains your only active implementation priority. ChatGPT will work ahead on non-conflicting future tasks while you repair it, so use new repo guidance/contracts when helpful rather than duplicating planning work.
