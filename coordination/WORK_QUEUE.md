@@ -1,207 +1,130 @@
 # Active Work Queue
 
 ChatGPT owns priority/order unless the user explicitly overrides it.
+Antigravity executes the highest-priority unblocked work, tests it, commits, pushes, and reports through coordination/AI_SYNC.md.
 
-Antigravity should execute the highest-priority unblocked work, update tests/docs/state, commit, push, and report in coordination/AI_SYNC.md.
-
-Do not wait for a new chat message when the next queued work is clear.
-
-Last prioritized: 2026-09-20
+Last prioritized: 2026-09-20 15:46 ET
 
 ## Strategic finish line
 
-Current scope ends when Jobs Automation demonstrates:
+Current scope ends when Jobs Automation demonstrates one genuine, externally confirmed application submitted through the system for a real job the user actually wants.
 
-**one genuine, externally confirmed application submitted through the system for a real job the user actually wants.**
-
-Milestone path:
+Path:
 - V1.1 stabilization
 - V1.2 real candidate/account/Gmail onboarding
 - V1.3 real job ingestion/selection
-- V1.4 real application packet
+- V1.4 real application packet with immutable resume attribution
 - V1.5 assisted real application
 - V1.6 first genuine system-submitted application
 
-After V1.6:
-- stop broad development,
-- request ChatGPT review,
-- reassess what should be built next.
-
-Detailed plan:
-- docs/FIRST_REAL_APPLICATION_PLAN.md
-
-V2/V3 is tentative reference only:
-- docs/TENTATIVE_V3_ARCHITECTURE.md
+After V1.6, stop broad development and request strategy review.
 
 ## Current milestone
 
-V1.1 — Stabilization and truthful integration
+V1.1 lead-review repair, then V1.2 preparation.
 
-## P0 — Must fix before real Gmail/profile/application use
+Antigravity's commit `60a4c91` materially satisfies the V1.1 stabilization goals and current CI is green. Lead audit found one remaining scheduler correctness issue before V1.1 is accepted.
 
-### 1. Wire scheduled Gmail ingestion into WorkerDaemon
+## P0 — V1.1 lead-review repair
 
-Current problem:
-- WorkerDaemon runs on a 4-hour cadence but does not invoke GmailAdapter + EmailIngestionEngine.
+### 1. Do not consume the daily reconciliation slot when ingestion fails
 
-Required:
-- normal worker sweep performs Gmail ingestion first
-- lifecycle processing happens after ingestion
-- 4-hour default remains
-- once-daily reconciliation runs at most roughly once per 24h
-- failed Gmail polling must not advance the checkpoint
-- missing credentials must fail clearly, never fabricate data
-
-Verification:
-- unit/integration tests prove call order and checkpoint behavior
-
-### 2. Remove implicit fake fixture fallback
-
-Current problem:
-- poll-emails falls back to MockEmailAdapter when Gmail auth is unavailable.
+Current behavior in `WorkerDaemon.run_sweep()` sets `last_reconciliation_at` before Gmail ingestion is known to have succeeded. If the adapter is unavailable or polling returns an error, the worker can suppress another reconciliation attempt for roughly 24 hours even though no reconciliation succeeded.
 
 Required:
-- production/default path fails clearly
-- mock fixtures require explicit --mock-fixtures
-- no fake email/job rows written accidentally
+- compute whether reconciliation is due without mutating `last_reconciliation_at`,
+- update `last_reconciliation_at` only after a reconciliation ingestion sweep completes successfully,
+- adapter-unavailable and polling-error paths must leave the reconciliation due state eligible for the next worker run,
+- explicit `reconcile=True` failure must likewise not mark reconciliation successful,
+- add regression tests for adapter-unavailable/polling-error retry behavior,
+- preserve the 4-hour normal cadence and existing DB checkpoint safety.
 
-### 3. Make --dry-run truly non-persistent
+Acceptance:
+- pytest, ruff, mypy green,
+- CI green on pushed commit,
+- tests prove failed reconciliation does not consume the 24-hour reconciliation interval.
 
-Required:
-- parse/classify/report
-- rollback / no commits
-- no checkpoint advance
-- no jobs/messages/tasks/events/applications persisted
+### 2. Correct project state after the repair
 
-Add tests that compare DB state before/after.
+After the above passes:
+- mark V1.1 ACCEPTED in state/CURRENT.md,
+- update coordination/CONTEXT.md so the old V1.1 audit findings are no longer listed as unresolved,
+- post `READY FOR V1.2` in AI_SYNC with commit and CI evidence.
 
-### 4. Remove hard-coded candidate email fallback
+## V1.2 — work authorized after P0 repair
 
-Required:
-- no invented candidate email
-- if profile email is null, warn and reduce outbound-detection confidence
-- candidate facts come only from explicit config/private runtime state
+Engineering preparation may continue without waiting for repeated prompts. Do not connect real accounts or OAuth without the user's required interactive action.
 
-### 5. Correct simulated ATS application semantics
+### P1 — unblocked engineering preparation
 
-Current problem:
-- Greenhouse/Lever adapters generate simulated receipts but may mark application SUBMITTED.
+1. Candidate onboarding contract
+- validate required canonical candidate fields,
+- clearly distinguish required, optional, sensitive, and review-only facts,
+- never invent missing values,
+- support canonical resume source registration without committing private resume contents to Git.
 
-Required:
-- mock mode -> SIMULATED / APPLICATION_SIMULATED
-- live mode without real implementation -> NOT_IMPLEMENTED
-- no fake live confirmation URL
-- no APPLICATION_SUBMITTED event unless a real external submission is confirmed
-- keep policy gate deny-by-default
+2. Gmail OAuth readiness
+- add exact runtime configuration validation and diagnostics,
+- document Google Cloud project/OAuth setup,
+- support read-only Gmail scopes first,
+- provide a harmless connection/canary check that does not mutate mailbox state,
+- fail closed when credentials are absent.
 
-Do not implement live ATS submission in this task.
+3. Source/account onboarding checklist
+- LinkedIn, Indeed, ZipRecruiter, Dice profile/alert readiness,
+- record profile/alert status without storing passwords,
+- identify the smallest user actions required for login/MFA/verification.
 
-### 6. Dashboard safe default
+4. Real-ingestion canary plan
+- define how to run the first read-only Gmail sweep,
+- exact evidence required to prove no fixture/mock path was used,
+- exact rollback/recovery steps if parsing is wrong.
 
-Required:
-- Docker bind should be localhost by default: 127.0.0.1:8765:8765 or equivalent configurable safe default
-- document that remote/LAN exposure requires explicit opt-in and authentication/reverse-proxy protection
+### User-blocked V1.2 actions
 
-### 7. Add GitHub Actions CI
+Do not fabricate or bypass these. Surface them only when engineering prep is complete:
+- canonical private candidate facts that are still missing,
+- canonical resume source files,
+- Google Cloud OAuth consent/credentials,
+- Gmail authorization,
+- job-board login/MFA/phone/email verification as needed.
 
-On push + PR:
-- Python 3.12
-- dependency install
-- pytest
-- ruff check
-- mypy
-
-No live credentials required.
-
-### 8. Correct version/maturity truth
-
-Required:
-- state/CURRENT.md must distinguish implemented prototype features from live-verified integrations
-- package/document versions must not contradict project maturity
-- never claim "real submission" or "end-to-end live" for mocks
-
-## P1 — V1.1 hardening
-
-### 9. Email tracking regression tests
-
-Prove:
-- provider message IDs idempotent
-- thread IDs preserved
-- inbound/outbound classification
-- chronological thread order
-- ambiguous multi-application link -> NEEDS_REVIEW
-- single clear application auto-links
-- failed transaction does not move checkpoint
-- reconciliation catches missed message
-
-### 10. Worker regression tests
-
-Prove:
-- ingestion before lifecycle
-- default 14,400 second cadence
-- daily reconciliation not every sweep
-- kill switch respected where applicable
-- Gmail failure does not create fixtures
-
-### 11. Secret/config audit
-
-Verify repo contains no:
-- OAuth tokens
-- refresh tokens
-- API keys
-- cookies
-- browser state
-- private credentials
-
-## Exit criteria for V1.1
-
-- CI green
-- all tests green locally and in CI
-- lint/type checks green
-- Gmail production path never fabricates data
-- worker genuinely attempts Gmail ingestion on schedule
-- no simulated external submission can masquerade as real
-- dashboard safe-by-default
-- CURRENT/CONTEXT accurately state remaining limitations
-
-After V1.1:
-- ChatGPT reviews and updates queue for V1.2.
-- Antigravity must not connect accounts or cross external-action boundaries until the next phase is authorized.
-
-## Queued next phases after ChatGPT V1.1 review
-
-### V1.2 — Real onboarding
-- canonical candidate facts/resumes
-- Google Cloud Gmail OAuth project
-- Gmail read-only
-- LinkedIn/Indeed/ZipRecruiter/Dice profiles and alerts
-- real mailbox sweeps
+## Later milestones
 
 ### V1.3 — Real job ingestion/matching
-- ingest real alerts
-- dedupe real jobs
-- detect actual application destination
-- score/filter
-- choose strong proof-job candidate(s)
+- ingest real alerts,
+- dedupe jobs,
+- detect actual application destination,
+- score/filter,
+- choose strong proof-job candidates.
 
 ### V1.4 — Real application packet
-- correct resume family
-- truthful tailoring
-- screening answers
-- unresolved-question block
-- exact artifact manifest/hash
+- correct resume family,
+- immutable exact resume variant/version/artifact/hash,
+- truthful tailoring,
+- screening answers,
+- unresolved-question block,
+- permanent application -> packet -> resume attribution for later response/interview/offer analytics.
 
 ### V1.5 — Assisted real application
-- authenticated browser worker/profile
-- form inspection/prefill/upload
-- user review
-- real confirmation capture
+- authenticated browser worker/profile,
+- form inspection/prefill/upload,
+- user review,
+- real confirmation capture.
 
 ### V1.6 — First genuine system submission
-- approved real destination/method
-- user authorizes exact live application
-- execute real external submission
-- capture external confirmation
-- only then record APPLICATION_SUBMITTED
+- approved real destination/method,
+- exact live application explicitly authorized by user,
+- execute real external submission,
+- capture external confirmation,
+- only then record APPLICATION_SUBMITTED.
 
-After this succeeds, STOP and request ChatGPT/user reassessment.
+## Standing safety rules
+
+- LinkedIn submission: MANUAL_ONLY.
+- Indeed submission: MANUAL_ONLY.
+- No CAPTCHA bypass or anti-bot evasion.
+- No fabricated candidate facts.
+- Simulation never equals submission.
+- External confirmation is required for real submission state.
+- V2/V3 remains tentative reference only until after the first-real-application proof.
