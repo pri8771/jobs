@@ -1,0 +1,16 @@
+---
+description: Canonical Jobs Automation project instructions
+alwaysApply: true
+---
+
+Read and follow @AGENTS.md.
+
+Also read the active project context in:
+- @docs/PROJECT_SPEC.md
+- @docs/ARCHITECTURE.md
+- @docs/PLATFORM_CONSTRAINTS.md
+- @docs/ROADMAP.md
+- @state/CURRENT.md
+- @state/DECISIONS.md
+
+Do not create a separate Cursor-only architecture or state system. Update the canonical repository files so other IDEs can continue the work.
