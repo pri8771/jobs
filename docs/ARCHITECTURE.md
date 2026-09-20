@@ -27,10 +27,14 @@ FastAPI service responsible for:
 
 MVP:
 - simple process or APScheduler
-- periodic Gmail polling
+- Gmail polling every 4 hours by default
+- configurable polling cadence, with 3-4 hours as the intended operating range
+- optional once-daily reconciliation sweep
 - parsing and classification jobs
 - status follow-up checks
 - reminder generation
+
+Real-time Gmail push notifications are not required.
 
 Do not introduce Redis/Celery until concurrency or reliability actually requires it.
 
@@ -41,11 +45,19 @@ OAuth-based Gmail API integration.
 Responsibilities:
 - query configured labels/search expressions
 - retrieve messages and thread metadata
-- store provider message IDs
+- track incremental mailbox checkpoints with a small overlap window
+- deduplicate using provider message IDs
+- store provider message IDs and thread IDs
 - parse job-alert links
 - classify recruiting lifecycle emails
-- associate messages with jobs/applications
-- never delete mail in MVP
+- track inbound and outbound recruiter/company communication
+- associate messages with companies, contacts, jobs, applications, interviews, and offers
+- preserve chronological thread history
+- route ambiguous links/status changes to NEEDS_REVIEW
+- never delete, archive, or send mail in MVP
+
+Detailed rules:
+- docs/EMAIL_TRACKING.md
 
 Recommended labels:
 - Jobs/Alerts
@@ -170,7 +182,7 @@ Preferred design:
 - no CAPTCHA solvers
 - manual checkpoints supported
 
-This split makes 24/7 email/job processing independent from interactive application sessions.
+This split keeps periodic email/job processing independent from interactive application sessions.
 
 ### 12. Tracking/event engine
 
@@ -186,6 +198,7 @@ Examples:
 - APPLICATION_CONFIRMED
 - EMAIL_LINKED
 - RECRUITER_CONTACTED
+- CANDIDATE_REPLIED
 - INTERVIEW_SCHEDULED
 - REJECTED
 - OFFER_RECEIVED
@@ -220,6 +233,9 @@ Always-on:
 
 Required test layers:
 - fixture-based email parser tests
+- Gmail checkpoint/idempotency tests
+- recruiter-thread linking tests
+- inbound/outbound message tracking tests
 - rule engine tests
 - deduplication tests
 - state-machine tests
