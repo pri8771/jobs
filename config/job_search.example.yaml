@@ -5,9 +5,12 @@ global:
   freshness_days: 7
   max_jobs_per_source_email: 100
   require_compensation: false
+  target_compensation_usd_min: 150000
+  compensation_basis: "confirm_base_vs_total_comp"
 
 locations:
   include:
+    - "Pittsburgh, PA"
     - "Remote - United States"
   include_radius_miles: []
   exclude: []
@@ -22,41 +25,110 @@ hard_reject:
   company_names: []
   clearance_requirements: []
   max_travel_percent: null
-  minimum_base_salary_usd: null
 
 role_families:
-  - id: "sap_btp"
+  - id: "enterprise_automation_architecture"
+    priority: 1
     enabled: true
     include_titles:
+      - "Enterprise Automation Architect"
+      - "Solutions Architect"
+      - "Enterprise Solutions Architect"
+      - "Business Systems Architect"
+      - "Automation Architect"
+    include_skills:
+      - "automation"
+      - "integrations"
+      - "enterprise systems"
+    exclude_keywords: []
+
+  - id: "sap_btp"
+    priority: 1
+    enabled: true
+    include_titles:
+      - "SAP BTP Architect"
       - "SAP BTP"
-      - "SAP Integration"
+      - "SAP Integration Architect"
       - "SAP Automation"
       - "Integration Architect"
     include_skills:
       - "SAP BTP"
       - "SAP Integration Suite"
+      - "ERP"
     exclude_keywords: []
 
   - id: "applied_ai"
+    priority: 1
     enabled: true
     include_titles:
-      - "AI Automation"
-      - "Applied AI"
-      - "AI Platform"
-      - "AI Solutions"
+      - "AI Automation Engineer"
+      - "Applied AI Engineer"
+      - "AI Platform Engineer"
+      - "AI Solutions Architect"
+      - "AI Automation Architect"
     include_skills:
       - "LLM"
+      - "OCR"
       - "automation"
       - "agent"
+      - "Python"
+      - "FastAPI"
     exclude_keywords: []
 
-  - id: "enterprise_platform"
+  - id: "technical_product_platform"
+    priority: 2
     enabled: true
     include_titles:
-      - "Platform Engineer"
-      - "Enterprise Integration"
-      - "Solutions Architect"
-    include_skills: []
+      - "Technical Product Manager"
+      - "Platform Product Manager"
+      - "AI Product Manager"
+    include_skills:
+      - "platform"
+      - "automation"
+      - "enterprise"
+    exclude_keywords: []
+
+  - id: "senior_software"
+    priority: 2
+    enabled: true
+    include_titles:
+      - "Senior Software Engineer"
+      - "Staff Software Engineer"
+      - "Automation Engineer"
+    include_skills:
+      - "Python"
+      - "FastAPI"
+      - "React"
+      - "Docker"
+    exclude_keywords: []
+
+  - id: "ios_mobile"
+    priority: 3
+    enabled: true
+    include_titles:
+      - "Senior iOS Engineer"
+      - "Mobile Engineering Lead"
+      - "iOS Lead"
+    include_skills:
+      - "Swift"
+      - "Objective-C"
+      - "iOS"
+    exclude_keywords: []
+
+  - id: "it_applications_infrastructure"
+    priority: 3
+    enabled: true
+    include_titles:
+      - "IT Applications Manager"
+      - "Infrastructure Manager"
+      - "Business Systems Manager"
+      - "IT Automation Manager"
+    include_skills:
+      - "Microsoft 365"
+      - "VMware"
+      - "Meraki"
+      - "business systems"
+      - "automation"
     exclude_keywords: []
 
 scoring:
