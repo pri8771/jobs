@@ -267,6 +267,7 @@ Possible specialized agents:
 - Policy/Safety Agent
 - Recruiter CRM Agent
 - Networking Agent
+- LinkedIn Network Growth Agent
 - Interview Agent
 - Follow-Up Agent
 - Offer Agent
@@ -277,6 +278,28 @@ Possible specialized agents:
 - Cost/Model Router
 
 The agents should invoke deterministic services rather than owning durable truth themselves.
+
+## LinkedIn network growth — intentionally open-ended
+
+A future V2/V3 capability should help expand the user's professional LinkedIn circle in a targeted, useful way rather than maximizing raw connection count.
+
+Potential objectives:
+- discover relevant recruiters and hiring managers at target companies,
+- identify peers in target role families,
+- identify alumni/former-coworker/referral paths,
+- suggest high-value connection targets associated with active jobs,
+- draft individualized connection requests and follow-ups,
+- record relationship state and history,
+- measure whether networking creates recruiter replies, referrals, interviews, or other useful outcomes.
+
+Guardrails:
+- no bulk spam,
+- no indiscriminate connection farming,
+- no automated mass messaging,
+- human-governed consequential outreach,
+- follow LinkedIn platform restrictions and current policy.
+
+Exact implementation is deliberately deferred until after the first-real-application proof.
 
 ## V3 memory architecture
 
