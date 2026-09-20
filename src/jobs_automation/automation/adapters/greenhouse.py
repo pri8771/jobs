@@ -86,15 +86,23 @@ class GreenhouseATSAdapter(ATSAdapter):
                 message=validation.message,
             )
 
-        # In live or mock mode, generate standard Greenhouse payload and receipt
+        if not mock_mode:
+            return SubmissionResult(
+                success=False,
+                status="NOT_IMPLEMENTED",
+                submitted_at=now,
+                message="Live Greenhouse ATS automated submission is not yet implemented. External submissions require explicit provider integration.",
+            )
+
+        # In mock mode, simulate submission cleanly without pretending it is live
         receipt_uuid = uuid.uuid4().hex[:12].upper()
-        receipt_id = f"GH-{receipt_uuid}"
-        confirmation_url = f"{target_url.rstrip('/')}/confirmation?id={receipt_id}"
+        receipt_id = f"SIM-GH-{receipt_uuid}"
 
         response_payload = {
             "platform": "greenhouse",
             "receipt_id": receipt_id,
             "target_url": target_url,
+            "simulated": True,
             "submitted_fields": {
                 "name": candidate_profile.identity.full_name,
                 "email": candidate_profile.identity.email,
@@ -103,16 +111,16 @@ class GreenhouseATSAdapter(ATSAdapter):
                 "resume_artifact_id": str(packet.resume_artifact_id),
                 "answers_count": len(packet.answers_json),
             },
-            "status": "success",
+            "status": "simulated",
         }
 
         return SubmissionResult(
             success=True,
-            status="SUBMITTED",
+            status="SIMULATED",
             receipt_id=receipt_id,
-            confirmation_url=confirmation_url,
+            confirmation_url=None,
             response_payload=response_payload,
             submitted_at=now,
             retry_count=0,
-            message="Application submitted successfully to Greenhouse.",
+            message="Application simulated successfully in mock mode. External submission was NOT performed.",
         )

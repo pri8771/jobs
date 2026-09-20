@@ -195,17 +195,17 @@ def test_controlled_auto_apply_success(
 
     res = engine.execute_auto_apply(job_id=job.id, mock_mode=True)
 
-    assert res.status == "SUBMITTED"
+    assert res.status == "SIMULATED"
     assert res.platform == "greenhouse"
     assert res.receipt_id is not None
-    assert "GH-" in res.receipt_id
-    assert res.confirmation_url is not None
+    assert "SIM-GH-" in res.receipt_id
+    assert res.confirmation_url is None
 
     # Verify DB state
     app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).first()
     assert app is not None
-    assert app.status == "SUBMITTED"
-    assert app.application_mode == "auto"
+    assert app.status == "SIMULATED"
+    assert app.application_mode == "auto_simulated"
 
     event = (
         db_session.query(ApplicationEventModel)
@@ -213,12 +213,75 @@ def test_controlled_auto_apply_success(
         .first()
     )
     assert event is not None
-    assert event.event_type == "APPLICATION_SUBMITTED"
+    assert event.event_type == "APPLICATION_SIMULATED"
 
     audit = db_session.query(AuditLogModel).filter(AuditLogModel.entity_id == app.id).first()
     assert audit is not None
-    assert audit.result == "success"
+    assert audit.result == "simulated"
     assert audit.external_reference == res.receipt_id
+
+
+def test_controlled_auto_apply_live_not_implemented(
+    db_session: Session,
+    candidate_profile: CandidateProfileConfig,
+    policy_config: PolicyRegistryConfig,
+) -> None:
+    evaluator = PolicyEvaluator(policy_config)
+    engine = ControlledAutoApplicationEngine(
+        session=db_session,
+        policy_evaluator=evaluator,
+        candidate_profile=candidate_profile,
+    )
+
+    company = CompanyModel(normalized_name="airbnb")
+    db_session.add(company)
+    db_session.flush()
+
+    job = JobModel(
+        company_id=company.id,
+        normalized_title="Staff Solutions Architect",
+        status="shortlisted",
+    )
+    db_session.add(job)
+    db_session.flush()
+
+    source = JobSourceModel(
+        job_id=job.id,
+        provider="greenhouse",
+        canonical_apply_url="https://boards.greenhouse.io/airbnb/jobs/99999",
+    )
+    db_session.add(source)
+    db_session.flush()
+
+    resume_art = ArtifactModel(
+        type="resume_markdown",
+        storage_uri="/artifacts/resumes/airbnb.md",
+        sha256="airbnbhash123",
+        metadata_json={},
+    )
+    db_session.add(resume_art)
+    db_session.flush()
+
+    packet = ApplicationPacketModel(
+        job_id=job.id,
+        candidate_profile_version=1,
+        resume_artifact_id=resume_art.id,
+        answers_json={"remote_experience": "yes"},
+        unresolved_questions_json=[],
+        packet_hash="packet_hash_airbnb",
+    )
+    db_session.add(packet)
+    db_session.commit()
+
+    # Live mode execution must fail closed with NOT_IMPLEMENTED and never fabricate a submission
+    res = engine.execute_auto_apply(job_id=job.id, mock_mode=False)
+
+    assert res.status == "NOT_IMPLEMENTED"
+    assert "not yet implemented" in res.message
+
+    # Ensure no application was marked submitted
+    app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).first()
+    assert app is None
 
 
 def test_controlled_auto_apply_unknown_question_stop(
@@ -425,9 +488,9 @@ def test_controlled_auto_apply_rate_limiting(
     db_session.add_all([pkt1, pkt2])
     db_session.commit()
 
-    # First apply succeeds
+    # First apply succeeds (simulated)
     res1 = engine.execute_auto_apply(job_id=job1.id, mock_mode=True)
-    assert res1.status == "SUBMITTED"
+    assert res1.status == "SIMULATED"
 
     # Immediate second apply to same domain must be rate limited!
     res2 = engine.execute_auto_apply(job_id=job2.id, mock_mode=True)

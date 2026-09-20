@@ -2,15 +2,21 @@
 
 from __future__ import annotations
 
+import datetime
 import logging
 import signal
 import time
 from collections.abc import Callable
 from typing import Any
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from jobs_automation.adapters.base import EmailAdapter
 from jobs_automation.automation.kill_switch import KillSwitchManager
+from jobs_automation.core.config import ConfigLoader
+from jobs_automation.db.models import InboundMessageModel
+from jobs_automation.ingestion.engine import EmailIngestionEngine
 from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.engine import LifecycleEngine
 
@@ -24,9 +30,18 @@ class WorkerDaemon:
         self,
         session_factory: Callable[[], Session],
         poll_interval_seconds: int = 14400,  # 4 hours default
+        config_dir: str = "config",
+        email_adapter: EmailAdapter | None = None,
+        candidate_emails: list[str] | None = None,
+        reconciliation_interval_seconds: int = 86400,  # 24 hours default
     ) -> None:
         self.session_factory = session_factory
         self.poll_interval_seconds = poll_interval_seconds
+        self.config_dir = config_dir
+        self.email_adapter = email_adapter
+        self.candidate_emails = candidate_emails
+        self.reconciliation_interval_seconds = reconciliation_interval_seconds
+        self.last_reconciliation_at: datetime.datetime | None = None
         self._running = False
 
     def handle_signal(self, signum: int, frame: Any) -> None:
@@ -34,13 +49,71 @@ class WorkerDaemon:
         logger.info("Termination signal %s received. Shutting down worker daemon...", signum)
         self._running = False
 
-    def run_sweep(self) -> dict[str, int]:
-        """Executes a single cycle of lifecycle checks, follow-up alerts, and pipeline maintenance."""
+    def _resolve_email_adapter(self) -> EmailAdapter | None:
+        """Resolve the email adapter. Fails closed without mocking if credentials are missing."""
+        if self.email_adapter is not None:
+            return self.email_adapter
+        try:
+            from jobs_automation.adapters.gmail import GmailAdapter
+
+            return GmailAdapter()
+        except Exception as exc:
+            logger.warning(
+                "Live Gmail API adapter unavailable (%s). "
+                "Skipping automated mailbox ingestion — will NOT fabricate mock data.",
+                exc,
+            )
+            return None
+
+    def _resolve_candidate_emails(self) -> list[str]:
+        """Resolve candidate emails from explicit parameter or loaded profile."""
+        if self.candidate_emails is not None:
+            return self.candidate_emails
+        try:
+            loader = ConfigLoader(self.config_dir)
+            profile, _ = loader.load_candidate_profile()
+            if profile.identity.email:
+                return [profile.identity.email]
+        except Exception as exc:
+            logger.debug("Could not load candidate email from config: %s", exc)
+        return []
+
+    def run_sweep(self, reconcile: bool | None = None) -> dict[str, Any]:
+        """Executes a single cycle of ingestion, lifecycle checks, and pipeline maintenance.
+
+        Call order is strictly:
+        1. Email ingestion sweep (Gmail or configured adapter)
+        2. Lifecycle alerts (unanswered recruiters, stale applications)
+        3. Lifecycle transitions for incoming messages
+        """
         logger.info("Executing scheduled maintenance and lifecycle sweep...")
-        results = {
+        now = datetime.datetime.now(datetime.UTC)
+
+        # Determine if reconciliation should run
+        if reconcile is not None:
+            should_reconcile = reconcile
+            if should_reconcile:
+                self.last_reconciliation_at = now
+        else:
+            if (
+                self.last_reconciliation_at is None
+                or (now - self.last_reconciliation_at).total_seconds()
+                >= self.reconciliation_interval_seconds
+            ):
+                should_reconcile = True
+                self.last_reconciliation_at = now
+            else:
+                should_reconcile = False
+
+        results: dict[str, Any] = {
+            "messages_polled": 0,
+            "messages_ingested": 0,
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
             "unanswered_alerts": 0,
             "stale_alerts": 0,
-            "lifecycle_transitions": 0,
+            "reconciliation_performed": should_reconcile,
+            "errors": [],
         }
 
         # Check safety kill switch
@@ -51,19 +124,41 @@ class WorkerDaemon:
             return results
 
         with self.session_factory() as session:
-            # 1. Lifecycle transitions & follow-up alerts
+            # 1. Email Ingestion (Performed FIRST)
+            adapter = self._resolve_email_adapter()
+            if adapter is not None:
+                candidate_emails = self._resolve_candidate_emails()
+                try:
+                    ingestion_engine = EmailIngestionEngine(
+                        session=session,
+                        adapter=adapter,
+                        candidate_emails=candidate_emails,
+                    )
+                    summary = ingestion_engine.run_sweep(reconcile=should_reconcile)
+                    results["messages_polled"] = summary.messages_polled
+                    results["messages_ingested"] = summary.messages_ingested
+                    results["jobs_discovered"] = summary.jobs_discovered_new
+                    if summary.errors:
+                        results["errors"].extend(summary.errors)
+                except Exception as exc:
+                    logger.error(
+                        "Error during scheduled email ingestion sweep: %s",
+                        exc,
+                        exc_info=True,
+                    )
+                    results["errors"].append(str(exc))
+            else:
+                results["errors"].append("Gmail adapter unavailable (missing or unconfigured credentials)")
+
+            # 2. Lifecycle transitions & follow-up alerts (Performed AFTER ingestion)
             alert_service = LifecycleAlertService(session)
             unanswered = alert_service.check_unanswered_recruiters()
             stale = alert_service.check_stale_applications()
             results["unanswered_alerts"] = len(unanswered)
             results["stale_alerts"] = len(stale)
 
-            # 2. Check unprocessed messages
+            # 3. Check unprocessed non-alert messages
             lifecycle_engine = LifecycleEngine(session)
-            from sqlalchemy import select
-
-            from jobs_automation.db.models import InboundMessageModel
-
             unprocessed_messages = session.scalars(
                 select(InboundMessageModel)
                 .where(InboundMessageModel.classification != "JOB_ALERT")
@@ -78,7 +173,9 @@ class WorkerDaemon:
             session.commit()
 
         logger.info(
-            "Sweep completed successfully: %d transitions, %d unanswered alerts, %d stale alerts.",
+            "Sweep completed: %d messages ingested, %d jobs discovered, %d transitions, %d unanswered alerts, %d stale alerts.",
+            results["messages_ingested"],
+            results["jobs_discovered"],
             results["lifecycle_transitions"],
             results["unanswered_alerts"],
             results["stale_alerts"],

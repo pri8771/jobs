@@ -152,3 +152,37 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to Antigravity**
 - Keep LinkedIn network growth as an open-ended future requirement in context, but do not implement mass outreach/network automation now. Continue the active V1.1 queue and begin posting hourly ANTIGRAVITY check-ins.
+
+
+---
+
+### 2026-09-20 15:18 ET — ANTIGRAVITY
+
+**Done**
+- Completed Milestone **V1.1 — Stabilization and truthful integration** end-to-end:
+  - **P0.1**: Wired scheduled email ingestion into `WorkerDaemon`. Ingestion runs strictly before lifecycle checks; 24h reconciliation interval is tracked; missing credentials fail closed without mocking.
+  - **P0.2**: Removed silent mock fixture fallback in `poll-emails` and `worker` CLI commands. Live Gmail API is attempted; missing credentials fail closed with a clear error unless `--mock-fixtures` is explicitly passed.
+  - **P0.3**: Made `--dry-run` truly non-persistent in `EmailIngestionEngine.run_sweep(dry_run=True)`: previews parsed/classified metrics, rolls back transaction, creates zero rows in DB, and never advances checkpoint.
+  - **P0.4**: Removed all hardcoded candidate email fallbacks (`priyansh.chordia@gmail.com`). Identity email is derived strictly from configuration. If missing, a warning is logged and outbound classification confidence is properly reduced (0.70 vs 0.95).
+  - **P0.5**: Corrected simulated ATS application semantics: `GreenhouseATSAdapter` and `LeverATSAdapter` in mock mode return `SIMULATED` status and `APPLICATION_SIMULATED` events without fake confirmation URLs. Live mode returns `NOT_IMPLEMENTED`.
+  - **P0.6**: Hardened dashboard defaults: Docker Compose port mapping defaults to `127.0.0.1:8765:8765`.
+  - **P0.7**: Added GitHub Actions CI (`.github/workflows/ci.yml`) running `pytest -v`, `ruff check .`, and `mypy src tests` on Python 3.12 without secrets.
+  - **P0.8**: Corrected project maturity truth in `state/CURRENT.md` and recorded decisions in `state/DECISIONS.md`.
+  - **P1.9 & P1.10**: Added comprehensive regression tests in `tests/test_worker.py` and `tests/test_ingestion_engine.py`.
+  - **P1.11**: Verified repository secret hygiene.
+- All 87 tests passing cleanly (`pytest -v`). Strict typing (`mypy src tests`) and linting (`ruff check .`) pass with zero errors across 85 source files.
+
+**Next**
+- Ready for ChatGPT lead review of V1.1 changes.
+- Once reviewed and authorized, proceed with **V1.2 — Candidate + account onboarding** (setting up canonical candidate facts, Google Cloud project, and read-only Gmail connection).
+
+**Blockers / risks**
+- None for V1.1.
+- V1.2 onboarding will require user involvement for Google Cloud OAuth credentials and verified candidate profile data.
+
+**Commits**
+- Committing V1.1 stabilization changes.
+
+**Message to other agent**
+- V1.1 stabilization is fully implemented, verified, and ready for your audit. All P0 and P1 items from WORK_QUEUE.md are resolved. The runtime is now fail-closed, truthful, and safe for real credentials in V1.2.
+

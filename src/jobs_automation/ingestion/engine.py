@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import logging
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -23,6 +24,8 @@ from jobs_automation.ingestion.deduplication import JobDeduplicationService, nor
 from jobs_automation.ingestion.models import EmailClassification
 from jobs_automation.ingestion.parsers import AlertParserRegistry
 
+logger = logging.getLogger(__name__)
+
 
 class IngestionSweepSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -37,6 +40,7 @@ class IngestionSweepSummary(BaseModel):
     review_tasks_created: int = 0
     checkpoint_advanced_to: str | None = None
     is_reconciliation: bool = False
+    is_dry_run: bool = False
     errors: list[str] = Field(default_factory=list)
 
 
@@ -86,12 +90,14 @@ class EmailIngestionEngine:
         reconcile: bool = False,
         query: str | None = None,
         max_messages: int = 200,
+        dry_run: bool = False,
     ) -> IngestionSweepSummary:
         start_time = datetime.datetime.now(datetime.UTC)
         summary = IngestionSweepSummary(
             started_at=start_time,
             completed_at=start_time,
             is_reconciliation=reconcile,
+            is_dry_run=dry_run,
         )
 
         last_checkpoint = self.get_last_checkpoint()
@@ -203,12 +209,19 @@ class EmailIngestionEngine:
                     self.session.add(task)
                     summary.review_tasks_created += 1
 
-            # 7. Advance checkpoint ONLY if sweep completed without exceptions
-            if newest_processed_time and not reconcile:
-                self.save_checkpoint(newest_processed_time)
-                summary.checkpoint_advanced_to = newest_processed_time.isoformat()
+            # 7. Advance checkpoint ONLY if sweep completed without exceptions and NOT in dry_run
+            if dry_run:
+                self.session.rollback()
+                summary.checkpoint_advanced_to = None
+                logger.info(
+                    "Dry-run sweep completed: session changes rolled back, zero rows persisted to database."
+                )
+            else:
+                if newest_processed_time and not reconcile:
+                    self.save_checkpoint(newest_processed_time)
+                    summary.checkpoint_advanced_to = newest_processed_time.isoformat()
 
-            self.session.commit()
+                self.session.commit()
 
         except Exception as e:
             self.session.rollback()

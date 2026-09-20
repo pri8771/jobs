@@ -438,3 +438,102 @@ def test_engine_recruiting_message_linking_and_ambiguity(db_session: Session) ->
     task = db_session.execute(task_stmt).scalars().first()
     assert task is not None
     assert "Ambiguous application link" in task.payload_json["reason"]
+
+
+def test_dry_run_leaves_zero_persisted_rows(db_session: Session) -> None:
+    from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+
+    raw_msgs = get_sample_email_fixtures()[:2]
+
+    adapter = MockEmailAdapter(raw_msgs)
+    engine = EmailIngestionEngine(
+        session=db_session,
+        adapter=adapter,
+        candidate_emails=["candidate@example.com"],
+    )
+
+    # Count rows before dry-run
+    msg_count_before = len(db_session.execute(select(InboundMessageModel)).scalars().all())
+    job_count_before = len(db_session.execute(select(JobModel)).scalars().all())
+    task_count_before = len(db_session.execute(select(TaskModel)).scalars().all())
+
+    # Execute dry-run sweep
+    summary = engine.run_sweep(dry_run=True)
+
+    # Verify summary reflects polled/parsed metrics
+    assert summary.is_dry_run is True
+    assert summary.messages_polled == 2
+    assert summary.messages_ingested == 2
+    assert summary.jobs_discovered_new >= 1
+    assert summary.checkpoint_advanced_to is None
+
+    # Verify database was NOT touched at all
+    msg_count_after = len(db_session.execute(select(InboundMessageModel)).scalars().all())
+    job_count_after = len(db_session.execute(select(JobModel)).scalars().all())
+    task_count_after = len(db_session.execute(select(TaskModel)).scalars().all())
+
+    assert msg_count_after == msg_count_before == 0
+    assert job_count_after == job_count_before == 0
+    assert task_count_after == task_count_before == 0
+
+
+def test_failed_sweep_does_not_advance_checkpoint(db_session: Session) -> None:
+    from jobs_automation.adapters.base import EmailAdapter
+
+    class FailingEmailAdapter(EmailAdapter):
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            raise ConnectionError("Gmail API connection timed out")
+
+        def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
+            return []
+
+    adapter = FailingEmailAdapter()
+    engine = EmailIngestionEngine(
+        session=db_session,
+        adapter=adapter,
+        candidate_emails=["candidate@example.com"],
+    )
+
+    summary = engine.run_sweep()
+    assert len(summary.errors) == 1
+    assert "connection timed out" in summary.errors[0]
+    assert summary.checkpoint_advanced_to is None
+    assert engine.get_last_checkpoint() is None
+
+
+def test_outbound_classification_without_candidate_email(db_session: Session) -> None:
+    now = datetime.datetime.now(datetime.UTC)
+    outbound_msg = RawEmailMessage(
+        provider_message_id="msg_outbound_unknown_cand",
+        received_at=now,
+        sender="someone@random.com",
+        direction="outbound",
+        subject="Re: Next steps",
+        body_text="Yes, I am available Tuesday at 2pm.",
+    )
+
+    adapter = MockEmailAdapter([outbound_msg])
+    # Initialize engine with empty candidate emails
+    engine = EmailIngestionEngine(
+        session=db_session,
+        adapter=adapter,
+        candidate_emails=[],
+    )
+
+    summary = engine.run_sweep()
+    assert summary.messages_ingested == 1
+
+    stored_msg = db_session.execute(
+        select(InboundMessageModel).where(
+            InboundMessageModel.provider_message_id == "msg_outbound_unknown_cand"
+        )
+    ).scalar_one()
+
+    # Outbound direction detected from email.direction, but confidence is reduced (0.70 vs 0.95)
+    assert stored_msg.direction == "outbound"
+    assert stored_msg.confidence == 0.70

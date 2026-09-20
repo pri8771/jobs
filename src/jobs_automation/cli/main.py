@@ -234,9 +234,13 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
 
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
-    candidate_emails = (
-        [profile.identity.email] if profile.identity.email else ["priyansh.chordia@gmail.com"]
-    )
+    if profile.identity.email:
+        candidate_emails = [profile.identity.email]
+    else:
+        console.print(
+            "[yellow]⚠️ Warning: profile.identity.email is not set. Outbound email classification confidence will be reduced.[/yellow]"
+        )
+        candidate_emails = []
 
     from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
     from jobs_automation.ingestion.engine import EmailIngestionEngine
@@ -253,9 +257,12 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
             adapter = GmailAdapter()
         except Exception as e:
             console.print(
-                f"[yellow]Live Gmail API adapter not ready ({e}). Falling back to test fixtures.[/yellow]"
+                f"[bold red]❌ Failed to initialize live Gmail API adapter: {e}[/bold red]\n"
+                "[yellow]To run offline with test fixtures, pass --mock-fixtures explicitly.[/yellow]"
             )
-            adapter = MockEmailAdapter(get_sample_email_fixtures())
+            raise click.ClickException(
+                f"Gmail credentials not available: {e}. Pass --mock-fixtures to test with offline fixtures."
+            )
 
     settings = AppSettings()
     engine = get_engine(settings.database_url)
@@ -271,7 +278,7 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
         console.print(
             f"Starting sweep (Reconciliation: [bold]{reconcile}[/bold], Dry-run: [bold]{dry_run}[/bold])..."
         )
-        summary = ingestion_engine.run_sweep(reconcile=reconcile)
+        summary = ingestion_engine.run_sweep(reconcile=reconcile, dry_run=dry_run)
 
         table = Table(title="Ingestion Sweep Summary", header_style="bold green")
         table.add_column("Metric", style="bold")
@@ -291,6 +298,11 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
 
         console.print(table)
         console.print()
+
+        if dry_run:
+            console.print(
+                "[bold yellow]ℹ️ Dry-run completed: zero database changes or checkpoints were persisted.[/bold yellow]"
+            )
 
         if summary.errors:
             console.print("[bold red]Errors during sweep:[/bold red]")
@@ -778,6 +790,19 @@ def auto_apply(
             console.print(f"  Receipt ID: [cyan]{res.receipt_id}[/cyan]")
             console.print(f"  Confirmation URL: [underline]{res.confirmation_url}[/underline]")
             console.print(f"  Retries Performed: {res.retries_performed}")
+        elif res.status == "SIMULATED":
+            console.print(
+                "[bold cyan]🧪 Application Successfully Simulated (Mock Mode)[/bold cyan]"
+            )
+            console.print(f"  Platform: [bold]{res.platform}[/bold]")
+            console.print(f"  Simulated Receipt ID: [cyan]{res.receipt_id}[/cyan]")
+            console.print(
+                "  [dim]Note: External submission was NOT performed and cannot masquerade as real submission.[/dim]"
+            )
+        elif res.status == "NOT_IMPLEMENTED":
+            console.print(
+                f"[bold yellow]⚠️  Live submission not yet implemented:[/bold yellow] {res.message}"
+            )
         elif res.status == "KILL_SWITCH_ACTIVE":
             console.print("[bold red]🛑 Aborted: Kill switch is active[/bold red]")
             console.print(f"  Message: {res.message}")
@@ -1029,18 +1054,44 @@ def health_check() -> None:
     type=int,
     help="Polling interval in seconds (default: 14400 / 4h).",
 )
-def worker(once: bool, interval: int) -> None:
+@click.option(
+    "--mock-fixtures",
+    is_flag=True,
+    default=False,
+    help="Use offline test fixtures for email polling instead of live Gmail.",
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+@click.option(
+    "--reconcile",
+    is_flag=True,
+    default=False,
+    help="Force 48-hour reconciliation pass for single sweep.",
+)
+def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reconcile: bool) -> None:
     """Run scheduled background worker for ingestion, lifecycle updates, and alerting."""
     console.print(Panel.fit("[bold blue]Jobs Automation — Scheduled Worker Daemon[/bold blue]"))
     from jobs_automation.worker import WorkerDaemon
+
+    email_adapter = None
+    if mock_fixtures:
+        from jobs_automation.adapters.gmail import MockEmailAdapter
+        from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+
+        console.print("[dim cyan]Running worker with offline test fixtures adapter...[/dim cyan]")
+        email_adapter = MockEmailAdapter(get_sample_email_fixtures())
 
     settings = AppSettings()
     engine = get_engine(settings.database_url)
     session_factory = get_sessionmaker(engine)
 
-    daemon = WorkerDaemon(session_factory, poll_interval_seconds=interval)
+    daemon = WorkerDaemon(
+        session_factory,
+        poll_interval_seconds=interval,
+        config_dir=config_dir,
+        email_adapter=email_adapter,
+    )
     if once:
-        res = daemon.run_sweep()
+        res = daemon.run_sweep(reconcile=True if reconcile else None)
         console.print(f"[green]Sweep finished:[/green] {res}")
     else:
         daemon.start()

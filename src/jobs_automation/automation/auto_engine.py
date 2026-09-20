@@ -247,34 +247,40 @@ class ControlledAutoApplicationEngine:
 
         if not sub_res or not sub_res.success:
             err_msg = sub_res.message if sub_res else last_error_msg
+            status_val = sub_res.status if sub_res else "FAILED"
             self._log_audit(
                 action_type="auto_apply_failed",
                 entity_type="job",
                 entity_id=job_id,
                 input_hash=packet.packet_hash,
-                result="failed",
-                metadata={"error": err_msg, "attempts": attempts, "domain": domain},
+                result="failed" if status_val != "NOT_IMPLEMENTED" else "not_implemented",
+                metadata={"error": err_msg, "attempts": attempts, "domain": domain, "status": status_val},
             )
             self.session.commit()
             return ControlledAutoApplicationResult(
                 job_id=str(job_id),
-                status="FAILED",
+                status=status_val,
                 destination_domain=domain,
                 platform=adapter.platform_name,
                 retries_performed=attempts - 1,
-                message=f"Submission failed after {attempts} attempt(s): {err_msg}",
+                message=f"Submission not executed: {err_msg}" if status_val == "NOT_IMPLEMENTED" else f"Submission failed after {attempts} attempt(s): {err_msg}",
             )
 
         # 9. Atomic Submission State & Receipt Recording
         now = utc_now()
+        is_simulation = (sub_res.status == "SIMULATED")
+        app_status = "SIMULATED" if is_simulation else "SUBMITTED"
+        event_type = "APPLICATION_SIMULATED" if is_simulation else "APPLICATION_SUBMITTED"
+        app_mode = "auto_simulated" if is_simulation else "auto"
+
         app = existing_app or ApplicationModel(
             job_id=job_id,
             destination_domain=domain,
             policy_decision="auto_allowed",
-            application_mode="auto",
+            application_mode=app_mode,
             packet_id=packet.id,
         )
-        app.status = "SUBMITTED"
+        app.status = app_status
         app.applied_at = now
         app.last_activity_at = now
         if not existing_app:
@@ -283,7 +289,7 @@ class ControlledAutoApplicationEngine:
 
         event = ApplicationEventModel(
             application_id=app.id,
-            event_type="APPLICATION_SUBMITTED",
+            event_type=event_type,
             source="ats_adapter",
             actor="system",
             payload_json={
@@ -292,22 +298,25 @@ class ControlledAutoApplicationEngine:
                 "domain": domain,
                 "platform": adapter.platform_name,
                 "response": sub_res.response_payload,
+                "simulated": is_simulation,
             },
         )
         self.session.add(event)
 
+        audit_action = "auto_application_simulated" if is_simulation else "auto_application_submitted"
         self._log_audit(
-            action_type="auto_application_submitted",
+            action_type=audit_action,
             entity_type="application",
             entity_id=app.id,
             input_hash=packet.packet_hash,
-            result="success",
+            result="simulated" if is_simulation else "success",
             external_reference=sub_res.receipt_id,
             metadata={
                 "domain": domain,
                 "platform": adapter.platform_name,
                 "receipt_id": sub_res.receipt_id,
                 "attempts": attempts,
+                "simulated": is_simulation,
             },
         )
 
@@ -315,16 +324,22 @@ class ControlledAutoApplicationEngine:
         self._complete_tasks_for_job(job_id=job.id, app_id=app.id)
         self.session.commit()
 
+        msg = (
+            f"Application simulated in mock mode for {adapter.platform_name}. Simulation ID: {sub_res.receipt_id}"
+            if is_simulation
+            else f"Application automatically submitted to {adapter.platform_name}. Receipt: {sub_res.receipt_id}"
+        )
+
         return ControlledAutoApplicationResult(
             job_id=str(job_id),
             application_id=str(app.id),
-            status="SUBMITTED",
+            status=app_status,
             destination_domain=domain,
             platform=adapter.platform_name,
             receipt_id=sub_res.receipt_id,
             confirmation_url=sub_res.confirmation_url,
             retries_performed=attempts - 1,
-            message=f"Application automatically submitted to {adapter.platform_name}. Receipt: {sub_res.receipt_id}",
+            message=msg,
         )
 
     def _enqueue_review_task(self, job_id: uuid.UUID, reason: str) -> None:

@@ -27,7 +27,7 @@ services:
       DATABASE_URL: postgresql+psycopg://jobs:jobs@postgres:5432/jobs
       CONFIG_DIR: config
     ports:
-      - "8765:8765"
+      - "${DASHBOARD_BIND:-127.0.0.1:8765}:8765"
     command: ["dashboard", "--host", "0.0.0.0", "--port", "8765"]
     depends_on:
       postgres:

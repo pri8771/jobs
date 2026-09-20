@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import re
 
 from jobs_automation.ingestion.models import (
@@ -9,6 +10,8 @@ from jobs_automation.ingestion.models import (
     EmailClassificationResult,
     RawEmailMessage,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class EmailClassifier:
@@ -22,6 +25,10 @@ class EmailClassifier:
 
     def __init__(self, candidate_emails: list[str] | None = None) -> None:
         self.candidate_emails = [e.lower() for e in (candidate_emails or []) if e]
+        if not self.candidate_emails:
+            logger.warning(
+                "EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced."
+            )
 
     def classify(self, email: RawEmailMessage) -> EmailClassificationResult:
         sender_lower = email.sender.lower()
@@ -29,11 +36,14 @@ class EmailClassifier:
         body_lower = email.body_text.lower()
 
         # 1. Outbound / Candidate reply detection
-        is_candidate_sender = any(cand in sender_lower for cand in self.candidate_emails)
+        is_candidate_sender = bool(
+            self.candidate_emails and any(cand in sender_lower for cand in self.candidate_emails)
+        )
         if email.direction == "outbound" or is_candidate_sender:
+            confidence = 0.95 if is_candidate_sender else 0.70
             return EmailClassificationResult(
                 classification=EmailClassification.CANDIDATE_REPLY,
-                confidence=0.95,
+                confidence=confidence,
                 direction="outbound",
                 needs_review=False,
             )
@@ -155,6 +165,7 @@ class EmailClassifier:
             )
 
         interview_request_patterns = [
+            "interview request",
             "schedule an interview",
             "invitation to interview",
             "interview invitation",

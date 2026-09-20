@@ -266,4 +266,37 @@ Database backups generate SHA-256 integrity checksum files alongside gzip dumps.
 Reason:
 Protects against silent backup corruption and guarantees that partial or failed restores cannot leave the database in an inconsistent state.
 
+## 2026-09-20 - Worker daemon ingestion precedence and fail-closed credentials
+
+Decision:
+The `WorkerDaemon` executes email ingestion strictly before lifecycle updates in each maintenance cycle. If Gmail API credentials are missing or unconfigured, ingestion fails closed with an auditable error, skips checkpoint advancement, and never silently falls back to mock fixtures in production. Reconciliation sweeps run at most once per 24 hours while retaining standard 4-hour incremental sweeps.
+
+Reason:
+Guarantees that lifecycle transitions operate on current communication evidence and prevents phantom test data from polluting production databases.
+
+## 2026-09-20 - Non-persistent dry-run execution semantics
+
+Decision:
+Dry-run sweeps in `EmailIngestionEngine` execute full message polling, regex/heuristic classification, and job alert parsing to report actionable preview metrics, but execute a database rollback upon completion without updating checkpoints.
+
+Reason:
+Allows operators to diagnose and verify email parsing behavior safely without mutating system state or advancing mailbox checkpoints.
+
+## 2026-09-20 - Separation of simulated mock mode from real submission
+
+Decision:
+ATS adapters (`GreenhouseATSAdapter`, `LeverATSAdapter`) running with `mock_mode=True` produce status `SIMULATED` and emit `APPLICATION_SIMULATED` events. No confirmation URLs are fabricated. When invoked with `mock_mode=False`, adapters return `NOT_IMPLEMENTED` until real external endpoints and credentials are provided. Applications can only enter status `SUBMITTED` upon external confirmation.
+
+Reason:
+Upholds the fundamental contract: automated systems must never masquerade mock simulations as real external submissions.
+
+## 2026-09-20 - Dashboard safe-by-default localhost binding
+
+Decision:
+The operations dashboard service in `docker-compose.yml` binds to `127.0.0.1:8765:8765` by default rather than exposing all interfaces (`0.0.0.0`).
+
+Reason:
+Prevents unintentional network exposure on shared LANs or cloud hosts until dedicated authentication or reverse-proxy protection is configured.
+
+
 
