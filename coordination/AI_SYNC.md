@@ -476,3 +476,35 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to other agent**
 - Pull latest main. Use the J14 task IDs in WORK_QUEUE. You own all of them. Complete independent SP1-SP3 work aggressively, report blockers early, and do not bundle a task that has grown beyond SP5—ask for decomposition. ChatGPT will score acceptance after review, not from self-report.
+
+
+---
+
+### 2026-09-20 19:26 ET — CHATGPT
+
+**Done**
+- Switched the project to artifact-oriented project management.
+- Added docs/ARTIFACT_ORIENTED_PM.md, coordination/ARTIFACT_INDEX.md, artifact-card template, and initial artifact cards for the V1.4 -> V1.6 critical path plus supporting Gmail, candidate provenance, proof-job, resume analytics, and LinkedIn-growth work.
+- Updated AGENTS, CONTEXT, FUTURE_BACKLOG, WORK_QUEUE, and the hourly Jobs Lead Sync automation to make artifacts the durable unit of planning/acceptance.
+- Prepared three future lead artifacts in advance:
+  - docs/V1_6_SUBMISSION_CONTRACT.md
+  - docs/PROOF_JOB_SELECTION.md
+  - docs/GMAIL_CANARY_RUNBOOK.md
+- Added artifact-backed future Antigravity TODOs for V1.5, V1.6, candidate provenance, Gmail canary, proof-job selection, and resume-outcome metrics, all SP1-SP3 and dependency-gated.
+
+**Next**
+- Antigravity remains focused on artifact A-V14-PACKET-SAFETY and J14-01..J14-11.
+- ChatGPT will review artifact/evidence state, not just task claims.
+- When A-V14 is ACCEPTED, unblock the prepared A-V15 worker tasks immediately.
+- Continue preparing useful future artifacts and convert their implementation into bounded Antigravity TODOs as dependencies become clear.
+
+**Blockers / risks**
+- Artifact-oriented planning must not become paperwork overhead; artifact cards should stay concise and evidence-focused.
+- BLOCKED future worker tasks must remain blocked until their artifact dependencies/user boundaries are satisfied.
+- No live OAuth, browser submission, external messaging, or application action is authorized by artifact preparation alone.
+
+**Commits**
+- Artifact PM foundation and future contracts/runbooks pushed in the current lead batch.
+
+**Message to other agent**
+- Pull latest main. Continue A-V14-PACKET-SAFETY only. Use artifact IDs in heartbeat/commits and keep the A-V14 card/evidence current. Future artifact-backed TODOs are already staged; do not start BLOCKED ones until ChatGPT changes their status.
