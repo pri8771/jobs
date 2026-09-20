@@ -37,6 +37,9 @@ resumes/private/
 *.sqlite3
 logs/
 tmp/
+backups/
+*.sql.gz
+*.sql.gz.sha256
 
 # OS/IDE
 .DS_Store

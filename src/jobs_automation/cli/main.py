@@ -973,6 +973,80 @@ def dashboard(host: str, port: int) -> None:
         server.shutdown()
 
 
+@cli.command(name="health-check")
+def health_check() -> None:
+    """Run system readiness and diagnostic health checks."""
+    console.print(
+        Panel.fit(
+            "[bold blue]Jobs Automation — System Diagnostics & Health Check[/bold blue]"
+        )
+    )
+    from jobs_automation.health import HealthCheckService
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    checker = HealthCheckService(session_factory)
+    report = checker.run_full_check()
+
+    table = Table(title="System Component Status", header_style="bold cyan")
+    table.add_column("Component", style="bold")
+    table.add_column("Status")
+    table.add_column("Latency")
+    table.add_column("Diagnostics")
+
+    for name, comp in report.components.items():
+        status_color = (
+            "green"
+            if comp.status == "HEALTHY"
+            else ("yellow" if comp.status == "DEGRADED" else "red")
+        )
+        latency_str = f"{comp.latency_ms:.1f}ms" if comp.latency_ms > 0 else "-"
+        table.add_row(
+            name,
+            f"[{status_color}]{comp.status}[/{status_color}]",
+            latency_str,
+            comp.message,
+        )
+
+    console.print(table)
+    overall_color = (
+        "green"
+        if report.overall_status == "HEALTHY"
+        else ("yellow" if report.overall_status == "DEGRADED" else "red")
+    )
+    console.print(
+        f"Overall System State: [{overall_color} bold]{report.overall_status}[/{overall_color} bold]\n"
+    )
+
+
+@cli.command(name="worker")
+@click.option("--once", is_flag=True, default=False, help="Run single sweep cycle and exit.")
+@click.option(
+    "--interval",
+    default=14400,
+    type=int,
+    help="Polling interval in seconds (default: 14400 / 4h).",
+)
+def worker(once: bool, interval: int) -> None:
+    """Run scheduled background worker for ingestion, lifecycle updates, and alerting."""
+    console.print(Panel.fit("[bold blue]Jobs Automation — Scheduled Worker Daemon[/bold blue]"))
+    from jobs_automation.worker import WorkerDaemon
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    daemon = WorkerDaemon(session_factory, poll_interval_seconds=interval)
+    if once:
+        res = daemon.run_sweep()
+        console.print(f"[green]Sweep finished:[/green] {res}")
+    else:
+        daemon.start()
+
+
 if __name__ == "__main__":
     cli()
+
 

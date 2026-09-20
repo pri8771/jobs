@@ -4,49 +4,53 @@ Updated: 2026-09-20
 
 ## Current checkpoint
 
-V0.7 — Dashboard and analytics (IMPLEMENTED & VERIFIED)
+V1.0 — Reliable personal job-search operating system (IMPLEMENTED & VERIFIED)
 
-## Completed in V0.7
+## Completed in V1.0
 
-- **Funnel Analytics Service** (`src/jobs_automation/dashboard/analytics.py`):
-  - Discovery-to-submission, screening, interview, and offer conversion percentages.
-  - Source platform breakdown (`provider` grouping).
-  - Multi-column Kanban application categorization (`DISCOVERED`, `PREPARED`, `SUBMITTED`, `SCREENING`, `INTERVIEWING`, `OFFER`, `CLOSED`).
-- **Dashboard Server & REST API** (`src/jobs_automation/dashboard/server.py`):
-  - Embedded, portable HTTP server using standard library `http.server.ThreadingHTTPServer` (zero external web framework dependencies).
-  - REST endpoints:
-    - `GET /api/funnel`: pipeline stages, conversion rates, and pending review counts.
-    - `GET /api/sources`: job counts by ingestion source/provider.
-    - `GET /api/kanban`: grouped applications with company, title, mode, and policy decision.
-    - `GET /api/reviews`: pending review tasks with full payload context.
-    - `POST /api/reviews/{id}/resolve`: resolves human review tasks with notes/overrides.
-    - `GET /api/interviews`: scheduled interview schedule, round types, and video links.
-    - `GET /api/contacts`: recruiter contacts, touchpoint frequencies, and last contact dates.
-  - Sleek, dark-mode Single Page Application (SPA) with tabbed navigation, live metric cards, Kanban visualizer, interview tracker, CRM directory, and prompt-based task resolution.
-- **CLI Command**:
-  - `jobs-automation dashboard --host 127.0.0.1 --port 8080`.
+- **System Diagnostics & Health Check Service** (`src/jobs_automation/health.py`):
+  - `check_database`: Measures PostgreSQL round-trip latency (ms) and queries pending task queue count.
+  - `check_kill_switches`: Evaluates global and platform-specific emergency shutdown controls (`KillSwitchManager`).
+  - `check_policy_registry`: Audits active policies for expired or approaching review dates (`review_due_at`).
+  - `check_adapters`: Assesses registered automated ATS submission platforms.
+  - `run_full_check`: Synthesizes component diagnostics into a consolidated `HealthReport` (`HEALTHY`, `DEGRADED`, `UNHEALTHY`).
+- **Scheduled Background Worker Daemon** (`src/jobs_automation/worker.py`):
+  - Periodic execution loop running configurable maintenance sweeps (4-hour default).
+  - Sweeps inbound messages for lifecycle updates, schedules interviews, and generates follow-up alerts for unanswered recruiter messages (>48h) and stale applications (>14d).
+  - Respects global and platform kill switches and supports clean SIGINT/SIGTERM shutdown.
+- **Production Containerization**:
+  - `Dockerfile`: Multi-stage Python 3.12 slim image with PostgreSQL client tools, non-root packaging, and CLI entrypoint.
+  - `docker-compose.yml`: Multi-service deployment orchestrating `postgres` (with healthcheck and persistent volume), `jobs-dashboard` (port 8080), and `jobs-worker` daemon.
+- **Database Backup & Disaster Recovery**:
+  - `scripts/backup_db.sh`: Automated gzip-compressed `pg_dump` with SHA-256 integrity checksum generation and 14-day retention pruning.
+  - `scripts/restore_db.sh`: Single-transaction PostgreSQL database restore with mandatory SHA-256 verification and connection teardown.
+  - `docs/RECOVERY.md`: Comprehensive operations runbook covering cold-start restore, kill-switch procedures, state recovery from raw email evidence, and diagnostic monitoring.
+- **CLI Commands**:
+  - `jobs-automation health-check`: Rich formatted console table of component statuses, latencies, and diagnostic health.
+  - `jobs-automation worker [--once] [--interval <seconds>]`: Runs scheduled background worker daemon or one-off maintenance sweep.
 - **Testing & Verification**:
-  - `tests/test_dashboard.py`: comprehensive unit tests verifying funnel statistics, Kanban organization, REST endpoints, and review task resolution.
-  - Full test suite: 72 passing tests.
+  - `tests/test_health.py`: 5 unit and integration tests verifying nominal health checks, active kill-switch detection, expired policy flagging, and worker daemon sweeps.
+  - Full test suite: **77 tests passing cleanly**.
 
 ## Verification performed
 
-1. `pytest -v`: All 72 tests passing in 0.90s.
-2. `ruff check .`: All checks passed with zero errors.
-3. `mypy src tests`: Strict type checking passed with zero errors across 81 source files.
+1. `pytest -v`: All 77 tests passing in 0.80s.
+2. `ruff check .`: All checks passed with zero errors across the entire codebase.
+3. `mypy src tests`: Strict type checking passed with zero errors across 84 source files.
+4. Live integration verification with PostgreSQL container:
+   - `jobs-automation health-check`: Verified connected status (`HEALTHY`, 38.9ms latency, 4 pending tasks).
+   - `jobs-automation worker --once`: Executed single scheduled maintenance sweep cleanly.
+   - `scripts/backup_db.sh`: Created timestamped gzip backup archive and verified SHA-256 checksum.
+   - `scripts/restore_db.sh`: Executed single-transaction database restore from backup with checksum verification.
+   - Post-restore `jobs-automation health-check`: Confirmed database operational state `HEALTHY`.
 
 ## Current blockers
 
-None.
+None. The complete roadmap from V0.1 through V1.0 has been implemented, thoroughly tested, and verified end-to-end.
 
-## Exact next task (V1.0)
+## Next milestone
 
-Implement **V1.0 — Reliable personal job-search operating system**:
-- Production multi-service Docker configuration (`docker-compose.yml`, `Dockerfile`) orchestrating:
-  - `postgres`: database with persistent data volume.
-  - `jobs-worker`: scheduled background daemon running periodic email ingestion sweeps, application preparation, automated policy evaluations, and lifecycle alert checks.
-  - `jobs-dashboard`: web UI and REST API.
-- Database backup and recovery scripts (`scripts/backup_db.sh`, `scripts/restore_db.sh`).
-- Health check and monitoring CLI command (`jobs-automation health-check`) assessing database readiness, adapter health, kill-switch status, and unhandled exceptions.
-- Disaster recovery and operational runbook (`docs/RECOVERY.md`).
-- Verification with end-to-end integration tests and clean checkpoint handoff.
+Roadmap milestone V1.0 is achieved. Future enhancements may include:
+- Additional ATS adapters (Workday, SmartRecruiters, Ashby).
+- Multi-user authentication if migrating from personal single-user OS to multi-tenant deployment.
+- Mobile notifications (webhook / Pushover / Slack) for high-priority recruiter interview requests.

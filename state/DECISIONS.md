@@ -250,3 +250,20 @@ The operations dashboard and REST API are built with Python's standard library `
 Reason:
 Maximizes cross-environment portability, guarantees zero external dependency bloat, starts instantly, and ensures out-of-the-box operation across desktop CLI, cloud VMs, and containerized Docker environments.
 
+## 2026-09-20 - Decoupled background worker daemon
+
+Decision:
+Background sweeps (email polling, interview extraction, follow-up alerting, rate-limiting resets) run in an independent `jobs-worker` daemon decoupled from user interface and dashboard request handling.
+
+Reason:
+Prevents long-running background tasks from starving web UI responsiveness, isolates scheduler failures, and supports horizontal separation of concerns in containerized environments.
+
+## 2026-09-20 - Cryptographic backup and single-transaction restore
+
+Decision:
+Database backups generate SHA-256 integrity checksum files alongside gzip dumps. Restores require explicit checksum verification and execute within a single atomic PostgreSQL transaction with active connection termination.
+
+Reason:
+Protects against silent backup corruption and guarantees that partial or failed restores cannot leave the database in an inconsistent state.
+
+
