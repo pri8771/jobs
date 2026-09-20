@@ -8,6 +8,31 @@ Do not wait for a new chat message when the next queued work is clear.
 
 Last prioritized: 2026-09-20
 
+## Strategic finish line
+
+Current scope ends when Jobs Automation demonstrates:
+
+**one genuine, externally confirmed application submitted through the system for a real job the user actually wants.**
+
+Milestone path:
+- V1.1 stabilization
+- V1.2 real candidate/account/Gmail onboarding
+- V1.3 real job ingestion/selection
+- V1.4 real application packet
+- V1.5 assisted real application
+- V1.6 first genuine system-submitted application
+
+After V1.6:
+- stop broad development,
+- request ChatGPT review,
+- reassess what should be built next.
+
+Detailed plan:
+- docs/FIRST_REAL_APPLICATION_PLAN.md
+
+V2/V3 is tentative reference only:
+- docs/TENTATIVE_V3_ARCHITECTURE.md
+
 ## Current milestone
 
 V1.1 — Stabilization and truthful integration
@@ -140,5 +165,43 @@ Verify repo contains no:
 - CURRENT/CONTEXT accurately state remaining limitations
 
 After V1.1:
-- ChatGPT updates queue for V1.2.
-- Antigravity may continue only after the V1.1 exit criteria are met and the next queue is written or the user explicitly directs otherwise.
+- ChatGPT reviews and updates queue for V1.2.
+- Antigravity must not connect accounts or cross external-action boundaries until the next phase is authorized.
+
+## Queued next phases after ChatGPT V1.1 review
+
+### V1.2 — Real onboarding
+- canonical candidate facts/resumes
+- Google Cloud Gmail OAuth project
+- Gmail read-only
+- LinkedIn/Indeed/ZipRecruiter/Dice profiles and alerts
+- real mailbox sweeps
+
+### V1.3 — Real job ingestion/matching
+- ingest real alerts
+- dedupe real jobs
+- detect actual application destination
+- score/filter
+- choose strong proof-job candidate(s)
+
+### V1.4 — Real application packet
+- correct resume family
+- truthful tailoring
+- screening answers
+- unresolved-question block
+- exact artifact manifest/hash
+
+### V1.5 — Assisted real application
+- authenticated browser worker/profile
+- form inspection/prefill/upload
+- user review
+- real confirmation capture
+
+### V1.6 — First genuine system submission
+- approved real destination/method
+- user authorizes exact live application
+- execute real external submission
+- capture external confirmation
+- only then record APPLICATION_SUBMITTED
+
+After this succeeds, STOP and request ChatGPT/user reassessment.
