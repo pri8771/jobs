@@ -92,16 +92,19 @@ At least one real strong-match job is selected with a known application URL.
 
 Deliver:
 - choose correct base resume family
+- create/preserve an immutable resume variant/version
 - tailor truthfully to selected real job
 - produce exact resume artifact
 - produce cover letter if needed
 - prepare screening answers only from canonical facts
 - block unresolved questions
 - create packet manifest/hash
+- permanently link packet -> resume family -> exact resume variant -> exact artifact/hash
+- ensure later lifecycle outcomes can be attributed back to the submitted resume
 - user can inspect exact packet
 
 Exit:
-At least one real job has a complete, truthful, reviewable packet.
+At least one real job has a complete, truthful, reviewable packet, and the exact resume family/version/artifact is persistently identifiable for later recruiter-response/interview/offer analytics.
 
 ### V1.5 — Assisted real application
 
