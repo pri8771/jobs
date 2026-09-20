@@ -203,3 +203,23 @@ Standing behavior:
 - work ahead on audits, tests, schemas, runbooks, acceptance contracts, benchmarks, research, and future milestone preparation,
 - commit useful outputs to Git so Antigravity can consume them,
 - do not cross live account/OAuth/application/message/user-consent boundaries just to stay busy.
+
+
+## Lead/worker delegation and measurement
+
+The user wants the bulk of implementation work, especially easy work, delegated to Antigravity.
+
+Story points are now used as complexity buckets, not time estimates:
+- SP1 trivial/local
+- SP2 small bounded
+- SP3 moderate multi-file
+- SP4 complex but bounded
+- SP5 maximum normal worker unit
+- >SP5 must be decomposed
+
+Default:
+- Antigravity gets almost all SP1-SP2, most SP3, and well-specified larger tasks.
+- ChatGPT focuses on architecture, difficult debugging, decomposition, review/acceptance, and safe future preparation.
+- ChatGPT should keep adding bounded tasks to WORK_QUEUE rather than taking easy implementation itself.
+- Worker performance by SP bucket is recorded in coordination/WORKER_PERFORMANCE.md.
+- See docs/WORKER_STORY_POINTS.md.
