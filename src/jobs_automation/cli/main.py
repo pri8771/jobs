@@ -951,7 +951,7 @@ def update_lifecycle() -> None:
 
 @cli.command(name="dashboard")
 @click.option("--host", default="127.0.0.1", help="Host interface to bind dashboard.")
-@click.option("--port", default=8080, type=int, help="Port to run dashboard.")
+@click.option("--port", default=8765, type=int, help="Port to run dashboard (default: 8765).")
 def dashboard(host: str, port: int) -> None:
     """Launch embedded interactive web dashboard and REST API."""
     console.print(

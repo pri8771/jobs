@@ -682,7 +682,7 @@ class DashboardServer:
         self,
         session_factory: Callable[[], Session],
         host: str = "127.0.0.1",
-        port: int = 8080,
+        port: int = 8765,
     ) -> None:
         self.host = host
         self.port = port
