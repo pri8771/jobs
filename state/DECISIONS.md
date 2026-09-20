@@ -72,7 +72,7 @@ Decision:
 Always-on controller can run in Docker; interactive browser runner can run on a trusted desktop.
 
 Reason:
-Keeps scheduling/email processing always-on while allowing visible browser sessions and manual checkpoints.
+Keeps scheduled email/job processing independent from interactive application sessions.
 
 ## 2026-09-20 - LiteLLM-compatible model gateway
 
@@ -89,3 +89,27 @@ Use a simple worker loop/APScheduler for MVP.
 
 Reason:
 Redis/Celery is unnecessary until actual workload justifies it.
+
+## 2026-09-20 - Gmail polling cadence
+
+Decision:
+Gmail processing does not need to be real-time. Default to polling every 4 hours, configurable around a 3-4 hour cadence, with an optional once-daily reconciliation sweep.
+
+Reason:
+Job alerts and recruiting communication do not justify minute-level infrastructure. A several-times-per-day sweep is sufficient and simpler to operate.
+
+## 2026-09-20 - Preserve complete recruiting email history
+
+Decision:
+Track inbound and outbound recruiting/company email, preserve Gmail message and thread IDs, and maintain chronological thread history linked to contacts, companies, jobs, and applications.
+
+Reason:
+Application state cannot be understood reliably from only the latest incoming message. Full communication history is needed for follow-ups, interview tracking, recruiter relationships, and auditability.
+
+## 2026-09-20 - Ambiguous email links require review
+
+Decision:
+If an email could plausibly belong to more than one application/job and deterministic evidence is insufficient, create a NEEDS_REVIEW item instead of silently linking it.
+
+Reason:
+Incorrect lifecycle transitions are more harmful than delayed classification.
