@@ -4,6 +4,15 @@ Purpose: give ChatGPT useful, safe work to pull forward whenever the active mile
 
 This is a preparation/review backlog, not permission to cross live-action boundaries.
 
+## Artifact-first future work
+
+Before creating a new future task:
+1. check coordination/ARTIFACT_INDEX.md for an existing artifact,
+2. create/update an artifact card if needed,
+3. prepare the contract/evidence requirements,
+4. add bounded SP1-SP5 Antigravity implementation tasks to WORK_QUEUE,
+5. keep blocked tasks visibly tied to artifact dependencies.
+
 ## Pull-forward rule
 
 When the highest-priority current milestone is waiting on another owner:
