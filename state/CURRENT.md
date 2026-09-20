@@ -4,98 +4,62 @@ Updated: 2026-09-20
 
 ## Current checkpoint
 
-V0.1 - Portable foundation + profiles
+V0.1 - Portable foundation + profiles (IMPLEMENTED & VERIFIED)
 
-## Completed
+## Completed in V0.1
 
-- GitHub repository identified: pri8771/jobs
-- repository initialized
-- canonical cross-IDE agent contract defined
-- product specification defined
-- candidate positioning and targeted-resume strategy added
-- target compensation direction seeded at $150K+
-- target role families seeded
-- architecture defined
-- platform automation constraints documented
-- runtime data model defined
-- initial profile/alert plan defined
-- tools/infrastructure plan defined
-- Antigravity rules/skills/workflows added
-- Cursor, Claude Code, Copilot, and generic agent entry points added
-- non-secret candidate/search/platform/model/policy config templates added
-- Gmail polling cadence standardized at 4 hours by default, configurable around 3-4 hours
-- recruiter/company communication tracking rules added
-- roadmap defined
+- Python 3.12+ package structure implemented in `src/jobs_automation/` with `pyproject.toml`.
+- Docker Compose configuration (`docker-compose.yml`) added for PostgreSQL with host port isolation (`${POSTGRES_PORT:-5433}:5432`).
+- Typed configuration models and loader implemented in `jobs_automation.core`:
+  - `CandidateProfileConfig` with strict fact validation to prevent guessing or fabricating missing identity, work authorization, compensation, or dates.
+  - `JobSearchConfig` with scoring weights and role family definitions.
+  - `PlatformsConfig` and `EmailPollingConfig` enforcing 4-hour (240 min) default polling and disallowing realtime push or minute-level polling.
+  - `ModelRoutingConfig` for LiteLLM-compatible task-based model gateway routing.
+  - `PolicyRegistryConfig` with deny-by-default behavior (`BLOCKED`).
+- Foundational PostgreSQL/SQLite database models (18 domain models) implemented in `jobs_automation.db` matching `docs/DATA_MODEL.md`:
+  - Supports inbound and outbound email tracking, thread history, deduplication on provider message ID, contacts, applications, evaluations, events, and audit logging.
+- Alembic database migration environment and initial migration `001_initial_foundation` created and successfully applied to PostgreSQL.
+- Policy evaluation engine implemented in `jobs_automation.policy.evaluator` enforcing default-deny (`BLOCKED`), wildcard domain matching, and expiration date checking (`review_due_at`).
+- Replaceable integration interfaces (`EmailAdapter`, `ModelGateway`, `ATSAdapter`) defined in `jobs_automation.adapters.base`.
+- Profile setup worksheet generator implemented in `jobs_automation.worksheets.generator`, producing `docs/PROFILE_WORKSHEET.md` with tailored checklists for LinkedIn, Indeed, ZipRecruiter, and Dice grounded in `docs/CANDIDATE_POSITIONING.md`.
+- CLI commands implemented in `jobs_automation.cli`:
+  - `validate-config`: loads all YAML configs, reports unresolved facts without fabricating answers.
+  - `db-check`: verifies database connectivity, reports latency and registered models.
+  - `status`: displays complete system status across configs, database, platforms, and policy registry.
+  - `generate-profile-worksheet`: exports platform checklist to `docs/PROFILE_WORKSHEET.md`.
+- Test suite implemented in `tests/`: 22 unit tests passing across config validation, policy evaluation, database models and thread tracking, CLI commands, and worksheet generation.
+- Full formatting (`ruff format`), linting (`ruff check`), and strict type checking (`mypy src tests`) passing with zero errors.
 
-## Decisions currently in force
+## Verification performed
 
-- Git is the development/project-context source of truth.
-- PostgreSQL will be the normal runtime database.
-- Gmail email ingestion is the primary cross-platform discovery/status bus.
-- Gmail does not need real-time processing; use a 4-hour default polling interval with a configurable 3-4 hour operating range.
-- Perform an optional daily reconciliation pass to catch gaps.
-- Track both inbound and outbound recruiter/company email and preserve full Gmail thread history.
-- Raw Gmail message/thread IDs remain authoritative evidence for email-derived lifecycle changes.
-- Ambiguous email/application links must route to NEEDS_REVIEW rather than guessing.
-- LinkedIn, Indeed, ZipRecruiter, and Dice are the initial four job boards.
-- Dice is the fourth board because it is technology-focused and supports profile + alerts.
-- LinkedIn and Indeed submission automation is disabled under their current rules.
-- Auto-apply will target separately evaluated employer/ATS destinations.
-- Antigravity is the first execution environment, but the implementation must remain IDE/model-neutral.
-- LiteLLM-compatible model routing is preferred.
-- MVP scheduler stays simple; do not introduce Celery/Redis prematurely.
-- Browser execution is separated from the always-on controller.
-- Primary career positioning is Enterprise Automation & Solutions Architect.
-- Maintain multiple targeted resume variants rather than one generic resume.
-- Search should cover enterprise automation/SAP BTP, AI automation/software, technical product/platform, iOS/mobile leadership, and IT applications/infrastructure leadership.
-- Target compensation is $150K+; implementation must confirm base vs total-comp semantics before using this as a hard rejection rule.
+1. `pytest -v`: 22 of 22 tests passing in 0.30s.
+2. `ruff check .`: All checks passed.
+3. `ruff format --check .`: All 53 files clean.
+4. `mypy src tests`: Strict type checking passed with no issues found across 25 source files.
+5. Docker Compose: `docker compose up -d` started PostgreSQL (16-alpine) on mapped port 5433.
+6. `alembic upgrade head`: Applied `001_initial_foundation` migration creating all 18 tables + `alembic_version`.
+7. `jobs-automation db-check`: Verified live connection to PostgreSQL (latency: 22ms) and table discovery.
+8. `jobs-automation validate-config`: Verified all YAML configurations, 4-hour Gmail polling cadence, and reported unresolved facts.
+9. `jobs-automation status`: Verified system status dashboard.
+10. `jobs-automation generate-profile-worksheet`: Verified generation of `docs/PROFILE_WORKSHEET.md`.
+11. Security review: Inspected git status and ignored files; confirmed no tokens, secrets, cookies, or credentials are staged or committed.
 
-## Next implementation tasks for V0.1
+## Failures / issues encountered and resolved
 
-1. Create Python project scaffold and Docker Compose PostgreSQL.
-2. Add config models and loaders using the committed YAML contracts.
-3. Ensure the email configuration model supports the committed 4-hour default cadence.
-4. Add policy registry with deny-by-default behavior.
-5. Add database models/migrations for foundational entities.
-6. Add CLI commands:
-   - validate-config
-   - db-check
-   - status
-7. Add tests.
-8. Generate a profile setup worksheet from validated config.
-9. Use that worksheet to complete/verify LinkedIn, Indeed, ZipRecruiter, and Dice profiles.
-10. Update this file with verification results.
+- Conflict on host port 5432: Pre-existing macOS Homebrew PostgreSQL service occupied 5432. Resolved by mapping Docker Compose PostgreSQL to `${POSTGRES_PORT:-5433}:5432` with `.env` configuration.
+- Missing type annotations in test files resolved for strict `mypy` compliance.
 
-## User-input tasks during V0.1
+## Current blockers
 
-Already known:
-- primary candidate positioning
-- target role families
-- Pittsburgh + US-remote search seed
-- $150K+ compensation target direction
-- targeted resume strategy
-- known education and recent role history
-- email polling does not need to be real-time; 3-4 hour cadence is sufficient
+None for foundation.
 
-Still needs user confirmation/input:
-- canonical resume file(s) to use
-- exact base-vs-total-comp interpretation for the $150K+ threshold
-- remote/hybrid/on-site preferences beyond the current search seed
-- work authorization / sponsorship answers
-- relocation/travel preferences
-- phone/email and profile URLs
-- reusable application answers
-- account/profile status for LinkedIn, Indeed, ZipRecruiter, Dice
-- any missing exact employment dates/details
+For human profile setup on external platforms:
+- User manual execution of the checklists in `docs/PROFILE_WORKSHEET.md` for LinkedIn, Indeed, ZipRecruiter, and Dice (entering credentials, uploading tailored resume variants, activating daily search alert emails).
 
-Unknown answers must remain TODO; agents must not infer them.
+## Exact next task (V0.2)
 
-## Blockers
-
-None for scaffolding.
-
-Actual profile creation may require user login, MFA, CAPTCHA, or manual confirmation on each platform. Treat these as normal interactive checkpoints, not errors.
-
-## Exact next action
-
-Run prompts/ANTIGRAVITY_START.md in Antigravity and implement only V0.1.
+Implement **V0.2 — Job alerts + Gmail ingestion**:
+- Gmail API OAuth setup and token flow.
+- 4-hour polling worker with incremental checkpointing and overlap window.
+- Inbound and outbound message persistence with thread ID tracking.
+- Email parsers for LinkedIn, Indeed, ZipRecruiter, Dice, and generic job alert emails.

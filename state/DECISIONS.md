@@ -113,3 +113,19 @@ If an email could plausibly belong to more than one application/job and determin
 
 Reason:
 Incorrect lifecycle transitions are more harmful than delayed classification.
+
+## 2026-09-20 - PostgreSQL port isolation in Docker Compose
+
+Decision:
+Docker Compose maps PostgreSQL container port 5432 to host port 5433 by default (`${POSTGRES_PORT:-5433}:5432`), while supporting `POSTGRES_PORT` environment override.
+
+Reason:
+Prevents port collisions on developer workstations and host servers where a local PostgreSQL service is already active on default port 5432.
+
+## 2026-09-20 - Policy expiration enforcement in policy evaluator
+
+Decision:
+If a policy rule has a `review_due_at` date in the past, the policy evaluator automatically overrides the decision to `BLOCKED` with reason `policy_review_expired`, rather than permitting automation under stale policy terms.
+
+Reason:
+Platform terms of service change frequently. Default-deny must protect the user against automated actions performed under expired assessments.
