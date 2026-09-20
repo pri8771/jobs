@@ -131,6 +131,25 @@ This rule does NOT authorize ChatGPT to:
 - fabricate candidate facts,
 - or silently expand the user-approved product scope.
 
+## Delegation and story-point policy
+
+Use docs/WORKER_STORY_POINTS.md.
+
+Default behavior:
+- give Antigravity the bulk of implementation work,
+- especially delegate almost all SP1-SP2 and most SP3 tasks,
+- delegate well-specified SP4 tasks when architecture/acceptance is clear,
+- assign SP5 only when tightly bounded,
+- never assign >SP5 as one unit; ChatGPT must decompose it first.
+
+ChatGPT should avoid consuming easy worker work. Its primary value is architecture, debugging, decomposition, adversarial review, acceptance, and preparing future work.
+
+Every meaningful worker implementation task should have a task ID + SP1-SP5 estimate before or when it enters WORK_QUEUE.
+
+Worker performance is tracked in coordination/WORKER_PERFORMANCE.md. Worker completion is self-reported; only ChatGPT may mark milestone-relevant tasks LEAD_ACCEPTED.
+
+If a worker struggles with an SP4/SP5 task, split it into smaller independent tasks instead of repeatedly reissuing the same oversized prompt.
+
 ## Agent finish protocol
 
 Before ending a meaningful work session:
