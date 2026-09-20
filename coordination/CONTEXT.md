@@ -72,6 +72,16 @@ Target compensation direction:
 
 Maintain targeted resume variants. Do not collapse to one generic resume.
 
+Resume outcome tracking is a first-class requirement:
+- every application must preserve the resume family used,
+- the exact immutable tailored resume version/artifact/hash must be tied to the application packet,
+- lifecycle outcomes must later be measurable by resume family and exact version,
+- important metrics include recruiter response, screen, interview, final interview, offer, acceptance, and time-to-stage,
+- historical performance may later inform resume selection, but descriptive correlation must not be overstated as causation.
+
+Detailed rules:
+- docs/RESUME_OUTCOME_TRACKING.md
+
 ## Email strategy
 
 - Gmail is the first email provider.
