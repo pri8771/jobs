@@ -1,4 +1,5 @@
 # Lane 1 Heartbeat
+watcher_started_utc: 2026-09-21T16:27:53Z
 
 lane: 1
 branch: worker/v14-real-proof
@@ -15,8 +16,17 @@ watch_completed_utc: null
 review_state: WORKING
 lead_action_requested: NONE
 current_task: V1.4 real-proof tooling RP14-T1..T7
-progress_note: waiting for fresh Lane 1 session
+progress_note: still working on assigned task
 
 ## Entries
+
+### 2026-09-21T16:27:53Z — 1 HEARTBEAT EPOCH RESET
+
+Epoch: DAYWATCH_2026_09_21
+
+Fresh liveness exercise started. Historical heartbeat entries are preserved but do not count toward this epoch.
+
+Review state:
+- WORKING
 
 No Lane 1 worker heartbeat yet.
