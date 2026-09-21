@@ -65,3 +65,17 @@ Heartbeat progress is posted to GitHub issue #7.
 ## Exit
 
 READY_FOR_LEAD_REVIEW only after one coherent tested P0A batch is pushed.
+
+## Heartbeat migration — fixed 5-minute standard
+
+Current canonical heartbeat epoch:
+- `FIVE_MIN_2026_09_21`
+
+If an older DAYWATCH watcher is still running:
+1. stop that old watcher process,
+2. pull latest `main`,
+3. launch exactly one new watcher:
+   `python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --detach`
+4. do not start another watcher after that.
+
+There are no cadence transitions anymore. Heartbeat remains every 5 minutes for the entire active session.
