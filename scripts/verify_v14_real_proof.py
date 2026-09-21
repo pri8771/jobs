@@ -72,10 +72,27 @@ def _walk_forbidden_private_keys(value: Any, path: str = "") -> None:
 
 
 def _assert_no_fixture_markers(data: dict[str, Any]) -> None:
-    searchable = json.dumps(data, sort_keys=True).lower()
-    for token in FORBIDDEN_TOKENS:
-        if token in searchable:
-            raise ProofValidationError(f"forbidden mock/fixture marker present: {token}")
+    """Reject mock/fixture markers in evidence values, not schema/key names."""
+
+    def scan(value: Any, path: str = "") -> None:
+        if isinstance(value, dict):
+            for key, child in value.items():
+                current = f"{path}.{key}" if path else str(key)
+                scan(child, current)
+            return
+        if isinstance(value, list):
+            for i, child in enumerate(value):
+                scan(child, f"{path}[{i}]")
+            return
+        if isinstance(value, str):
+            lowered = value.lower()
+            for token in FORBIDDEN_TOKENS:
+                if token in lowered:
+                    raise ProofValidationError(
+                        f"forbidden mock/fixture marker present in {path}: {token}"
+                    )
+
+    scan(data)
 
 
 def validate_redacted_bundle(data: dict[str, Any]) -> None:
