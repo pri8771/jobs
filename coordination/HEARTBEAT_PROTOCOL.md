@@ -1,87 +1,111 @@
 # Heartbeat Protocol
 
 Purpose:
-Allow ChatGPT lead and parallel Antigravity sessions to coordinate through Git without the user relaying detailed prompts.
+Provide durable worker liveness evidence through Git without relying on a chat session remembering to check in.
+
+## Current liveness exercise
+
+Heartbeat epoch:
+- `DAYWATCH_2026_09_21`
+
+For fresh sessions started during this exercise:
+
+### Stage 1 — PROVING_5M
+
+Each active lane must produce **3 consecutive worker-authored heartbeats** approximately five minutes apart.
+
+Mode:
+- `PROVING_5M`
+- `interval_minutes: 5`
+
+Valid proving gap:
+- 4 to 7 minutes between worker-authored check-ins.
+
+Rules:
+- first heartbeat establishes 1/3,
+- an on-time next heartbeat advances the streak,
+- any gap outside 4–7 minutes resets the streak to 1,
+- historical heartbeats from prior epochs do not count.
+
+After 3/3, automatically switch to:
+
+- `mode: WATCH_15M_24H`
+- `interval_minutes: 15`
+
+### Stage 2 — WATCH_15M_24H
+
+For the next full 24 hours:
+
+- heartbeat every 15 minutes,
+- a gap greater than 20 minutes counts as a missed interval,
+- any missed interval restarts the clean 24-hour watch window,
+- preserve all history and increment `missed_intervals`,
+- after a clean full 24-hour watch, automatically switch to `STEADY_HOURLY`.
+
+Expected clean watch:
+- approximately 96 fifteen-minute heartbeat pushes.
+
+### Stage 3 — STEADY_HOURLY
+
+After the 24-hour watch completes with zero missed intervals:
+
+- `mode: STEADY_HOURLY`
+- `interval_minutes: 60`
+
+Continue hourly while the worker remains active, plus immediate heartbeat on blockers or review-ready events.
+
+## Detached watcher
+
+Fresh sessions should launch:
+
+```bash
+python scripts/worker_heartbeat_watch.py --lane <A|B|C|D|SCOUT> --epoch DAYWATCH_2026_09_21 --detach
+```
+
+The watcher:
+- runs independently of the implementation agent,
+- uses a separate lightweight clone under `.local/heartbeat-watch/`,
+- pushes only the lane heartbeat file,
+- does not modify the implementation working tree,
+- performs 5-minute proving automatically,
+- then performs the 15-minute 24-hour watch automatically,
+- switches to hourly after a clean 24-hour watch.
+
+The implementation session may continue normal work after the watcher starts.
 
 ## Worker heartbeat files
 
-Each worker owns exactly one heartbeat file:
 - Lane A: `coordination/heartbeats/LANE_A.md`
 - Lane B: `coordination/heartbeats/LANE_B.md`
 - Lane C: `coordination/heartbeats/LANE_C.md`
 - Lane D: `coordination/heartbeats/LANE_D.md`
 - Scout: `coordination/heartbeats/SCOUT.md`
 
-Only that lane edits its heartbeat file on its branch.
+Only the lane/watcher edits its heartbeat file on the lane branch.
 
-ChatGPT reads heartbeat files directly from each worker branch.
-Workers do not edit shared `coordination/AI_SYNC.md`.
-
-## Two-stage cadence
-
-Every active session starts in:
-
-`PROVING_15M`
-
-### Proving mode
-
-Target cadence:
-- one heartbeat every 15 minutes while the session is actively running.
-
-On-time window:
-- consecutive heartbeat timestamps should be between 10 and 20 minutes apart.
-- gaps >20 minutes reset the proving streak to 1.
-- gaps <10 minutes do not advance the proving streak unless the heartbeat reports a real blocker/review-ready event.
-
-Each heartbeat file carries:
-- `mode: PROVING_15M`
-- `consecutive_on_time`
-- `last_check_in_utc`
-
-After **3 consecutive on-time proving heartbeats**, the worker changes its own file to:
-
-`mode: STEADY_HOURLY`
-
-and:
-
-`interval_minutes: 60`
-
-The worker must preserve the three proving heartbeat entries as evidence.
-
-### Steady mode
-
-After proving:
-- one heartbeat at least every 60 minutes while actively working,
-- immediate heartbeat on blocker,
-- immediate heartbeat when a coherent batch becomes READY FOR LEAD REVIEW,
-- immediate heartbeat after lead instructions are pulled and accepted.
-
-## Important scheduler limitation
-
-ChatGPT's scheduled lead automation can run at most once per hour.
-
-Therefore:
-- worker proving heartbeats can be every 15 minutes,
-- GitHub validates each heartbeat push immediately,
-- ChatGPT performs scheduled lead review hourly,
-- ChatGPT cannot truthfully claim a scheduled 15-minute lead-side poll.
-
-If event-triggered GitHub-to-ChatGPT automation becomes available later, it may be added, but the system must not assume it exists.
-
-## Required heartbeat metadata
-
-At the top of every heartbeat file:
+## Required top-level metadata
 
 ```yaml
 lane: A
 branch: worker/v15-assisted-application
-mode: PROVING_15M
-interval_minutes: 15
+heartbeat_epoch: DAYWATCH_2026_09_21
+mode: PROVING_5M
+interval_minutes: 5
 consecutive_on_time: 1
-last_check_in_utc: 2026-09-21T02:15:00Z
+last_check_in_utc: 2026-09-21T14:45:00Z
+watch_started_utc: null
+watch_until_utc: null
+watch_checkins: 0
+missed_intervals: 0
+watch_completed_utc: null
 review_state: WORKING
 lead_action_requested: NONE
 ```
+
+Valid modes:
+- PROVING_5M
+- WATCH_15M_24H
+- STEADY_HOURLY
 
 Valid review states:
 - WORKING
@@ -95,109 +119,44 @@ Valid lead actions:
 - ARCHITECTURE_DECISION
 - USER_ACTION
 
-## Heartbeat entry format
+## Immediate event heartbeat
 
-Append newest entry at the top under `## Entries`.
+Regardless of scheduled cadence, push an immediate heartbeat when:
+- a coherent implementation batch is READY_FOR_LEAD_REVIEW,
+- the lane becomes BLOCKED,
+- USER_ACTION is required,
+- a safety/architecture decision is required.
 
-### <UTC timestamp> — <lane>
+Event heartbeats do not by themselves advance a cadence streak if they fall outside the cadence window.
 
-Artifact(s):
-- ...
+## Lead verification
 
-Task(s):
-- ...
+ChatGPT lead verifies:
+- branch commit timestamps,
+- heartbeat metadata,
+- epoch,
+- proving gaps,
+- 24-hour watch gaps,
+- CI/PR state,
+- review/blocker requests.
 
-Done since last heartbeat:
-- ...
+A worker may not self-declare the cadence successful when timestamps disagree.
 
-Verification:
-- targeted tests:
-- pytest:
-- ruff:
-- mypy:
-- CI/PR if available:
+## Important scheduler limitation
 
-Commits:
-- ...
+ChatGPT scheduled lead automation remains hourly; the platform does not support a 5-minute or 15-minute scheduled ChatGPT poll.
 
-Blockers / risks:
-- None OR exact blocker
-
-Next:
-- ...
-
-Lead action requested:
-- NONE / REVIEW / DECOMPOSE / ARCHITECTURE_DECISION / USER_ACTION
-
-Review state:
-- WORKING / READY_FOR_LEAD_REVIEW / BLOCKED
-
-## Commit / notification convention
-
-Every heartbeat push should use a commit message beginning with:
-
-`heartbeat(<lane>):`
-
-Examples:
-- `heartbeat(A): 2/3 proving, V1.5 rework active`
-- `heartbeat(B): ready for lead review`
-- `heartbeat(C): blocked on OAuth boundary`
-
-Every coherent implementation push should also update the heartbeat in the same push when practical.
-
-GitHub Actions validates heartbeat format on heartbeat-file pushes.
-
-This provides an immediate repository-side signal.
-It does **not** create an instant ChatGPT wake-up; scheduled lead review remains hourly.
-
-## Lead dashboard
-
-ChatGPT maintains:
-- `coordination/HEARTBEAT_DASHBOARD.md`
-
-At each hourly lead run, ChatGPT verifies:
-- current mode,
-- timestamps,
-- proving streak,
-- stale/missed heartbeat,
-- branch commits,
-- PR/CI,
-- review requests.
-
-ChatGPT writes next assignments into the lane file / WORK_QUEUE after review.
-
-## Staleness
-
-While a lane is actively working:
-
-PROVING_15M:
-- >20 minutes since last heartbeat = STALE / proving streak broken.
-
-STEADY_HOURLY:
-- >75 minutes since last heartbeat = STALE.
-
-A stale lane is not assumed dead.
-Lead should inspect branch activity and report the actual evidence.
-
-## Lead behavior
-
-ChatGPT lead:
-1. checks heartbeats and branch commits,
-2. prioritizes READY_FOR_LEAD_REVIEW work,
-3. independently reviews code/tests/CI,
-4. accepts or writes bounded rework into main,
-5. updates artifact state and worker performance,
-6. writes the next unblocked assignment into the worker's lane file,
-7. flags exact USER_ACTION only for true user-only boundaries.
+Therefore:
+- worker watcher generates 5m/15m evidence,
+- GitHub records it immediately,
+- ChatGPT audits the accumulated evidence hourly and on user-requested status checks.
 
 ## Shared-file discipline
 
-Workers should not edit:
+Workers do not edit shared lead-owned truth unless explicitly assigned:
 - `coordination/WORK_QUEUE.md`
 - `coordination/ARTIFACT_INDEX.md`
 - `coordination/CONTEXT.md`
 - `coordination/AI_SYNC.md`
 - `state/CURRENT.md`
 - `coordination/HEARTBEAT_DASHBOARD.md`
-
-unless ChatGPT explicitly assigns that write.
