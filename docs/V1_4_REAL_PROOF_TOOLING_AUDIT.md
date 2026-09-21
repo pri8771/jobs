@@ -115,3 +115,25 @@ The tooling is ready for a milestone-completing proof only after:
 4. independent reviewer attempts forged/hand-authored evidence and verifier rejects it.
 
 The real proof itself remains P0 after these tooling repairs.
+
+
+## Independent remote-worker audit
+
+Control plane:
+- `pri8771/remote-workers`
+- worker: `worker-pc`
+- task: `jobs-v14-real-proof-audit-retry-20260920`
+- target Jobs commit audited: `5beaf14a9d9b033e946f7d1b4fafc378562cffc8`
+- result: **CHANGES_REQUIRED**
+- worker result status: success
+
+Independent findings explicitly confirmed:
+- current verifier cannot distinguish runtime-derived evidence from hand-authored structurally valid JSON;
+- repository test `test_real_proof_verifier_accepts_structurally_valid_redacted_bundle` proves fabricated hashes/IDs can currently pass structural verification;
+- optional local full-bundle validation is self-consistency only and is not cross-bound to the redacted bundle.
+
+Execution limitation:
+- the read-only Claude sandbox could perform static repository analysis but could not execute non-allowlisted static/test commands in that audit task.
+- Branch-mode repair task is responsible for code/test changes; project CI remains the independent Ruff/mypy/full-test gate.
+
+This independent review strengthens, but does not replace, ChatGPT lead acceptance.
