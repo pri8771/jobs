@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
@@ -44,13 +46,35 @@ class LifecycleEngine:
     TRANSITION_MAP: dict[str, tuple[str, str]] = {
         "APPLICATION_CONFIRMATION": ("CONFIRMED", "APPLICATION_CONFIRMED"),
         "RECRUITER_OUTREACH": ("SCREENING", "RECRUITER_CONTACTED"),
-        "SCREENING_REQUEST": ("SCREENING", "SCREENING_SCHEDULED"),
+        "RECRUITER_FOLLOW_UP": ("SCREENING", "RECRUITER_FOLLOWED_UP"),
+        "SCREENING_REQUEST": ("SCREENING", "SCREENING_REQUESTED"),
+        "ASSESSMENT_REQUEST": ("ASSESSMENT", "ASSESSMENT_REQUESTED"),
         "INTERVIEW_REQUEST": ("INTERVIEWING", "INTERVIEW_REQUESTED"),
         "INTERVIEW_CONFIRMATION": ("INTERVIEWING", "INTERVIEW_CONFIRMED"),
         "INTERVIEW_RESCHEDULE": ("INTERVIEWING", "INTERVIEW_RESCHEDULED"),
+        "INTERVIEW_CANCELLED": ("INTERVIEWING", "INTERVIEW_CANCELLED"),
         "OFFER": ("OFFER_RECEIVED", "OFFER_EXTENDED"),
+        "BACKGROUND_CHECK": ("OFFER_RECEIVED", "BACKGROUND_CHECK_INITIATED"),
+        "ONBOARDING": ("ONBOARDING", "ONBOARDING_INITIATED"),
         "REJECTION": ("REJECTED", "APPLICATION_REJECTED"),
+        "WITHDRAWAL": ("WITHDRAWN", "APPLICATION_WITHDRAWN"),
     }
+
+    STAGE_RANKS: dict[str, int] = {
+        "DISCOVERED": 0,
+        "DRAFT": 0,
+        "PREPARED": 0,
+        "SUBMITTED": 1,
+        "CONFIRMED": 2,
+        "SCREENING": 3,
+        "ASSESSMENT": 4,
+        "INTERVIEWING": 5,
+        "OFFER_RECEIVED": 6,
+        "OFFER_ACCEPTED": 7,
+        "ONBOARDING": 8,
+    }
+
+    TERMINAL_STATUSES: set[str] = {"REJECTED", "WITHDRAWN", "OFFER_DECLINED"}
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -63,7 +87,7 @@ class LifecycleEngine:
         message: InboundMessageModel,
         confidence_threshold: float = 0.8,
     ) -> LifecycleTransitionResult | None:
-        """Evaluates an inbound message and triggers verified lifecycle transitions."""
+        """Evaluates an inbound message and triggers verified, idempotent lifecycle transitions."""
         # Find associated application via links
         links = self.session.scalars(
             select(MessageLinkModel).where(
@@ -98,6 +122,30 @@ class LifecycleEngine:
         if not app:
             return None
 
+        # Idempotency check: has this message already been processed for this application?
+        existing_event = self.session.scalar(
+            select(ApplicationEventModel).where(
+                ApplicationEventModel.application_id == app.id,
+                ApplicationEventModel.source_reference == message.provider_message_id,
+            )
+        )
+        if existing_event:
+            logger.info(
+                "Message %s already processed for application %s; skipping duplicate sweep.",
+                message.provider_message_id,
+                app.id,
+            )
+            return None
+
+        # Check for thread-role divergence (e.g. recruiter reuses thread for a different requisition)
+        if self._detect_thread_role_divergence(message, app, link):
+            self._route_ambiguity_to_review(
+                message,
+                [str(app.id)],
+                reason="Message in existing thread references a different role or requisition",
+            )
+            return None
+
         # Record or update Recruiter Contact in CRM
         contact: ContactModel | None = None
         if message.direction == "inbound":
@@ -110,26 +158,61 @@ class LifecycleEngine:
 
         classification = message.classification
         if classification not in self.TRANSITION_MAP:
-            # General message, record touchpoint only
+            # General message, record touchpoint and update activity without state transition
             app.last_activity_at = message.received_at
             return None
 
-        new_status, event_type = self.TRANSITION_MAP[classification]
+        target_status, event_type = self.TRANSITION_MAP[classification]
         previous_status = app.status
 
-        # If already rejected or in an equal/later stage, update activity without regressing
-        if previous_status == "REJECTED" and new_status != "REJECTED":
-            # Rejection is terminal unless offer/screening is explicitly proven
+        # Terminal state protection
+        if previous_status in self.TERMINAL_STATUSES:
             logger.info(
-                f"Skipping status regression from REJECTED to {new_status} for app {app.id}"
+                "Skipping status transition from terminal state %s to %s for app %s",
+                previous_status,
+                target_status,
+                app.id,
+            )
+            # Record historical event for audit trail without altering status
+            self._record_event_and_audit(
+                app=app,
+                message=message,
+                event_type=event_type,
+                previous_status=previous_status,
+                new_status=previous_status,
+                contact=contact,
+                regression_prevented=True,
             )
             return None
 
-        # Perform transition
-        app.status = new_status
-        app.last_activity_at = message.received_at
-        if new_status == "REJECTED":
+        # Stage progression & regression policy
+        regression_prevented = False
+        if target_status == "REJECTED":
+            new_status = "REJECTED"
+            app.status = new_status
             app.closed_at = message.received_at
+        elif target_status == "WITHDRAWN":
+            new_status = "WITHDRAWN"
+            app.status = new_status
+            app.closed_at = message.received_at
+        elif classification == "INTERVIEW_CANCELLED":
+            # Cancellation updates interview record without regressing application stage
+            new_status = previous_status
+        elif self.STAGE_RANKS.get(previous_status, 0) > self.STAGE_RANKS.get(target_status, 0):
+            # Out-of-order lower-stage email arriving late; prevent regression
+            logger.info(
+                "Preventing status regression from %s to %s for app %s",
+                previous_status,
+                target_status,
+                app.id,
+            )
+            new_status = previous_status
+            regression_prevented = True
+        else:
+            new_status = target_status
+            app.status = new_status
+
+        app.last_activity_at = message.received_at
 
         # Check and extract interview details if applicable
         interview_scheduled = False
@@ -137,31 +220,71 @@ class LifecycleEngine:
             "INTERVIEW_REQUEST",
             "INTERVIEW_CONFIRMATION",
             "INTERVIEW_RESCHEDULE",
+            "INTERVIEW_CANCELLED",
             "SCREENING_REQUEST",
         ):
             details = self.interview_extractor.extract_from_message(message)
             if details:
-                self.interview_extractor.record_interview(application_id=app.id, details=details)
-                interview_scheduled = True
+                interview = self.interview_extractor.record_interview(
+                    application_id=app.id,
+                    details=details,
+                    source_message_id=message.provider_message_id,
+                )
+                if interview and interview.status == "scheduled":
+                    interview_scheduled = True
 
-        # Record ApplicationEventModel
+        # Record ApplicationEvent and AuditLog
+        self._record_event_and_audit(
+            app=app,
+            message=message,
+            event_type=event_type,
+            previous_status=previous_status,
+            new_status=new_status,
+            contact=contact,
+            regression_prevented=regression_prevented,
+        )
+
+        return LifecycleTransitionResult(
+            application_id=str(app.id),
+            previous_status=previous_status,
+            new_status=new_status,
+            event_type=event_type,
+            contact_name=contact.name if contact else None,
+            interview_scheduled=interview_scheduled,
+            message=f"Application {app.id} transitioned from {previous_status} to {new_status}"
+            if not regression_prevented
+            else f"Application {app.id} status preserved at {previous_status} (regression prevented)",
+        )
+
+    def _record_event_and_audit(
+        self,
+        app: ApplicationModel,
+        message: InboundMessageModel,
+        event_type: str,
+        previous_status: str,
+        new_status: str,
+        contact: ContactModel | None,
+        regression_prevented: bool = False,
+    ) -> None:
+        payload: dict[str, Any] = {
+            "message_id": str(message.id),
+            "classification": message.classification,
+            "subject": message.subject,
+            "sender": message.sender,
+            "contact_id": str(contact.id) if contact else None,
+            "regression_prevented": regression_prevented,
+        }
+
         event = ApplicationEventModel(
             application_id=app.id,
             event_type=event_type,
             source="email_lifecycle",
             source_reference=message.provider_message_id,
             actor="recruiter" if message.direction == "inbound" else "candidate",
-            payload_json={
-                "message_id": str(message.id),
-                "classification": classification,
-                "subject": message.subject,
-                "sender": message.sender,
-                "contact_id": str(contact.id) if contact else None,
-            },
+            payload_json=payload,
         )
         self.session.add(event)
 
-        # Audit log entry
         audit = AuditLogModel(
             action_type="lifecycle_state_transition",
             entity_type="application",
@@ -174,19 +297,45 @@ class LifecycleEngine:
                 "new_status": new_status,
                 "event_type": event_type,
                 "message_id": str(message.id),
+                "regression_prevented": regression_prevented,
             },
         )
         self.session.add(audit)
 
-        return LifecycleTransitionResult(
-            application_id=str(app.id),
-            previous_status=previous_status,
-            new_status=new_status,
-            event_type=event_type,
-            contact_name=contact.name if contact else None,
-            interview_scheduled=interview_scheduled,
-            message=f"Application {app.id} transitioned from {previous_status} to {new_status}",
-        )
+    def _detect_thread_role_divergence(
+        self,
+        message: InboundMessageModel,
+        app: ApplicationModel,
+        link: MessageLinkModel,
+    ) -> bool:
+        """Detects if a message in an existing thread is discussing a completely different role."""
+        if not app.job or not app.job.normalized_title:
+            return False
+
+        current_title = app.job.normalized_title.lower()
+        combined = f"{message.subject} {message.body_text}".lower()
+
+        # Phrases indicating a distinct new opportunity in the same thread
+        divergence_indicators = [
+            "different role",
+            "another position",
+            "new opportunity",
+            "different opportunity",
+            "separate position",
+            "new requisition",
+            "other open role",
+        ]
+        if any(indicator in combined for indicator in divergence_indicators):
+            return True
+
+        # Check if subject mentions an explicit role that contradicts current job
+        match = re.search(r"\b(?:role|position|job)\s*:\s*([A-Za-z0-9\s]+)", message.subject)
+        if match:
+            mentioned_title = match.group(1).strip().lower()
+            if mentioned_title and mentioned_title not in current_title and current_title not in mentioned_title:
+                return True
+
+        return False
 
     def _route_ambiguity_to_review(
         self,
@@ -200,6 +349,7 @@ class LifecycleEngine:
             payload_json={
                 "reason": reason,
                 "message_id": str(message.id),
+                "provider_message_id": message.provider_message_id,
                 "subject": message.subject,
                 "matched_application_ids": app_ids,
             },
