@@ -300,3 +300,15 @@ Prevents unintentional network exposure on shared LANs or cloud hosts until dedi
 
 
 
+
+
+## 2026-09-21 - Fixed five-minute worker heartbeat
+
+Decision:
+All active Jobs worker lanes emit one heartbeat approximately every five minutes while active. There are no proving, 15-minute watch, 24-hour, or hourly transitions.
+
+Canonical epoch:
+- `FIVE_MIN_2026_09_21`
+
+Reason:
+The owner explicitly standardized the cadence at five minutes and requested no further cadence changes. Historical DAYWATCH behavior is superseded and retained only as audit history.
