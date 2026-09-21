@@ -11,9 +11,9 @@ Only attempted tasks are counted. READY / NOT_ATTEMPTED tasks are excluded until
 
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 5 | 4 | 3 | 2 | 4 |
-| 2 | 24 | 19 | 11 | 13 | 38 |
-| 3 | 7 | 2 | 2 | 5 | 6 |
+| 1 | 6 | 5 | 3 | 3 | 5 |
+| 2 | 26 | 21 | 11 | 15 | 42 |
+| 3 | 8 | 2 | 2 | 6 | 6 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
 
@@ -126,7 +126,7 @@ GitHub evidence at lead review:
 | B-R20-04 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Gmail health defaults fail-safe pending typed Lane C readiness |
 | B-R20-06 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Dashboard writes require loopback or operator token |
 
-## Lane B remaining work
+## Lane B remaining work snapshot before final residual batch
 
 | Task ID | SP | Status | Owner | Artifact | Lead notes |
 |---|---:|---|---|---|---|
@@ -134,6 +134,31 @@ GitHub evidence at lead review:
 | B-R20-07 | 1 | READY | Antigravity Lane B | A-V20-ANALYTICS / A-V20-CONTROL-CENTER | Simulation/test rows never count as real submissions |
 | B-R20-08 | 2 | READY | Antigravity Lane B | A-V20-ANALYTICS | Evidence-backed final-interview/acceptance metrics |
 | B-R20-05 / J20-14 | 3 | READY | Antigravity Lane B | A-V20-WORKER-RUN-HISTORY | Crash-durable begin/finalize worker-run semantics |
+
+## Lane B final residual review — commit 68595d1
+
+GitHub evidence:
+- PR #3 head: `68595d1fe825545b7f1506b7068d1c78376f7953`
+- CI run #329: SUCCESS
+- Worker Heartbeat Validation: FAILURE; the heartbeat file does not use the required top-level metadata keys and uses invalid lead action `AUDIT`.
+
+| Task ID | SP | Status | Worker commit | CI | Rework cycles | Lead notes |
+|---|---:|---|---|---|---:|---|
+| B-R17-03 | 2 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | BACKGROUND_CHECK is evidence-only; INTERVIEWING and OFFER_RECEIVED stages are preserved; no offer event is synthesized by this path |
+| B-R20-07 | 1 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | `_is_real_submission()` excludes SIMULATED plus simulation/auto_simulated/mock/test modes; focused applied_at adversarial cases pass |
+| B-R20-08 | 2 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | Final-interview requires explicit final/panel/onsite evidence; accepted counts/rates exposed without inferring final from generic interviews |
+| B-R20-05 / J20-14 | 3 | REWORK | 68595d1 | CI #329 green | 2 | Begin/finalize direction is good but durability/privacy/health contract is incomplete |
+
+B-R20-05 required rework:
+- do not run the pipeline after durable begin-record persistence fails,
+- replace raw `sample_errors = str(exc)` persistence with safe error categories/codes,
+- report the true newest RUNNING attempt and required `last_reconciliation_at` + `last_error_at/category`,
+- add explicit exception-after-begin, pipeline-rollback durability, distinct-run-id, and adversarial secret-sanitization tests,
+- repair the heartbeat file to `HEARTBEAT_PROTOCOL.md` format before the next review request.
+
+Still-open prior analytics residuals:
+- B-R20-01 remains REWORK because headline `get_funnel_summary()` still derives funnel history from current status rather than event history.
+- B-R20-02 remains REWORK because headline funnel/submission semantics still do not use the same real-submission denominator. The new B-R20-07 helper fix is valid but does not close this older headline residual.
 
 J20G-04 remains blocked on Lane C J20G-03.
 
