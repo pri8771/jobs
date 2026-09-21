@@ -20,7 +20,7 @@ Authoritative audit:
 - `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
 
 Required bounded tasks:
-- RP14-T1 SP2 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separate candidate-bundle-bound PASS/FAIL receipt
+- RP14-T1 SP2 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separate candidate-bundle-bound PASS/FAIL receipt. The verifier must emit a FAIL receipt on rejected candidates as well as PASS on accepted candidates; do not return before writing failure evidence.
 - RP14-T2 SP2 local private bundle SHAs cross-match redacted evidence fields and proof_run_id
 - RP14-T3 SP3 JobModel/questions bind to the actual approved current Greenhouse fetch/attestation
 - RP14-T4 SP2 reject copied/renamed example candidate profiles using content evidence
@@ -128,6 +128,8 @@ At the 2026-09-21 03:46 ET lead review, the same SwarmAI workflow `35566726945` 
 
 At the 2026-09-21 04:45 ET lead review, the SwarmAI workflow had been cancelled, freeing `worker-pc`. ChatGPT dispatched `jobs-v14-p0a-preflight-20260921-0445` as a **read-only, non-conflicting acceptance-preflight audit**. It may provide adversarial review/mapping evidence, but it does not implement or complete RP14-T1..T7. Lane C must not wait for it: rebase latest main and execute the existing P0A implementation batch now.
 
+At the 2026-09-21 05:44 ET lead review, the read-only preflight completed successfully in remote workflow `35579791471`. It produced no Jobs branch/commit and therefore completed no implementation task. Its static inspection reinforces the existing RP14-T1..T7 scope and adds one explicit T1 acceptance detail: rejected candidates must still produce a bundle-bound `REAL_PROOF_FAIL` receipt. Lane C is still unchanged at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. A new non-Jobs SwarmAI workflow `35580580156` immediately occupied the capacity-1 remote worker, so no Jobs implementation task was dispatched remotely. Do not wait for remote capacity.
+
 ## External boundary
 
 Do not:
@@ -149,4 +151,4 @@ Do not:
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
 
-Latest lead review: 2026-09-21 04:45 ET — no worker-authored heartbeat or implementation commit has landed; branch head remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. Standard Jobs main CI run #304 is green; heartbeat monitor failure is a liveness signal. Remote read-only preflight workflow `35579791471` is in progress and is advisory only.
+Latest lead review: 2026-09-21 05:44 ET — no worker-authored heartbeat or implementation commit has landed; branch head remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. Jobs main `fa807c620addf2173884bc0100294d4f3a4cc7b8` passed CI run #309. Remote preflight `35579791471` completed successfully and is advisory-only; worker-pc is currently occupied by non-Jobs workflow `35580580156`.
