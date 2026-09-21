@@ -79,3 +79,13 @@ They do not deploy self-modifying production behavior without the normal review/
 - retry is bounded and traceable.
 - failed agent cannot mark task success.
 - user can inspect why/what each agent did.
+
+
+## Runtime data contracts
+
+Use:
+- `docs/V3_RUNTIME_DATA_CONTRACTS.md`
+- `docs/V3_SHARED_MEMORY_CONTRACT.md`
+- `docs/V3_TOOL_PERMISSION_MATRIX.md`
+
+The runtime must preserve durable tasks/checkpoints, scoped memory, tool request/result envelopes, permission decisions, replay-safe external-action state, and traces.
