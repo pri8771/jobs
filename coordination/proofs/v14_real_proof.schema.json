@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "V1.4 Real Proof Redacted Evidence",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": [
     "result",
     "proof_run_id",
@@ -34,7 +34,10 @@
   ],
   "properties": {
     "result": {
-      "const": "REAL_PROOF_PASS"
+      "enum": [
+        "REAL_PROOF_CANDIDATE",
+        "REAL_PROOF_PASS"
+      ]
     },
     "proof_run_id": {
       "type": "string",
@@ -75,6 +78,12 @@
         "integer",
         "string"
       ]
+    },
+    "candidate_unresolved_fact_categories": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer"
+      }
     },
     "resume_family": {
       "type": "string",
@@ -118,6 +127,10 @@
       "type": "string",
       "minLength": 1
     },
+    "generation_engine": {
+      "type": "string",
+      "minLength": 1
+    },
     "packet_id": {
       "type": "string",
       "minLength": 1
@@ -150,6 +163,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "questions_count": {
+      "type": "integer",
+      "minimum": 0
     },
     "read_back_verification": {
       "const": true

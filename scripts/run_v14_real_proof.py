@@ -8,7 +8,7 @@ It requires:
 - a JSON file containing real application questions from the public posting.
 
 Private artifacts are written under .local/proofs/ (gitignored).
-A redacted evidence bundle is written under coordination/proofs/.
+A redacted evidence candidate bundle is written under coordination/proofs/.
 """
 
 from __future__ import annotations
@@ -27,7 +27,10 @@ from jobs_automation.adapters.models import DeterministicModelGateway
 from jobs_automation.core.config import ConfigLoader
 from jobs_automation.db.models import ArtifactModel, JobModel
 from jobs_automation.db.session import get_sessionmaker
-from jobs_automation.preparation.packet_builder import ApplicationPacketBuilder
+from jobs_automation.preparation.packet_builder import (
+    ApplicationPacketBuilder,
+    compute_questions_sha256,
+)
 from jobs_automation.preparation.tailoring import ResumeVariantSelector
 from jobs_automation.storage.artifact_store import ArtifactStore
 
@@ -74,16 +77,28 @@ def load_real_questions(path: Path) -> list[str]:
 
 
 def validate_profile_path(path: Path) -> None:
-    lowered = str(path).lower()
     if not path.exists() or not path.is_file():
         raise RealProofError(f"Candidate profile not found: {path}")
+
+    # Content-level check: compare sha256 against known example candidate profiles (RP14-T4)
+    repo_root = Path(__file__).resolve().parent.parent
+    example_files = list((repo_root / "config").glob("*example*.yaml"))
+    target_sha = sha256_file(path)
+    for eg in example_files:
+        if eg.is_file() and sha256_file(eg) == target_sha:
+            raise RealProofError(
+                f"Candidate profile content matches repository example file ({eg.name}); "
+                "real private profile is required for REAL_PROOF"
+            )
+
+    lowered = str(path).lower()
     if "candidate_profile.example" in lowered or path.name.endswith(".example.yaml"):
         raise RealProofError("Example candidate profile is forbidden for REAL_PROOF")
     if "pytest" in lowered or "tmp" in path.parts:
         raise RealProofError("Temporary/test candidate profile path is forbidden for REAL_PROOF")
 
 
-def validate_job(job: JobModel) -> None:
+def validate_job(job: JobModel, questions: list[str] | None = None) -> None:
     if not job.company or not job.company.normalized_name or job.company.normalized_name == "Unknown":
         raise RealProofError("Job must have a real company")
     if not job.normalized_title:
@@ -98,6 +113,26 @@ def validate_job(job: JobModel) -> None:
     lowered = url.lower()
     if "localhost" in lowered or "example." in lowered:
         raise RealProofError("Job source URL appears synthetic/local")
+
+    # Check source attestation and question binding (RP14-T3)
+    if questions is not None:
+        expected_questions_sha = compute_questions_sha256(questions)
+        greenhouse_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
+        if not greenhouse_sources:
+            raise RealProofError("Job does not have an imported GREENHOUSE source record")
+        
+        gh_source = greenhouse_sources[0]
+        payload = gh_source.source_payload_json or {}
+        source_questions_sha = payload.get("question_list_sha256")
+        if not source_questions_sha:
+            raise RealProofError(
+                "Greenhouse source payload missing question_list_sha256 attestation"
+            )
+        if source_questions_sha.lower() != expected_questions_sha.lower():
+            raise RealProofError(
+                f"Question list SHA-256 mismatch against Greenhouse source attestation: "
+                f"{expected_questions_sha} != {source_questions_sha}"
+            )
 
 
 def job_snapshot(job: JobModel) -> dict[str, Any]:
@@ -184,7 +219,7 @@ def main() -> int:
             job = session.get(JobModel, job_uuid)
             if job is None:
                 raise RealProofError(f"Job not found in configured database: {job_uuid}")
-            validate_job(job)
+            validate_job(job, questions=questions)
 
             variant_name = ResumeVariantSelector.select_variant(job)
             source_path_raw = profile.resume.resolve_source_path(variant_name)
@@ -237,8 +272,10 @@ def main() -> int:
             code_sha = get_git_sha()
             unresolved = list(result.unresolved_questions)
 
+            # RP14-T1: Runner outputs REAL_PROOF_CANDIDATE.
+            # RP14-T6: Unambiguous deterministic generation labeling.
             redacted: dict[str, Any] = {
-                "result": "REAL_PROOF_PASS",
+                "result": "REAL_PROOF_CANDIDATE",
                 "proof_run_id": proof_run_id,
                 "run_timestamp_utc": packet.created_at.isoformat(),
                 "code_commit_sha": code_sha,
@@ -260,10 +297,11 @@ def main() -> int:
                 ),
                 "resume_source_sha256": resume_source_sha,
                 "resume_source_byte_count": resume_source_byte_count,
-                "model_provider": "deterministic-production",
+                "model_provider": None,
                 "model_name": "DeterministicModelGateway",
                 "model_origin": "deterministic",
                 "generation_origin": result.generation_origin,
+                "generation_engine": "deterministic-canonical-renderer",
                 "packet_id": str(packet.id),
                 "packet_hash": packet.packet_hash,
                 "resume_artifact_sha256": resume_artifact.sha256,
@@ -280,8 +318,13 @@ def main() -> int:
             args.private_output_dir.mkdir(parents=True, exist_ok=True)
             args.redacted_output_dir.mkdir(parents=True, exist_ok=True)
 
+            redacted_content = json.dumps(redacted, indent=2, sort_keys=True) + "\n"
+            candidate_bundle_sha = sha256_bytes(redacted_content.encode("utf-8"))
+
             private_bundle = {
                 "proof_run_id": proof_run_id,
+                "candidate_bundle_sha256": candidate_bundle_sha,
+                "candidate_profile_sha256": sha256_file(args.candidate_profile),
                 "candidate_profile_path": str(args.candidate_profile.resolve()),
                 "resume_source_path": str(source_path),
                 "questions_json_path": str(args.questions_json.resolve()),
@@ -312,17 +355,15 @@ def main() -> int:
             redacted_path = args.redacted_output_dir / f"v14_real_proof_{proof_run_id}.json"
             private_path = args.private_output_dir / f"v14_real_proof_{proof_run_id}_private.json"
 
-            redacted_path.write_text(
-                json.dumps(redacted, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+            redacted_path.write_text(redacted_content, encoding="utf-8")
             private_path.write_text(
                 json.dumps(private_bundle, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
 
             print("REAL_PROOF_RUN_COMPLETE")
-            print(f"redacted_bundle={redacted_path}")
+            print(f"candidate_bundle={redacted_path}")
+            print(f"candidate_bundle_sha256={candidate_bundle_sha}")
             print(f"private_bundle={private_path}")
             print(f"packet_id={packet.id}")
             print(f"packet_hash={packet.packet_hash}")

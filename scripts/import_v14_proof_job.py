@@ -25,6 +25,7 @@ from sqlalchemy import select
 
 from jobs_automation.db.models import CompanyModel, JobModel, JobSourceModel
 from jobs_automation.db.session import get_sessionmaker
+from jobs_automation.preparation.packet_builder import compute_questions_sha256
 
 DEFAULT_BOARD_TOKEN = "opensesame"
 DEFAULT_JOB_ID = "7967740"
@@ -119,6 +120,7 @@ def _extract_screening_questions(payload: dict[str, Any]) -> list[str]:
     return labels
 
 
+
 def _source_payload(job_payload: dict[str, Any], api_url: str) -> dict[str, Any]:
     content_text = _html_to_text(job_payload.get("content"))
     questions = _extract_screening_questions(job_payload)
@@ -127,7 +129,10 @@ def _source_payload(job_payload: dict[str, Any], api_url: str) -> dict[str, Any]
         "fetched_at_utc": datetime.datetime.now(datetime.UTC).isoformat(),
         "content_sha256": hashlib.sha256(content_text.encode("utf-8")).hexdigest(),
         "screening_question_count": len(questions),
+        "question_list_sha256": compute_questions_sha256(questions),
         "source_kind": "greenhouse_public_job_board_api",
+        "provider": "GREENHOUSE",
+        "public_job_id": str(job_payload.get("id", "")),
     }
 
 
