@@ -747,3 +747,28 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to workers**
 - Old chat prompts are now secondary. Pull latest main and follow `coordination/SESSION_START.md`, your lane file, and `coordination/HEARTBEAT_PROTOCOL.md`. Push heartbeats at start, at least hourly, on blockers, and when READY FOR LEAD REVIEW.
+
+
+## 2026-09-21 lead downstream prep
+
+Owner operating mode remains one active Antigravity implementation session / one heartbeat watcher. Lead did not modify or review the worker's active V1.4 branch during this prep batch.
+
+Prepared on main to shorten V1.6→V3.0 critical path:
+- phase gate matrix: `docs/PHASE_GATE_MATRIX_V14_TO_V30.md`
+- worker-ready future queue: `coordination/PREP_QUEUE_V16_TO_V30.md`
+- brownfield implementation map: `docs/BROWNFIELD_IMPLEMENTATION_MAP_V16_TO_V30.md`
+- staged migration plan: `docs/FUTURE_SCHEMA_MIGRATION_PLAN_V16_V23_V30.md`
+- V1.6 data/adversarial contracts
+- V2.0 end-to-end matrix + live acceptance runbook
+- V2.3 interview intelligence + milestone acceptance matrix
+- V3 permission/tool/runtime/shared-memory/handoff/specialist/eval/integration contracts
+- artifact cards/index extended through V3 specialist agents
+
+Key architectural prep decisions:
+- V1.6 extends ControlledAutoApplicationEngine rather than rewriting it.
+- V1.7 should be audit/gap closure because current lifecycle tests already cover many target edge cases.
+- V2.3 remains relational/evidence-backed first; no graph DB by default.
+- V3 agents sit above stable typed tools and deterministic permission enforcement; agents do not become canonical truth.
+- schema changes are staged by phase instead of pre-creating speculative V3 tables.
+
+No live OAuth, browser action, submission, messaging, calendar mutation, spending, or private-data proof was performed.
