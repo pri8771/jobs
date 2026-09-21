@@ -13,6 +13,13 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
+## Lead checkpoint — 2026-09-21 15:44Z
+
+- Branch is identical to main; no worker production commit exists yet.
+- Current-epoch active heartbeat `coordination/heartbeats/LANE_1.md` is still 0/3 with no worker-authored check-in.
+- Start the detached numeric Lane 1 watcher, then execute P0A immediately.
+- Do not wait for worker-pc; its capacity-1 slot is currently occupied by non-Jobs work.
+
 ## Mission
 
 Make V1.4 genuinely complete under the owner's rule:
