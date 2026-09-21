@@ -127,3 +127,12 @@ Record:
 ## User boundary
 
 The first real application requires explicit user authorization after seeing the exact preflight manifest.
+
+
+## Implementation data contracts
+
+Use:
+- `docs/V1_6_DATA_CONTRACTS.md`
+- `docs/V1_6_ADVERSARIAL_TEST_MATRIX.md`
+
+These constrain authorization identity, attempt state, idempotency, policy expiry, confirmation evidence, concurrency, and audit semantics. Implementation names may adapt to existing code, but the invariants must not weaken.
