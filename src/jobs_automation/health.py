@@ -171,37 +171,153 @@ class HealthCheckService:
             },
         )
 
+    # Threshold for marking a RUNNING record as stale/interrupted (seconds)
+    WORKER_STALE_RUN_THRESHOLD_SECONDS: int = 7200  # 2 hours
+
     def check_worker(self) -> ComponentHealth:
-        """Inspects durable worker run history and reports last execution status."""
+        """Inspects crash-durable worker run history and reports execution state.
+
+        Follows B-R20-05:
+        - Reads worker_run (begin) and worker_run_finished (finalize) AuditLog records.
+        - Falls back to legacy worker_sweep records for backward compatibility.
+        - Detects stale RUNNING records (begin with no matching finish after threshold).
+        - Exposes: last_attempt_at/status, last_success_at, last_error_at, stale_running_run.
+        """
         try:
             with self.session_factory() as session:
+                now = datetime.datetime.now(datetime.UTC)
+
+                # 1. Find the most recent finalize record
+                last_finish = session.scalar(
+                    select(AuditLogModel)
+                    .where(AuditLogModel.action_type == "worker_run_finished")
+                    .order_by(AuditLogModel.occurred_at.desc())
+                )
+
+                # 2. Detect stale RUNNING (begin with no finish)
+                stale_running = False
+                stale_run_id: str | None = None
+                last_begin = session.scalar(
+                    select(AuditLogModel)
+                    .where(AuditLogModel.action_type == "worker_run")
+                    .where(AuditLogModel.result == "RUNNING")
+                    .order_by(AuditLogModel.occurred_at.desc())
+                )
+                if last_begin:
+                    run_id = last_begin.external_reference
+                    has_finish = session.scalar(
+                        select(AuditLogModel)
+                        .where(AuditLogModel.action_type == "worker_run_finished")
+                        .where(AuditLogModel.external_reference == run_id)
+                    )
+                    if not has_finish:
+                        age_seconds = (now - last_begin.occurred_at).total_seconds()
+                        if age_seconds > self.WORKER_STALE_RUN_THRESHOLD_SECONDS:
+                            stale_running = True
+                            stale_run_id = run_id
+
+                # 3. Derive health fields
+                if last_finish:
+                    fin_meta = last_finish.metadata_json or {}
+                    last_attempt_at = last_finish.occurred_at.isoformat()
+                    last_attempt_status = last_finish.result
+                    last_success_at: str | None = None
+                    last_error_at: str | None = None
+
+                    # Scan recent finishes for last success/error
+                    recent_finishes = session.scalars(
+                        select(AuditLogModel)
+                        .where(AuditLogModel.action_type == "worker_run_finished")
+                        .order_by(AuditLogModel.occurred_at.desc())
+                        .limit(20)
+                    ).all()
+                    for f in recent_finishes:
+                        if f.result == "SUCCESS" and last_success_at is None:
+                            last_success_at = f.occurred_at.isoformat()
+                        if f.result in ("FAILED", "PARTIAL") and last_error_at is None:
+                            last_error_at = f.occurred_at.isoformat()
+
+                    age_seconds = (now - last_finish.occurred_at).total_seconds()
+                    has_errors = bool(fin_meta.get("error_count", 0)) or last_attempt_status == "FAILED"
+                    is_stale = age_seconds > 28800  # 8 hours without a run
+                    if stale_running or last_attempt_status == "FAILED" or is_stale:
+                        status = "DEGRADED"
+                    elif has_errors:
+                        status = "DEGRADED"
+                    else:
+                        status = "HEALTHY"
+
+                    stale_note = (
+                        f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                    )
+                    return ComponentHealth(
+                        name="worker",
+                        status=status,
+                        message=(
+                            f"Last worker run {round(age_seconds / 60, 1)}m ago "
+                            f"({last_attempt_status}).{stale_note}"
+                        ),
+                        details={
+                            "last_attempt_at": last_attempt_at,
+                            "last_attempt_status": last_attempt_status,
+                            "last_success_at": last_success_at,
+                            "last_error_at": last_error_at,
+                            "age_seconds": round(age_seconds, 1),
+                            "stale_running_run": stale_running,
+                            "stale_run_id": stale_run_id,
+                            "metrics": fin_meta,
+                        },
+                    )
+
+                # 4. No finalize record — fall back to legacy worker_sweep record
                 last_sweep = session.scalar(
                     select(AuditLogModel)
                     .where(AuditLogModel.action_type == "worker_sweep")
                     .order_by(AuditLogModel.occurred_at.desc())
                 )
-                if not last_sweep:
+                if last_sweep:
+                    age_seconds = (now - last_sweep.occurred_at).total_seconds()
+                    has_errors = bool(last_sweep.metadata_json.get("errors"))
+                    status = "DEGRADED" if (stale_running or has_errors or age_seconds > 28800) else "HEALTHY"
                     return ComponentHealth(
                         name="worker",
-                        status="DEGRADED",
-                        message="No worker sweeps have been recorded yet.",
-                        details={"last_run": None},
+                        status=status,
+                        message=(
+                            f"Last worker sweep {round(age_seconds / 60, 1)}m ago "
+                            f"({last_sweep.result}). [legacy record]"
+                        ),
+                        details={
+                            "last_attempt_at": last_sweep.occurred_at.isoformat(),
+                            "last_attempt_status": last_sweep.result,
+                            "last_success_at": None,
+                            "last_error_at": None,
+                            "age_seconds": round(age_seconds, 1),
+                            "stale_running_run": stale_running,
+                            "stale_run_id": stale_run_id,
+                            "metrics": last_sweep.metadata_json,
+                        },
                     )
 
-                now = datetime.datetime.now(datetime.UTC)
-                age_seconds = (now - last_sweep.occurred_at).total_seconds()
-                has_errors = bool(last_sweep.metadata_json.get("errors"))
-                status = "DEGRADED" if (has_errors or age_seconds > 28800) else "HEALTHY"
-
+                # 5. No records at all
+                stale_note = (
+                    f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                )
+                msg = (
+                    f"No completed worker run records found yet.{stale_note}"
+                    if not stale_running
+                    else f"Stale worker run in progress.{stale_note}"
+                )
                 return ComponentHealth(
                     name="worker",
-                    status=status,
-                    message=f"Last worker sweep {round(age_seconds / 60, 1)}m ago ({last_sweep.result}).",
+                    status="DEGRADED",
+                    message=msg,
                     details={
-                        "last_run_at": last_sweep.occurred_at.isoformat(),
-                        "result": last_sweep.result,
-                        "age_seconds": round(age_seconds, 1),
-                        "metrics": last_sweep.metadata_json,
+                        "last_attempt_at": None,
+                        "last_attempt_status": None,
+                        "last_success_at": None,
+                        "last_error_at": None,
+                        "stale_running_run": stale_running,
+                        "stale_run_id": stale_run_id,
                     },
                 )
         except Exception as exc:

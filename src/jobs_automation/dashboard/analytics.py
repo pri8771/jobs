@@ -143,15 +143,29 @@ class FunnelAnalyticsService:
         ).all()
         return {provider: count for provider, count in results}
 
+    # Simulation mode strings that must never count as real submissions
+    _SIMULATION_MODES: frozenset[str] = frozenset(
+        {"simulation", "auto_simulated", "mock", "test"}
+    )
+    # Statuses that are inherently simulated
+    _SIMULATION_STATUSES: frozenset[str] = frozenset({"SIMULATED"})
+
     def _is_real_submission(self, app: ApplicationModel) -> bool:
         """Determines if an application represents a confirmed real submission.
 
-        Excludes draft, discovered, prepared states, and explicit simulation mode.
+        Excludes:
+        - DISCOVERED, PREPARED, DRAFT statuses (not yet submitted),
+        - SIMULATED status (auto-engine simulation outputs),
+        - any application_mode indicating simulation/mock/test
+          (e.g. "simulation", "auto_simulated", "mock", "test").
         Requires applied_at timestamp and/or verified submission event evidence.
         """
         if app.status in ("DISCOVERED", "PREPARED", "DRAFT"):
             return False
-        if getattr(app, "application_mode", None) == "simulation":
+        if app.status in self._SIMULATION_STATUSES:
+            return False
+        mode = getattr(app, "application_mode", None)
+        if mode in self._SIMULATION_MODES:
             return False
         if app.applied_at is not None:
             return True
@@ -162,6 +176,9 @@ class FunnelAnalyticsService:
 
         Ensures that downstream outcomes (e.g. interviewed then rejected, or offered then declined)
         preserve historical funnel stage achievements.
+
+        ever_final_interview is only set when there is explicit evidence of a final/panel/onsite
+        round (event_type or interview label). Generic INTERVIEW events do NOT set this flag.
         """
         events = app.events or []
         event_types = {e.event_type for e in events}
@@ -206,6 +223,22 @@ class FunnelAnalyticsService:
             )
         )
 
+        # ever_final_interview: only if there is explicit final/panel/onsite evidence.
+        # Labels searched (case-insensitive) in interview round type / event payloads.
+        _final_interview_keywords = frozenset(
+            {"final", "panel", "onsite", "on-site", "executive", "last round", "final round"}
+        )
+        _has_final_event = any(
+            "FINAL_INTERVIEW" in et or "PANEL_INTERVIEW" in et or "ONSITE_INTERVIEW" in et
+            for et in event_types
+        )
+        _has_final_interview_record = any(
+            getattr(iv, "round_type", None)
+            and any(kw in (getattr(iv, "round_type", "") or "").lower() for kw in _final_interview_keywords)
+            for iv in interviews
+        )
+        ever_final_interview = bool(_has_final_event or _has_final_interview_record)
+
         offer_events = {
             "OFFER_EXTENDED",
             "OFFER_RECEIVED",
@@ -239,6 +272,7 @@ class FunnelAnalyticsService:
         return {
             "ever_screened": ever_screened,
             "ever_interviewed": ever_interviewed,
+            "ever_final_interview": ever_final_interview,
             "ever_offered": ever_offered,
             "ever_accepted": ever_accepted,
             "ever_rejected": ever_rejected,
@@ -293,7 +327,9 @@ class FunnelAnalyticsService:
             # Historical outcome counts across all submitted applications
             screens = 0
             interviews = 0
+            final_interviews = 0
             offers = 0
+            accepted = 0
             rejections = 0
             for a in submitted_apps:
                 outcomes = self._get_application_historical_outcomes(a)
@@ -301,13 +337,18 @@ class FunnelAnalyticsService:
                     screens += 1
                 if outcomes["ever_interviewed"]:
                     interviews += 1
+                if outcomes["ever_final_interview"]:
+                    final_interviews += 1
                 if outcomes["ever_offered"]:
                     offers += 1
+                if outcomes["ever_accepted"]:
+                    accepted += 1
                 if outcomes["ever_rejected"]:
                     rejections += 1
 
             response_rate = round((screens / submitted_count * 100), 1) if submitted_count else 0.0
             offer_rate = round((offers / submitted_count * 100), 1) if submitted_count else 0.0
+            accept_rate = round((accepted / submitted_count * 100), 1) if submitted_count else 0.0
             low_sample = submitted_count < 5
 
             performance.append(
@@ -317,10 +358,13 @@ class FunnelAnalyticsService:
                     "applications_submitted": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
+                    "final_interviews": final_interviews,
                     "offers": offers,
+                    "accepted": accepted,
                     "rejections": rejections,
                     "response_rate_pct": response_rate,
                     "offer_rate_pct": offer_rate,
+                    "accept_rate_pct": accept_rate,
                     "low_sample_size": low_sample,
                     "note": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }
@@ -346,7 +390,9 @@ class FunnelAnalyticsService:
 
             screens = 0
             interviews = 0
+            final_interviews = 0
             offers = 0
+            accepted = 0
             rejections = 0
             for a in submitted_apps:
                 outcomes = self._get_application_historical_outcomes(a)
@@ -354,8 +400,12 @@ class FunnelAnalyticsService:
                     screens += 1
                 if outcomes["ever_interviewed"]:
                     interviews += 1
+                if outcomes["ever_final_interview"]:
+                    final_interviews += 1
                 if outcomes["ever_offered"]:
                     offers += 1
+                if outcomes["ever_accepted"]:
+                    accepted += 1
                 if outcomes["ever_rejected"]:
                     rejections += 1
 
@@ -366,10 +416,14 @@ class FunnelAnalyticsService:
                     "applications_count": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
+                    "final_interviews": final_interviews,
                     "offers": offers,
+                    "accepted": accepted,
                     "rejections": rejections,
                     "interview_rate_pct": round((interviews / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "final_interview_rate_pct": round((final_interviews / submitted_count * 100), 1) if submitted_count else 0.0,
                     "offer_rate_pct": round((offers / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "accept_rate_pct": round((accepted / submitted_count * 100), 1) if submitted_count else 0.0,
                     "low_sample_size": low_sample,
                     "sample_size_note": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }
@@ -396,15 +450,21 @@ class FunnelAnalyticsService:
 
             screens = 0
             interviews = 0
+            final_interviews = 0
             offers = 0
+            accepted = 0
             for a in submitted_apps:
                 outcomes = self._get_application_historical_outcomes(a)
                 if outcomes["ever_screened"]:
                     screens += 1
                 if outcomes["ever_interviewed"]:
                     interviews += 1
+                if outcomes["ever_final_interview"]:
+                    final_interviews += 1
                 if outcomes["ever_offered"]:
                     offers += 1
+                if outcomes["ever_accepted"]:
+                    accepted += 1
 
             low_sample = submitted_count < 5
             results.append(
@@ -415,9 +475,13 @@ class FunnelAnalyticsService:
                     "applications_count": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
+                    "final_interviews": final_interviews,
                     "offers": offers,
+                    "accepted": accepted,
                     "interview_rate_pct": round((interviews / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "final_interview_rate_pct": round((final_interviews / submitted_count * 100), 1) if submitted_count else 0.0,
                     "offer_rate_pct": round((offers / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "accept_rate_pct": round((accepted / submitted_count * 100), 1) if submitted_count else 0.0,
                     "low_sample_size": low_sample,
                     "confidence_label": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }

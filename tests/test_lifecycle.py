@@ -1439,3 +1439,116 @@ def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) ->
     assert app_interview.status == "REJECTED"
 
 
+def test_background_check_does_not_fabricate_offer_interviewing(db_session: Session) -> None:
+    """B-R17-03: BACKGROUND_CHECK classification preserves INTERVIEWING status.
+
+    A background check is process evidence, not proof of a formal offer.
+    Receiving a BACKGROUND_CHECK email must NOT advance status to OFFER_RECEIVED.
+    """
+    engine = LifecycleEngine(db_session)
+
+    comp = CompanyModel(normalized_name="citadel")
+    db_session.add(comp)
+    db_session.flush()
+
+    job = JobModel(company_id=comp.id, normalized_title="Quantitative Trader")
+    db_session.add(job)
+    db_session.flush()
+
+    app = ApplicationModel(job_id=job.id, status="INTERVIEWING")
+    db_session.add(app)
+    db_session.flush()
+
+    msg = InboundMessageModel(
+        provider_message_id="msg-bgcheck-interviewing",
+        provider_thread_id="th-citadel-bgcheck",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="hr@citadel.com",
+        subject="Background Check Authorization Request",
+        body_text="Please complete your background check at the link below.",
+        classification="BACKGROUND_CHECK",
+        confidence=0.95,
+    )
+    db_session.add(msg)
+    db_session.flush()
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg.id,
+            application_id=app.id,
+            confidence=0.95,
+            method="match",
+        )
+    )
+    db_session.commit()
+
+    result = engine.process_message(msg)
+
+    assert result is not None
+    assert result.event_type == "BACKGROUND_CHECK_INITIATED"
+    # CRITICAL: must NOT advance to OFFER_RECEIVED
+    assert result.new_status == "INTERVIEWING"
+    assert result.previous_status == "INTERVIEWING"
+    assert result.regression_prevented is False
+    assert app.status == "INTERVIEWING", "BACKGROUND_CHECK must NOT fabricate OFFER_RECEIVED"
+
+    # Verify the evidence event was recorded
+    event = (
+        db_session.query(ApplicationEventModel)
+        .filter(
+            ApplicationEventModel.application_id == app.id,
+            ApplicationEventModel.event_type == "BACKGROUND_CHECK_INITIATED",
+        )
+        .first()
+    )
+    assert event is not None
+
+
+def test_background_check_does_not_fabricate_offer_when_already_offered(db_session: Session) -> None:
+    """B-R17-03: BACKGROUND_CHECK on OFFER_RECEIVED stage preserves that status (no double-count)."""
+    engine = LifecycleEngine(db_session)
+
+    comp = CompanyModel(normalized_name="bridgewater")
+    db_session.add(comp)
+    db_session.flush()
+
+    job = JobModel(company_id=comp.id, normalized_title="Investment Associate")
+    db_session.add(job)
+    db_session.flush()
+
+    app = ApplicationModel(job_id=job.id, status="OFFER_RECEIVED")
+    db_session.add(app)
+    db_session.flush()
+
+    msg = InboundMessageModel(
+        provider_message_id="msg-bgcheck-offered",
+        provider_thread_id="th-bw-bgcheck",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="hr@bridgewater.com",
+        subject="Please complete your background check",
+        body_text="As part of the final steps, please complete your background check.",
+        classification="BACKGROUND_CHECK",
+        confidence=0.95,
+    )
+    db_session.add(msg)
+    db_session.flush()
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg.id,
+            application_id=app.id,
+            confidence=0.95,
+            method="match",
+        )
+    )
+    db_session.commit()
+
+    result = engine.process_message(msg)
+
+    assert result is not None
+    assert result.event_type == "BACKGROUND_CHECK_INITIATED"
+    # Stage preserved — BACKGROUND_CHECK must NOT be used to re-assert OFFER_RECEIVED
+    assert result.new_status == "OFFER_RECEIVED"
+    assert result.previous_status == "OFFER_RECEIVED"
+    assert app.status == "OFFER_RECEIVED"
+
+
+

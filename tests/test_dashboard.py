@@ -848,4 +848,185 @@ def test_dashboard_write_safety_loopback_and_token(
     assert resp_loopback["success"] is True
 
 
+def test_simulation_modes_excluded_from_real_submissions(db_session: Session) -> None:
+    """B-R20-07: Applications with SIMULATED status or auto_simulated/mock/test modes are excluded.
+
+    Ensures that auto-simulated applications or test fixtures never pollute real
+    funnel metrics or application submission counts.
+    """
+    company = CompanyModel(id=uuid.uuid4(), normalized_name="openai")
+    db_session.add(company)
+    db_session.flush()
+
+    job = JobModel(
+        id=uuid.uuid4(),
+        company_id=company.id,
+        normalized_title="Research Scientist",
+    )
+    db_session.add(job)
+    db_session.flush()
+
+    source = JobSourceModel(
+        job_id=job.id,
+        provider="linkedin",
+        first_seen_at=datetime.datetime.now(datetime.UTC),
+    )
+    db_session.add(source)
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    # 1. Real submission
+    app_real = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="SUBMITTED",
+        applied_at=now,
+        application_mode="live",
+    )
+    # 2. SIMULATED status with applied_at populated -> must be excluded
+    app_sim_status = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="SIMULATED",
+        applied_at=now,
+        application_mode="live",
+    )
+    # 3. auto_simulated mode with applied_at populated -> must be excluded
+    app_auto_sim = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="SUBMITTED",
+        applied_at=now,
+        application_mode="auto_simulated",
+    )
+    # 4. mock mode with applied_at populated -> must be excluded
+    app_mock = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="SUBMITTED",
+        applied_at=now,
+        application_mode="mock",
+    )
+    # 5. test mode with applied_at populated -> must be excluded
+    app_test = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="SUBMITTED",
+        applied_at=now,
+        application_mode="test",
+    )
+    db_session.add_all([app_real, app_sim_status, app_auto_sim, app_mock, app_test])
+    db_session.commit()
+
+    service = FunnelAnalyticsService(db_session)
+    assert service._is_real_submission(app_real) is True
+    assert service._is_real_submission(app_sim_status) is False
+    assert service._is_real_submission(app_auto_sim) is False
+    assert service._is_real_submission(app_mock) is False
+    assert service._is_real_submission(app_test) is False
+
+    # Check source performance counts: only 1 real submission
+    perf = service.get_source_performance()
+    linkedin_perf = next(p for p in perf if p["provider"] == "linkedin")
+    assert linkedin_perf["applications_submitted"] == 1
+
+
+def test_final_interview_evidence_and_accepted_rates(db_session: Session) -> None:
+    """B-R20-08: ever_final_interview requires explicit evidence; accepted rates are exposed."""
+    company = CompanyModel(id=uuid.uuid4(), normalized_name="anthropic")
+    db_session.add(company)
+    db_session.flush()
+
+    job = JobModel(
+        id=uuid.uuid4(),
+        company_id=company.id,
+        normalized_title="Safety Engineer",
+    )
+    db_session.add(job)
+    db_session.flush()
+
+    source = JobSourceModel(
+        job_id=job.id,
+        provider="greenhouse",
+        first_seen_at=datetime.datetime.now(datetime.UTC),
+    )
+    db_session.add(source)
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    # App 1: Generic interview only (not final)
+    app1 = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="INTERVIEWING",
+        applied_at=now,
+        application_mode="manual",
+    )
+    # App 2: Final round interview with offer accepted
+    app2 = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="OFFER_ACCEPTED",
+        applied_at=now,
+        application_mode="manual",
+    )
+    db_session.add_all([app1, app2])
+    db_session.flush()
+
+    # App 1 has generic interview event
+    ev1 = ApplicationEventModel(
+        application_id=app1.id,
+        event_type="INTERVIEW_REQUESTED",
+        occurred_at=now,
+        source="email",
+    )
+    # App 2 has final interview event and OFFER_ACCEPTED event
+    ev2_final = ApplicationEventModel(
+        application_id=app2.id,
+        event_type="FINAL_INTERVIEW_SCHEDULED",
+        occurred_at=now,
+        source="email",
+    )
+    ev2_offer = ApplicationEventModel(
+        application_id=app2.id,
+        event_type="OFFER_ACCEPTED",
+        occurred_at=now,
+        source="email",
+    )
+    db_session.add_all([ev1, ev2_final, ev2_offer])
+    db_session.commit()
+
+    service = FunnelAnalyticsService(db_session)
+    outcomes1 = service._get_application_historical_outcomes(app1)
+    outcomes2 = service._get_application_historical_outcomes(app2)
+
+    # App 1: ever_interviewed=True, ever_final_interview=False
+    assert outcomes1["ever_interviewed"] is True
+    assert outcomes1["ever_final_interview"] is False
+    assert outcomes1["ever_accepted"] is False
+
+    # App 2: ever_final_interview=True, ever_accepted=True
+    assert outcomes2["ever_final_interview"] is True
+    assert outcomes2["ever_accepted"] is True
+
+    # Performance methods expose final_interviews and accepted
+    source_perf = service.get_source_performance()
+    gh_perf = next(p for p in source_perf if p["provider"] == "greenhouse")
+    assert gh_perf["applications_submitted"] == 2
+    assert gh_perf["interviews"] == 2
+    assert gh_perf["final_interviews"] == 1
+    assert gh_perf["accepted"] == 1
+    assert gh_perf["accept_rate_pct"] == 50.0
+
+    role_perf = service.get_role_family_performance()
+    safety_perf = next(p for p in role_perf if p["role_family"] == "Safety Engineer")
+    assert safety_perf["applications_count"] == 2
+    assert safety_perf["final_interviews"] == 1
+    assert safety_perf["accepted"] == 1
+    assert safety_perf["accept_rate_pct"] == 50.0
+
+
+
 
