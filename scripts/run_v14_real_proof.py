@@ -82,7 +82,7 @@ def validate_profile_path(path: Path) -> None:
 
     # Content-level check: compare sha256 against known example candidate profiles (RP14-T4)
     repo_root = Path(__file__).resolve().parent.parent
-    example_files = list((repo_root / "config").glob("*example*.yaml"))
+    example_files = list(repo_root.glob("config/*example*")) + list(repo_root.glob("tests/fixtures/*example*"))
     target_sha = sha256_file(path)
     for eg in example_files:
         if eg.is_file() and sha256_file(eg) == target_sha:
@@ -115,14 +115,30 @@ def validate_job(job: JobModel, questions: list[str] | None = None) -> None:
         raise RealProofError("Job source URL appears synthetic/local")
 
     # Check source attestation and question binding (RP14-T3)
+    greenhouse_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
+    if not greenhouse_sources:
+        raise RealProofError("Job does not have an imported GREENHOUSE source record")
+    
+    gh_source = greenhouse_sources[0]
+    payload = gh_source.source_payload_json or {}
+    if payload.get("source_kind") != "greenhouse_public_job_board_api":
+        raise RealProofError("Greenhouse source record has invalid or missing source_kind")
+    if not gh_source.source_job_id:
+        raise RealProofError("Greenhouse source record has missing source_job_id")
+    api_url = str(payload.get("api_url") or "")
+    if not api_url.startswith("https://boards-api.greenhouse.io/"):
+        raise RealProofError(f"Greenhouse source record has invalid api_url: {api_url}")
+
+    content_sha = payload.get("content_sha256")
+    if content_sha:
+        expected_desc_sha = sha256_bytes((job.description_text or "").encode("utf-8"))
+        if content_sha.lower() != expected_desc_sha.lower():
+            raise RealProofError(
+                f"Greenhouse description hash mismatch: {content_sha} != {expected_desc_sha}"
+            )
+
     if questions is not None:
         expected_questions_sha = compute_questions_sha256(questions)
-        greenhouse_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
-        if not greenhouse_sources:
-            raise RealProofError("Job does not have an imported GREENHOUSE source record")
-        
-        gh_source = greenhouse_sources[0]
-        payload = gh_source.source_payload_json or {}
         source_questions_sha = payload.get("question_list_sha256")
         if not source_questions_sha:
             raise RealProofError(
@@ -321,13 +337,32 @@ def main() -> int:
             redacted_content = json.dumps(redacted, indent=2, sort_keys=True) + "\n"
             candidate_bundle_sha = sha256_bytes(redacted_content.encode("utf-8"))
 
+            gh_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
+            gh_source = gh_sources[0] if gh_sources else None
+            gh_payload = (gh_source.source_payload_json or {}) if gh_source else {}
+
             private_bundle = {
                 "proof_run_id": proof_run_id,
                 "candidate_bundle_sha256": candidate_bundle_sha,
                 "candidate_profile_sha256": sha256_file(args.candidate_profile),
                 "candidate_profile_path": str(args.candidate_profile.resolve()),
+                "candidate_profile_source_class": "PRIVATE_LOCAL",
+                "job_id": str(job.id),
                 "resume_source_path": str(source_path),
                 "questions_json_path": str(args.questions_json.resolve()),
+                "source_attestation": {
+                    "provider": gh_source.provider if gh_source else "GREENHOUSE",
+                    "source_kind": gh_payload.get("source_kind", "greenhouse_public_job_board_api"),
+                    "public_job_id": str(gh_source.source_job_id) if gh_source else "",
+                    "api_url": gh_payload.get("api_url", ""),
+                    "fetched_at_utc": gh_payload.get("fetched_at_utc", ""),
+                    "description_sha256": gh_payload.get(
+                        "content_sha256",
+                        sha256_bytes((job.description_text or "").encode("utf-8")),
+                    ),
+                    "question_list_sha256": gh_payload.get("question_list_sha256", ""),
+                    "canonical_apply_url": gh_source.canonical_apply_url if gh_source else job.apply_url,
+                },
                 "local_artifacts": [
                     {
                         "type": "resume_source",

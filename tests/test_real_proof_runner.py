@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from pathlib import Path
 
@@ -32,13 +33,15 @@ def test_validate_profile_path_rejects_example_content_even_when_renamed(tmp_pat
 
 
 def test_validate_job_requires_greenhouse_source_binding() -> None:
-    company = CompanyModel(id=uuid.uuid4(), normalized_name="Acme Inc")
+    company = CompanyModel(id=uuid.uuid4(), normalized_name="OpenSesame")
+    desc = "A" * 150
+    desc_sha = hashlib.sha256(desc.encode("utf-8")).hexdigest()
     job = JobModel(
         id=uuid.uuid4(),
         company_id=company.id,
         company=company,
-        normalized_title="AI Engineer",
-        description_text="A" * 150,
+        normalized_title="AI Automation Engineer",
+        description_text=desc,
         sources=[],
     )
 
@@ -51,26 +54,48 @@ def test_validate_job_requires_greenhouse_source_binding() -> None:
         id=uuid.uuid4(),
         job_id=job.id,
         provider="MANUAL",
-        source_url="https://boards.greenhouse.io/acme/jobs/12345",
+        source_url="https://boards.greenhouse.io/opensesame/jobs/7967740",
     )
     job.sources = [non_gh_source]
     with pytest.raises(RealProofError, match="does not have an imported GREENHOUSE source record"):
         validate_job(job, questions=questions)
 
-    # Add GREENHOUSE source with mismatched questions hash
+    # Add GREENHOUSE source with invalid source_kind
     gh_source = JobSourceModel(
         id=uuid.uuid4(),
         job_id=job.id,
         provider="GREENHOUSE",
-        source_url="https://boards.greenhouse.io/acme/jobs/12345",
-        source_payload_json={"question_list_sha256": "0" * 64},
+        source_job_id="7967740",
+        source_url="https://boards.greenhouse.io/opensesame/jobs/7967740",
+        source_payload_json={
+            "source_kind": "invalid",
+            "api_url": "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740",
+            "content_sha256": desc_sha,
+            "question_list_sha256": compute_questions_sha256(questions),
+        },
     )
     job.sources = [gh_source]
+    with pytest.raises(RealProofError, match="invalid or missing source_kind"):
+        validate_job(job, questions=questions)
+
+    # Invalid api_url
+    gh_source.source_payload_json["source_kind"] = "greenhouse_public_job_board_api"
+    gh_source.source_payload_json["api_url"] = "https://example.com/api"
+    with pytest.raises(RealProofError, match="invalid api_url"):
+        validate_job(job, questions=questions)
+
+    # Mismatched description hash
+    gh_source.source_payload_json["api_url"] = "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740"
+    gh_source.source_payload_json["content_sha256"] = "0" * 64
+    with pytest.raises(RealProofError, match="Greenhouse description hash mismatch"):
+        validate_job(job, questions=questions)
+
+    # Mismatched question list hash
+    gh_source.source_payload_json["content_sha256"] = desc_sha
+    gh_source.source_payload_json["question_list_sha256"] = "0" * 64
     with pytest.raises(RealProofError, match="Question list SHA-256 mismatch"):
         validate_job(job, questions=questions)
 
-    # Match questions hash
-    correct_sha = compute_questions_sha256(questions)
-    gh_source.source_payload_json = {"question_list_sha256": correct_sha}
-    # Should pass without error
+    # Valid complete attestation
+    gh_source.source_payload_json["question_list_sha256"] = compute_questions_sha256(questions)
     validate_job(job, questions=questions)

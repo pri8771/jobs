@@ -35,8 +35,7 @@
   "properties": {
     "result": {
       "enum": [
-        "REAL_PROOF_CANDIDATE",
-        "REAL_PROOF_PASS"
+        "REAL_PROOF_CANDIDATE"
       ]
     },
     "proof_run_id": {

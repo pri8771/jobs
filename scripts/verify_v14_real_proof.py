@@ -168,9 +168,9 @@ def validate_redacted_bundle(data: dict[str, Any]) -> None:
     _walk_forbidden_private_keys(data)
 
     result = str(_require(data, "result"))
-    if result not in {"REAL_PROOF_CANDIDATE", "REAL_PROOF_PASS"}:
+    if result != "REAL_PROOF_CANDIDATE":
         raise ProofValidationError(
-            f"result must be REAL_PROOF_CANDIDATE or REAL_PROOF_PASS, got {result}"
+            f"result must be REAL_PROOF_CANDIDATE, got {result!r}"
         )
 
     if _require(data, "mock_or_fixture_inputs_present") is not False:
@@ -188,17 +188,30 @@ def validate_redacted_bundle(data: dict[str, Any]) -> None:
     if "example." in job_url.lower() or "localhost" in job_url.lower():
         raise ProofValidationError("job_url appears non-real/test-local")
 
+    # RP14-T6: Deterministic generation labeling enforced by verifier
     generation_origin = str(_require(data, "generation_origin")).lower()
-    if generation_origin in {"mock", "test", "adversarial_mock"}:
-        raise ProofValidationError("generation_origin is mock/test")
-    if not generation_origin:
-        raise ProofValidationError("generation_origin is empty")
+    if generation_origin != "deterministic":
+        raise ProofValidationError(
+            f"generation_origin must be 'deterministic' for V1.4 proof, got {generation_origin!r}"
+        )
 
     model_origin = str(_require(data, "model_origin")).lower()
-    if model_origin in {"mock", "test", "adversarial_mock"}:
-        raise ProofValidationError("model_origin is mock/test")
-    if not model_origin:
-        raise ProofValidationError("model_origin is empty")
+    if model_origin != "deterministic":
+        raise ProofValidationError(
+            f"model_origin must be 'deterministic' for V1.4 proof, got {model_origin!r}"
+        )
+
+    generation_engine = str(_require(data, "generation_engine")).lower()
+    if generation_engine != "deterministic-canonical-renderer":
+        raise ProofValidationError(
+            f"generation_engine must be 'deterministic-canonical-renderer', got {generation_engine!r}"
+        )
+
+    model_provider = data.get("model_provider")
+    if model_provider is not None and model_provider != "deterministic-production":
+        raise ProofValidationError(
+            f"model_provider must be null or 'deterministic-production', got {model_provider!r}"
+        )
 
     for key in (
         "job_snapshot_sha256",
@@ -245,7 +258,7 @@ def validate_local_bundle(
     redacted_data: dict[str, Any],
     candidate_bundle_sha: str | None = None,
 ) -> None:
-    """RP14-T2 & RP14-T7: Validate local artifacts and cross-bind to redacted candidate evidence."""
+    """RP14-T2, RP14-T3, RP14-T4 & RP14-T7: Validate local artifacts, Greenhouse source attestation, and cross-bind."""
     local_proof_id = local_data.get("proof_run_id")
     redacted_proof_id = redacted_data.get("proof_run_id")
     if not local_proof_id or local_proof_id != redacted_proof_id:
@@ -254,12 +267,45 @@ def validate_local_bundle(
             f"and redacted evidence ({redacted_proof_id})"
         )
 
-    if candidate_bundle_sha and "candidate_bundle_sha256" in local_data:
-        if local_data["candidate_bundle_sha256"].lower() != candidate_bundle_sha.lower():
+    # RP14-T2: Mandatory candidate-bundle SHA binding
+    if "candidate_bundle_sha256" not in local_data:
+        raise ProofValidationError("local bundle missing mandatory candidate_bundle_sha256")
+    if candidate_bundle_sha and local_data["candidate_bundle_sha256"].lower() != candidate_bundle_sha.lower():
+        raise ProofValidationError(
+            f"candidate_bundle_sha256 in local bundle does not match computed candidate SHA: "
+            f"{local_data['candidate_bundle_sha256']} != {candidate_bundle_sha}"
+        )
+
+    # RP14-T4: Candidate profile SHA check & example file rejection
+    _require_sha(local_data, "candidate_profile_sha256")
+    cand_prof_sha = str(local_data["candidate_profile_sha256"]).lower()
+    repo_root = Path(__file__).resolve().parent.parent
+    example_files = list(repo_root.glob("config/*example*")) + list(repo_root.glob("tests/fixtures/*example*"))
+    for eg in example_files:
+        if eg.is_file() and sha256_file(eg).lower() == cand_prof_sha:
             raise ProofValidationError(
-                f"candidate_bundle_sha256 in local bundle does not match computed candidate SHA: "
-                f"{local_data['candidate_bundle_sha256']} != {candidate_bundle_sha}"
+                f"candidate_profile_sha256 matches repository example file ({eg.name}); "
+                "real private profile is required for REAL_PROOF"
             )
+
+    # RP14-T3: Source attestation validation
+    source_attestation = local_data.get("source_attestation")
+    if not isinstance(source_attestation, dict):
+        raise ProofValidationError("local bundle missing mandatory source_attestation object")
+    if str(source_attestation.get("provider")) != "GREENHOUSE":
+        raise ProofValidationError("source_attestation provider must be GREENHOUSE")
+    if str(source_attestation.get("source_kind")) != "greenhouse_public_job_board_api":
+        raise ProofValidationError(
+            "source_attestation source_kind must be greenhouse_public_job_board_api"
+        )
+    public_job_id = str(source_attestation.get("public_job_id", "")).strip()
+    if not public_job_id:
+        raise ProofValidationError("source_attestation missing public_job_id")
+    api_url = str(source_attestation.get("api_url", "")).strip()
+    if not api_url.startswith("https://boards-api.greenhouse.io/"):
+        raise ProofValidationError(f"source_attestation has invalid api_url: {api_url}")
+    _require_sha(source_attestation, "description_sha256")
+    _require_sha(source_attestation, "question_list_sha256")
 
     artifacts = local_data.get("local_artifacts")
     if not isinstance(artifacts, list) or not artifacts:
@@ -301,23 +347,64 @@ def validate_local_bundle(
             "resume_source_sha256 does not match resume_artifact_sha256 for copied deterministic packet"
         )
 
-    # Manifest content and cross-link validation (RP14-T7)
+    # Manifest content, local JobModel link, and canonical packet hash recomputation (RP14-T7)
     manifest_info = artifact_map.get("manifest")
-    if manifest_info:
-        manifest_path: Path = manifest_info["path"]
-        try:
-            manifest_json = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            raise ProofValidationError(f"could not read manifest JSON: {exc}") from exc
+    if not manifest_info:
+        raise ProofValidationError("manifest artifact missing from local artifacts")
 
-        if str(manifest_json.get("packet_id")) != str(redacted_data.get("packet_id")):
-            raise ProofValidationError("manifest packet_id does not match redacted packet_id")
-        if str(manifest_json.get("packet_hash")).lower() != str(redacted_data.get("packet_hash")).lower():
-            raise ProofValidationError("manifest packet_hash does not match redacted packet_hash")
-        if str(manifest_json.get("resume_artifact_sha256")).lower() != str(redacted_data.get("resume_artifact_sha256")).lower():
-            raise ProofValidationError("manifest resume_artifact_sha256 does not match redacted resume_artifact_sha256")
-        if str(manifest_json.get("cover_letter_artifact_sha256")).lower() != str(redacted_data.get("cover_letter_artifact_sha256")).lower():
-            raise ProofValidationError("manifest cover_letter_artifact_sha256 does not match redacted cover_letter_artifact_sha256")
+    manifest_path: Path = manifest_info["path"]
+    try:
+        manifest_json = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProofValidationError(f"could not read manifest JSON: {exc}") from exc
+
+    if str(manifest_json.get("packet_id")) != str(redacted_data.get("packet_id")):
+        raise ProofValidationError("manifest packet_id does not match redacted packet_id")
+
+    # Verify manifest job_id maps to local JobModel
+    local_job_id = str(local_data.get("job_id", "")).strip()
+    if local_job_id and str(manifest_json.get("job_id")) != local_job_id:
+        raise ProofValidationError(
+            f"manifest job_id ({manifest_json.get('job_id')}) does not match local job_id ({local_job_id})"
+        )
+
+    if str(manifest_json.get("resume_family")) != str(redacted_data.get("resume_family")):
+        raise ProofValidationError("manifest resume_family does not match redacted resume_family")
+    if str(manifest_json.get("resume_variant_name")) != str(redacted_data.get("resume_variant")):
+        raise ProofValidationError("manifest resume_variant_name does not match redacted resume_variant")
+    if str(manifest_json.get("resume_artifact_sha256")).lower() != str(redacted_data.get("resume_artifact_sha256")).lower():
+        raise ProofValidationError("manifest resume_artifact_sha256 does not match redacted resume_artifact_sha256")
+    if str(manifest_json.get("cover_letter_artifact_sha256")).lower() != str(redacted_data.get("cover_letter_artifact_sha256")).lower():
+        raise ProofValidationError("manifest cover_letter_artifact_sha256 does not match redacted cover_letter_artifact_sha256")
+    if str(manifest_json.get("generation_origin")).lower() != str(redacted_data.get("generation_origin")).lower():
+        raise ProofValidationError("manifest generation_origin does not match redacted generation_origin")
+    if manifest_json.get("is_live_ready") != redacted_data.get("is_live_ready"):
+        raise ProofValidationError("manifest is_live_ready does not match redacted is_live_ready")
+
+    # Recompute canonical packet hash from manifest components
+    canonical_payload = {
+        "job_id": str(manifest_json.get("job_id")),
+        "profile_version": manifest_json.get("candidate_profile_version"),
+        "resume_variant_id": str(manifest_json.get("resume_variant_id")),
+        "resume_sha": str(manifest_json.get("resume_artifact_sha256")),
+        "cover_letter_sha": str(manifest_json.get("cover_letter_artifact_sha256")),
+        "answers": manifest_json.get("answers", {}),
+        "answer_provenance": manifest_json.get("answer_provenance", {}),
+    }
+    recomputed_packet_hash = hashlib.sha256(
+        json.dumps(canonical_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+    if recomputed_packet_hash.lower() != str(redacted_data.get("packet_hash")).lower():
+        raise ProofValidationError(
+            f"canonical packet hash recomputation mismatch: "
+            f"{recomputed_packet_hash} != {redacted_data.get('packet_hash')}"
+        )
+    if str(manifest_json.get("packet_hash")).lower() != recomputed_packet_hash.lower():
+        raise ProofValidationError(
+            f"manifest packet_hash does not match recomputed canonical hash: "
+            f"{manifest_json.get('packet_hash')} != {recomputed_packet_hash}"
+        )
 
 
 def generate_receipt(
@@ -346,7 +433,7 @@ def main() -> int:
         "--local-full-bundle",
         type=Path,
         default=None,
-        help="Optional private bundle containing local artifact paths for hash and manifest cross-check.",
+        help="Private bundle containing local artifact paths for hash and manifest cross-check (MANDATORY for PASS).",
     )
     parser.add_argument(
         "--receipt-output",
@@ -371,22 +458,49 @@ def main() -> int:
         proof_run_id = str(redacted.get("proof_run_id", "unknown"))
         validate_redacted_bundle(redacted)
 
-        if args.local_full_bundle is not None:
-            local_data = json.loads(args.local_full_bundle.read_text(encoding="utf-8"))
-            if not isinstance(local_data, dict):
-                raise ProofValidationError("local full bundle must be a JSON object")
-            validate_local_bundle(
-                local_data,
-                redacted,
-                candidate_bundle_sha=candidate_bundle_sha,
+        # RP14-T1 & RP14-T2: PASS requires local full bundle verification
+        if args.local_full_bundle is None:
+            rejection_reasons.append(
+                "local full bundle required for REAL_PROOF_PASS; structural check only"
             )
-            local_verified = True
+            receipt = generate_receipt(
+                candidate_bundle_sha=candidate_bundle_sha,
+                proof_run_id=proof_run_id,
+                passed=False,
+                local_verified=False,
+                reasons=rejection_reasons,
+            )
+            receipt_path = args.receipt_output
+            if receipt_path is None:
+                receipt_path = (
+                    args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
+                )
+            receipt_path.parent.mkdir(parents=True, exist_ok=True)
+            receipt_path.write_text(
+                json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            print("REAL_PROOF_VALIDATION_STRUCTURAL_ONLY: PASS requires --local-full-bundle", file=sys.stderr)
+            print(f"receipt_output={receipt_path}")
+            print(f"candidate_bundle_sha256={candidate_bundle_sha}")
+            print("local_full_bundle_verified=False")
+            return 1
+
+        local_data = json.loads(args.local_full_bundle.read_text(encoding="utf-8"))
+        if not isinstance(local_data, dict):
+            raise ProofValidationError("local full bundle must be a JSON object")
+        validate_local_bundle(
+            local_data,
+            redacted,
+            candidate_bundle_sha=candidate_bundle_sha,
+        )
+        local_verified = True
 
         receipt = generate_receipt(
             candidate_bundle_sha=candidate_bundle_sha,
             proof_run_id=proof_run_id,
             passed=True,
-            local_verified=local_verified,
+            local_verified=True,
         )
 
         receipt_path = args.receipt_output
@@ -414,13 +528,18 @@ def main() -> int:
             local_verified=local_verified,
             reasons=rejection_reasons,
         )
-        if args.receipt_output is not None:
-            args.receipt_output.parent.mkdir(parents=True, exist_ok=True)
-            args.receipt_output.write_text(
-                json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
+        receipt_path = args.receipt_output
+        if receipt_path is None:
+            receipt_path = (
+                args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
             )
+        receipt_path.parent.mkdir(parents=True, exist_ok=True)
+        receipt_path.write_text(
+            json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         print(f"REAL_PROOF_VALIDATION_FAIL: {exc}", file=sys.stderr)
+        print(f"receipt_output={receipt_path}", file=sys.stderr)
         return 1
 
 

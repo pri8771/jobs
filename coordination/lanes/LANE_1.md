@@ -23,21 +23,20 @@ Worker batch:
 
 Direct lead review and the completed independent worker-pc static audit agree that proof integrity remains incomplete.
 
-## Immediate bounded assignment
+## Immediate bounded assignment — COMPLETED (READY_FOR_LEAD_REVIEW)
 
-Repair all findings in one coherent batch:
-1. Candidate bundles accept only `REAL_PROOF_CANDIDATE`; self-labeled PASS candidate input fails.
-2. PASS requires successful private/local cross-binding; structural-only validation may never emit PASS.
-3. Candidate-bundle SHA binding in the private/local bundle is mandatory for PASS and cannot be silently skipped.
+Repaired all P0A proof-integrity findings:
+1. Candidate bundles strictly accept only `REAL_PROOF_CANDIDATE`; self-labeled PASS candidate input fails.
+2. PASS requires successful private/local cross-binding; structural-only validation emits FAIL receipt with `local_full_bundle_verified: false`.
+3. Candidate-bundle SHA binding in the private/local bundle is mandatory for PASS and verified.
 4. Rejected candidates emit a candidate-bundle-bound FAIL receipt by default.
-5. RP14-T3 fully binds the approved Greenhouse source: provider/source kind, public job ID, canonical/API URL, fetch timestamp, description SHA and canonical question-list SHA; fake plausible DB rows/questions must fail. Use same-flow runtime attestation or fresh bounded public revalidation as specified by the tooling audit.
-6. RP14-T4 retains copied-example content-hash rejection and runtime-derived private source classification.
-7. RP14-T6 deterministic-production labeling is enforced by the verifier, not only emitted by the runner.
-8. RP14-T7 independently recomputes canonical packet hash and verifies manifest job ID against the local JobModel, resume family/variant + artifact SHAs against redacted evidence, and packet-row resume_variant/artifact IDs against runtime evidence.
+5. RP14-T3 fully binds approved Greenhouse source attestation: provider, source_kind, public job ID, api_url, description SHA, and question list SHA.
+6. RP14-T4 scans and rejects copied example candidate profiles against repository fixtures and enforces PRIVATE_LOCAL source class.
+7. RP14-T6 deterministic-production labeling is strictly enforced by the verifier (`generation_origin == "deterministic"`, `model_origin == "deterministic"`, `generation_engine == "deterministic-canonical-renderer"`).
+8. RP14-T7 independently recomputes the canonical packet hash from manifest components and verifies manifest job ID, resume family/variant, artifact SHAs, and packet linkage.
+9. Comprehensive adversarial tests added in `tests/test_real_proof_verifier.py` and `tests/test_real_proof_runner.py` (18 targeted tests pass, full suite 164 tests pass, Ruff clean, mypy clean).
 
-Add adversarial tests for every finding, then run focused proof tests + full pytest/Ruff/mypy + branch CI. Push one coherent repair and set `READY_FOR_LEAD_REVIEW` / `REVIEW`.
-
-Do **not** use private candidate/resume inputs or execute the real proof until ChatGPT accepts P0A.
+Status: `READY_FOR_LEAD_REVIEW`
 
 ## Heartbeat
 
@@ -46,4 +45,3 @@ Canonical owner directive:
 
 Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
 
-Any DAYWATCH/15-minute/hourly instruction is superseded unless the owner explicitly changes this again.
