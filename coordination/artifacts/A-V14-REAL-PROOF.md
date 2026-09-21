@@ -38,49 +38,51 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied/example or fake private-profile evidence, extra fields, misleading generation metadata, and broken packet/artifact/database links. Targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Latest lead review — 2026-09-21 16:45 ET
+## Latest lead review — 2026-09-21 17:00 ET
 
 Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
 
-Newest independently reviewed support implementation:
+Reviewed support implementation:
 - task `jobs-v14-p0a-remaining-fix-20260921-1545`
 - branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
 - commit `062ca922c640d964220b550a06f61288b9a040c9`
 
-Lead inspected the actual two-file diff. It usefully addresses the two prior remaining verifier gaps:
-1. proof DB evidence is mandatory/fail-closed and the persisted packet/resume/artifact graph is validated,
-2. local Greenhouse source attestation is checked against persisted `JobSource`/`Job` evidence.
+Lead inspected the actual two-file diff. It usefully addresses:
+1. mandatory/fail-closed proof DB evidence and persisted packet/resume/artifact graph validation,
+2. local Greenhouse source attestation binding to persisted `JobSource`/`Job` evidence.
 
-The support commit is **not accepted or merge-ready** because:
-- no exact-head GitHub CI/check run exists,
-- worker-side pytest/Ruff/mypy were not executed,
-- the new verifier/tests are not compatible with the current production importer contract.
+The support commit is **not accepted or merge-ready** because no exact-head CI exists and worker-side pytest/Ruff/mypy were sandbox-blocked.
 
-### Production-path contract mismatch discovered by lead review
+### Corrected production-path findings
 
-Current `scripts/import_v14_proof_job.py::_source_payload()` persists only:
+An interim lead note compared the support verifier to the older importer on main and incorrectly concluded the importer omitted `provider`, `public_job_id`, and `question_list_sha256`. Direct inspection of the support/Lane 1 importer plus an independent worker-pc audit corrected that finding.
+
+At `062ca922...`, `scripts/import_v14_proof_job.py::_source_payload()` already persists:
 - `api_url`,
 - `fetched_at_utc`,
 - `content_sha256`,
 - `screening_question_count`,
-- `source_kind`.
-
-The support verifier/test fixture additionally requires `source_payload_json` fields:
+- `question_list_sha256`,
+- `source_kind`,
 - `provider`,
-- `public_job_id`,
-- `question_list_sha256`.
+- `public_job_id`.
 
-Production already stores provider/public source ID in `JobSourceModel.provider` / `source_job_id`, but it does not currently persist a question-list SHA. The support tests construct a stronger hand-authored Greenhouse payload than production writes. Therefore a genuine real importer → runner → verifier execution can fail even when all real inputs are correct.
+The importer payload is therefore not the current blocker.
+
+Two actual production-path blockers remain:
+
+1. **Generation metadata key mismatch:** production `packet_builder.py` writes `generation_metadata_json["generation_origin"]`, while support verifier reads `generation_metadata["origin"]`. A genuine packet fails even when correct, and verifier tests currently use the non-production metadata shape.
+2. **PostgreSQL URL mismatch:** support `resolve_proof_db_url()` accepts `postgresql://` and `postgres://`, while normal `AppSettings.database_url` defaults to `postgresql+psycopg://...`. A genuine run using the application DB URL can fail before persisted proof validation.
 
 Before P0A acceptance, Lane 1 must:
-- reconcile verifier expectations with the actual production importer rather than a test-only payload,
-- use persisted `JobSourceModel.provider` / `source_job_id` as authoritative provider/public-ID bindings,
-- persist or equivalently bind a production-derived question-list SHA/count,
-- verify source kind/API URL/fetched time/content hash/canonical URL/linked Job identity from real importer evidence,
-- add an integration/adversarial test that exercises the production importer payload contract,
-- rerun focused + full pytest/Ruff/mypy and exact-head CI when hosted runners execute.
+- adapt the useful DB/source-binding support onto current main,
+- verify canonical `generation_origin` using the real packet-builder metadata shape,
+- accept the actual SQLAlchemy driver-qualified PostgreSQL URL form while retaining fail-closed behavior,
+- keep source/question/content/canonical-URL binding against real importer + persisted DB evidence,
+- add focused production-shape and adversarial regression tests,
+- run focused + full pytest/Ruff/mypy and exact-head CI when hosted runners execute.
 
-A bounded read-only `worker-pc` audit `jobs-v14-p0a-importer-contract-audit-20260921-1645` was dispatched for independent confirmation. It is support only; Lane 1 must not wait for it.
+A bounded worker-pc support task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched for only the two runtime-contract defects. It is support only; Lane 1 must not wait for it and it may not auto-merge.
 
 The Lane 1 heartbeat stream reached current epoch heartbeat #18 at `2026-09-21T19:18:36Z` and then became stale. Before restarting, verify the old watcher is dead and launch exactly one current-epoch Lane 1 watcher.
 
