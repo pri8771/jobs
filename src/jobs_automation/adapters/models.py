@@ -12,6 +12,52 @@ from jobs_automation.core import ModelRoutingConfig
 logger = logging.getLogger(__name__)
 
 
+class DeterministicModelGateway(ModelGateway):
+    """Production-safe zero-provider gateway.
+
+    This gateway never fabricates semantic candidate facts. It is intended for
+    privacy-preserving/local operation when no LLM provider is configured.
+
+    - cover_letter returns empty generated content so CoverLetterDrafter uses
+      its canonical-profile deterministic renderer.
+    - question_answering always returns unresolved; deterministic application
+      answers are still handled by ScreeningQuestionAnsweringService before the
+      gateway is called.
+    - unsupported semantic tasks fail closed rather than synthesize content.
+    """
+
+    def complete(
+        self,
+        task: str,
+        prompt: str,
+        system_prompt: str | None = None,
+        schema: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if task == "cover_letter":
+            return {
+                "content": "",
+                "origin": "deterministic",
+                "model": "deterministic-canonical-renderer",
+            }
+
+        if task == "question_answering":
+            return {
+                "answer": None,
+                "resolved": False,
+                "reason": (
+                    "No semantic model provider is configured. "
+                    "Deterministic safe mode leaves unsupported questions unresolved."
+                ),
+                "origin": "deterministic",
+                "model": "deterministic-safe-unresolved",
+            }
+
+        raise ValueError(
+            f"Task '{task}' requires a configured semantic model provider; "
+            "deterministic gateway fails closed."
+        )
+
+
 class MockModelGateway(ModelGateway):
     """Deterministic offline model gateway for tests and offline operations."""
 
