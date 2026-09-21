@@ -20,29 +20,42 @@ Reviewer:
 - d7cbab1 / 21f2be9 lineage — V1.7 recruiting operations
 - 3168780 / bd98cf5 lineage — V2.0 control-center/reliability/analytics
 - 33d18b4 — first lead re-audit repairs
-- 68595d1 — final residual attempt reviewed 2026-09-21
+- 68595d1 — residual attempt reviewed 2026-09-21
 
 Lead audits:
 - docs/LANE_B_REAUDIT.md
 - docs/LANE_B_REAUDIT_2.md
 - docs/WORKER_RUN_HISTORY_REPAIR_GUIDE.md
 
-## Current lead review — 2026-09-21 09:55 ET
+## Current lead review — 2026-09-21 10:53 ET
 
 Current head:
 - `68595d1fe825545b7f1506b7068d1c78376f7953`
+- timestamp: 2026-09-21T13:26:36Z
 
 Evidence:
 - PR #3 remains draft.
 - GitHub CI run #329: SUCCESS.
-- Worker Heartbeat Validation on this head: FAILURE.
-- The heartbeat file is not protocol-conformant: required metadata is not present as top-level lines and `lead_action_requested: AUDIT` is not a valid action. Use `REVIEW` for the next request.
+- The latest branch commit predates the current heartbeat epoch reset.
 
-Task decisions:
-- B-R17-03 SP2 — **LEAD_ACCEPTED**. `BACKGROUND_CHECK` is now evidence-only and preserves the current application stage. It no longer fabricates `OFFER_RECEIVED`.
-- B-R20-07 SP1 — **LEAD_ACCEPTED**. `_is_real_submission()` excludes status `SIMULATED` and modes `simulation`, `auto_simulated`, `mock`, and `test`, with focused tests.
-- B-R20-08 SP2 — **LEAD_ACCEPTED**. `ever_final_interview` requires explicit final/panel/onsite evidence; generic interview evidence does not imply final. Accepted counts/rates are exposed.
-- B-R20-05 / J20-14 SP3 — **REWORK**. The begin/finalize architecture is directionally correct but does not yet satisfy the worker-run history contract.
+Task decisions remain:
+- B-R17-03 SP2 — **LEAD_ACCEPTED**. `BACKGROUND_CHECK` is evidence-only and preserves the current application stage.
+- B-R20-07 SP1 — **LEAD_ACCEPTED**. `_is_real_submission()` excludes simulated/mock/test origins.
+- B-R20-08 SP2 — **LEAD_ACCEPTED**. final-interview outcomes require explicit final/panel/onsite evidence; accepted counts/rates are exposed.
+- B-R20-05 / J20-14 SP3 — **REWORK**. The begin/finalize architecture remains incomplete against the worker-run history contract.
+
+## Current heartbeat epoch
+
+Heartbeat epoch is `DAYWATCH_2026_09_21`. The reset occurred around 14:45Z; Lane B's latest 13:26Z heartbeat/branch commit predates it. The old heartbeat also used the superseded `PROVING_15M` format and invalid `lead_action_requested: AUDIT`.
+
+Verified current-epoch state: **0/3 PROVING_5M**.
+
+On the next fresh session:
+1. rebase latest main,
+2. launch `python scripts/worker_heartbeat_watch.py --lane B --epoch DAYWATCH_2026_09_21 --detach`,
+3. preserve historical entries but let the watcher own new epoch metadata,
+4. require 3 consecutive 4-7 minute proving gaps, then a clean 24-hour 15-minute watch,
+5. only after the clean watch may the watcher switch to STEADY_HOURLY.
 
 ## B-R20-05 bounded rework
 
@@ -55,12 +68,11 @@ Task decisions:
    - two sweeps receive distinct run_ids,
    - adversarial error/secret text is not persisted,
    - begin-record persistence failure does not allow untracked pipeline execution.
-5. Preserve the existing success, kill-switch, stale-RUNNING, and legacy-compatibility coverage.
-6. Repair `coordination/heartbeats/LANE_B.md` to exact `HEARTBEAT_PROTOCOL.md` metadata and valid enums; push a protocol-valid worker-authored heartbeat with the rework batch.
+5. Preserve existing success, kill-switch, stale-RUNNING, and legacy-compatibility coverage.
 
 ## Prior analytics residuals still open
 
-Do not silently drop these older REWORK items:
+Do not silently drop:
 - B-R20-01 SP3 — headline `get_funnel_summary()` still derives historical funnel outcomes from current status instead of event-history outcomes.
 - B-R20-02 SP2 — headline funnel/submission semantics still do not use the same real-submission denominator. The accepted B-R20-07 `_is_real_submission()` fix improves dimensional analytics but is not wired into the headline summary.
 
@@ -74,16 +86,16 @@ Current `NOT_INTEGRATED` Gmail health behavior remains acceptable interim truth.
 
 ## Next
 
-1. rebase latest main before the next implementation batch,
-2. implement B-R20-05 bounded rework above,
+1. rebase latest main and launch the detached current-epoch watcher,
+2. implement B-R20-05 bounded rework,
 3. repair B-R20-01/B-R20-02 headline analytics semantics without widening scope,
 4. run targeted tests + full pytest/Ruff/mypy,
 5. push to PR #3,
-6. push a protocol-valid `READY_FOR_LEAD_REVIEW` heartbeat using lead action `REVIEW`,
+6. push a current-epoch `READY_FOR_LEAD_REVIEW` event heartbeat using lead action `REVIEW`,
 7. stop for ChatGPT review.
 
 No Gmail OAuth, live mailbox access, browser application action, submission, messaging, or MFA/CAPTCHA action.
 
 ## Status
 
-REWORK — B-R17-03/B-R20-07/B-R20-08 task-scope accepted; B-R20-05 + prior B-R20-01/B-R20-02 remain open.
+REWORK — B-R17-03/B-R20-07/B-R20-08 task-scope accepted; B-R20-05 + B-R20-01/B-R20-02 remain open; DAYWATCH current epoch 0/3.
