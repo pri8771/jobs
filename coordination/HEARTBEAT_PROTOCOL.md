@@ -86,8 +86,8 @@ Only the lane/watcher edits its heartbeat file on the lane branch.
 ## Required top-level metadata
 
 ```yaml
-lane: A
-branch: worker/v15-assisted-application
+lane: 1
+branch: worker/v14-real-proof
 heartbeat_epoch: DAYWATCH_2026_09_21
 mode: PROVING_5M
 interval_minutes: 5
