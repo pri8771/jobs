@@ -231,6 +231,22 @@ The execution engine must classify every destination into one of:
 
 The policy decision is stored with the application attempt. AUTO_ALLOWED requires an explicit adapter or allowlist entry and no known platform-policy conflict.
 
+## Real-proof version completion rule
+
+Owner directive:
+A release/version milestone is not COMPLETE until it has at least one real, non-mock production-path example appropriate to that milestone.
+
+Tests, CI, fixtures, adversarial cases, and lead code review can establish ENGINEERING_ACCEPTED, but not COMPLETE.
+
+Required policy:
+- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
+
+Workers must never use fixture/mock/simulated evidence to satisfy a version-complete gate.
+
+Private real inputs may remain local; commit redacted hashes/provenance/evidence only.
+
+Later-version engineering may continue in parallel while an earlier real-proof gate is pending, but project status must not call that earlier version complete.
+
 ## Definition of done
 
 A feature is not done until:
