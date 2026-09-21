@@ -73,3 +73,33 @@ Each lane:
 8. report branch SHA for lead review.
 
 ChatGPT reviews branch diffs/CI, updates shared artifact state, and merges accepted work.
+
+
+## Lane C — Live Data & Provenance Foundations
+
+Branch:
+- worker/live-data-foundations
+
+Owns:
+- A-V12-CANDIDATE-PROVENANCE implementation
+- A-V20-GMAIL-RUNTIME-READINESS except final health/worker glue owned by Lane B
+- engineering side of A-V12-GMAIL-CANARY
+- later A-V20-INTEGRATION-FIXTURE when dependencies are stable
+- proof-job selection support tooling if explicitly advanced
+
+Primary paths:
+- src/jobs_automation/adapters/gmail.py
+- src/jobs_automation/ingestion/
+- src/jobs_automation/provenance/ (new)
+- src/jobs_automation/integration/ (new, later)
+- src/jobs_automation/cli/
+- docker-compose.yml
+- related tests/config docs
+
+Avoid:
+- preparation/storage/browser/automation code owned by Lane A
+- lifecycle/dashboard/health/worker.py owned by Lane B
+- candidate_profile.py while Lane A is actively modifying resume-family behavior unless coordinated
+
+Lane status:
+- coordination/lanes/ANTIGRAVITY_C.md
