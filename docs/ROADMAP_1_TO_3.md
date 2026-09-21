@@ -12,10 +12,16 @@ The old V1.8 dashboard requirements and V1.9 reliability/learning requirements a
 
 V2.3 is now the explicit bridge from the V2.0 operating system to the V3.0 multi-agent career network. Its contract is in `docs/V2_3_SPEC.md`.
 
-Execution program:
-- `docs/V1_7_TO_V3_ACCELERATION_PLAN.md`
-- `coordination/ARTIFACT_INDEX.md`
+Current execution program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
 - `coordination/WORK_QUEUE.md`
+- `coordination/ARTIFACT_INDEX.md`
+
+Downstream V1.6→V3.0 preparation:
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
+
+Historical planning reference only:
+- `docs/V1_7_TO_V3_ACCELERATION_PLAN.md`
 
 : V1.0 -> V3.0
 
