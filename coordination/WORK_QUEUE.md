@@ -39,16 +39,18 @@ Remote-worker evidence:
 - independent read-only audit `jobs-v14-real-proof-audit-retry-20260920` completed with CHANGES_REQUIRED and confirmed the two highest-severity integrity defects.
 - first branch task `jobs-v14-proof-hardening-20260920` failed at repository clone before implementation.
 - retry `jobs-v14-proof-hardening-r2` reached branch mode but finished `failed` with `Worker branch push failed.` after approximately 40 minutes.
-- sanitized retry result returned no branch, no commit, no tests, and no summary; no matching worker branch exists in `pri8771/jobs`.
-- therefore no remote-worker implementation claim exists to review or accept.
-- do not burn another long branch-mode worker-pc run until its Jobs branch-push path is diagnosed/repaired.
+- sanitized retry result returned no branch, no commit, no tests, and no summary; no matching worker branch exists in `pri8771/jobs`, so none of that attempt is accepted.
+- a bounded infrastructure-only Jobs push probe `jobs-push-probe-20260921-0146` then succeeded on 2026-09-21: the remote executor created branch `worker/jobs-push-probe-20260921-0146` at commit `b6c800f0ed4ffe8450aceb0021b0c417ac7e16ae` from Jobs main `1e54f5f42995857730ca4552ddfa4923474704be`.
+- lead inspection confirmed that probe commit adds exactly one non-merge diagnostic Markdown file and touches no production/coordination truth; therefore the Jobs branch-push path is currently smoke-verified.
+- do not infer that the failed hardening batch was recovered; it is still lost/unreviewable. Do not merge the probe branch.
 
-Critical-path fallback assignment:
-- Lane C now owns RP14-T1..T7 as its immediate P0 engineering batch on `worker/live-data-foundations` after rebasing current main.
+Critical-path assignment:
+- Lane C owns RP14-T1..T7 as its immediate P0 engineering batch on `worker/live-data-foundations` after rebasing current main.
 - Keep the tasks separate at their existing SP1-SP3 sizes; do not collapse them into one >SP5 task.
 - Scope only proof tooling/schema/tests/minimal docs; do not touch private candidate/resume inputs and do not run the actual proof.
 - Push one coherent branch batch, update the Lane C heartbeat/status, and stop for ChatGPT review.
 - Scout should adversarially review the returned P0A batch; ChatGPT alone accepts the gate.
+- Because the remote Jobs push path is now smoke-verified, `worker-pc` may be used later for a bounded independent non-conflicting Jobs task if it is idle and doing so shortens this gate; do not duplicate Lane C's active implementation work.
 
 Do not run the private-data proof until P0A is lead-accepted.
 
