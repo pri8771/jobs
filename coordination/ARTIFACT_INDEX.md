@@ -31,6 +31,12 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + Antigravity | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
 | A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | Antigravity | PROPOSED | A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE |
 | A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + Antigravity | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
+| A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | Antigravity | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
+| A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | Antigravity | PROPOSED | V2.0 ingestion + company/contact data | A-V23-CAREER-INTELLIGENCE |
+| A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | Antigravity | PROPOSED | stable V2 services | V3 agent runtime |
+| A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | Antigravity | PROPOSED | A-V23-AGENT-TOOLS | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-PERMISSION-MODEL | V3.0 | Agent/action permission and approval model | policy/authorization | Antigravity | PROPOSED | V2 policy/audit | all V3 agents |
+| A-V30-AGENT-EVALUATION | V3.0 | Agent evaluation + observability | evaluation/observability | Antigravity | PROPOSED | A-V30-AGENT-RUNTIME | V3 acceptance |
 | A-V30-CAREER-AGENT-NETWORK | V3.0 | Autonomous career agent network | milestone/multi-agent | ChatGPT + Antigravity | PROPOSED | A-V23-CAREER-INTELLIGENCE | continuous career ops |
 
 ## Current critical path
