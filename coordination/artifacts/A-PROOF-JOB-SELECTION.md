@@ -28,3 +28,13 @@ Select a proof job the user genuinely wants, not merely one that is convenient t
 ## Current note
 
 Snorkel AI 6150440004 is not accepted as the proof job because it is hybrid NYC/SF and location/relocation fit is not confirmed.
+
+
+## Current researched shortlist
+
+See:
+- docs/PROOF_JOB_SHORTLIST_2026_09_20.md
+
+Current lead research places OpenSesame AI Automation Engineer first for user review because it is remote U.S., compensation-aligned, and closely matches the project's enterprise AI automation target. This is not user approval.
+
+All candidates remain HOLD until explicit user decision.
