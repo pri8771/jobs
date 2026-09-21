@@ -34,15 +34,15 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied example profile contents, extra fields, misleading generation metadata, and broken packet/artifact links; targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Current lead review — 2026-09-21 08:46 ET
+## Current lead review — 2026-09-21 09:55 ET
 
 - `coordination/proofs/` still contains only `README.md` and `v14_real_proof.schema.json`; there is no runtime `REAL_PROOF_CANDIDATE` and no independently bound verifier receipt. V1.4 remains NOT COMPLETE.
 - Lane C remains at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. P0A remains NOT ACCEPTED.
-- Lane A advanced to `f5742f210812cac77d7f9df47c58efbfb886f6e3`. Its current production browser blobs for the already reviewed A-R15-01..A-R15-05 scope are unchanged from the previously accepted task-scope code, and PR #2 current-head CI run #321 passed. This preserves task-scope V1.5 acceptance only; V1.5 remains IN_PROGRESS.
-- Lane A also attempted the V1.4 packet proof while P0A was still unaccepted. That attempt cannot count as RP14-E1/E2 or acceptance evidence because this artifact explicitly forbids private proof execution before P0A lead acceptance.
-- The early attempt did expose a truthful local input blocker: the real profile selected resume variant `resume_ai_software_engineer`, but Lane A had no actual file mapped for that selected variant; only `enterprise_automation_solutions_architect.md` was present. The runner failed closed and no substitute resume was synthesized. Treat Lane A as `REAL_PROOF_BLOCKED_PRIVATE_INPUT` unless a genuine intended resume mapping is available after P0A.
-- Lane A's latest heartbeat claims `consecutive_on_time: 2`, but its preserved worker entries are 02:41Z and 12:49Z. The >20 minute gap resets the proving streak, so lead recognizes Lane A as 1/3.
-- The latest remote Jobs tests-only task remains failed with `Worker branch push failed.` and produced no reviewable Jobs branch/commit/tests. `worker-pc` is presently occupied by a non-Jobs SwarmAI workflow, so no new Jobs remote task was dispatched.
+- Lane A advanced to `088d4932458eadac86ec5396888181842347c370`; PR #2 current-head CI run #328 passed. This does not change V1.4 proof readiness: Lane A is still `REAL_PROOF_BLOCKED_PRIVATE_INPUT` because the selected `resume_ai_software_engineer` mapping was absent on that machine, and no substitute resume may be synthesized.
+- Lane A's branch now claims `STEADY_HOURLY` / 3-of-3 proving from entries at 02:41Z, 12:49Z, and 13:05Z. Lead rejects that cadence claim: the 02:41Z -> 12:49Z gap is greater than 20 minutes, and the lane then missed the required next proving heartbeat after 13:05Z. The proving streak is broken; the next worker heartbeat must restart proving at 1/3. GitHub's heartbeat-format check passing does not override the repository cadence policy.
+- Lane B delivered unrelated later-version residual engineering at `68595d1fe825545b7f1506b7068d1c78376f7953`; CI run #329 passed. Lead accepts B-R17-03, B-R20-07, and B-R20-08 at task scope, while B-R20-05/J20-14 remains REWORK. None of this advances official completed-version status past the missing V1.4 real proof.
+- `worker-pc` became free after an earlier non-Jobs run ended, so lead dispatched a bounded independent RP14-T5-only schema-hardening support task. A new non-Jobs SwarmAI task started moments before that dispatch became visible; the Jobs workflow is therefore pending behind the capacity-1 worker rather than running concurrently. No remote result is accepted unless it returns an actual Jobs branch/commit that lead inspects.
+- Jobs `main` head `aef89af3001948d7323d31938d9c555a137e768b` passed CI run #327 before this coordination refresh.
 
 ## Real-proof execution after P0A acceptance
 
