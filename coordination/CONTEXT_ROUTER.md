@@ -43,6 +43,12 @@ Load:
 - active V2.3 artifact card
 - only its relevant contract/code.
 
+V2.3 master planning set (PROPOSED until ChatGPT lead review; load only the file your task needs):
+- `docs/V23_MASTER_PLAN.md` — critical path, artifact graph, migrations, model routing, live-proof matrix, V3 compatibility decisions
+- `docs/V23_TASK_GRAPH_RECOVERY.md` / `docs/V23_TASK_GRAPH_V20.md` / `docs/V23_TASK_GRAPH_V23.md` — per-task specs (read only your task's entry)
+- `docs/V23_TEST_MATRIX.md`, `docs/V2_3_ACCEPTANCE_CAMPAIGN.md`
+- `coordination/V23_WORKER_QUEUE.md` — proposed execution order (not the active queue)
+
 Families:
 - opportunity graph
 - strategy learning
