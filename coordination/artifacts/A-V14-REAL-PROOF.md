@@ -41,7 +41,14 @@ Required repairs:
 
 Independent remote-worker audit confirmed the two highest-severity issues: a hand-authored structurally valid bundle can pass the current verifier, and the optional local evidence is not cross-bound to the redacted bundle.
 
-Remote branch task `jobs-v14-proof-hardening-r2` is currently executing on `worker-pc` with capacity=1. No result/worker branch had been published at the current lead check, so nothing from that task is accepted yet.
+Remote worker evidence at the current lead check:
+- first hardening task `jobs-v14-proof-hardening-20260920` failed during repository clone before implementation;
+- retry `jobs-v14-proof-hardening-r2` ran for approximately 40 minutes but ended `failed` with `Worker branch push failed.`;
+- its sanitized result contains no branch, no commit, no tests, and no summary;
+- no `worker/jobs-v14-proof-hardening-r2` branch exists in the Jobs repository;
+- therefore there is no implementation batch to review or accept from worker-pc yet.
+
+Do not treat the remote-worker attempt as RP14-T1..T7 completion. Before another branch-mode retry, diagnose or repair the remote push path so work is not lost again. The remote control plane remains infrastructure only; Jobs remains authoritative.
 
 Once P0A is lead-accepted, this artifact returns to READY and Lane A or Lane C may execute the real proof immediately on whichever machine has the actual private profile + mapped real resume bytes.
 
@@ -130,8 +137,10 @@ Verifier receipt must include at minimum:
 
 ## Task split
 
-### P0A proof-tool integrity — worker-pc / implementation worker
+### P0A proof-tool integrity — implementation worker
 Implement RP14-T1..RP14-T7 from `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`, add adversarial tests, run targeted/full tests plus Ruff/mypy/CI, push a bounded worker branch, and stop for lead review. No private proof execution in this task.
+
+Remote worker-pc may be retried only after its branch-push path is diagnosed/repaired; otherwise assign the same bounded artifact work to a non-conflicting implementation lane rather than losing another completed local batch.
 
 ### RP14-C1 — SP2 — Lane C
 After P0A acceptance, locate/validate the real private candidate profile and actual resume-source mappings locally.
