@@ -54,3 +54,30 @@ Heartbeat progress is posted to GitHub issue #7.
 ## Exit
 
 Push one coherent repair batch and set READY_FOR_LEAD_REVIEW.
+
+
+## Lead review checkpoint — current batch
+
+Worker has pushed a coherent B-R20-05 / B-R20-01 / B-R20-02 repair batch and requested review.
+
+Positive evidence:
+- branch rebased onto current main,
+- heartbeat protocol is active,
+- targeted tests reported 32/32 pass,
+- full pytest reported 151/151 pass,
+- Ruff reported pass,
+- substantive worker/health/funnel repairs are present.
+
+Blocking evidence:
+- GitHub CI run `35624767610` failed at **Run Mypy Typechecker**.
+- migration and pytest CI steps were skipped because mypy failed.
+
+Required next action:
+1. inspect/reproduce the exact CI mypy failure on the branch,
+2. fix the type errors without weakening behavior/tests,
+3. rerun mypy + targeted tests + full pytest/Ruff,
+4. push a new coherent commit,
+5. keep the heartbeat watcher running,
+6. request REVIEW again only after branch CI is green.
+
+Do not expand scope beyond this CI/type repair.
