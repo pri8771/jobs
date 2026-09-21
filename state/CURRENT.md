@@ -163,29 +163,24 @@ worker-pc:
 
 ## Heartbeat & visible progress
 
-Only the new three-lane operating model counts.
+Only Lane 1/2/3 count.
 
-Historical A/B/C/D/Scout heartbeat streams are CLOSED and retained only for audit history.
+Current verified liveness:
+- Lane 1: 0/3; no worker heartbeat yet
+- Lane 2: 3/3 PASS; entered WATCH_15M_24H at 2026-09-21T16:09:02Z
+- Lane 3: 1/3; worker marked READY_FOR_LEAD_REVIEW at 2026-09-21T16:18:20Z
 
-Current epoch:
-- `DAYWATCH_2026_09_21`
+Lane 2 proving sequence:
+- 15:58:58Z
+- 16:04:00Z
+- 16:09:02Z
 
-Lead-verified new-lane state:
-- Lane 1: 0/3
-- Lane 2: 2/3
-  - 2026-09-21T15:58:58Z -> 1/3
-  - 2026-09-21T16:04:00Z -> 2/3
-  - interval is valid for the 4–7 minute proving rule
-- Lane 3: 0/3
+The visible progress feed in GitHub issue #7 is functioning.
 
-Each active heartbeat is mirrored to GitHub issue #7. Lane 2's new-epoch updates are already visible there.
-
-Required:
-- 3 valid ~5-minute heartbeats,
-- then 15-minute cadence for a clean 24 hours,
-- then hourly.
-
-Heartbeat is liveness/progress evidence, not code acceptance.
+Engineering updates:
+- Lane 2 pushed `09f1852` implementing A-R15-06..09; current branch CI is green. Lead review still required.
+- Lane 3 pushed a coherent B-R20-05/B-R20-01/B-R20-02 repair batch and reports 151/151 local tests, but GitHub CI fails at the mypy step, so the batch is not accepted yet.
+- Lane 1 still has no worker implementation evidence and remains the critical-path concern.
 
 ## Critical path
 
