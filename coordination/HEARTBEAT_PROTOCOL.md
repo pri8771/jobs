@@ -56,11 +56,13 @@ Continue hourly while the worker remains active, plus immediate heartbeat on blo
 
 ## Detached watcher
 
-Fresh sessions should launch:
+Fresh active sessions should launch:
 
 ```bash
-python scripts/worker_heartbeat_watch.py --lane <A|B|C|D|SCOUT> --epoch DAYWATCH_2026_09_21 --detach
+python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch DAYWATCH_2026_09_21 --detach
 ```
+
+Historical aliases A/B/C/D/SCOUT remain supported by the script only for old evidence/history. They are not active lanes in the current operating model and do not count for `DAYWATCH_2026_09_21` Lane 1/2/3 liveness.
 
 The watcher:
 - runs independently of the implementation agent,
@@ -160,7 +162,6 @@ Workers do not edit shared lead-owned truth unless explicitly assigned:
 - `coordination/AI_SYNC.md`
 - `state/CURRENT.md`
 - `coordination/HEARTBEAT_DASHBOARD.md`
-
 
 ## Human-visible progress feed
 
