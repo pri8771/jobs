@@ -16,6 +16,11 @@ The first V1.5 rework materially improved:
 - form fingerprint revalidation,
 - field-level prompt-injection detection.
 
+Task-scope accepted in this batch:
+- A-R15-01 through A-R15-05 as currently defined in WORK_QUEUE / lane status.
+
+Overall V1.5 is still IN_PROGRESS. The following residuals remain after real-proof priority work.
+
 ## A-R15-06 — page-level prompt-injection inspection (SP2)
 
 Current detector inspects only discovered FormField:
@@ -55,7 +60,7 @@ Required:
 - required cover-letter field + missing artifact -> blocking review,
 - optional cover-letter field + missing artifact -> leave manual/unfilled with clear evidence,
 - reverify cover-letter bytes immediately before upload,
-- do not allow generic input[type=file] fallback to attach the wrong artifact to the wrong upload field.
+- do not allow generic `input[type=file]` fallback to attach the wrong artifact to the wrong upload field.
 
 Tests:
 - required resume + required cover letter attach distinct paths/bytes/hashes,
@@ -63,9 +68,42 @@ Tests:
 - tampered cover letter -> blocked,
 - two file inputs cannot cross-attach resume/cover letter.
 
+## A-R15-08 — accepted-packet integrity/provenance revalidation (SP2)
+
+The runtime requires an explicit packet ID and validates job linkage/live-ready state plus artifact hashes, but it still trusts the persisted packet's `packet_hash`, `answers_json`, and provenance fields without recomputing or cross-checking the immutable packet identity immediately before browser use.
+
+Required:
+- recompute/verify the accepted packet identity using the same canonical packet-hash contract as packet preparation,
+- verify screening answers have matching persisted provenance and no answer was added/changed after the accepted packet hash was produced,
+- verify the linked ResumeVariant/artifact identities belong to the same accepted packet,
+- fail closed before inspection/prefill when packet identity/provenance is inconsistent,
+- record an auditable rejection reason without leaking private answer contents.
+
+Tests:
+1. mutate `answers_json` after packet creation -> blocked before browser write.
+2. mutate answer provenance after packet creation -> blocked.
+3. swap linked ResumeVariant/artifact identity -> blocked.
+4. unchanged accepted packet -> passes this gate.
+
+## A-R15-09 — unknown file-input classification must fail manual (SP1)
+
+Current field classification treats any `field_type == "file"` as FILE_ARTIFACT and defaults to the resume unless the field text contains "cover". An unknown file input must never receive a resume merely because it is a file control.
+
+Required:
+- only positively identified resume/CV inputs map to resume,
+- only positively identified cover-letter inputs map to cover letter,
+- unknown required file input -> UNKNOWN_REQUIRED/manual blocking review,
+- unknown optional file input -> UNKNOWN_OPTIONAL/manual/unfilled,
+- no generic file input gets an artifact by default.
+
+Tests:
+- required `input[type=file]` labeled "Work sample" -> blocks/manual, no resume attachment,
+- optional unknown file input -> left unfilled,
+- positively identified resume and cover-letter inputs still map correctly.
+
 ## Exit
 
-After the V1.4 REAL_PROOF is accepted, finish A-R15-06/07 before calling V1.5 COMPLETE.
+After A-V14-REAL-PROOF is accepted, finish A-R15-06..A-R15-09 before V1.5 engineering acceptance.
 
-The owner completion rule also applies to V1.5:
-V1.5 eventually requires its own real non-mock example before COMPLETE.
+Then the owner completion rule also applies to V1.5:
+V1.5 requires its own real non-mock example before V1.5 may be called COMPLETE.
