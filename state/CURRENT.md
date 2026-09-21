@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-20
+Updated: 2026-09-21
 
 ## Completion policy
 
@@ -17,12 +17,15 @@ External control plane:
 
 Verified project use:
 - worker: `worker-pc`
+- worker status: online, capacity 1
 - read-only task `jobs-v14-real-proof-audit-retry-20260920` completed successfully
 - independent verdict: CHANGES_REQUIRED
 - confirmed highest-severity proof-integrity gaps: forged structurally valid bundles can pass; local evidence is not bound to the redacted bundle
-- branch task `jobs-v14-proof-hardening-r2` dispatched for RP14-T1..T7
-- branch-mode task status at last lead check: IN_PROGRESS
-- no worker result is accepted until ChatGPT reviews the actual returned branch/diff/tests
+- the first branch repair task `jobs-v14-proof-hardening-20260920` failed before implementation because repository clone failed
+- retry branch task `jobs-v14-proof-hardening-r2` is executing RP14-T1..T7
+- retry task status at the latest lead check: IN_PROGRESS; no result JSON, Jobs branch, or returned commit has been published yet
+- do not dispatch another remote task while worker-pc capacity is occupied
+- no worker result is accepted until ChatGPT reviews the actual returned Jobs branch/diff/tests and project CI
 
 The remote-worker control plane remains infrastructure only; Jobs planning/acceptance remains authoritative here.
 
@@ -45,6 +48,10 @@ Required before private proof execution:
 - redacted schema disallows arbitrary extra fields,
 - packet/manifest/runtime cross-links verified.
 
+Current P0A status:
+- IN_PROGRESS via `jobs-v14-proof-hardening-r2`
+- no implementation result is lead-accepted yet
+
 ## V1.4
 
 Engineering artifact:
@@ -54,7 +61,7 @@ Engineering artifact:
 
 Version completion:
 - NOT COMPLETE
-- blocked on A-V14-REAL-PROOF
+- blocked first on P0A proof-tool integrity acceptance, then on A-V14-REAL-PROOF
 
 P0 real-proof target:
 - OpenSesame — AI Automation Engineer
@@ -63,17 +70,18 @@ P0 real-proof target:
 - actual mapped resume source bytes
 - production `ApplicationPacketBuilder`
 - explicit non-mock generation path
-- redacted runtime-derived evidence bundle
+- redacted runtime-derived candidate evidence + separately bound verifier receipt
 - no application submission/browser prefill required
 
-Proof tooling is now present on main:
+Proof tooling exists on main but is not yet trusted for milestone acceptance until P0A is accepted:
 - `scripts/import_v14_proof_job.py`
 - `scripts/run_v14_real_proof.py`
 - `scripts/verify_v14_real_proof.py`
 
 Current proof evidence:
-- no runtime-generated V1.4 proof JSON is committed under `coordination/proofs/`
-- therefore A-V14-REAL-PROOF remains READY, not ACCEPTED
+- no runtime-generated V1.4 proof candidate JSON is committed under `coordination/proofs/`
+- no independently bound verifier receipt is committed
+- A-V14-REAL-PROOF is therefore BLOCKED on P0A and not ACCEPTED
 
 ## Lane A
 
@@ -90,8 +98,9 @@ Not integrated/accepted overall:
 - V1.5 still has post-proof residuals A-R15-06..A-R15-09.
 
 Immediate next:
-- pull/rebase current main,
-- attempt V1.4 REAL_PROOF immediately if private real profile/resume inputs are present,
+- do not execute private V1.4 REAL_PROOF until P0A is lead-accepted,
+- pull/rebase current main between coherent batches,
+- after P0A acceptance, attempt V1.4 REAL_PROOF immediately if private real profile/resume inputs are present,
 - otherwise heartbeat `REAL_PROOF_BLOCKED_PRIVATE_INPUT` rather than substituting fixtures.
 
 ## Lane B
@@ -108,12 +117,14 @@ Branch:
 - `worker/live-data-foundations`
 
 No worker-authored heartbeat or implementation batch has landed after the seeded heartbeat instructions.
-The branch status still predates the current P0 real-proof instructions and must pull/rebase main.
+The branch status predates the current P0/P0A instructions and must pull/rebase main before new proof work.
 
-Immediate next:
+Immediate next after P0A lead acceptance:
 1. RP14-C1..C3 real private input/job/generation readiness
 2. if this machine has all required real inputs, run RP14-E1/E2 directly
 3. only after the proof attempt, continue candidate provenance/Gmail readiness
+
+Do not perform Gmail work before the required real-proof readiness/attempt sequence, and do not run the private proof against the known-vulnerable verifier.
 
 ## Lane D
 
@@ -129,7 +140,7 @@ Branch:
 - `scout/qa-prep`
 
 No worker-authored heartbeat/audit has landed after the seeded heartbeat instructions.
-RP14-S1 becomes highest priority immediately when a real-proof JSON appears.
+Immediate review priority is the P0A proof-tool hardening branch once a coherent worker result appears; RP14-S1 becomes highest priority once real-proof candidate + verifier evidence exists.
 
 ## Heartbeat truth
 
@@ -141,7 +152,7 @@ The proving protocol has NOT yet been demonstrated across all workers.
 
 ## Current official version
 
-**V1.4 is NOT COMPLETE until A-V14-REAL-PROOF receives genuine REAL_PROOF_PASS and lead acceptance.**
+**V1.4 is NOT COMPLETE until P0A proof-tool integrity is accepted and A-V14-REAL-PROOF receives a genuine REAL_PROOF_PASS with lead acceptance.**
 
 Later engineering may continue in parallel, but version-complete claims remain gated by the same real-proof standard.
 
