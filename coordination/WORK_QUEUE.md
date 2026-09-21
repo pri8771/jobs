@@ -168,13 +168,28 @@ Priority:
 
 ## Heartbeat truth
 
-- Lane A: proving streak BROKEN/STALE; next worker heartbeat restarts 1/3 in PROVING_15M. Branch STEADY_HOURLY claim is rejected.
-- Lane B: 0/3 protocol-valid heartbeats; first worker heartbeat exists but its file failed the heartbeat validator and the proving window has elapsed.
+New liveness epoch:
+- `DAYWATCH_2026_09_21`
+
+All lanes restart at 0/3 for this epoch, regardless of prior heartbeat attempts.
+
+Required:
+- 3 consecutive 5-minute worker-authored heartbeats (4-7 minute valid gap),
+- then 15-minute heartbeats for a clean 24-hour window,
+- any gap >20 minutes restarts the clean 24-hour watch,
+- then STEADY_HOURLY.
+
+Fresh sessions must launch:
+`python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
+
+Current epoch:
+- Lane A: 0/3
+- Lane B: 0/3
 - Lane C: 0/3
 - Lane D: 0/3
 - Scout: 0/3
 
-Lead-seeded commits and lead branch alignment do not count. PROVING_15M continues until three consecutive on-time worker-authored heartbeats, then STEADY_HOURLY.
+Old heartbeat entries are preserved for audit but do not count toward this epoch.
 
 ## Safety
 
