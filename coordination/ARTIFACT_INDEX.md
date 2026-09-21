@@ -7,7 +7,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 
 | Artifact ID | Phase | Artifact | Type | Owner | Status | Depends on | Unblocks |
 |---|---|---|---|---|---|---|---|
-| A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/acceptance | Antigravity Lane A | ACCEPTED | V1.1 accepted | V1.5 |
+| A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/acceptance | Antigravity Lane A | IN_PROGRESS | V1.1 accepted | A-V14-REAL-PROOF, V1.5 |
+| A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Lane C + Lane A + Scout + ChatGPT | READY | V1.4 engineering accepted | V1.4 COMPLETE |
 | A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Antigravity Lane A | IN_PROGRESS | A-V14 ACCEPTED | A-V15-ASSISTED-APPLICATION |
 | A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Antigravity Lane A | IN_PROGRESS | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT, A-PROOF-JOB-SELECTION | V1.6 |
 | A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
@@ -41,7 +42,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 
 ## Current critical path
 
-A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION residual repair
+A-V14-REAL-PROOF (P0; required for V1.4 COMPLETE)
+→ A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION residual repair
 → A-V16 application execution
 → A-V17-MILESTONE-GATE
 → A-V20-INTEGRATED-OS
@@ -68,5 +70,6 @@ A-RESUME-OUTCOME-METRICS
 - Add an artifact card under coordination/artifacts/ for every index row.
 - WORK_QUEUE tasks must reference artifact IDs.
 - When an artifact changes status, update this index.
-- ACCEPTED requires lead evidence review.
+- Engineering acceptance requires lead evidence review.
+- Version COMPLETE additionally requires at least one REAL_PROVEN non-mock example per docs/REAL_PROOF_ACCEPTANCE_POLICY.md.
 - Live/external artifacts may also require explicit user authorization.
