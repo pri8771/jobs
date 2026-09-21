@@ -312,3 +312,36 @@ Canonical epoch:
 
 Reason:
 The owner explicitly standardized the cadence at five minutes and requested no further cadence changes. Historical DAYWATCH behavior is superseded and retained only as audit history.
+
+
+## 2026-09-21 - V2.3 is the near-term product target
+
+Decision:
+Optimize the current implementation critical path for a genuinely working V2.3 Career Intelligence / Job Search OS. Design the V3 permission, tool, task, memory, handoff, and trace contracts early enough to prevent architectural dead ends, but do not put broad V3 runtime/specialist implementation on the V2.3 critical path.
+
+Reason:
+V2.3 is already a highly useful deterministic product. Finishing it sooner provides real value and a stable tool/truth layer for later V3 orchestration.
+
+## 2026-09-21 - Claude/Fable uses thin repo instructions and role-based context routing
+
+Decision:
+Keep root `CLAUDE.md` small. Route sessions through `coordination/SESSION_START.md` and `coordination/CONTEXT_ROUTER.md`; load detailed contracts only for the active artifact. Store Fable's master V2.3 planning assignment in `docs/FABLE_V23_MASTER_PLANNING_BRIEF.md`.
+
+Reason:
+Reduce repeated context/token cost, prevent instruction drift, and make the repository portable across models/tools.
+
+## 2026-09-21 - Use the cheapest capable model for bounded work
+
+Decision:
+Delegate bounded mechanical inventories, tests, summaries, evidence collection, and simple SP1/SP2 implementation to lower-cost models/subagents when available. Reserve top reasoning models for architecture, safety, difficult debugging, consequential state semantics, and synthesis.
+
+Reason:
+Increase throughput and token efficiency without lowering the quality of safety-critical decisions.
+
+## 2026-09-21 - One implementation session means one heartbeat watcher
+
+Decision:
+Historical Lane 1/2/3 branches are sequential work surfaces. Only the single currently active implementation session has a heartbeat watcher. Planning-only sessions do not create additional watchers.
+
+Reason:
+Matches the owner's latest operating directive and avoids duplicate heartbeat noise/actions.
