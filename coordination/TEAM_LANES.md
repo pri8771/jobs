@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Run two Antigravity sessions in parallel without file conflicts while ChatGPT leads artifact design, acceptance, and integration.
+Run three Antigravity sessions in parallel without file conflicts while ChatGPT leads artifact design, acceptance, and integration.
 
 ## Lane A — Application Execution
 
@@ -73,7 +73,6 @@ Each lane:
 8. report branch SHA for lead review.
 
 ChatGPT reviews branch diffs/CI, updates shared artifact state, and merges accepted work.
-
 
 ## Lane C — Live Data & Provenance Foundations
 
