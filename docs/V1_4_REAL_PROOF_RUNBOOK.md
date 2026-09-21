@@ -41,6 +41,27 @@ The adversarial text is untrusted page data and must never influence system inst
 
 ## Phase 3 — production packet build
 
+Preferred command after Lane C has prepared a real JobModel and a local JSON list of real application questions:
+
+```bash
+python scripts/run_v14_real_proof.py \
+  --job-id <REAL_JOB_UUID> \
+  --candidate-profile <PRIVATE_REAL_PROFILE_YAML> \
+  --questions-json <LOCAL_REAL_QUESTIONS_JSON>
+```
+
+The runner:
+- uses the configured Jobs database,
+- requires the JobModel to already exist,
+- rejects example candidate profiles,
+- resolves and hashes the actual resume source,
+- uses `DeterministicModelGateway` (production-safe, non-mock),
+- runs the normal `ApplicationPacketBuilder`,
+- writes private artifacts/evidence under gitignored `.local/proofs/`,
+- emits a redacted evidence JSON under `coordination/proofs/`.
+
+
+
 Use the normal production ApplicationPacketBuilder path.
 
 Required:
