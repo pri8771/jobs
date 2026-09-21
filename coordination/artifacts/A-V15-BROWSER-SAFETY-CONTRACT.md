@@ -5,77 +5,83 @@
 - Status: IN_PROGRESS
 - Owner: ChatGPT / Antigravity Lane A implementation
 - Reviewer: ChatGPT lead review / user boundary for live execution
-- Dependencies: A-V14-PACKET-SAFETY ACCEPTED
+- Dependencies: A-V14-PACKET-SAFETY ENGINEERING_ACCEPTED
 - Downstream: A-V15-ASSISTED-APPLICATION
 
 ## Purpose
 
 Define and verify a safe assisted-browser runtime contract before real application prefill begins.
 
-## Output
-
-- `docs/V1_5_BROWSER_SAFETY_CONTRACT.md`
-- `docs/LANE_A_V15_REAUDIT.md`
-
 ## Worker evidence reviewed
 
-Worker commit:
-- `3d17fa8` on `worker/v15-assisted-application`
+Initial worker batch:
+- `3d17fa8`
 
-Useful first-pass implementation exists for:
-- manual barrier classification,
-- pre-submit review manifest,
-- immediate resume upload hash verification,
-- single persistent Playwright context,
-- unresolved/unknown-required stop gates,
-- mock isolation.
+Current repaired batch:
+- `ed875775122f0d390af6ab15beb378904af2a476` on `worker/v15-assisted-application`
 
-Worker reported 118/118 local pytest plus clean Ruff/mypy. GitHub CI did not run on the branch commit itself.
+Lead reviewed the branch code and adversarial tests.
 
-## Lead residual findings
+Current batch materially repairs:
+- external-confirmation truth: local `receipt_text` / `auto_confirm` alone cannot create SUBMITTED,
+- field-level prompt-injection detection and POLICY_BLOCKED behavior,
+- consent/attestation prefill blocking,
+- distinct cover-letter hash/provenance and tamper/missing-required behavior,
+- immediate pre-write form-fingerprint revalidation.
 
-Artifact remains IN_PROGRESS because the re-audit found bounded safety gaps:
+Worker-reported local verification:
+- targeted adversarial tests: 27 passed,
+- full pytest: 132 passed,
+- Ruff: clean,
+- mypy: no new errors.
 
-- packet answers/provenance are not revalidated against the exact accepted `packet_hash` before fill,
-- form fingerprint is computed but not rechecked before first write,
-- arbitrary local/free-form receipt text containing confirmation-like words can satisfy submission truth,
-- unknown file inputs can default to resume upload,
-- J15-11 external-form prompt-injection resistance was added on main after the worker branch base and is not implemented in the batch.
+GitHub evidence:
+- the branch commit has no GitHub Actions/check result of its own,
+- PR #2 remains draft and is currently non-mergeable against newer main,
+- therefore this artifact is not engineering-accepted yet.
 
-Authoritative residuals:
-- A-R15-01..A-R15-05 in `docs/LANE_A_V15_REAUDIT.md`
-- current `coordination/WORK_QUEUE.md`
+## Task-scope lead acceptance from `ed87577`
 
-## First-pass accepted slices
+- A-R15-01 SP2 — LEAD_ACCEPTED
+- A-R15-02 SP2 — LEAD_ACCEPTED for field-level prompt-injection scope
+- A-R15-03 SP1 — LEAD_ACCEPTED
+- A-R15-04 SP2 — LEAD_ACCEPTED for hash/provenance/tamper scope
+- A-R15-05 SP2 — LEAD_ACCEPTED
 
-- J15-02 SP2
-- J15-03 SP3
-- J15-04 SP2
-- J15-07 SP3
-- J15-08 SP2
-- J15-10 SP1
+These task acceptances do not accept the overall V1.5 artifact.
 
-These task-slice acceptances do not accept the overall V1.5 artifacts.
+## Remaining residuals — P1 after V1.4 REAL_PROOF
+
+Authoritative audit:
+- `docs/LANE_A_REAUDIT_2.md`
+
+Tasks:
+- A-R15-06 SP2 — page-level prompt-injection signal/warning semantics outside individual form fields.
+- A-R15-07 SP2 — actual cover-letter upload wiring + field-specific file mapping; no generic cross-attachment.
+- A-R15-08 SP2 — recompute/revalidate accepted packet identity, answers/provenance, and linked resume/artifact identity immediately before browser use.
+- A-R15-09 SP1 — unknown file inputs remain manual/unfilled and never default to resume.
+
+These residuals must not delay A-V14-REAL-PROOF, which is the owner-designated P0 completion gate.
 
 ## Acceptance criteria
 
 - exact accepted packet integrity and answer provenance verified at browser boundary,
 - inspect-before-write behavior,
-- field classification taxonomy with safe file-input handling,
+- safe field classification including unknown file inputs,
 - per-field provenance,
 - manual-barrier behavior,
 - persistent visible-session requirement,
-- upload-integrity check,
+- resume and cover-letter upload integrity with field-specific mapping,
 - pre-submit manifest,
 - form-change detection immediately before write,
 - typed externally sourced confirmation boundary,
 - mock isolation,
-- external form/page prompt-injection resistance,
+- field-level and page-level external prompt-injection resistance,
 - adversarial acceptance tests,
-- green integrated CI.
+- green integrated CI on current main.
 
 ## Risks / boundaries
 
-- No live application/form execution is authorized by engineering progress.
+- No live application/form execution is authorized by this engineering artifact.
 - External application content is attacker-controlled input from the agent perspective.
-- User-approved proof-job selection remains a separate dependency for real application evidence.
+- V1.4 REAL_PROOF is packet preparation only and does not authorize browser prefill/submission.
