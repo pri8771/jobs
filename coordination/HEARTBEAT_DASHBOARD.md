@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 06:46 ET / 2026-09-21T10:46Z
+Last evidence review: 2026-09-21 07:43 ET / 2026-09-21T11:43Z
 
 ## Cadence policy
 
@@ -24,13 +24,12 @@ ChatGPT lead scheduled review remains hourly.
 
 - Lane A remains `ed875775122f0d390af6ab15beb378904af2a476`.
 - Lane B remains `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`.
+- Lane C remains `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`; it has no worker-authored implementation or heartbeat after the lead alignment.
 - Lane D remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
 - Scout remains `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
-- Lane C had no worker implementation or worker-authored heartbeat. Its branch was 165 commits behind main and had only two unique lead-seeded heartbeat commits. ChatGPT inspected those commits and aligned the branch to current green main. This is lead maintenance and does not count as heartbeat activity.
-- No V1.4 runtime proof candidate or verifier receipt exists.
-- Jobs main `19c136f5dda7e885e66d4b8b3c567103a6dde485` passed CI run #314 before this coordination update.
-- Non-Jobs remote workflow `35580580156` completed with failure and freed `worker-pc` capacity.
-- Bounded remote Jobs support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` was dispatched as TESTS ONLY. It was queued at this review and does not count as any lane heartbeat or implementation acceptance.
+- No V1.4 runtime proof candidate or verifier receipt exists; `coordination/proofs/` still contains only the README and schema.
+- Jobs main `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` passed CI run #315 before this coordination refresh.
+- Remote Jobs support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure: `Worker branch push failed.` No Jobs branch/commit/tests/summary were returned, and no corresponding Jobs branch exists. This does not count as lane heartbeat or implementation evidence.
 
 ## Evidence rules
 
@@ -42,6 +41,8 @@ ChatGPT lead scheduled review remains hourly.
 ## Required next proof
 
 Each active lane worker must pull latest main, emit a worker-authored heartbeat, repeat within the proving cadence until 3/3, then switch itself to STEADY_HOURLY. READY_FOR_LEAD_REVIEW or BLOCKED events should be reported immediately.
+
+Lane C's immediate product priority remains RP14-T1..T7; heartbeat bookkeeping must not delay that P0 implementation.
 
 ## Review path
 
