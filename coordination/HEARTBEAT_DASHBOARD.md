@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 17:58 ET
+Updated: 2026-09-21 18:03 ET
 
 ## Canonical standard
 
@@ -22,18 +22,18 @@ Latest verified heartbeat file:
 - epoch `FIVE_MIN_2026_09_21`
 - mode `ACTIVE_5M`
 
-No newer Lane 1 heartbeat commit appeared after more than three expected 5-minute intervals. Before Lane 1 resumes work, verify the previous watcher is dead, pull latest main, then launch exactly one current-epoch watcher. Never launch a duplicate watcher.
+No newer Lane 1 heartbeat commit appeared after multiple expected 5-minute intervals. Before Lane 1 resumes work, verify the previous watcher is dead, pull latest main, then launch exactly one current-epoch watcher. Never launch a duplicate watcher.
 
 Substantive implementation under review:
 - clean branch `claude/serene-brown-g6uij0`
 - commit `3444076de27573ec57d9c8ae60876aece8e646d9`
 
-Lead review found the runtime verifier chain substantially repaired, but P0A remains **REWORK** because the committed proof schema is stale:
+Lead review found the runtime verifier chain substantially repaired, but P0A remains **REWORK** because the clean-port proof schema is stale:
 - `additionalProperties: true`,
 - candidate `result` still constrained to `REAL_PROOF_PASS` rather than `REAL_PROOF_CANDIDATE`,
-- repository search found no existing test referencing `v14_real_proof.schema.json`.
+- repository search found no existing test referencing `v14_real_proof.schema.json` at that clean-port.
 
-Lane 1 must fix/test the schema contract and rerun full validation before another lead review. No private proof run is authorized.
+Reviewed support commit `70ef7adc62ab2e9846721e8174a306273f28cbaa` structurally fixes the schema and adds focused schema tests, but has no executed worker tests and zero GitHub check-runs. Lane 1 must adopt/reimplement and validate it in the coherent current-main P0A batch. No private proof run is authorized.
 
 ## Lane 2 — `worker/v15-assisted-application`
 
@@ -79,23 +79,27 @@ Lane 1 Git heartbeat commits continued substantially later, including a restarte
 - `runner_id: 0`,
 - conclusion `failure` within seconds.
 
-Classification remains **`CI_BLOCKED_ACCOUNT` / hosted-runner startup failure**, not a heartbeat-protocol regression. Do not rewrite heartbeat semantics to manufacture comments. ChatGPT must continue to post one direct concise lead comment to issue #7 each hourly run.
+Latest main CI shows the same zero-step/runner-id-0 startup failure. Classification remains **`CI_BLOCKED_ACCOUNT` / hosted-runner startup failure**, not a heartbeat-protocol regression. Do not rewrite heartbeat semantics to manufacture comments. ChatGPT posted the required direct lead update and a liveness correction to issue #7 this run.
 
 ## worker-pc support
 
-`worker-pc` is online, capacity 1, and remains support infrastructure only.
+`worker-pc` remains support infrastructure only, never a fourth implementation lane.
 
 Completed runtime-contract support:
 - task `jobs-v14-p0a-runtime-contract-fix-20260921-1700`
 - branch `worker/jobs-v14-p0a-runtime-contract-fix-20260921-1700`
 - commit `7e88542b5ce5d8cf1c607a24d8f92399556c15ce`
-- actual Jobs diff was inspected and limited to verifier/tests; Lane 1 incorporated the relevant fixes into `3444076...`.
+- actual Jobs diff was inspected; Lane 1 incorporated the relevant fixes into `3444076...`.
 
-Current bounded schema support task:
-- `jobs-v14-p0a-schema-gate-20260921-1748`
-- base `claude/serene-brown-g6uij0`
-- workflow is executing on actual `worker-pc` (`runner_id: 2`)
-- schema/test support only; no automatic merge or acceptance.
+Completed schema support:
+- task `jobs-v14-p0a-schema-gate-20260921-1748`
+- workflow completed successfully on actual `worker-pc`
+- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`
+- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`
+- lead inspected actual schema/test/dependency diff
+- support is structurally useful but **not accepted** because tests were not executed in the worker environment and GitHub has zero check-runs for that commit.
+
+No further worker-pc task is dispatched this cycle; Lane 1 has the bounded support it needs and must now own integration/validation.
 
 ## Interpretation
 
