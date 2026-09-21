@@ -1,103 +1,111 @@
 # Session Start
 
-Purpose: minimal startup router for the single active Jobs Automation implementation session or an explicitly assigned planning session.
+Purpose: minimal startup router for Jobs Automation sessions.
 
 ## Roles
 
 - User = product owner/final authority.
 - ChatGPT = engineering/product lead and acceptance/integration gate.
-- Worker/planner = Claude/Fable/Opus/Sonnet/Antigravity/Cursor as assigned.
-- Git = current project truth.
+- Lane workers = implementation workers on their assigned branches.
+- Claude/Fable/Antigravity/Cursor may be workers or planners only as explicitly assigned.
+- Git = current project truth, subject to explicit owner instructions and `AGENTS.md` precedence.
 
-## Operating model
+## Authoritative execution model
 
-Exactly **one active implementation worker/session** at a time.
-Exactly **one active heartbeat watcher** for that implementation session.
+Exactly three implementation lanes are active in parallel:
 
-Historical branches are sequential work surfaces:
-- V1.4: `worker/v14-real-proof`
-- V1.5/V1.6: `worker/v15-assisted-application`
-- V1.7: `worker/recruiting-ops`
-- historical V2.3 source: `worker/v23-foundations`
+1. Lane 1 — `worker/v14-real-proof` — P0 V1.4 real-proof tooling and proof path.
+2. Lane 2 — `worker/v15-assisted-application` — V1.5 assisted-application safety.
+3. Lane 3 — `worker/recruiting-ops` — recruiting/reliability verification and bounded repair.
 
-Do not launch parallel Lane 1/Lane 2/Lane 3 workers.
-
-Planning-only sessions may run without becoming a second implementation worker.
+Old Lane C, old Lane D, and old Scout are paused/superseded. `worker-pc` is support infrastructure, not a fourth Jobs lane.
 
 ## Minimal startup
 
+Do not load the whole repository.
+
 1. `git fetch origin`
-2. read tool adapter (`CLAUDE.md` when applicable)
+2. read `AGENTS.md`
 3. read `state/CURRENT.md`
 4. read `coordination/WORK_QUEUE.md`
-5. inspect latest main/current work branch/PR
-6. inspect current heartbeat
-7. read active artifact card
-8. read latest ChatGPT lead review/handoff
-9. use `coordination/CONTEXT_ROUTER.md` for deeper material
+5. read `coordination/TEAM_LANES.md`
+6. read `coordination/HEARTBEAT_PROTOCOL.md`
+7. read the assigned `coordination/lanes/LANE_1.md`, `LANE_2.md`, or `LANE_3.md`
+8. inspect latest main, the assigned branch/PR, branch diff/CI, and active heartbeat
+9. read only the active artifact card and task-specific code/tests
+10. use `coordination/CONTEXT_ROUTER.md` for deeper material when needed
 
 Search/diff before opening large files.
 
-## Current execution priority
+## Assignment routing
 
-Current P0:
-`A-V14-P0A-INTEGRITY`
+### Lane 1
 
-Current verified active source:
-`worker/v14-real-proof`
+Owns the P0 critical path:
+- RP14-T1..T7 proof-tool integrity,
+- after P0A lead acceptance, genuine private-input readiness and the V1.4 packet proof,
+- later candidate provenance/Gmail readiness only when assigned.
 
-A bounded worker-pc support branch may contain candidate fixes, but support branches are review input only until the active worker/ChatGPT integrates them.
+No private candidate/resume proof execution before P0A is lead-accepted.
 
-After P0A acceptance:
-- clean V1.4 proof integration,
-- genuine V1.4 real proof,
-- then continue artifact-by-artifact through V1.5/V1.6/V1.7/V2.0/V2.3.
+### Lane 2
 
-Later engineering may be prepared before live gates open, but formal real-proof gates remain sequential.
+Preserve accepted A-R15-01..05 and complete/verify A-R15-06..09. Do not enter V1.6 until the gate passes or the owner/lead explicitly authorizes it.
 
-## V2.3 planning package
+### Lane 3
 
-Lead-accepted with corrections:
-- `docs/V23_LEAD_REVIEW_20260921.md`
-- `docs/V23_MASTER_PLAN.md`
-- `coordination/V23_WORKER_QUEUE.md`
+Preserve the accepted merged B repair batch, synchronize to current main, verify the integrated baseline, and repair only evidence-backed regressions. Do not rebuild accepted work to create activity.
 
-The V23 worker queue is planning inventory until ChatGPT promotes a bounded task into `coordination/WORK_QUEUE.md`.
+### Planning sessions
+
+Planning-only Fable/Claude sessions may prepare future work, but they do not replace, pause, or collapse the three active implementation lanes unless the owner explicitly changes the model.
 
 ## Heartbeat
 
-Epoch: `FIVE_MIN_2026_09_21`
-Mode: `ACTIVE_5M`
-Interval: 5 minutes.
+Canonical standard for **each** active lane:
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- interval 5 minutes
+- exactly one watcher per lane
+- no cadence transitions
 
-One implementation worker = one watcher.
-No proving/15-minute/hourly transitions.
-
-When switching branches:
-1. push coherent batch,
-2. stop old watcher,
-3. confirm it stopped,
-4. switch/sync,
-5. start exactly one watcher.
+If a lane still has a historical DAYWATCH/proving/watch/hourly watcher, stop it once, confirm it stopped, synchronize as required, and start exactly one current-epoch watcher for that lane. Avoid duplicates.
 
 See `coordination/HEARTBEAT_PROTOCOL.md`.
 
-## Live proof
+## Worker finish boundary
 
-Nothing is genuinely working/complete without the appropriate real-life production-path test.
+After one coherent bounded artifact/batch:
+- verify focused and required full checks,
+- commit/push,
+- provide durable evidence,
+- set `READY_FOR_LEAD_REVIEW`,
+- stop implementation changes at the review boundary unless the lane contract explicitly permits continued independent work,
+- never self-accept.
 
-Tests/fixtures establish engineering evidence only.
+## Live gates
 
-## Authorization
+No roadmap/planning/worker prompt authorizes:
+- private candidate/resume live-proof use before the P0A gate,
+- Gmail OAuth/mailbox access,
+- real browser application submission,
+- external messaging,
+- calendar mutation,
+- spending,
+- MFA/CAPTCHA handling,
+- fabricated candidate facts.
 
-Follow `docs/AUTHORIZATION_GATES.md`.
-No roadmap prompt self-authorizes employer submission, unsolicited external messaging, calendar mutation, or spending.
+Follow `docs/AUTHORIZATION_GATES.md` and explicit owner authorization.
 
 ## Finish
 
-After one coherent artifact/batch:
-- verify,
-- commit/push,
-- evidence handoff,
-- `READY_FOR_LEAD_REVIEW`,
-- stop at the review boundary unless lead says otherwise.
+A meaningful handoff should contain only what the next lead/worker needs:
+- artifact/task,
+- exact SHA,
+- behavior changed/planned,
+- checks/evidence,
+- blocker/gate,
+- next action,
+- state.
+
+Persist durable context in Git instead of relying on chat history.
