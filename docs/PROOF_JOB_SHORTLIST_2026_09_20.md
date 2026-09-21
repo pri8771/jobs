@@ -4,7 +4,7 @@ Artifact:
 - A-PROOF-JOB-SELECTION
 
 Status:
-- RESEARCHED / USER DECISION REQUIRED
+- OPEN SESAME APPROVED AS NON-CONSEQUENTIAL REAL-PROOF INPUT; APPLICATION DECISION STILL REQUIRED
 
 This is a current public-job shortlist prepared to avoid delaying the V1.5 proof flow.
 No application is authorized by this document.
@@ -37,7 +37,10 @@ Important application observations:
 - EEO/self-ID remains manual.
 
 Decision:
-- HOLD — excellent candidate for user review, not yet approved.
+- DEFAULT FOR NON-CONSEQUENTIAL V1.4 REAL PROOF.
+- This authorizes using the public posting as packet-preparation input only.
+- It does NOT authorize browser prefill, account login, or application submission.
+- Separate user approval remains required for any consequential application action.
 
 ## Candidate 2 — Lantern — Senior Lead, AI Automation
 
