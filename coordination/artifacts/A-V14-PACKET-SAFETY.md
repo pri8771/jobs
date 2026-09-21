@@ -2,7 +2,7 @@
 
 - Type: implementation / acceptance
 - Phase: V1.4
-- Status: ACCEPTED
+- Status: IN_PROGRESS
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V1.1 accepted
@@ -87,8 +87,16 @@ Four bounded residual tasks remain:
 After these pass with green CI, A-V14 can be accepted immediately.
 
 
-## Final lead acceptance
+## Engineering acceptance
 
-Accepted after re-audit of Lane A commit `1410bf7`, merge PR #1, and green main CI on merge commit `8a0cdb4`.
+The code/engineering portion was accepted after re-audit of Lane A commit `1410bf7`, merge PR #1, and green main CI on merge commit `8a0cdb4`.
 
-V1.4 is no longer an active worker artifact.
+This is now labeled **ENGINEERING_ACCEPTED**, not version complete.
+
+Owner directive added 2026-09-20:
+V1.4 is not complete until A-V14-REAL-PROOF passes once with real candidate/profile/resume/job inputs and zero mock/fixture data.
+
+Real-proof contract:
+- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
+- coordination/artifacts/A-V14-REAL-PROOF.md
+- docs/V1_4_REAL_PROOF_RUNBOOK.md
