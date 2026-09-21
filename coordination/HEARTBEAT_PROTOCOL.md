@@ -73,13 +73,13 @@ The watcher:
 
 The implementation session may continue normal work after the watcher starts.
 
-## Worker heartbeat files
+## Active worker heartbeat files
 
-- Lane A: `coordination/heartbeats/LANE_A.md`
-- Lane B: `coordination/heartbeats/LANE_B.md`
-- Lane C: `coordination/heartbeats/LANE_C.md`
-- Lane D: `coordination/heartbeats/LANE_D.md`
-- Scout: `coordination/heartbeats/SCOUT.md`
+- Lane 1: `coordination/heartbeats/LANE_1.md`
+- Lane 2: `coordination/heartbeats/LANE_2.md`
+- Lane 3: `coordination/heartbeats/LANE_3.md`
+
+Historical A/B/C/D/Scout heartbeat files are preserved but are not active for the current operating model.
 
 Only the lane/watcher edits its heartbeat file on the lane branch.
 
@@ -160,3 +160,18 @@ Workers do not edit shared lead-owned truth unless explicitly assigned:
 - `coordination/AI_SYNC.md`
 - `state/CURRENT.md`
 - `coordination/HEARTBEAT_DASHBOARD.md`
+
+
+## Human-visible progress feed
+
+Each active Lane 1/2/3 heartbeat push triggers `.github/workflows/heartbeat-progress.yml`.
+
+The workflow posts a concise comment to GitHub issue #7 containing:
+- lane,
+- current task,
+- progress note,
+- heartbeat stage/streak/watch count,
+- blocker/review state,
+- branch and commit.
+
+The default watcher progress note is `still working on assigned task`. A worker may update its lane heartbeat `progress_note` when a more useful concise status is available.
