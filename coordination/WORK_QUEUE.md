@@ -1,7 +1,7 @@
 # Active Work Queue
 
 ChatGPT owns prioritization and acceptance.
-Three Antigravity sessions execute artifact-backed worker lanes in parallel.
+Four Antigravity implementation sessions plus one Scout execute artifact-backed work in parallel.
 
 Last prioritized: 2026-09-20 20:47 ET
 
@@ -37,14 +37,30 @@ Branch: `worker/recruiting-ops`
 
 Primary ownership:
 - lifecycle/
-- dashboard/
-- health.py
-- worker.py
-- scripts/
+- CRM/interview/follow-up behavior
 - related tests
 
 Status reporting:
 - coordination/lanes/ANTIGRAVITY_B.md
+
+### Antigravity Lane D — V2.0 Platform & Reliability
+Branch: `worker/platform-reliability`
+
+Primary ownership:
+- dashboard/
+- health.py
+- worker.py platform/reliability glue
+- scripts/
+- analytics
+- related tests
+
+Status reporting:
+- coordination/lanes/ANTIGRAVITY_D.md
+
+### Scout — QA / Prep
+Branch: `scout/qa-prep`
+
+Default is read-heavy/non-owning. Scout writes findings only under `coordination/scout/` unless ChatGPT explicitly promotes an implementation task.
 
 ### Antigravity Lane C — Live Data & Provenance Foundations
 Branch: `worker/live-data-foundations`
@@ -117,7 +133,9 @@ Then progress into A-V16-SUBMISSION-CONTRACT engineering without crossing live s
 
 After a coherent V1.7 batch, open PR for lead review.
 
-Then continue on the same lane with V2.0 brownfield validation:
+Lane B stops at coherent V1.7 acceptance evidence. V2.0 platform work is owned by Lane D.
+
+## Lane D — V2.0 Platform & Reliability
 
 ### A-V20-CONTROL-CENTER
 - J20-01 SP2 inventory current dashboard vs acceptance contract
@@ -131,8 +149,8 @@ Then continue on the same lane with V2.0 brownfield validation:
 - J20-07 SP3 audit/planning precursor for durable worker-run history
 - J20-08 SP2 health/recovery regression coverage
 - J20-12 SP2 distinguish registered/simulated/not-implemented/live-capable adapter health
-- J20-13 SP2 expose Gmail + worker last-success/last-error readiness
-- J20-14 SP3 persist durable worker run history
+- J20-13 SP2 consume Lane C Gmail readiness + expose worker last-success/last-error
+- J20-14 SP3 persist durable worker run history — wait for ChatGPT clearance before shared DB model/migration edits
 - J20-15 SP1 fail restore when checksum is missing unless explicit audited emergency override
 - J20-16 SP1 remove silent production DB-password default behavior
 
@@ -211,7 +229,7 @@ Do not interrupt an active coherent V1.7 batch in Lane B. Lane C may execute J20
 - J20G-02 SP2 wire ignored runtime OAuth token/client configuration safely into worker runtime/container
 - J20G-03 SP2 add safe REAL-Gmail diagnostic command/service with a typed secret-free readiness report
 - J20G-04 SP2 integrate Gmail readiness/last-success/error into health + worker-run evidence by consuming the J20G-03 report
-Coordinate J20G-04 with existing J20-13 rather than duplicating health work.
+Coordinate J20G-04 with Lane D's existing J20-13 rather than duplicating health work.
 Contract: docs/V2_0_GMAIL_RUNTIME_READINESS.md
 
 ### A-V16-SUBMISSION-ENGINE-REPAIR
@@ -255,7 +273,7 @@ Implementation guidance:
 | J20G-01 | 2 | READY | Fail closed on partial Gmail fetch; no checkpoint advance or partial committed ingestion |
 | J20G-02 | 2 | READY | Wire ignored/persistent OAuth token/client config safely into worker runtime/container |
 | J20G-03 | 2 | READY | Add safe REAL-Gmail diagnostic and typed secret-free readiness report |
-| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane B consumes J20G-03 readiness output for health/worker-run evidence |
+| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane D consumes J20G-03 readiness output for health/worker-run evidence |
 
 Contract:
 - docs/V2_0_GMAIL_RUNTIME_READINESS.md
