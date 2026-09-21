@@ -45,6 +45,17 @@ Contracts:
 - docs/V2_3_AGENT_TOOL_LAYER.md
 - docs/CROSS_LANE_INTEGRATION_MATRIX.md
 
+## Current lead review — 2026-09-21 10:53 ET
+
+Current branch head remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`, timestamp 2026-09-21T02:15:15Z. There is no new implementation or review batch.
+
+Heartbeat epoch is `DAYWATCH_2026_09_21`. The current head predates the approximately 14:45Z reset, so verified current-epoch proving is **0/3**.
+
+On a fresh session, rebase latest main and launch:
+`python scripts/worker_heartbeat_watch.py --lane D --epoch DAYWATCH_2026_09_21 --detach`
+
+Then continue only the independent V2.3 foundations below. Do not widen into V1.4/V1.5/V2.0 work.
+
 ## Constraints
 
 - no graph DB
@@ -55,13 +66,13 @@ Contracts:
 
 ## Next
 
-1. pull/rebase latest main
+1. pull/rebase latest main and launch the detached current-epoch watcher
 2. work the ready V2.3 tasks
 3. tests/Ruff/mypy
 4. push coherent batch
-5. update coordination/heartbeats/LANE_D.md
-6. READY FOR LEAD REVIEW
+5. send a current-epoch `READY_FOR_LEAD_REVIEW` event heartbeat
+6. stop for lead review
 
 ## Status
 
-READY
+READY / DAYWATCH CURRENT EPOCH 0/3
