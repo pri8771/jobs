@@ -113,7 +113,7 @@ Conventions: see `docs/V23_TASK_GRAPH_V23.md` §0 (quality gate, model/effort se
 - Objective: on the clean branch verify and, if still present, fix: `MockBrowserRunner.interactive_submitted` default must be `False`; `PlaywrightBrowserRunner` must convert `file://` storage URIs to filesystem paths before `set_input_files` (fail closed if the path does not exist); `AssistedApplicationEngine` must write an `AuditLogModel` row for `REVIEW_REQUIRED` outcomes (not only BLOCKED/confirmed).
 - Tests: mock runner default; URI conversion; audit row on review-required path.
 
-## 6. A-V15-LIVE-ASSISTED-PROOF (`USER_GATE` browser; optional for V2.3)
+## 6. A-V15-LIVE-ASSISTED-PROOF (`USER_GATE` browser; mandatory for formal completion)
 - R15-L01 SP1 choose real page + accepted packet; R15-L02 USER_GATE owner authorization; R15-L03..L06 LIVE inspect/classify/prefill/verify/stop at review boundary; R15-L07 SP1 redacted evidence commit. No submit unless separately authorized.
 
 ## 7. A-V17-ENGINEERING-RECONCILIATION (Lane 3; code already on main)
@@ -136,9 +136,9 @@ Conventions: see `docs/V23_TASK_GRAPH_V23.md` §0 (quality gate, model/effort se
 ## 8. A-V17-LIVE-LIFECYCLE-PROOF (`USER_GATE` Gmail; after J20G engineering)
 - R17-L01 USER_GATE read-only Gmail authorization; R17-L02 SP1 `gmail-diagnose` canary; R17-L03 SP1 select bounded historical thread set; R17-L04..L07 LIVE ingest → link → lifecycle/interview/follow-up → idempotent replay; R17-L08 SP1 redacted timeline proof; R17-L09 SP1 independent review request.
 
-## 9. V1.6 engineering (Lane 2 after V1.5 acceptance or lead advancement; parallel to V2.3; not on the V2.3 critical path)
+## 9. V1.6 engineering (single active worker after V1.5 engineering acceptance or explicit lead advancement; may be scheduled independently of V2.3 engineering, but required for formal completion)
 
-Schema note: all V1.6 tables land in **`005_v16_submission_truth`** (`down_revision` = `004_v23_intelligence_foundation`, or `003` if V1.6 lands first — re-point, never fork).
+Schema note: all V1.6 submission-truth tables land in **`004_v16_submission_truth`** (`down_revision = "003_generation_origin_readiness"`). V2.3 intelligence schema follows as 005. Do not renumber dynamically or create multiple heads.
 
 ### A-V16-AUTHORIZATION
 - R16-A01 **SP2** · Model: Opus (Sonnet with this spec acceptable; lead review mandatory) · Objective: generic `scoped_approval` table + `ScopedApprovalModel`: `id`; `action_class` String(32) NOT NULL (`SUBMIT_APPLICATION|SEND_MESSAGE|CALENDAR_MUTATION|EXTERNAL_PROFILE_UPDATE|SPEND`); `actor` String(64) NOT NULL; `target_refs_json` JSON NOT NULL; `job_id` FK NULL; `application_id` FK NULL; `packet_id` FK NULL; `packet_hash` String(64) NULL; `candidate_profile_version` Integer NULL; `resume_variant_id` FK NULL; `resume_artifact_sha256` String(64) NULL; `cover_letter_artifact_sha256` String(64) NULL; `destination` String(512) NULL; `destination_provider` String(64) NULL; `method` String(64) NOT NULL; `policy_decision` String(32) NULL; `policy_version` String(64) NULL; `authorization_source` String(64) NOT NULL; `authorization_reference` String(255) NULL; `issued_at` NOT NULL; `expires_at` NOT NULL; `one_time_use` Boolean NOT NULL; `consumed_at` NULL; `revoked_at` NULL; `status` String(16) NOT NULL **(no server default)** (`ACTIVE|CONSUMED|EXPIRED|REVOKED`); `created_at`. Indexes `(action_class, status)`, `job_id`, `packet_id`, `expires_at`. Service invariant: `SUBMIT_APPLICATION` rows require `job_id`, `packet_id`, `packet_hash`, `resume_variant_id`, `resume_artifact_sha256`, `destination`, `method` non-null (validated in code, tested).
@@ -175,11 +175,14 @@ Schema note: all V1.6 tables land in **`005_v16_submission_truth`** (`down_revis
 - R16-H03 sanitize error/audit evidence via `worker.sanitize_error_message`; no token/secret substrings in persisted rows.
 - R16-H04 tests: matrix "Audit/task hygiene" and "Concurrency/recovery" rows (crash after authorization → resumable; crash after dispatch → UNCONFIRMED; restart restores state; race → one winner; retry after timeout checks evidence first).
 
-### A-V16-TRANSPORT (research now; implementation deferred)
+### A-V16-TRANSPORT (research early; implementation required when a compliant transport is identified)
 - R16-T01 SP1 · Sonnet · `docs/V1_6_TRANSPORT_FEASIBILITY.md`: current public policy/technical feasibility for direct ATS submission (Greenhouse Job Board API application POST requires board-owner API credentials — verify; Lever/Ashby/Workday equivalents), evidence URLs, dates; no implementation.
-- R16-T02 SP1 · lead · decision record: eligible transport (→ R16-T03..T05 later) or `LIVE_PROOF_BLOCKED_NO_ELIGIBLE_TRANSPORT`.
-- R16-T03..T05, R16-L01..L06: **deferred after V2.3** (master plan D1).
+- R16-T02 SP1 · lead · decision record: eligible transport (→ R16-T03..T05) or `LIVE_PROOF_BLOCKED_NO_ELIGIBLE_TRANSPORT`.
+- R16-T03 SP2 · Sonnet/Opus review · implement exactly one compliant supported transport against the accepted ATS contract; no stealth/evasion or undocumented fake success.
+- R16-T04 SP1 · Sonnet · transport truth tests: unsupported destination stays `NOT_IMPLEMENTED`/BLOCKED; provider failure never becomes submission confirmation.
+- R16-T05 SP1 · Sonnet · transport adversarial/idempotency regression tests.
+- R16-L01..L06 LIVE · mandatory first real system-submission proof after engineering acceptance, eligible transport, and exact per-application owner authorization. A blocked transport/user gate may allow other safe engineering to continue, but it blocks V1.6 COMPLETE and therefore blocks formal V2.0/V2.3 completion.
 
 ## 10. Totals
 
-Engineering tasks: 51 (R14-P 4, R14-I 5, R15-I 4, A-R15 4, R15-V 1, R17-E 6 incl. E03b, R16-A 4, R16-I 5, R16-P 7, R16-C 5, R16-H 4, R16-T 2) = 56 SP (all SP1 except R14-P01/P02 rated SP1 with high effort, A-R15-06/07/08 SP2, R16-A01 SP2, R16-I02 SP2). LIVE/gated items: R14-L (7), R15-L (7), R17-L (9), R16-L (6, deferred).
+Engineering tasks include R16-T03..T05 in addition to the previously enumerated recovery work; all implementation remains SP1/SP2 (all SP1 except R14-P01/P02 rated SP1 with high effort, A-R15-06/07/08 SP2, R16-A01 SP2, R16-I02 SP2). LIVE/gated items: R14-L (7), R15-L (7), R17-L (9), R16-L (6, deferred).
