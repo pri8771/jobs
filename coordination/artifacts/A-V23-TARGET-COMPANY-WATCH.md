@@ -3,10 +3,10 @@
 - Type: intelligence / monitoring
 - Phase: V2.3
 - Status: READY
-- Owner: V2.3 implementation surface (lane per lead decision D3)
+- Owner: single active implementation worker when V2.3 is the active work surface
 - Reviewer: ChatGPT
 - Story points: 10 (V23-TW-01..07) + shared V23-F03/F04
-- Dependencies: migration 004 (`target_company`, `target_company_observation`), `JobDeduplicationService`, evaluation filters/scorer, opportunity graph relationship queries
+- Dependencies: migration 005 (`target_company`, `target_company_observation`), `JobDeduplicationService`, evaluation filters/scorer, opportunity graph relationship queries
 - Downstream: A-V23-CAREER-BRIEFING, A-V23-AGENT-TOOLS, V3 Market Scout
 
 ## Contract
