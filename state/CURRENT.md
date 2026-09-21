@@ -24,8 +24,13 @@ Verified project use:
 - first branch repair task `jobs-v14-proof-hardening-20260920` failed before implementation because repository clone failed
 - retry `jobs-v14-proof-hardening-r2` ran but returned `failed` with `Worker branch push failed.`
 - retry sanitized result contains no branch, commit, tests, or summary; no matching Jobs worker branch exists
-- no implementation result from either remote branch task is accepted
-- do not spend another long worker-pc branch run until the Jobs branch-push path is diagnosed/repaired
+- no implementation result from either remote repair task is accepted
+- bounded Jobs push diagnostic `jobs-push-probe-20260921-0146` subsequently succeeded
+- probe branch: `worker/jobs-push-probe-20260921-0146`
+- probe commit: `b6c800f0ed4ffe8450aceb0021b0c417ac7e16ae`
+- ChatGPT inspected the probe diff: exactly one new diagnostic Markdown file, no production/coordination-truth changes; the probe is not for merge
+- conclusion: the remote Jobs branch-push path is currently smoke-verified, but the prior failed hardening batch remains unrecovered/unreviewable
+- remote worker may be used for a future bounded independent non-conflicting task when idle; do not duplicate Lane C's active P0A work
 
 The remote-worker control plane remains infrastructure only; Jobs planning/acceptance remains authoritative here.
 
@@ -50,8 +55,8 @@ Required before private proof execution:
 
 Current P0A status:
 - NOT ACCEPTED
-- worker-pc implementation attempts did not produce a reviewable branch
-- critical-path fallback assigned to Lane C as separate RP14-T1..T7 SP1-SP3 tasks on `worker/live-data-foundations`
+- worker-pc implementation attempts did not produce a reviewable repair branch
+- critical-path implementation remains assigned to Lane C as separate RP14-T1..T7 SP1-SP3 tasks on `worker/live-data-foundations`
 - Lane C must rebase current main, implement/test the bounded tooling repairs without private inputs, push one coherent batch, and stop for lead review
 
 ## V1.4
