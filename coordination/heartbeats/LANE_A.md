@@ -1,5 +1,65 @@
 # LANE_A Heartbeat
 
+```yaml
+lane: A
+branch: worker/v15-assisted-application
+mode: PROVING_15M
+interval_minutes: 15
+consecutive_on_time: 2
+last_check_in_utc: 2026-09-21T12:49:00Z
+review_state: READY_FOR_LEAD_REVIEW
+lead_action_requested: REVIEW
+```
+
+## Entries
+
+### 2026-09-21T12:49:00Z — Lane A (Application Execution)
+
+Artifact(s):
+- A-V15-BROWSER-SAFETY-CONTRACT
+- A-V15-ASSISTED-APPLICATION
+- A-V14-REAL-PROOF
+
+Task(s):
+- A-R15-01 SP2 ✅ LEAD_ACCEPTED
+- A-R15-02 SP2 ✅ LEAD_ACCEPTED (field-level J15-11 scope)
+- A-R15-03 SP1 ✅ LEAD_ACCEPTED
+- A-R15-04 SP2 ✅ LEAD_ACCEPTED
+- A-R15-05 SP2 ✅ LEAD_ACCEPTED
+- RP14-E1 / RP14-E2: Attempted V1.4 real proof execution against imported OpenSesame proof job (`3f2c66aa-f683-4d3e-9dd8-f974f4b8e6ca`). Real candidate profile contains base resume variant `enterprise_automation_solutions_architect.md`. For OpenSesame AI Automation Engineer title, `ResumeVariantSelector` selected variant `resume_ai_software_engineer`, which has no corresponding file on disk (only `enterprise_automation_solutions_architect.md` is present). Execution stopped per safety contract: `REAL_PROOF_RUN_FAIL: Real profile cannot resolve resume source for selected variant resume_ai_software_engineer`.
+
+Done since last heartbeat:
+- Synchronized branch with `origin/main` (`158d5b0`).
+- Rebased and verified all Lane A code against latest main.
+- Executed `scripts/import_v14_proof_job.py` successfully (`job_id=3f2c66aa-f683-4d3e-9dd8-f974f4b8e6ca`, 7 questions imported).
+- Attempted `scripts/run_v14_real_proof.py`. Correctly failed closed because dedicated resume source for `resume_ai_software_engineer` is not present on disk (no synthetic resume created).
+- Prepared for P1 post-proof residuals A-R15-06..A-R15-09 once lead review / P0A tooling integrity unblocks.
+
+Verification:
+- targeted tests: `tests/test_assisted_safety_adversarial.py` — 27 passed
+- pytest: 144 passed in 1.48s
+- ruff: All checks passed
+- mypy: Clean on all Lane A code
+
+Commits:
+- `38f2ef3` (rebased on `158d5b0`)
+
+Blockers / risks:
+- `REAL_PROOF_BLOCKED_PRIVATE_INPUT`: Real resume variant source file for `resume_ai_software_engineer` is not present on disk; candidate profile only has real mapped bytes for `enterprise_automation_solutions_architect.md`. Per contract (ANTIGRAVITY_A.md line 64), reporting `REAL_PROOF_BLOCKED_PRIVATE_INPUT` without synthesizing substitutes.
+- P0A proof-tool integrity (RP14-T1..T7) remains open on Lane C.
+
+Next:
+- Await ChatGPT lead review of V1.5 first rework batch and guidance on real proof resume mapping.
+- Stand by for P1 residual tasks A-R15-06 through A-R15-09 per `docs/LANE_A_REAUDIT_2.md`.
+
+Lead action requested:
+- REVIEW
+
+Review state:
+- READY_FOR_LEAD_REVIEW
+
+---
+
 ### 2026-09-21T02:41:00Z — Lane A (Application Execution)
 
 Branch:
@@ -31,7 +91,7 @@ Verification:
 - CI/PR if available: PR #2
 
 Commits:
-- pending push
+- `38f2ef3`
 
 Blockers / risks:
 - None
