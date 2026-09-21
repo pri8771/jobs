@@ -200,3 +200,13 @@ V1.4 is COMPLETE only when:
 - A-V14-PACKET-SAFETY engineering acceptance remains valid, and
 - P0A proof-tool integrity is lead-accepted, and
 - A-V14-REAL-PROOF is ACCEPTED from a genuine runtime candidate bundle + independently bound REAL_PROOF_PASS verifier receipt.
+
+### Lead recheck — 2026-09-21 03:46 ET
+
+- Jobs `main` is still `6fcb70d95e04e6aac3042eb3e25d586bc575d8ef`; its CI run #300 completed successfully.
+- Lane C is still `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`; no RP14-T1..T7 batch or worker-authored heartbeat has landed.
+- Lanes A/B/D and Scout are also unchanged from their previously reviewed heads; there is no READY_FOR_LEAD_REVIEW batch to accept this cycle.
+- `coordination/proofs/` still contains no runtime proof candidate or verifier receipt, so V1.4 remains **NOT COMPLETE**.
+- The OpenSesame AI Automation Engineer posting remains live and exposes the same real application questions, including adversarial prompt-injection text; this recheck performed no form interaction.
+- `worker-pc` remains online/capacity 1, but remote-workers workflow `35566726945` for a non-Jobs SwarmAI task is still in progress, so no Jobs remote task was dispatched.
+- P0A remains **BLOCKED pending Lane C implementation and Scout/lead review**; private proof execution remains forbidden until that gate is accepted.
