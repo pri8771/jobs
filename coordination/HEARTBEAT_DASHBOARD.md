@@ -2,6 +2,7 @@
 
 Current operating model:
 - exactly 3 active implementation lanes
+- historical A/B/C/D/Scout heartbeat streams are CLOSED and do not count
 - heartbeat epoch: `DAYWATCH_2026_09_21`
 - human-visible feed: GitHub issue #7 `Jobs Automation — Live Progress`
 
@@ -22,31 +23,33 @@ Stage 3:
 
 ## Current verified state
 
-| Lane | Branch | Current assignment | 5m proving | 24h watch | Lead-verified state |
+| Lane | Branch | Assignment | Proving | Watch | State |
 |---|---|---|---:|---:|---|
-| 1 | worker/v14-real-proof | RP14-T1..T7 real-proof tooling | 0/3 | not started | Branch identical to main; active `LANE_1.md` heartbeat still null; no worker implementation commit |
-| 2 | worker/v15-assisted-application | A-R15-06..09 V1.5 safety | 0/3 | not started | PR #2 head `552da79`; CI green, but worker is still committing historical `LANE_A.md`; active `LANE_2.md` remains null and heartbeat validation fails on the obsolete file |
-| 3 | worker/recruiting-ops | B-R20-05 + B-R20-01/02 | 0/3 | not started | PR #3 head `68595d1`; CI green, but branch is far behind main and still uses historical `LANE_B.md`; active `LANE_3.md` is not yet present on the branch |
+| 1 | worker/v14-real-proof | RP14-T1..T7 real-proof tooling | 0/3 | not started | waiting for first worker heartbeat |
+| 2 | worker/v15-assisted-application | A-R15-06..09 V1.5 safety | 2/3 | not started | ACTIVE; 15:58:58Z then 16:04:00Z is a valid ~5m interval |
+| 3 | worker/recruiting-ops | B-R20-05 + B-R20-01/02 | 0/3 | not started | waiting for first worker heartbeat |
 
-Historical A/B/C/D/Scout heartbeats remain available for audit but do not count toward this operating model or epoch.
+## Closed historical streams
 
-## Visible progress verification
+These remain in Git only as audit history and are no longer active:
+- LANE_A
+- LANE_B
+- LANE_C
+- LANE_D
+- SCOUT
 
-`.github/workflows/heartbeat-progress.yml` is functioning for the active Lane 1/2/3 paths: GitHub Actions has posted issue #7 comments for active heartbeat-file pushes.
+No historical heartbeat contributes to Lane 1/2/3 cadence or acceptance.
 
-Current problem is worker migration, not feed delivery:
-- Lane 2 continued committing the historical `LANE_A.md`, which the active progress-feed workflow intentionally ignores.
-- Lane 3 has not rebased far enough to acquire/use `LANE_3.md`.
-- Seed comments with `last_check_in_utc: null` are setup noise and do not count as worker-authored heartbeats.
+## Visible progress
 
-Fresh worker sessions must rebase latest main and launch the numeric lane watcher so subsequent commits land in `LANE_1.md`, `LANE_2.md`, or `LANE_3.md` and automatically appear in issue #7.
+GitHub issue #7 is receiving active-lane heartbeat comments.
+
+Verified:
+- Lane 2 1/3 comment posted for 2026-09-21T15:58:58Z
+- Lane 2 2/3 comment posted for 2026-09-21T16:04:00Z
+
+The progress workflow may also post a setup/state comment when the heartbeat file changes without advancing the timestamp. Only timestamped worker heartbeat entries count toward cadence.
 
 ## Acceptance
 
-Heartbeat proves liveness/progress only.
-It never substitutes for:
-- code review,
-- tests,
-- CI,
-- artifact acceptance,
-- real-proof evidence.
+Heartbeat proves liveness/progress only. It never substitutes for code review, tests, CI, artifact acceptance, or real-proof evidence.
