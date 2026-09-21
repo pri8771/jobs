@@ -4,15 +4,13 @@ lane: D
 branch: worker/v23-foundations
 mode: PROVING_15M
 interval_minutes: 15
-consecutive_on_time: 0
-last_check_in_utc: null
+consecutive_on_time: 1
+last_check_in_utc: 2026-09-21T16:08:45Z
 review_state: WORKING
 lead_action_requested: NONE
-seeded_by_lead: true
+seeded_by_lead: false
 
 ## Worker instructions
-
-This file was seeded by ChatGPT lead and does NOT count as a worker-authored proving heartbeat.
 
 While this session is actively running:
 
@@ -47,4 +45,38 @@ ChatGPT scheduled lead review runs hourly. Do not claim ChatGPT is polling every
 
 ## Entries
 
-No worker-authored heartbeat yet.
+### 2026-09-21T16:08:45Z — D
+
+Artifact(s):
+- A-V23-OPPORTUNITY-GRAPH
+
+Task(s):
+- J23O-01 SP2 read-only relational graph projection
+- J23O-02 SP2 typed evidence-preserving graph queries
+- J23O-03 SP2 dedupe/provenance regression tests
+
+Done since last heartbeat:
+- Implemented read-only Opportunity Graph projection service and typed queries in `src/jobs_automation/intelligence/opportunity_graph.py`.
+- Implemented unit and projection stability tests in `tests/test_v23_opportunity_graph.py`.
+- Rebased branch onto latest `origin/main`.
+
+Verification:
+- targeted tests: `pytest tests/test_v23_opportunity_graph.py` PASS
+- pytest: 1 passed
+- ruff: PASS
+- mypy: PASS
+
+Commits:
+- `feat(v23): implement opportunity graph projection and queries`
+
+Blockers / risks:
+- None
+
+Next:
+- Target Company Watch (J23T-01..03) and Agent Tools (J23A-01..03)
+
+Lead action requested:
+- NONE
+
+Review state:
+- WORKING
