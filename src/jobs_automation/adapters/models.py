@@ -22,86 +22,86 @@ class MockModelGateway(ModelGateway):
         system_prompt: str | None = None,
         schema: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        """Produce structured responses deterministically without external API calls."""
+        """Produce structured synthetic responses deterministically without external API calls."""
         if task == "resume_tailoring":
             return {
                 "targeted_bullets": [
-                    "Led enterprise SAP BTP and business process automation architecture across ERP workflows.",
-                    "Designed and deployed event-driven integration pipelines using Python, FastAPI, and Docker.",
-                    "Automated document processing pipelines with OCR/LLM extraction, reducing manual handling time by 80%.",
+                    "Engineered enterprise integration workflows connecting distributed systems.",
+                    "Implemented asynchronous data pipelines using standard libraries and containers.",
+                    "Automated document processing pipelines, optimizing manual throughput.",
                 ],
                 "skills_highlighted": [
-                    "SAP BTP",
+                    "Systems Architecture",
                     "Enterprise Integrations",
                     "Python",
                     "Docker",
-                    "AI Workflow Automation",
+                    "Workflow Automation",
                 ],
-                "positioning_alignment": "Enterprise Automation & Solutions Architect",
+                "positioning_alignment": "Solutions Architect",
+                "origin": "mock",
             }
 
         elif task == "cover_letter":
             return {
                 "cover_letter_text": (
                     "Dear Hiring Team,\n\n"
-                    "I am writing to express my strong interest in this role. With extensive experience in enterprise automation, "
-                    "SAP BTP solutions architecture, and software engineering, I specialize in bridging core business systems with "
-                    "modern AI-driven workflows.\n\n"
-                    "At Viatris, I architected SAP BTP integrations and automated ERP business processes. Previously as Head of IT and Business Operations "
-                    "at Thar Process, I led cross-functional enterprise infrastructure and custom software implementations.\n\n"
-                    "I hold a B.S. in Chemical Engineering from Carnegie Mellon University and bring a proven track record of shipping reliable, scalable systems.\n\n"
+                    "I am writing to express my interest in the position. With extensive experience in "
+                    "software engineering, architecture, and workflow automation, I have a track record of delivering "
+                    "reliable, scalable business solutions.\n\n"
                     "Thank you for your consideration.\n\n"
-                    "Sincerely,\nPriyansh Chordia"
+                    "Sincerely,\nCandidate"
                 ),
-                "key_themes": ["SAP BTP", "Enterprise Automation", "Systems Architecture"],
+                "key_themes": ["Workflow Automation", "Systems Architecture"],
+                "origin": "mock",
             }
 
         elif task == "question_answering":
-            # Deterministic question resolution based on verified candidate profile facts
             p_lower = prompt.lower()
-            if "python" in p_lower:
-                return {
-                    "answer": "Yes, I have 8+ years of production experience with Python and FastAPI.",
-                    "resolved": True,
-                }
-            elif "clearance" in p_lower or "security clearance" in p_lower:
+            if "clearance" in p_lower or "security clearance" in p_lower:
                 return {
                     "answer": None,
                     "resolved": False,
                     "reason": "Candidate has no active security clearance recorded.",
+                    "origin": "mock",
                 }
             elif "relocate" in p_lower or "willing to relocate" in p_lower:
-                # Unknown preference -> UNRESOLVED
                 return {
                     "answer": None,
                     "resolved": False,
                     "reason": "Candidate relocation preference is unknown.",
+                    "origin": "mock",
                 }
             elif "sponsorship" in p_lower or "work authorization" in p_lower:
                 return {
                     "answer": None,
                     "resolved": False,
                     "reason": "Work authorization fact requires candidate confirmation.",
+                    "origin": "mock",
                 }
             return {
                 "answer": None,
                 "resolved": False,
                 "reason": "Unknown fact not present in candidate profile.",
+                "origin": "mock",
             }
 
         elif task == "scoring":
             return {
                 "semantic_score": 85.0,
-                "reasoning": "High alignment with distributed systems and enterprise integration architecture.",
+                "reasoning": "High alignment with technical requirements and system engineering.",
+                "origin": "mock",
             }
 
-        return {"result": "success", "task": task}
+        return {"result": "success", "task": task, "origin": "mock"}
 
 
 class LiteLLMModelGateway(ModelGateway):
-    """LiteLLM-compatible model gateway that routes tasks to configured model providers."""
+    """LiteLLM-compatible model gateway that routes tasks to configured model providers.
 
-    def __init__(self, routing_config: ModelRoutingConfig, fallback_mock: bool = True) -> None:
+    Fails closed by default if routing or provider credentials are not configured.
+    """
+
+    def __init__(self, routing_config: ModelRoutingConfig, fallback_mock: bool = False) -> None:
         self.routing = routing_config
         self.fallback_mock = fallback_mock
         self._mock = MockModelGateway()
@@ -115,6 +115,10 @@ class LiteLLMModelGateway(ModelGateway):
     ) -> dict[str, Any]:
         task_config = self.routing.tasks.get(task)
         if not task_config or not task_config.model:
+            if not self.fallback_mock:
+                raise ValueError(
+                    f"No model routing configured for task '{task}' and fallback_mock is disabled."
+                )
             logger.info("No routing config for task '%s', using mock fallback", task)
             return self._mock.complete(task, prompt, system_prompt, schema)
 
@@ -137,8 +141,12 @@ class LiteLLMModelGateway(ModelGateway):
             )
             raw_text = str(response.choices[0].message.content)
             if schema:
-                return json.loads(raw_text)  # type: ignore[no-any-return]
-            return {"content": raw_text}
+                parsed = json.loads(raw_text)
+                if isinstance(parsed, dict):
+                    parsed["origin"] = "real"
+                    parsed["model"] = model_name
+                return parsed  # type: ignore[no-any-return]
+            return {"content": raw_text, "origin": "real", "model": model_name}
 
         except Exception as e:
             if self.fallback_mock:
@@ -149,3 +157,4 @@ class LiteLLMModelGateway(ModelGateway):
                 )
                 return self._mock.complete(task, prompt, system_prompt, schema)
             raise
+

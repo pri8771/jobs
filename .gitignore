@@ -28,7 +28,7 @@ storage-state*.json
 # Candidate/application private artifacts
 private/
 data/private/
-artifacts/
+/artifacts/
 resumes/
 !resumes/.gitkeep
 config/*.yaml

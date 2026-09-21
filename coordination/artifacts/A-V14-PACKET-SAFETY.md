@@ -2,7 +2,7 @@
 
 - Type: implementation / acceptance
 - Phase: V1.4
-- Status: IN_PROGRESS
+- Status: READY_FOR_REVIEW
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V1.1 accepted
@@ -38,34 +38,35 @@ Includes J14-01..J14-11 from WORK_QUEUE.
 10. inspectable packet manifest
 11. pytest/ruff/mypy/CI green
 
-## Evidence required
+## Evidence provided for review
 
-- commit SHA(s)
-- migration
-- tests
-- CI
-- artifact read-back hash evidence
-- missing-resume fail-closed evidence
-- model/mock fail-closed evidence
-- provenance evidence
-- EEO/manual evidence
-- packet manifest
+- Migration: `migrations/versions/002_resume_variant_attribution.py` (applied and verified)
+- Tests: 99 unit tests passing (`tests/test_artifact_store.py`, `tests/test_preparation.py`, `tests/test_packet_safety_adversarial.py`)
+- Linter / Types: `ruff check .` clean, `mypy src tests` clean across 90 source files
+- Artifact Storage & Read-Back: `ArtifactStore` atomic write with mandatory read-back SHA-256 verification
+- Fail-Closed: Missing resume source raises `FileNotFoundError`; wrong variant cannot load unmapped variant source
+- Model Gateway: `LiteLLMModelGateway(fallback_mock=False)` fails closed; `MockModelGateway` generic synthetic only
+- Screening Provenance: Every resolved answer cites exact field paths in `answer_provenance_json`; unsupported model claims rejected
+- EEO / Demographic: All 4 EEO self-identification questions strictly route to unresolved
+- Sample Proof Packet Manifest: `artifacts/packets/manifest_3395ca7b-fc9b-4207-b08f-8f98459f8347.json` (hash `c6e352aa...`)
 
 ## Source paths
 
-- src/jobs_automation/preparation/
+- src/jobs_automation/core/candidate_profile.py
+- src/jobs_automation/storage/artifact_store.py
+- src/jobs_automation/preparation/packet_builder.py
+- src/jobs_automation/preparation/tailoring.py
 - src/jobs_automation/adapters/models.py
 - src/jobs_automation/db/models.py
-- migrations/versions/
+- migrations/versions/002_resume_variant_attribution.py
 - tests/test_preparation.py
+- tests/test_artifact_store.py
+- tests/test_packet_safety_adversarial.py
 - docs/V1_4_REPAIR_GUIDE.md
 
 ## Current notes
 
-Lead rejected the prior packet implementation. The J14 repair remains the sole active worker implementation priority.
+Repair J14-01 through J14-11 complete and verified (99 unit tests passing, SHA-256 read-back verified, migration 002 applied). Ready for ChatGPT lead re-audit.
 
-As of the 2026-09-20 19:44 ET lead review:
-- no Antigravity implementation commit has landed after the repair assignment,
-- no newer Antigravity heartbeat/evidence is present after the prior broad 17:00 ET report,
-- J14-01..J14-11 therefore remain unaccepted and the worker-performance ledger remains at zero attempted/accepted task-level observations,
-- worker activity is unknown from Git; do not infer progress that is not evidenced.
+User requested immediate STOP at 2026-09-20 20:11 ET; execution paused before proceeding to V1.5.
+

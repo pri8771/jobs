@@ -103,6 +103,7 @@ class ResumeVersion(BaseModel):
     id: str
     priority: int
     emphasize: list[str] = Field(default_factory=list)
+    source_path: str | None = None
 
 
 class ResumeConfig(BaseModel):
@@ -111,7 +112,46 @@ class ResumeConfig(BaseModel):
     strategy: str = "maintain_targeted_versions"
     recommended_versions: list[ResumeVersion] = Field(default_factory=list)
     base_resume_paths: list[str] = Field(default_factory=list)
+    resume_sources: dict[str, str] = Field(default_factory=dict)
     default_resume_id: str
+
+    def resolve_source_path(self, variant_id: str) -> str | None:
+        """Resolve the exact source file path for a resume variant ID.
+
+        Fails closed: returns None if no explicit or exact matching source is found.
+        """
+        # 1. Direct lookup in resume_sources mapping
+        if variant_id in self.resume_sources:
+            return self.resume_sources[variant_id]
+
+        # 2. Check source_path on recommended_versions
+        for v in self.recommended_versions:
+            if v.id == variant_id and v.source_path:
+                return v.source_path
+
+        # 3. Match against base_resume_paths by exact stem name
+        from pathlib import Path
+
+        for p in self.base_resume_paths:
+            path_obj = Path(p)
+            if path_obj.stem == variant_id:
+                return p
+
+        # 4. If variant_id is formatted like resume_<name>, try matching <name>
+        if variant_id.startswith("resume_"):
+            stripped = variant_id[len("resume_") :]
+            if stripped in self.resume_sources:
+                return self.resume_sources[stripped]
+            for v in self.recommended_versions:
+                if v.id == stripped and v.source_path:
+                    return v.source_path
+            for p in self.base_resume_paths:
+                path_obj = Path(p)
+                if path_obj.stem == stripped or path_obj.stem == variant_id:
+                    return p
+
+        return None
+
 
 
 class ApplicationAnswersConfig(BaseModel):

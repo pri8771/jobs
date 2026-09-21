@@ -210,12 +210,41 @@ class ArtifactModel(Base):
     )
 
 
+class ResumeVariantModel(Base):
+    __tablename__ = "resume_variant"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    resume_family: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    parent_variant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("resume_variant.id"), nullable=True
+    )
+    source_reference: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    target_job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("job.id"), nullable=True)
+    target_role_family: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    tailoring_method: Mapped[str] = mapped_column(String(64), default="base", nullable=False)
+    model_provider: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    model_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    prompt_version: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(
+        UTCDateTime, default=utc_now, nullable=False
+    )
+    superseded_at: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+    packets: Mapped[list[ApplicationPacketModel]] = relationship(back_populates="resume_variant")
+
+
 class ApplicationPacketModel(Base):
     __tablename__ = "application_packet"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
     job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("job.id"), nullable=False)
     candidate_profile_version: Mapped[int] = mapped_column(Integer, nullable=False)
+    resume_variant_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("resume_variant.id"), nullable=True
+    )
     resume_artifact_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("artifact.id"), nullable=True
     )
@@ -223,6 +252,9 @@ class ApplicationPacketModel(Base):
         ForeignKey("artifact.id"), nullable=True
     )
     answers_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    answer_provenance_json: Mapped[dict[str, Any]] = mapped_column(
+        JSONType, default=dict, nullable=False
+    )
     unresolved_questions_json: Mapped[list[str]] = mapped_column(
         JSONType, default=list, nullable=False
     )
@@ -230,6 +262,9 @@ class ApplicationPacketModel(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(
         UTCDateTime, default=utc_now, nullable=False
     )
+
+    resume_variant: Mapped[ResumeVariantModel | None] = relationship(back_populates="packets")
+
 
 
 class ApplicationModel(Base):

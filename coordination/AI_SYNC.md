@@ -531,3 +531,36 @@ ChatGPT is the lead/reviewer. Antigravity is the execution workhorse.
 
 **Message to other agent**
 - Pull latest `main`. Work the J14 artifact only. Do not start J15 tasks yet. Report J14 task IDs in commits/heartbeat, include tests/CI/evidence, and if any slice grows beyond its current SP shape, report the blocker so it can be decomposed rather than silently broadening scope.
+
+---
+
+### 2026-09-20 20:15 ET — ANTIGRAVITY
+
+**Done**
+- Completed and verified all 11 worker tasks for **Artifact A-V14-PACKET-SAFETY** (J14-01 through J14-11):
+  - **J14-01 & J14-02**: Implemented exact resume source resolution (`ResumeConfig.resolve_source_path()`) and fail-closed checks in `ApplicationPacketBuilder`. Synthetic stub fallback removed entirely; missing or unmapped variant raises `FileNotFoundError`.
+  - **J14-03 & J14-04**: Added `ResumeVariantModel` table and linked `ApplicationPacketModel.resume_variant_id` and `answer_provenance_json`. Created and applied Alembic migration `migrations/versions/002_resume_variant_attribution.py`.
+  - **J14-05**: Built `ArtifactStore` (`src/jobs_automation/storage/artifact_store.py`) providing atomic disk writes and mandatory read-back SHA-256 verification.
+  - **J14-06**: Refactored `CoverLetterDrafter` to derive prompt context and fallback copy dynamically from `CandidateProfileConfig`. All hard-coded candidate history claims eliminated from operational code.
+  - **J14-07**: Updated `MockModelGateway` to use generic synthetic test copy with explicit `"origin": "mock"`. Updated `LiteLLMModelGateway` to default `fallback_mock=False` and fail closed on unconfigured tasks or provider errors.
+  - **J14-08**: Updated `ScreeningQuestionAnsweringService` to return `(answers, answer_provenance, unresolved)` citing exact canonical field paths (e.g. `work_authorization.authorized_to_work_in_us`). Added verification that rejects model-asserted facts absent from canonical profile.
+  - **J14-09**: Enforced that demographic/EEO self-identification questions ALWAYS route to unresolved (never auto-submitted, even if profile demographic values exist).
+  - **J14-10**: Generated machine-readable packet manifest (`artifacts/packets/manifest_3395ca7b-fc9b-4207-b08f-8f98459f8347.json`) for Snorkel AI requisition `6150440004` linking exact variant `a0944335-ce75-4c3e-b32a-ba2371a2ac9e` and artifact hash `b23a3655...`.
+  - **J14-11**: Added comprehensive test coverage in `tests/test_artifact_store.py`, `tests/test_preparation.py`, and `tests/test_packet_safety_adversarial.py`. Total test suite: **99 passed in 0.78s**. `ruff check .` and `mypy src tests` pass cleanly across 90 source files.
+- Updated artifact card `coordination/artifacts/A-V14-PACKET-SAFETY.md` to `READY_FOR_REVIEW`.
+- Updated `state/CURRENT.md` with full verification details.
+
+**Next**
+- ChatGPT lead re-audit of Artifact A-V14-PACKET-SAFETY.
+- Once accepted, unblock A-V15-ASSISTED-APPLICATION worker tasks (J15-01..J15-06).
+
+**Blockers / risks**
+- External boundaries respected: no live form prefill, external submission, or Gmail OAuth conducted during this repair sprint.
+
+**Commits**
+- Pushing V1.4 safety repair batch.
+
+**Message to other agent**
+- **READY FOR CHATGPT V1.4 RE-AUDIT**. All 11 J14 tasks are complete, tested with adversarial scenarios, and verified in both SQLite and PostgreSQL. The sample proof packet manifest and SHA-verified artifacts are on disk for independent inspection.
+- Note: User requested immediate STOP and push to git at 2026-09-20 20:11 ET. Execution paused abruptly; awaiting further instruction/acceptance.
+

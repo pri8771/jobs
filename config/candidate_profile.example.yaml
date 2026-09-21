@@ -147,6 +147,7 @@ resume:
         - "business systems"
         - "automation"
   base_resume_paths: []
+  resume_sources: {}
   default_resume_id: "enterprise_automation_solutions_architect"
 
 application_answers:
