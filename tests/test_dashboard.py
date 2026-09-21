@@ -17,10 +17,13 @@ from jobs_automation.dashboard.analytics import FunnelAnalyticsService
 from jobs_automation.dashboard.server import DashboardRequestHandler
 from jobs_automation.db.base import Base
 from jobs_automation.db.models import (
+    ApplicationEventModel,
     ApplicationModel,
+    ApplicationPacketModel,
     CompanyModel,
     JobModel,
     JobSourceModel,
+    ResumeVariantModel,
     TaskModel,
 )
 
@@ -257,5 +260,241 @@ def test_dashboard_server_endpoints() -> None:
     assert h_audit.status_code == 200
     audit_data = json.loads(h_audit.mock_wfile.getvalue().decode("utf-8"))
     assert isinstance(audit_data, list)
+
+    # 8. GET /api/health
+    h_health = DummyRequestHandler("GET", "/api/health", session_factory=session_factory)
+    h_health.do_GET()
+    assert h_health.status_code == 200
+    health_data = json.loads(h_health.mock_wfile.getvalue().decode("utf-8"))
+    assert "overall_status" in health_data
+    assert "components" in health_data
+
+    # 9. GET /api/followups
+    h_followups = DummyRequestHandler("GET", "/api/followups", session_factory=session_factory)
+    h_followups.do_GET()
+    assert h_followups.status_code == 200
+    followups_data = json.loads(h_followups.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(followups_data, list)
+
+    # 10. GET /api/analytics/sources
+    h_an_src = DummyRequestHandler("GET", "/api/analytics/sources", session_factory=session_factory)
+    h_an_src.do_GET()
+    assert h_an_src.status_code == 200
+    an_src_data = json.loads(h_an_src.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(an_src_data, list)
+
+    # 11. GET /api/analytics/roles
+    h_an_roles = DummyRequestHandler("GET", "/api/analytics/roles", session_factory=session_factory)
+    h_an_roles.do_GET()
+    assert h_an_roles.status_code == 200
+    an_roles_data = json.loads(h_an_roles.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(an_roles_data, list)
+
+    # 12. GET /api/analytics/resumes
+    h_an_res = DummyRequestHandler("GET", "/api/analytics/resumes", session_factory=session_factory)
+    h_an_res.do_GET()
+    assert h_an_res.status_code == 200
+    an_res_data = json.loads(h_an_res.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(an_res_data, list)
+
+    # 13. GET /api/analytics/time-to-stage
+    h_an_tts = DummyRequestHandler("GET", "/api/analytics/time-to-stage", session_factory=session_factory)
+    h_an_tts.do_GET()
+    assert h_an_tts.status_code == 200
+    tts_data = json.loads(h_an_tts.mock_wfile.getvalue().decode("utf-8"))
+    assert "sample_sizes" in tts_data
+
+    # 14. GET /api/timeline
+    h_timeline = DummyRequestHandler("GET", "/api/timeline", session_factory=session_factory)
+    h_timeline.do_GET()
+    assert h_timeline.status_code == 200
+    timeline_data = json.loads(h_timeline.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(timeline_data, list)
+
+    # 15. GET /api/offers-rejections
+    h_off_rej = DummyRequestHandler("GET", "/api/offers-rejections", session_factory=session_factory)
+    h_off_rej.do_GET()
+    assert h_off_rej.status_code == 200
+    off_rej_data = json.loads(h_off_rej.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(off_rej_data, list)
+
+    # 16. GET /api/policies
+    h_policies = DummyRequestHandler("GET", "/api/policies", session_factory=session_factory)
+    h_policies.do_GET()
+    assert h_policies.status_code == 200
+    policies_data = json.loads(h_policies.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(policies_data, list)
+
+    # 17. GET /api/worker
+    h_worker = DummyRequestHandler("GET", "/api/worker", session_factory=session_factory)
+    h_worker.do_GET()
+    assert h_worker.status_code == 200
+    worker_data = json.loads(h_worker.mock_wfile.getvalue().decode("utf-8"))
+    assert isinstance(worker_data, list)
+
+
+def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
+    # 1. Setup Company and Jobs
+    comp = CompanyModel(id=uuid.uuid4(), normalized_name="openai")
+    db_session.add(comp)
+    db_session.flush()
+
+    job1 = JobModel(
+        id=uuid.uuid4(),
+        company_id=comp.id,
+        normalized_title="Research Engineer",
+        description_text="AI models",
+        status="ACTIVE",
+    )
+    job2 = JobModel(
+        id=uuid.uuid4(),
+        company_id=comp.id,
+        normalized_title="Infrastructure Lead",
+        description_text="GPU clusters",
+        status="ACTIVE",
+    )
+    db_session.add_all([job1, job2])
+    db_session.flush()
+
+    # 2. Setup Sources
+    src1 = JobSourceModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        provider="LINKEDIN",
+        source_job_id="li-1",
+        source_url="https://linkedin.com/jobs/1",
+    )
+    src2 = JobSourceModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        provider="GMAIL_ALERT",
+        source_job_id="gm-1",
+        source_url="https://mail.google.com/1",
+    )
+    db_session.add_all([src1, src2])
+    db_session.flush()
+
+    # 3. Setup Resume Variants and Packets
+    res1 = ResumeVariantModel(
+        id=uuid.uuid4(),
+        name="ai_research_v1",
+        resume_family="ai_ml",
+        version=1,
+        content_hash="hash-1",
+    )
+    res2 = ResumeVariantModel(
+        id=uuid.uuid4(),
+        name="infra_v1",
+        resume_family="systems",
+        version=1,
+        content_hash="hash-2",
+    )
+    db_session.add_all([res1, res2])
+    db_session.flush()
+
+    packet1 = ApplicationPacketModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        candidate_profile_version=1,
+        resume_variant_id=res1.id,
+        packet_hash="hash-pkt-1",
+    )
+    packet2 = ApplicationPacketModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        candidate_profile_version=1,
+        resume_variant_id=res2.id,
+        packet_hash="hash-pkt-2",
+    )
+    db_session.add_all([packet1, packet2])
+    db_session.flush()
+
+    # 4. Setup Applications & Events
+    now = datetime.datetime.now(datetime.UTC)
+    app1 = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        packet_id=packet1.id,
+        status="INTERVIEWING",
+        applied_at=now - datetime.timedelta(days=10),
+        last_activity_at=now - datetime.timedelta(days=2),
+    )
+    app2 = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        packet_id=packet2.id,
+        status="REJECTED",
+        applied_at=now - datetime.timedelta(days=20),
+        closed_at=now - datetime.timedelta(days=5),
+        last_activity_at=now - datetime.timedelta(days=5),
+    )
+    db_session.add_all([app1, app2])
+    db_session.flush()
+
+    # Events for app1: recruiter contacted at +2d, interview at +5d
+    ev1_1 = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app1.id,
+        event_type="RECRUITER_CONTACTED",
+        occurred_at=now - datetime.timedelta(days=8),
+        source="email",
+    )
+    ev1_2 = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app1.id,
+        event_type="INTERVIEW_REQUESTED",
+        occurred_at=now - datetime.timedelta(days=5),
+        source="email",
+    )
+    # Events for app2: rejected at +15d
+    ev2_1 = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app2.id,
+        event_type="APPLICATION_REJECTED",
+        occurred_at=now - datetime.timedelta(days=5),
+        source="email",
+    )
+    db_session.add_all([ev1_1, ev1_2, ev2_1])
+    db_session.commit()
+
+    analytics = FunnelAnalyticsService(db_session)
+
+    # Test get_source_performance()
+    sources = analytics.get_source_performance()
+    assert len(sources) == 2
+    li_perf = next(s for s in sources if s["provider"] == "LINKEDIN")
+    assert li_perf["jobs_discovered"] == 1
+    assert li_perf["applications_submitted"] == 1
+    assert li_perf["interviews"] == 1
+    assert li_perf["low_sample_size"] is True  # N=1 < 5
+    assert "Sample size warning" in li_perf["note"]
+
+    # Test get_role_family_performance()
+    roles = analytics.get_role_family_performance()
+    assert len(roles) == 2
+    re_role = next(r for r in roles if r["role_family"] == "Research Engineer")
+    assert re_role["applications_count"] == 1
+    assert re_role["interviews"] == 1
+    assert re_role["low_sample_size"] is True
+
+    # Test get_resume_performance()
+    resumes = analytics.get_resume_performance()
+    assert len(resumes) == 2
+    ai_resume = next(r for r in resumes if r["resume_family"] == "ai_ml")
+    assert ai_resume["variant_name"] == "ai_research_v1"
+    assert ai_resume["interviews"] == 1
+    assert ai_resume["low_sample_size"] is True
+    assert "Descriptive" in ai_resume["confidence_label"]
+
+    # Test get_time_to_stage()
+    tts = analytics.get_time_to_stage()
+    assert tts["avg_days_to_first_response"] == 2.0
+    assert tts["avg_days_to_interview"] == 5.0
+    assert tts["avg_days_to_rejection"] == 15.0
+    assert tts["avg_days_to_offer"] is None
+    assert tts["sample_sizes"]["first_response"] == 1
+    assert tts["sample_sizes"]["interview"] == 1
+    assert tts["sample_sizes"]["rejection"] == 1
+    assert tts["sample_sizes"]["offer"] == 0
 
 
