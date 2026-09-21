@@ -15,34 +15,32 @@ Branch / PR:
 Artifact:
 - `A-V14-REAL-PROOF`
 
-Latest worker repair implementation reviewed:
-- `3ce19cffedcceba753686dae9c6240eccf6a2263`
+Latest implementation reviewed:
+- `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
 Lead verdict:
 - **REWORK**
 - P0A is not accepted.
 - private candidate/resume proof execution remains forbidden.
 
-What materially improved in `3ce19cf`:
-- candidate input is `REAL_PROOF_CANDIDATE` only,
-- structural-only verification fails closed instead of PASS,
-- candidate-bundle SHA binding is mandatory,
-- default bound FAIL receipts exist,
-- explicit evidence allowlist/schema is closed,
-- deterministic proof-origin labels are enforced,
-- canonical packet hash is recomputed from manifest fields.
+Materially improved in this repair:
+- actual candidate-profile path/hash validation and copied-example rejection,
+- fetch timestamp/canonical URL/public-job-ID checks,
+- local question-file hashing/count checks,
+- mandatory packet/job/resume/artifact UUID fields,
+- persisted-row verification implementation when a database target is present.
 
-Remaining blockers to close in one coherent Lane 1 batch:
-1. RP14-T3 — require and verify fetch timestamp, canonical apply URL, public Greenhouse job ID, and bind redacted `job_url` to the approved source.
-2. RP14-T3 — independently bind description/question hashes to actual runtime `JobModel`/`JobSource` import evidence or a fresh same-flow public revalidation; do not trust a self-consistent hand-authored local attestation.
-3. RP14-T4 — hash the actual `candidate_profile_path` bytes and require equality with private `candidate_profile_sha256`; derive/validate the private source class from runtime evidence rather than trusting a literal.
-4. RP14-T7 — make local `job_id` mandatory and independently verify the persisted `ApplicationPacketModel` row plus `resume_variant_id`, `resume_artifact_id`, `cover_letter_artifact_id` and corresponding artifact hashes/manifest evidence.
-5. Add adversarial tests showing fake profile path/hash, fake source attestation, missing/tampered canonical URL/fetch metadata, and mismatched/missing persisted packet row cannot pass.
-6. Run targeted proof tests + full pytest + Ruff + mypy + **exact-head** GitHub CI.
-7. Rebase/synchronize PR #8 onto latest main so the final review diff is coherent and mergeable.
+Remaining acceptance blockers:
+1. **RP14-T7 DB verification is optional.** `verify_database_linkage()` returns when the local bundle omits both `database_url` and `db_path`; PASS must require a proof DB target and successful persisted `ApplicationPacketModel` / `ResumeVariantModel` / artifact-row checks.
+2. **RP14-T3 source attestation is not independently tied to trusted import evidence.** Bind the attestation to persisted Greenhouse `JobSourceModel`/`JobModel` importer evidence (including provider/source job ID, description/content SHA, question-list SHA, API/canonical URL, fetch metadata) or perform the fresh same-flow public revalidation required by the tooling audit. A self-consistent local attestation/questions file is not enough.
+3. Add adversarial tests for both bypasses. The current positive verifier fixture has no DB target and uses a fabricated `description_sha256`, yet still expects PASS.
+4. Rebase/synchronize PR #8 to current `main`, run focused + full pytest/Ruff/mypy, and obtain exact-head GitHub CI after the final implementation commit.
 
 Heartbeat:
-- Lane 1 is correctly emitting current-epoch ACTIVE_5M heartbeats.
+- Lane 1 is correctly emitting current-epoch ACTIVE_5M heartbeats, observed through 18:33:19Z at heartbeat #9.
+
+Remote support:
+- bounded read-only `worker-pc` post-repair audit `jobs-v14-p0a-postrepair-gap-audit-20260921-1420` dispatched; its claim cannot self-accept P0A.
 
 Next lead gate:
 - review the next coherent Lane 1 repair head before any real private-input proof run.
@@ -54,12 +52,12 @@ Only after explicit ChatGPT P0A acceptance:
 - import/revalidate current live OpenSesame AI Automation Engineer job using the approved Greenhouse path,
 - run the production packet builder with non-mock deterministic generation,
 - emit runtime `REAL_PROOF_CANDIDATE`,
-- run the verifier with private/local cross-binding,
+- run the verifier with mandatory private/local/database cross-binding,
 - commit only redacted hashes/provenance plus the separate verifier receipt.
 
 Whichever genuinely eligible Lane 1 or Lane 2 machine first has all real private inputs may execute the proof; no cross-lane handoff is required.
 
-Lane 2 machine is currently not eligible for V1.4 proof if its real profile still selects `resume_ai_software_engineer` without genuine mapped resume bytes. Do not synthesize/substitute another resume.
+Lane 2 is not eligible if its real profile still selects `resume_ai_software_engineer` without genuine mapped resume bytes. Do not synthesize/substitute another resume.
 
 Packet preparation only. No browser form prefill or submission.
 
@@ -73,19 +71,19 @@ Preserve:
 - A-R15-01..05 accepted at task scope.
 
 Current work:
-- A-R15-06 — page-level prompt-injection warning semantics,
-- A-R15-07 — field-specific resume/cover-letter/file upload mapping,
-- A-R15-08 — packet/provenance/artifact integrity revalidation immediately before browser use,
-- A-R15-09 — unknown file inputs remain manual/unfilled.
+- A-R15-06 page-level prompt-injection warning semantics,
+- A-R15-07 field-specific resume/cover-letter/file upload mapping,
+- A-R15-08 packet/provenance/artifact integrity revalidation immediately before browser use,
+- A-R15-09 unknown file inputs remain manual/unfilled.
 
 Current evidence:
 - implementation exists and has historical green PR CI,
-- branch is currently diverged from main and materially behind it,
+- branch is materially diverged from current main,
 - latest heartbeat still uses superseded DAYWATCH metadata.
 
 Immediate bounded assignment:
 1. stop the old Lane 2 DAYWATCH watcher once,
-2. pull/rebase latest main while preserving accepted A-R15-01..05 and current A-R15-06..09 source changes,
+2. pull/rebase latest main while preserving accepted A-R15-01..05 and current A-R15-06..09 changes,
 3. start exactly one Lane 2 `FIVE_MIN_2026_09_21` watcher,
 4. run focused assisted-safety adversarial tests + full pytest/Ruff/mypy + exact-head branch CI,
 5. push one coherent current-main batch and mark `READY_FOR_LEAD_REVIEW` / `REVIEW`,
@@ -109,15 +107,15 @@ Preserve accepted scope:
 - B-R20-01,
 - B-R20-02.
 
-The owner continues to name those tasks as the Lane 3 work surface, but reviewed evidence says they are already lead-accepted and integrated. Do not redo accepted work merely to create activity.
+Do not redo accepted work merely to create activity.
 
 Immediate bounded assignment:
 1. stop any old Lane 3 DAYWATCH watcher once,
 2. sync/rebase `worker/recruiting-ops` to latest main,
 3. start exactly one Lane 3 `FIVE_MIN_2026_09_21` watcher,
 4. run targeted worker/health/dashboard tests + full pytest/Ruff/mypy on the integrated baseline,
-5. inspect the accepted B task semantics for an actual integration regression,
-6. if green/no regression, report verification and wait for the next bounded lead assignment rather than reopening V2.3/Scout work,
+5. inspect accepted semantics for an actual integration regression,
+6. if green/no regression, report verification and await the next bounded lead assignment,
 7. if a real regression exists, repair only that bounded regression and request lead review.
 
 J20G-04 remains blocked on future Lane 1 Gmail-readiness dependency. No Gmail access is authorized.
@@ -137,9 +135,7 @@ Every heartbeat should produce an issue #7 comment. Actual commit timestamps out
 
 ## Remote worker
 
-`pri8771/remote-workers` is infrastructure only.
-
-Use `worker-pc` for bounded independent Jobs review/support when it is idle and the task materially shortens the critical path. Respect `capacity: 1`. Never accept or merge a remote-worker claim without inspecting any returned Jobs branch/diff/tests. Never auto-merge worker-pc branches.
+`pri8771/remote-workers` is infrastructure only. Use `worker-pc` for bounded independent Jobs review/support when idle and useful. Respect capacity 1. Never accept or merge a remote-worker claim without inspecting any returned Jobs branch/diff/tests. Never auto-merge worker-pc branches.
 
 ## Safety
 
