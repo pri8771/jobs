@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-20 20:30 ET
+Updated: 2026-09-20 20:47 ET
 
 ## Formal milestone direction
 
@@ -67,6 +67,8 @@ Prepared V2.0 artifacts:
 - A-V20-LIVE-INGESTION
 - A-V20-INTEGRATED-OS
 
+Lane C is assigned to candidate provenance plus Gmail/runtime-readiness engineering, with Lane B consuming the typed Gmail readiness boundary for health/worker evidence.
+
 Full V2.0 acceptance requires real Gmail/live-data evidence. Engineering may proceed independently around that user boundary.
 
 ## V2.3
@@ -88,9 +90,15 @@ Plan:
 - ChatGPT: lead/reviewer/integration/decomposition/future-artifact work
 - Antigravity Lane A: worker/app-execution
 - Antigravity Lane B: worker/recruiting-ops
+- Antigravity Lane C: worker/live-data-foundations
 
 Worker lane contract:
 - coordination/TEAM_LANES.md
+
+Current branch state at this lead check:
+- Lane A branch has no lane-specific commits beyond its pre-lane base and is behind main.
+- Lane B branch has no lane-specific commits beyond its pre-lane base and is behind main.
+- Lane C is at current main and has not yet pushed implementation work.
 
 ## External boundaries
 
