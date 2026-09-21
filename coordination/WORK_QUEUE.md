@@ -52,6 +52,13 @@ Critical-path assignment:
 - Scout should adversarially review the returned P0A batch; ChatGPT alone accepts the gate.
 - Because the remote Jobs push path is now smoke-verified, `worker-pc` may be used later for a bounded independent non-conflicting Jobs task if it is idle and doing so shortens this gate; do not duplicate Lane C's active implementation work.
 
+Latest lead review — 2026-09-21 02:48 ET:
+- no Lane C implementation commit or worker-authored heartbeat has landed; branch remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`;
+- no V1.4 proof candidate or verifier receipt has landed;
+- prior Jobs main `ea6a3990395cd803bfede26b1ac7e880551e0a82` was green before this coordination refresh;
+- `worker-pc` is online/capacity 1 but currently occupied by an in-progress non-Jobs SwarmAI workflow, so no additional Jobs remote task was dispatched;
+- P0A remains the sole version-completion critical path.
+
 Do not run the private-data proof until P0A is lead-accepted.
 
 ## P0 — V1.4 real proof
@@ -181,7 +188,7 @@ After the proof attempt:
 - J20G-02 SP2 OAuth runtime wiring
 - J20G-03 SP2 typed real-Gmail readiness
 
-No new worker-authored heartbeat/batch was present at the current lead check. Lane C's existing status file still predates the P0/P0A instructions, so current WORK_QUEUE is authoritative until the worker updates its own lane file.
+No new worker-authored heartbeat/batch was present at the current lead check. Lane C's branch still predates the current P0/P0A instructions, so current WORK_QUEUE is authoritative until the worker rebases and updates its own lane/status files.
 
 ## Lane D — V2.3 Foundations
 
