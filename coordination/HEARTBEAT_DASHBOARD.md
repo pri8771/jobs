@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 02:48 ET / 2026-09-21T06:48Z
+Last evidence review: 2026-09-21 03:46 ET / 2026-09-21T07:46Z
 
 ## Cadence policy
 
@@ -29,8 +29,9 @@ ChatGPT lead automation:
 - Lane D remains at `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
 - Scout remains at `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
 - No V1.4 real-proof evidence JSON or verifier receipt has landed; `coordination/proofs/` still contains only the README and schema.
-- Jobs `main` head before this coordination refresh was `ea6a3990395cd803bfede26b1ac7e880551e0a82`, and its CI completed successfully.
-- Remote `worker-pc` is online/capacity 1, but the remote-workers control plane currently has an in-progress SwarmAI task occupying the worker; no Jobs task was dispatched during this review.
+- Jobs `main` pre-refresh head `6fcb70d95e04e6aac3042eb3e25d586bc575d8ef` completed CI successfully in run #300.
+- Remote `worker-pc` is online/capacity 1, but remote-workers workflow `35566726945` for a non-Jobs SwarmAI task is still in progress; no Jobs task was dispatched during this review.
+- The current OpenSesame AI Automation Engineer posting remains live. Its page still contains AI-targeted prompt-injection text; no form interaction occurred.
 
 ## Evidence notes
 
