@@ -46,11 +46,14 @@ Remote worker evidence at the current lead check:
 - retry `jobs-v14-proof-hardening-r2` ran for approximately 40 minutes but ended `failed` with `Worker branch push failed.`;
 - its sanitized result contains no branch, no commit, no tests, and no summary;
 - no `worker/jobs-v14-proof-hardening-r2` branch exists in the Jobs repository;
-- therefore there is no implementation batch to review or accept from worker-pc yet.
+- therefore there is no implementation batch to review or accept from that attempt.
+- a subsequent infrastructure-only branch-push smoke task `jobs-push-probe-20260921-0146` succeeded against `pri8771/jobs` and returned branch `worker/jobs-push-probe-20260921-0146`, commit `b6c800f0ed4ffe8450aceb0021b0c417ac7e16ae`;
+- ChatGPT inspected that commit and confirmed it adds exactly one diagnostic Markdown file and no production/artifact/queue/lane changes; the probe must not be merged;
+- the Jobs remote branch-push path is therefore currently smoke-verified, but the failed hardening work remains unrecovered and unaccepted.
 
-Do not treat the remote-worker attempt as RP14-T1..T7 completion. Before another branch-mode retry, diagnose or repair the remote push path so work is not lost again. The remote control plane remains infrastructure only; Jobs remains authoritative.
+Critical-path implementation remains assigned to Lane C: rebase current main, implement RP14-T1..T7 as separate SP1-SP3 tasks in proof tooling/schema/tests/minimal docs, run targeted/full validation, push one coherent batch, and stop for Scout/ChatGPT review. Do not use private candidate/resume inputs and do not execute the actual proof during P0A hardening.
 
-Critical-path fallback is now assigned to Lane C: rebase current main, implement RP14-T1..T7 as separate SP1-SP3 tasks in proof tooling/schema/tests/minimal docs, run targeted/full validation, push one coherent batch, and stop for Scout/ChatGPT review. Do not use private candidate/resume inputs and do not execute the actual proof during P0A hardening.
+`worker-pc` may be used for a later bounded independent non-conflicting task if idle and useful, but must not duplicate Lane C's active P0A implementation.
 
 Once P0A is lead-accepted, this artifact returns to READY and Lane A or Lane C may execute the real proof immediately on whichever machine has the actual private profile + mapped real resume bytes.
 
@@ -142,7 +145,7 @@ Verifier receipt must include at minimum:
 ### P0A proof-tool integrity — Lane C
 Implement RP14-T1..RP14-T7 from `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`, add adversarial tests, run targeted/full tests plus Ruff/mypy/CI, push a bounded worker branch, and stop for lead review. No private proof execution in this task.
 
-Remote worker-pc may be retried only after its branch-push path is diagnosed/repaired. Do not duplicate Lane C's active P0A implementation once Lane C starts.
+Remote worker-pc may be used only for a bounded independent non-conflicting Jobs task when idle; do not duplicate Lane C's active P0A implementation.
 
 ### RP14-C1 — SP2 — Lane C
 After P0A acceptance, locate/validate the real private candidate profile and actual resume-source mappings locally.
