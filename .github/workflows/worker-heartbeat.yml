@@ -1,0 +1,94 @@
+name: Worker Heartbeat Validation
+
+on:
+  push:
+    branches:
+      - 'worker/**'
+      - 'scout/**'
+    paths:
+      - 'coordination/heartbeats/**'
+  workflow_dispatch:
+
+jobs:
+  validate-heartbeat:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate changed heartbeat files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            mapfile -t files < <(git diff --name-only HEAD^ HEAD -- 'coordination/heartbeats/*.md')
+          else
+            mapfile -t files < <(git ls-files 'coordination/heartbeats/*.md')
+          fi
+
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "No heartbeat file changed."
+            exit 0
+          fi
+
+          for file in "${files[@]}"; do
+            echo "Validating $file"
+
+            for key in lane branch mode interval_minutes consecutive_on_time last_check_in_utc review_state lead_action_requested; do
+              if ! grep -Eq "^$key:[[:space:]]*" "$file"; then
+                echo "ERROR: $file missing required metadata key: $key" >&2
+                exit 1
+              fi
+            done
+
+            mode="$(sed -n 's/^mode:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+            interval="$(sed -n 's/^interval_minutes:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+            streak="$(sed -n 's/^consecutive_on_time:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+            review="$(sed -n 's/^review_state:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+            action="$(sed -n 's/^lead_action_requested:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+
+            case "$mode" in
+              PROVING_15M)
+                [ "$interval" = "15" ] || {
+                  echo "ERROR: PROVING_15M requires interval_minutes: 15" >&2
+                  exit 1
+                }
+                ;;
+              STEADY_HOURLY)
+                [ "$interval" = "60" ] || {
+                  echo "ERROR: STEADY_HOURLY requires interval_minutes: 60" >&2
+                  exit 1
+                }
+                ;;
+              *)
+                echo "ERROR: invalid mode: $mode" >&2
+                exit 1
+                ;;
+            esac
+
+            if ! [[ "$streak" =~ ^[0-9]+$ ]]; then
+              echo "ERROR: consecutive_on_time must be an integer" >&2
+              exit 1
+            fi
+
+            case "$review" in
+              WORKING|READY_FOR_LEAD_REVIEW|BLOCKED) ;;
+              *)
+                echo "ERROR: invalid review_state: $review" >&2
+                exit 1
+                ;;
+            esac
+
+            case "$action" in
+              NONE|REVIEW|DECOMPOSE|ARCHITECTURE_DECISION|USER_ACTION) ;;
+              *)
+                echo "ERROR: invalid lead_action_requested: $action" >&2
+                exit 1
+                ;;
+            esac
+
+            echo "$file: valid"
+          done
