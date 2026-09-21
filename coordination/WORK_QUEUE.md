@@ -1,12 +1,12 @@
 # Active Work Queue
 
 Owner target:
-**Reach V1.7 with genuine live evidence at every required checkpoint.**
+**Advance the three authorized implementation lanes while enforcing genuine live-evidence gates.**
 
 Authoritative execution model:
 - exactly three active implementation lanes,
-- one current-epoch heartbeat watcher per active lane,
-- fixed 5-minute cadence (`FIVE_MIN_2026_09_21` / `ACTIVE_5M`),
+- exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher per lane while active,
+- fixed 5-minute cadence with no proving/watch/hourly transitions,
 - `worker-pc` is bounded independent support infrastructure only,
 - live proof is separate from engineering implementation,
 - version completion requires genuine non-mock production-path evidence.
@@ -24,57 +24,72 @@ Branch:
 - `worker/v14-real-proof`
 - draft PR #8
 
-Latest substantive repair reviewed:
+Latest substantive implementation reviewed:
 - `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Current branch head observed:
-- `bac19e5dd12a93644320ff9274ed562f1e347f20` — heartbeat #13
+Current branch head:
+- `f3a0c414f4da08e7fb92549f64cdff39cccb3186` — heartbeat #18 at `2026-09-21T19:18:36Z`
+- all commits after `5e505846...` are heartbeat-only
 
 Lead verdict:
 - **REWORK**
 - no private profile/resume proof execution yet
 
-Remaining bounded work:
-
 ### R14-P01 / RP14-T7 — mandatory database linkage
-REAL_PROOF_PASS must require a configured proof DB target and successful persisted-row validation. Omitting `database_url` / `db_path`, mismatching packet/resume/artifact rows, or presenting unrelated persisted rows must fail closed.
 
-### R14-P02 / RP14-T3 — independently trusted source attestation
-Load the corresponding persisted Greenhouse `JobSource`/`Job` evidence and bind at minimum:
+Current verifier still performs a bare success return when neither `database_url` nor `db_path` is supplied.
+
+REAL_PROOF_PASS must require:
+- an explicitly configured/resolvable proof DB target,
+- persisted `ApplicationPacketModel` identity/job/resume linkage,
+- persisted `ResumeVariantModel` selected variant + artifact linkage,
+- required resume/cover-letter artifact rows and matching hashes,
+- failure on missing/unopenable DB, unrelated rows, mismatched linkage, or tampering.
+
+### R14-P02 / RP14-T3 — independently trusted Greenhouse source attestation
+
+Current verifier still has no persisted `JobSource` binding.
+
+Bind the proof to persisted Greenhouse `JobSource`/`Job` evidence at minimum:
 - provider,
 - source kind,
-- public job ID,
+- public/source job ID,
 - API URL,
 - fetched_at_utc,
 - description/content SHA,
 - question-list SHA,
-- canonical apply URL.
+- canonical apply URL,
+- linked Job identity/apply URL.
 
-A self-consistent forged local `source_attestation` + locally authored questions file + fabricated description SHA must not pass.
+A self-consistent forged local source attestation + locally authored questions + fabricated description hash must fail.
 
 ### R14-P03 — adversarial verification
-Add focused tests for:
-- missing DB target,
-- mismatched persisted packet/resume/artifact rows,
-- forged self-consistent source attestation/questions,
-- DB source metadata/hash mismatch,
-- fabricated description/content SHA.
 
-`worker-pc` support is now available as reviewed test input:
+Reviewed worker-pc test input remains available:
 - branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449`,
 - commit `cffae70577b6719c92e7d7edc3ecd94d00db622d`,
-- actual diff inspected: only `tests/test_real_proof_verifier.py`, +420 lines,
-- no worker-side pytest/Ruff/Python execution and no GitHub CI on that commit,
-- therefore **not accepted/integrated**; Lane 1 may cherry-pick or adapt the tests and must execute them in its own validation batch.
+- actual diff previously inspected: only `tests/test_real_proof_verifier.py`, +420 lines,
+- no worker-side pytest/Ruff/Python execution and no GitHub CI,
+- support evidence only; never auto-merge.
+
+New bounded worker-pc production-support task:
+- `jobs-v14-p0a-remaining-fix-20260921-1545`,
+- isolated support branch mode,
+- limited to the two remaining verifier defects and focused tests,
+- remote workflow `35647203812` was in progress when dispatched,
+- no credit/acceptance until its actual returned Jobs branch/diff/tests are reviewed.
+
+Lane 1 must continue independently and must not wait for worker-pc.
 
 ### R14-P04 — final validation / review boundary
-- synchronize PR #8 to latest main without dragging unrelated historical churn,
-- focused real-proof tests,
+
+- synchronize production changes to latest main without unrelated historical coordination churn,
+- focused verifier/runner/adversarial tests,
 - full `pytest`,
 - `ruff check .`,
 - `mypy src tests`,
-- exact-head CI when GitHub Actions runners are available,
-- if Actions remain blocked before steps, record `CI_BLOCKED_ACCOUNT` and request independent exact-head validation,
+- exact-head CI when GitHub Actions runners execute,
+- if Actions fail before any steps, record `CI_BLOCKED_ACCOUNT` and provide independent exact-head validation,
 - set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes.
 
 Gate:
@@ -105,15 +120,15 @@ Current bounded scope:
 
 Current branch evidence:
 - head `ddb4f848a97dec87033cfdef7ca33642480d99bc`,
-- 32 commits ahead / 140 behind main at lead review,
-- heartbeat still on obsolete `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last 17:39:16Z.
+- latest observed comparison before newest lead-only commits: 32 ahead / 151 behind main,
+- heartbeat still obsolete `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last `17:39:16Z`.
 
 Immediate assignment:
-1. stop the old watcher once,
-2. synchronize/rebase latest main while preserving accepted behavior and intended A-R15-06..09 changes,
+1. stop/verify stopped the old watcher once,
+2. synchronize/rebase latest main preserving accepted behavior and intended A-R15-06..09 changes,
 3. start exactly one `FIVE_MIN_2026_09_21` Lane 2 watcher,
 4. run focused adversarial tests + full pytest/Ruff/mypy,
-5. obtain exact-head CI when available or record the account-level runner block,
+5. obtain exact-head CI when available or truthfully record the account-level runner block,
 6. mark READY_FOR_LEAD_REVIEW and stop.
 
 Do not enter V1.6 until the V1.5 gate passes or the owner/lead explicitly authorizes it.
@@ -134,11 +149,11 @@ Preserve accepted behavior:
 
 Current branch evidence:
 - head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`,
-- 0 commits ahead / 128 behind main at lead review,
-- heartbeat still on obsolete DAYWATCH, last 16:44:37Z.
+- latest observed comparison before newest lead-only commits: 0 ahead / 139 behind main,
+- heartbeat still obsolete DAYWATCH, last `16:44:37Z`.
 
 Immediate assignment:
-1. stop any old Lane 3 watcher once,
+1. stop/verify stopped any old Lane 3 watcher once,
 2. synchronize branch to latest main,
 3. start exactly one `FIVE_MIN_2026_09_21` Lane 3 watcher,
 4. run targeted worker/health/dashboard tests + full pytest/Ruff/mypy,
@@ -146,23 +161,24 @@ Immediate assignment:
 6. if clean, report verification and wait,
 7. if a real regression exists, repair only that bounded regression and request lead review.
 
-If new Lane 3 worker commits become ahead of main and no PR is open, ChatGPT creates a draft PR automatically.
+If new Lane 3 worker commits become ahead of main and no open PR exists, ChatGPT creates a draft PR automatically.
 
-J20G-04 remains blocked on later Lane 1 Gmail-readiness work. Do not reopen V2.3/Scout simply to create activity.
+J20G-04 remains blocked on later Lane 1 Gmail-readiness work. Do not reopen old V2.3/Scout implementation lanes simply to create activity.
 
 ## Heartbeat / GitHub issue #7
 
-Canonical standard:
+Canonical standard for all three active lanes:
 - epoch `FIVE_MIN_2026_09_21`,
 - mode `ACTIVE_5M`,
 - interval 5 minutes,
 - exactly one watcher per Lane 1/2/3,
 - no cadence transitions.
 
-Lane 1 is current through heartbeat #13 at 18:53:27Z.
+Lane 1 emitted current-epoch heartbeats through #18 at `19:18:36Z`, then became stale for >30 minutes. Verify the process is dead before restarting exactly one watcher.
+
 Lane 2 and Lane 3 must migrate off DAYWATCH.
 
-Issue #7 automated heartbeat comments stopped after 18:18Z even though Lane 1 commits continued. Current heartbeat jobs and current main CI jobs are failing before any workflow steps start. Treat this as `CI_BLOCKED_ACCOUNT` / Actions runner startup failure until runner execution resumes; do not rewrite heartbeat logic merely to create activity.
+Issue #7 automated heartbeat comments stopped after Lane 1's `18:18:14Z` comment even though Lane 1 commits continued. Latest heartbeat and main CI jobs fail before steps (`steps: []`, `runner_id: 0`), so current evidence supports `CI_BLOCKED_ACCOUNT` / runner startup failure rather than heartbeat-code regression. Direct ChatGPT lead comments remain mandatory every lead run.
 
 ## Review rule
 
