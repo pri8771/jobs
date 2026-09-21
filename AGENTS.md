@@ -57,14 +57,21 @@ Only load deeper historical docs/code needed for the task at hand.
 If these conflict, use this precedence:
 explicit user instruction > AGENTS.md > coordination/WORK_QUEUE.md > docs/PROJECT_SPEC.md > state/DECISIONS.md > coordination/CONTEXT.md > other docs > code comments.
 
-## Owner heartbeat directive — 2026-09-21
+## Owner heartbeat + active-session directive — 2026-09-21
 
 Latest explicit owner instruction:
-- all active Jobs lanes heartbeat every **5 minutes** while active,
+- use **one active Antigravity implementation session at a time**,
+- one active session gets **exactly one heartbeat watcher**,
+- the heartbeat runs every **5 minutes while that session is active**,
 - there are **no cadence transitions** to 15-minute or hourly modes,
-- use exactly one watcher process per lane,
 - canonical epoch is `FIVE_MIN_2026_09_21`,
+- when the same session switches historical lane branches, stop the old branch watcher before starting the single watcher for the new active branch,
+- never run duplicate watchers for the same active session,
+- historical Lane 1/Lane 2/Lane 3 branches remain work surfaces, not simultaneous active worker sessions,
 - any DAYWATCH/PROVING_5M/WATCH_15M_24H/STEADY_HOURLY instruction is superseded unless the owner explicitly changes this again.
+
+Canonical sequential execution program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
 
 This owner directive overrides older coordination files or automation output.
 
@@ -73,10 +80,11 @@ This owner directive overrides older coordination files or automation output.
 Use lane-specific heartbeat files under coordination/heartbeats/ as the primary worker -> ChatGPT coordination channel. ChatGPT may summarize accepted/rework/cross-lane decisions into coordination/AI_SYNC.md.
 
 While actively working on this project:
-- read coordination/SESSION_START.md and your lane heartbeat at the beginning of work,
-- update/push your dedicated heartbeat at least once per hour,
-- post immediately on milestone completion, meaningful blocker, architecture/policy question, or test failure requiring the other agent,
-- every check-in must state Done, Next, Blockers/risks, Commits, and Message to other agent.
+- read `coordination/SESSION_START.md` and the heartbeat file for the currently active historical lane branch,
+- keep exactly one watcher for the single active Antigravity session,
+- publish the heartbeat every 5 minutes while active; a minimal "still working on X; no blocker" update is valid,
+- post immediately on milestone completion, meaningful blocker, architecture/policy question, or test failure requiring lead attention,
+- milestone/review handoffs must state Done, Next, Blockers/risks, Commits, and Message to lead.
 
 Do not put durable architecture truth only in AI_SYNC:
 - durable project memory -> coordination/CONTEXT.md
@@ -115,21 +123,30 @@ At the start of a task:
 4. Work from the highest-priority unblocked queue item unless ChatGPT/user gave a newer instruction.
 5. Prefer tests and small interfaces before broad implementation.
 
-## Parallel worker lane discipline
+## Single-session worker discipline
 
-When multiple Antigravity sessions are active:
-- each session owns a named lane and dedicated branch,
-- code-path ownership should not overlap without an explicit lead decision,
-- workers do not edit lead-owned shared coordination/state files on their branches,
-- each worker updates only its lane status file,
-- workers rebase their lane branch on latest main before starting a new artifact batch,
-- workers push coherent artifact batches for ChatGPT review,
-- ChatGPT owns shared artifact index, work queue, current state, cross-lane integration, and milestone acceptance.
+The current owner-directed execution mode is sequential:
 
-Current lane contract:
-- coordination/TEAM_LANES.md
+- exactly one Antigravity implementation session is active at a time,
+- historical lane branches remain separate work surfaces for code ownership and PR history,
+- only the branch currently being worked by the active session has an active heartbeat watcher,
+- do not keep Lane 1/Lane 2/Lane 3 worker sessions running in parallel,
+- before moving to another historical lane branch, finish/push a coherent batch and stop the old heartbeat watcher,
+- rebase/synchronize the next work branch as required by its lane file,
+- start exactly one heartbeat watcher for the newly active branch,
+- workers do not edit lead-owned shared coordination/state files unless explicitly assigned,
+- ChatGPT owns shared artifact index, work queue, current state, cross-branch integration, acceptance, and downstream planning.
 
-Current active team is exactly three implementation lanes: Lane 1 V1.4 real-proof critical path, Lane 2 V1.5 application safety, and Lane 3 V1.7/V2.0 recruiting/reliability. V2.3 and Scout are paused. ChatGPT performs lead review; worker-pc may provide independent bounded review/support.
+Historical work surfaces:
+- Lane 1 / `worker/v14-real-proof` — V1.4 proof critical path,
+- Lane 2 / `worker/v15-assisted-application` — V1.5 and later V1.6 application execution,
+- Lane 3 / `worker/recruiting-ops` — V1.7 recruiting operations and V2 operations support.
+
+Current sequential program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+
+Future preparation:
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
 
 ## Antigravity execution protocol
 
