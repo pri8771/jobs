@@ -296,3 +296,27 @@ V2.3 contract:
 
 V3.0 artifact plan:
 - docs/V3_0_ARTIFACT_PLAN.md
+
+
+## External remote-worker infrastructure
+
+The project may use the independent control plane:
+- pri8771/remote-workers
+
+Current verified worker:
+- worker-pc
+- Windows
+- Claude Code
+- Git
+- private-repository tasks
+- read-only and isolated branch modes
+- test/build capability
+
+Rules:
+- Jobs remains authoritative for roadmap, memory, queue, branches, reviews, acceptance and release gates.
+- Do not move Jobs planning/state into remote-workers.
+- Remote-worker tasks must follow the protocol in pri8771/remote-workers.
+- Worker results are evidence only; ChatGPT lead reviews actual branches/diffs/tests before acceptance.
+- No automatic merges.
+- Use worker-pc for bounded independent work when it shortens the current critical path.
+- Current protocol capacity is one task at a time.
