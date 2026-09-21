@@ -2,68 +2,51 @@
 
 Branch:
 - `worker/v15-assisted-application`
+- PR #2
 
 Owner:
-- fresh Antigravity session
+- active Lane 2 worker
 
 Reviewer:
 - ChatGPT lead
 
-## Lead checkpoint — 2026-09-21 15:44Z
+## Preserved accepted scope
 
-- Draft PR #2 head is `552da7919dab95c18a0ec1e943275c3f67d3ba73`.
-- Current-head CI is green, but the branch is diverged from main and must be rebased before new work.
-- Historical `LANE_A.md` commits do not count for `DAYWATCH_2026_09_21`.
-- Active `coordination/heartbeats/LANE_2.md` is still 0/3; launch the numeric Lane 2 watcher after rebasing.
-- Preserve accepted A-R15-01..05 exactly; do not expand into V1.6.
+A-R15-01..A-R15-05 are lead-accepted at task scope. Preserve them exactly.
 
-## Existing accepted scope
+## Current scope
 
-A-R15-01..A-R15-05 are lead-accepted at task scope.
-Preserve that implementation.
+A-R15-06..09 only:
+- A-R15-06 — page-level prompt-injection warning semantics,
+- A-R15-07 — field-specific cover-letter/file upload mapping,
+- A-R15-08 — packet/provenance/artifact integrity revalidation immediately before browser use,
+- A-R15-09 — unknown file inputs remain manual/unfilled.
 
-## Immediate scope
+Implementation for this scope is present on the worker branch and has had green branch CI evidence, but it is not yet lead-accepted/integrated. Keep PR #2 draft until a coherent current-head READY_FOR_LEAD_REVIEW batch is reviewed against latest main.
 
-Rebase current branch on latest main, preserving worker source changes.
+Do not expand into V1.6.
 
-Implement:
-- A-R15-06 SP2 — page-level prompt-injection signal/warning semantics,
-- A-R15-07 SP2 — real cover-letter upload wiring + field-specific attachment mapping,
-- A-R15-08 SP2 — packet hash/answers/provenance/resume-link revalidation immediately before browser use,
-- A-R15-09 SP1 — unknown file inputs stay manual/unfilled; never default to resume.
+## Immediate bounded assignment
 
-Run targeted adversarial tests + full pytest/Ruff/mypy/CI.
+1. Pull/rebase latest `main` while preserving accepted A-R15-01..05 and current A-R15-06..09 source changes.
+2. If a `FIVE_MIN_2026_09_21` watcher is running, stop it. The authoritative heartbeat epoch is `DAYWATCH_2026_09_21`.
+3. Continue/restart only the numeric Lane 2 DAYWATCH watcher.
+4. Run focused assisted-safety adversarial tests + full pytest/Ruff/mypy + current-head branch CI.
+5. When the current head is coherent and green, set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes for lead review.
 
-No V1.6.
+## V1.4 proof eligibility
 
-## Real-proof readiness
+Do not execute V1.4 real proof until Lane 1 P0A is lead-accepted.
 
-Do not execute V1.4 proof until Lane 1 P0A is lead-accepted.
-
-Known Lane 2 machine blocker:
-the real profile selected `resume_ai_software_engineer`, but no genuine mapped file was present. Do not synthesize or relabel another resume.
+Known Lane 2 machine blocker remains: the real profile selected `resume_ai_software_engineer`, but no genuine mapped file for that selected variant was present. Do not synthesize, relabel, copy, or silently substitute another resume.
 
 ## Heartbeat
 
-Launch:
+Authoritative epoch: `DAYWATCH_2026_09_21`.
+
+Launch only if no correct watcher is already running:
 `python scripts/worker_heartbeat_watch.py --lane 2 --epoch DAYWATCH_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
 
-Heartbeat progress is posted to GitHub issue #7.
+Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
 
-## Exit
-
-Push one coherent A-R15-06..09 batch and set READY_FOR_LEAD_REVIEW.
-
-## Heartbeat migration — fixed 5-minute standard
-
-Current canonical heartbeat epoch:
-- `FIVE_MIN_2026_09_21`
-
-If an older DAYWATCH watcher is still running:
-1. stop that old watcher process,
-2. pull latest `main`,
-3. launch exactly one new watcher:
-   `python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --detach`
-4. do not start another watcher after that.
-
-There are no cadence transitions anymore. Heartbeat remains every 5 minutes for the entire active session.
+No Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.
