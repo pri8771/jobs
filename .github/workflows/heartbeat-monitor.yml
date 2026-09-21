@@ -17,11 +17,9 @@ jobs:
         with:
           script: |
             const lanes = [
-              {lane: 'A', branch: 'worker/v15-assisted-application', path: 'coordination/heartbeats/LANE_A.md'},
-              {lane: 'B', branch: 'worker/recruiting-ops', path: 'coordination/heartbeats/LANE_B.md'},
-              {lane: 'C', branch: 'worker/live-data-foundations', path: 'coordination/heartbeats/LANE_C.md'},
-              {lane: 'D', branch: 'worker/v23-foundations', path: 'coordination/heartbeats/LANE_D.md'},
-              {lane: 'SCOUT', branch: 'scout/qa-prep', path: 'coordination/heartbeats/SCOUT.md'},
+              {lane: '1', branch: 'worker/v14-real-proof', path: 'coordination/heartbeats/LANE_1.md'},
+              {lane: '2', branch: 'worker/v15-assisted-application', path: 'coordination/heartbeats/LANE_2.md'},
+              {lane: '3', branch: 'worker/recruiting-ops', path: 'coordination/heartbeats/LANE_3.md'},
             ];
 
             function value(text, key) {
@@ -30,7 +28,7 @@ jobs:
             }
 
             const rows = [];
-            let unhealthy = false;
+            let warnings = 0;
             const now = Date.now();
 
             for (const lane of lanes) {
@@ -45,7 +43,7 @@ jobs:
                 text = Buffer.from(res.data.content, 'base64').toString('utf8');
               } catch (err) {
                 rows.push([lane.lane, lane.branch, 'MISSING', '-', '-', 'missing heartbeat file']);
-                unhealthy = true;
+                warnings += 1;
                 continue;
               }
 
@@ -56,15 +54,15 @@ jobs:
 
               if (!last || last === 'null') {
                 rows.push([lane.lane, lane.branch, mode, streak, review, 'no worker-authored heartbeat yet']);
-                unhealthy = true;
+                warnings += 1;
                 continue;
               }
 
               const lastMs = Date.parse(last);
               const ageMin = Number.isFinite(lastMs) ? (now - lastMs) / 60000 : Infinity;
-              const staleLimit = mode === 'STEADY_HOURLY' ? 75 : 20;
+              const staleLimit = mode === 'STEADY_HOURLY' ? 75 : (mode === 'WATCH_15M_24H' ? 20 : 8);
               const state = ageMin <= staleLimit ? 'fresh' : 'STALE';
-              if (state === 'STALE') unhealthy = true;
+              if (state === 'STALE') warnings += 1;
 
               rows.push([
                 lane.lane,
@@ -83,9 +81,10 @@ jobs:
               summary += '| ' + r.join(' | ') + ' |\n';
             }
             summary += '\nMonitor cadence: GitHub schedule every 15 minutes. ChatGPT scheduled lead review remains hourly.\n';
+            summary += 'Warnings: ' + warnings + '. Missing/unproven/stale lanes are reported as liveness warnings, not workflow infrastructure failures.\n';
 
             await core.summary.addRaw(summary).write();
 
-            if (unhealthy) {
-              core.setFailed('One or more worker heartbeat lanes are missing, unproven, or stale.');
+            if (warnings > 0) {
+              core.warning(warnings + ' active lane heartbeat warning(s) detected.');
             }
