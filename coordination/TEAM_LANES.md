@@ -2,18 +2,17 @@
 
 ## Purpose
 
-Run three Antigravity sessions in parallel without file conflicts while ChatGPT leads artifact design, acceptance, and integration.
+Run four Antigravity implementation lanes plus one Scout without file conflicts while ChatGPT leads artifact design, acceptance, and integration.
 
 ## Lane A — Application Execution
 
 Branch:
-- worker/app-execution
+- worker/v15-assisted-application
 
 Owns:
-- A-V14-PACKET-SAFETY residuals
 - A-V15-BROWSER-SAFETY-CONTRACT implementation
 - A-V15-ASSISTED-APPLICATION
-- A-V16 submission engineering
+- A-V16 submission engineering after V1.5 acceptance
 
 Primary paths:
 - src/jobs_automation/preparation/
@@ -31,9 +30,9 @@ Branch:
 - worker/recruiting-ops
 
 Owns:
-- A-V17-CRM-EVIDENCE
-- A-V17-INTERVIEW-FOLLOWUP
-- A-V17-MILESTONE-GATE implementation evidence
+- repair/review completion of A-V17-CRM-EVIDENCE
+- repair/review completion of A-V17-INTERVIEW-FOLLOWUP
+- its already-implemented V2.0 dashboard/reliability/analytics batch through lead acceptance
 
 Primary paths:
 - src/jobs_automation/lifecycle/
