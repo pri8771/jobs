@@ -10,7 +10,7 @@ Story points measure complexity/uncertainty, not time.
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 2 | 1 | 1 | 1 | 1 |
-| 2 | 5 | 4 | 4 | 1 | 8 |
+| 2 | 9 | 8 | 4 | 5 | 16 |
 | 3 | 4 | 0 | 0 | 4 | 0 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
@@ -35,12 +35,16 @@ Story points measure complexity/uncertainty, not time.
 
 | Task ID | SP | Status | Owner | Artifact | Lead notes |
 |---|---:|---|---|---|---|
-| R14-01 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Make artifact paths immutable/content-addressed |
-| R14-02 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Correct selected resume-family attribution |
-| R14-03 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Mock/test generation cannot be live-ready |
-| R14-04 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Quantitative experience claims require exact evidence |
+| R14-01 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; immutable/content-addressed storage verified |
+| R14-02 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; exact selected resume-family attribution |
+| R14-03 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; mock/test packets not live-ready |
+| R14-04 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; unsupported quantitative claims fail closed |
 
 ## Interpretation so far
+
+Latest accepted evidence:
+- V1.4 residual batch R14-01..R14-04: 4/4 SP2 rework tasks lead-accepted after one bounded repair cycle.
+- Main CI passed after merge 8a0cdb4.
 
 Initial evidence suggests:
 - SP1-SP2 bounded work is relatively strong when acceptance criteria are explicit.
