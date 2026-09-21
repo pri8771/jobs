@@ -8,7 +8,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | Artifact ID | Phase | Artifact | Type | Owner | Status | Depends on | Unblocks |
 |---|---|---|---|---|---|---|---|
 | A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/engineering acceptance | Antigravity Lane A | ACCEPTED | V1.1 accepted | A-V14-REAL-PROOF, V1.5 |
-| A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Lane C + Lane A + Scout + ChatGPT | READY | A-V14-PACKET-SAFETY ACCEPTED | V1.4 COMPLETE |
+| A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Lane C + Lane A + Scout + ChatGPT | BLOCKED | A-V14-PACKET-SAFETY ACCEPTED + P0A proof-tool integrity acceptance | V1.4 COMPLETE |
 | A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Antigravity Lane A | IN_PROGRESS | A-V14-PACKET-SAFETY ACCEPTED | A-V15-ASSISTED-APPLICATION |
 | A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Antigravity Lane A | IN_PROGRESS | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT | V1.6 |
 | A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
@@ -42,7 +42,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 
 ## Current critical path
 
-A-V14-REAL-PROOF (P0; required for V1.4 COMPLETE)
+P0A proof-tool integrity acceptance
+→ A-V14-REAL-PROOF (required for V1.4 COMPLETE)
 → A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION residual repair + V1.5 real proof
 → A-V16 application execution
 → A-V17-MILESTONE-GATE
@@ -52,11 +53,11 @@ A-V14-REAL-PROOF (P0; required for V1.4 COMPLETE)
 
 ## Parallel implementation lanes
 
-- Lane A: first try A-V14-REAL-PROOF on its machine if private inputs exist; after proof, A-R15-06..09 then V1.5 integration/real proof; V1.6 stays blocked.
+- Lane A: wait for P0A proof-tool integrity acceptance before executing private A-V14-REAL-PROOF; after proof, A-R15-06..09 then V1.5 integration/real proof; V1.6 stays blocked.
 - Lane B: V1.7/V2.0 residual repair continues independently; current queue is authoritative.
-- Lane C: A-V14-REAL-PROOF input readiness/execution is P0 before candidate-provenance/Gmail J12/J20G work.
+- Lane C: wait for P0A proof-tool integrity acceptance before private A-V14-REAL-PROOF input/execution; then P0 proof before candidate-provenance/Gmail J12/J20G work.
 - Lane D: non-conflicting V2.3 foundations only.
-- Scout: independent non-owning QA; RP14-S1 becomes top priority when real-proof evidence lands.
+- Scout: independent non-owning QA; RP14-S1 becomes top priority when candidate + verifier evidence lands.
 
 ## Supporting parallel path
 
