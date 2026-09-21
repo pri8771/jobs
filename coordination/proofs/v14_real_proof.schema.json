@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "V1.4 Real Proof Redacted Evidence",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "result",
+    "proof_run_id",
+    "run_timestamp_utc",
+    "code_commit_sha",
+    "job_url",
+    "job_title",
+    "company",
+    "job_snapshot_sha256",
+    "candidate_profile_source_class",
+    "candidate_profile_version",
+    "resume_family",
+    "resume_variant",
+    "resume_version",
+    "resume_source_sha256",
+    "resume_source_byte_count",
+    "model_origin",
+    "generation_origin",
+    "packet_id",
+    "packet_hash",
+    "resume_artifact_sha256",
+    "cover_letter_artifact_sha256",
+    "manifest_sha256",
+    "is_live_ready",
+    "resolved_answers_count",
+    "unresolved_questions",
+    "read_back_verification",
+    "mock_or_fixture_inputs_present"
+  ],
+  "properties": {
+    "result": {
+      "const": "REAL_PROOF_PASS"
+    },
+    "proof_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_timestamp_utc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "code_commit_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{7,40}$"
+    },
+    "job_url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "job_title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "company": {
+      "type": "string",
+      "minLength": 1
+    },
+    "job_snapshot_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "candidate_profile_source_class": {
+      "enum": [
+        "PRIVATE_LOCAL",
+        "PRIVATE_CONNECTED_SOURCE"
+      ]
+    },
+    "candidate_profile_version": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "resume_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resume_variant": {
+      "type": "string",
+      "minLength": 1
+    },
+    "resume_version": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "resume_source_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "resume_source_byte_count": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "model_provider": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_name": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generation_origin": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packet_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "packet_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "resume_artifact_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "cover_letter_artifact_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "manifest_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{64}$"
+    },
+    "is_live_ready": {
+      "type": "boolean"
+    },
+    "resolved_answers_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "read_back_verification": {
+      "const": true
+    },
+    "mock_or_fixture_inputs_present": {
+      "const": false
+    }
+  }
+}
