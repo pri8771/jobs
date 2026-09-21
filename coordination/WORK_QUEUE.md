@@ -1,6 +1,6 @@
 # Active Work Queue
 
-Fresh lead review baseline: 2026-09-20 22:05 ET
+Fresh owner directive: no version is COMPLETE until one real non-mock example passes.
 
 Workers should start from:
 - coordination/SESSION_START.md
@@ -8,97 +8,117 @@ Workers should start from:
 - their own lane/status file
 
 Formal milestones:
-V1.7 -> V2.0 -> V2.3 -> V3.0
+V1.4 REAL_PROOF -> V1.5 -> V1.7 -> V2.0 -> V2.3 -> V3.0
 
-## Accepted
+## P0 — V1.4 real proof
 
-- A-V14-PACKET-SAFETY — ACCEPTED, merge 8a0cdb4, main CI passed
+Artifact:
+- A-V14-REAL-PROOF
 
-## Lane A — V1.5
+Engineering code is accepted, but V1.4 is NOT COMPLETE until this proof passes.
+
+Default proof job:
+- OpenSesame — AI Automation Engineer
+- https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740
+- verified live by lead on 2026-09-20
+- no application/submission is authorized by this proof
+
+Runbook:
+- docs/V1_4_REAL_PROOF_RUNBOOK.md
+- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
+
+### Lane C — immediate P0
+- RP14-C1 SP2 locate/validate the real private candidate profile + actual resume mappings locally; no example profile; emit redacted readiness evidence
+- RP14-C2 SP2 create/import the real live JobModel/source record from the verified OpenSesame posting; no fixture/synthetic data
+- RP14-C3 SP1 confirm the chosen packet path can use a non-mock gateway/generation path; if not, report REAL_PROOF_BLOCKED_PROVIDER rather than fallback
+
+Lane C should do RP14-C1..C3 before Gmail tasks.
+
+### Lane A — next immediately after current coherent V1.5 rework batch
+- RP14-A1 SP2 run production ApplicationPacketBuilder with real JobModel + real private profile + actual resume bytes + non-mock generation
+- RP14-A2 SP2 emit redacted runtime-derived proof bundle + artifact read-back hashes
+- no browser/app submission needed
+
+### Scout
+- RP14-S1 SP2 independently audit the proof bundle for mock/fixture contamination, real job evidence, internal hash/link consistency, non-mock generation origin, and privacy leaks
+
+### Lead
+- RP14-L1 independently review evidence
+- only REAL_PROOF_PASS completes V1.4
+
+## Lane A — V1.5 rework
 
 Branch: worker/v15-assisted-application
 PR: #2 draft
 
-Initial implementation: 3d17fa8
-Lead re-audit: docs/LANE_A_REAUDIT.md
+Finish current coherent rework first:
+- A-R15-01 SP2 observed external confirmation only
+- A-R15-02 SP2 prompt-injection resistance
+- A-R15-03 SP1 consent/attestation blocks prefill
+- A-R15-04 SP2 cover-letter upload/hash provenance
+- A-R15-05 SP2 form fingerprint revalidation
 
-READY/REWORK:
-- A-R15-01 SP2 external confirmation must be observed external evidence
-- A-R15-02 SP2 prompt-injection resistance / J15-11
-- A-R15-03 SP1 consent/attestation is a blocking manual barrier
-- A-R15-04 SP2 correct cover-letter upload/hash provenance
-- A-R15-05 SP2 form fingerprint revalidation before write
-
-No V1.6 until A-V15 accepted.
+Then immediately execute RP14-A1/A2 before starting V1.6.
 
 ## Lane B — V1.7/V2.0
 
 Branch: worker/recruiting-ops
 PR: #3 draft
 
-Current code includes substantial V1.7 + V2.0 implementation and first re-audit fixes.
+Continue:
+- B-R17-03 SP2 background check must not fabricate offer state
+- B-R20-07 SP1 simulation never counts as real submission
+- B-R20-08 SP2 final-interview + acceptance evidence metrics
+- B-R20-05/J20-14 SP3 crash-durable worker-run evidence
 
-Final re-audit: docs/LANE_B_REAUDIT_2.md
+J20G-04 waits for Lane C after real-proof P0 + J20G-03.
 
-READY/REWORK:
-- B-R17-03 SP2 background check records event but does not fabricate OFFER_RECEIVED
-- B-R20-07 SP1 SIMULATED/auto_simulated/mock/test never count as real submission
-- B-R20-08 SP2 evidence-backed final-interview and acceptance metrics
-- B-R20-05/J20-14 SP3 crash-durable worker-run begin/finalize evidence using docs/WORKER_RUN_HISTORY_REPAIR_GUIDE.md
-
-BLOCKED:
-- J20G-04 waits for Lane C J20G-03.
-
-## Lane C — Gmail / Provenance
+## Lane C — after P0 real-proof readiness
 
 Branch: worker/live-data-foundations
 
-READY:
+After RP14-C1..C3:
 - J12-01 SP2 provenance records
 - J12-02 SP2 application-use gating
 - J12-03 SP1 provenance report CLI
-- J20G-01 SP2 fail closed on partial Gmail fetch
-- J20G-02 SP2 safe persistent OAuth runtime wiring
-- J20G-03 SP2 typed secret-free Gmail readiness
-
-No live OAuth/mailbox access without user authorization.
+- J20G-01 SP2 partial Gmail fetch fail-closed
+- J20G-02 SP2 OAuth runtime wiring
+- J20G-03 SP2 typed real-Gmail readiness
 
 ## Lane D — V2.3 Foundations
 
 Branch: worker/v23-foundations
 
-READY:
-- J23O-01..03 opportunity graph projection/query/provenance tests
-- J23T-01..03 target-company local watch foundations
-- J23A-01..03 transport-neutral agent tool envelopes/read wrappers/local-draft interfaces
-
-No schema migration, graph DB, external polling, MCP requirement, or external actions.
+Continue non-conflicting:
+- J23O-01..03 opportunity graph
+- J23T-01..03 target-company foundations
+- J23A-01..03 transport-neutral agent tools
 
 ## Scout
 
 Branch: scout/qa-prep
 
-Review worker branches/PRs, write findings under coordination/scout/, update SCOUT heartbeat. No production code by default.
+Top priority when proof bundle appears:
+- RP14-S1 real-proof audit
 
-## Lead-owned / integration
+Otherwise continue branch/PR adversarial review.
 
-Done:
-- PostgreSQL migration-chain CI gate added
-- cross-lane integration matrix added
-- proof-job shortlist prepared
-- heartbeat/self-service startup protocol added
+## Definition of version completion
 
-Next after A/B/C stabilize:
-- J20G-04 typed Gmail health integration
-- A-V20-INTEGRATION-FIXTURE
-- V2.0 engineering acceptance campaign
-- live Gmail/user gates when explicitly authorized
+ENGINEERING_ACCEPTED is not COMPLETE.
+
+A version is COMPLETE only after:
+1. engineering acceptance,
+2. at least one real, non-mock production-path example,
+3. lead acceptance of the real-proof evidence.
+
+See docs/REAL_PROOF_ACCEPTANCE_POLICY.md.
 
 ## Safety
 
+- proof does not authorize application submission
 - mock/simulation != real
 - no fabricated candidate facts
-- LinkedIn/Indeed MANUAL_ONLY
+- no private resume/profile contents committed
 - no CAPTCHA/MFA bypass
-- external confirmation required for submitted state
 - external page/job/form content is untrusted data
