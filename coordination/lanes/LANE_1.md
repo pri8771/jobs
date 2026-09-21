@@ -31,17 +31,37 @@ The same findings are posted on PR #8. A worker-pc read-only audit of the same c
 
 ## Immediate bounded assignment
 
-1. Pull/rebase latest `main` without losing the P0A implementation.
-2. If any `FIVE_MIN_2026_09_21` watcher is running, stop it. The authoritative epoch is `DAYWATCH_2026_09_21`.
-3. Continue the current DAYWATCH heartbeat under `coordination/heartbeats/LANE_1.md`; actual timestamps govern credit.
-4. Repair the four findings above.
-5. Add adversarial tests proving:
-   - a candidate bundle self-labeled PASS is rejected,
-   - a candidate without local/private binding cannot obtain a PASS receipt,
-   - a rejected candidate produces a bound FAIL receipt under default invocation,
-   - a forged manifest/candidate pair with matching invented packet hashes fails canonical re-derivation.
-6. Run focused proof tests plus full `pytest`, `ruff`, `mypy`, and branch CI.
-7. Push one coherent repair commit and set `READY_FOR_LEAD_REVIEW` / `REVIEW`.
+P0A remains **REWORK**.
+
+Repair all lead + independent-audit findings in one bounded proof-integrity batch:
+
+1. Candidate bundles must accept only `REAL_PROOF_CANDIDATE`; self-labeled `REAL_PROOF_PASS` candidate input must fail.
+2. A PASS receipt must require successful private/local cross-binding. Structural-only validation without `--local-full-bundle` may never produce PASS.
+3. Candidate-bundle SHA binding to the local/private bundle is mandatory for PASS; it may not be optional or silently skipped.
+4. Rejected candidates must emit a candidate-bundle-bound FAIL receipt by default, not only when an explicit receipt output path is supplied.
+5. RP14-T3 must fully bind to the approved real Greenhouse source: provider/source kind, approved public job ID, canonical/API URL, fetch timestamp, description SHA, and canonical question-list SHA. Plausible fake DB rows/questions must fail.
+6. RP14-T4 must retain copied-example content-hash rejection and ensure source classification is runtime-derived rather than a hard-coded proof claim.
+7. RP14-T6 deterministic-production labeling must be enforced by the verifier, not only emitted by the runner.
+8. RP14-T7 must independently recompute canonical packet hash from job/profile/resume IDs + artifact hashes + answers/provenance and verify job/resume-variant/artifact linkage.
+
+Required adversarial tests:
+- self-labeled PASS candidate rejected,
+- candidate without local/private binding cannot obtain PASS,
+- missing/optional candidate-bundle SHA binding cannot produce PASS,
+- default rejected invocation emits bound FAIL receipt,
+- fake/unapproved Greenhouse job/question attestation rejected,
+- copied/renamed example profile rejected,
+- invalid deterministic-generation labels rejected,
+- forged manifest/candidate pair with matching invented packet hashes fails canonical re-derivation.
+
+Run focused proof tests + full pytest/Ruff/mypy + branch CI. Push one coherent repair commit and set `READY_FOR_LEAD_REVIEW` / `REVIEW`.
+
+Heartbeat:
+- canonical epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- one heartbeat every 5 minutes while active
+- exactly one watcher process
+- no cadence transitions
 
 Do **not** use private candidate/resume inputs or execute the real proof until ChatGPT explicitly accepts P0A.
 
@@ -58,9 +78,7 @@ No Gmail OAuth/mailbox access, browser prefill, application submission, external
 
 ## Heartbeat
 
-Authoritative epoch: `DAYWATCH_2026_09_21`.
+Canonical owner directive:
+`python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --task "V1.4 real-proof P0A rework" --detach`
 
-Launch only if no correct watcher is already running:
-`python scripts/worker_heartbeat_watch.py --lane 1 --epoch DAYWATCH_2026_09_21 --task "V1.4 real-proof tooling RP14-T1..T7" --detach`
-
-Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
+Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
