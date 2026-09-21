@@ -33,17 +33,11 @@ Branch:
 Owns:
 - A-V17-CRM-EVIDENCE
 - A-V17-INTERVIEW-FOLLOWUP
-- A-V20-CONTROL-CENTER
-- A-V20-RELIABILITY
-- A-V20-ANALYTICS
+- A-V17-MILESTONE-GATE implementation evidence
 
 Primary paths:
 - src/jobs_automation/lifecycle/
-- src/jobs_automation/dashboard/
-- src/jobs_automation/health.py
-- src/jobs_automation/worker.py
-- scripts/
-- related tests
+- related lifecycle/CRM/interview tests
 
 Lane status:
 - coordination/lanes/ANTIGRAVITY_B.md
@@ -102,3 +96,64 @@ Avoid:
 
 Lane status:
 - coordination/lanes/ANTIGRAVITY_C.md
+
+
+## Lane D — V2.0 Platform & Reliability
+
+Branch:
+- worker/platform-reliability
+
+Primary machine:
+- Windows
+
+Owns:
+- A-V20-CONTROL-CENTER
+- A-V20-RELIABILITY
+- A-V20-WORKER-RUN-HISTORY
+- A-V20-ANALYTICS
+- V2.0 operational health/recovery surfaces
+- J20G-04 after Lane C provides Gmail readiness interface
+
+Primary paths:
+- src/jobs_automation/dashboard/
+- src/jobs_automation/health.py
+- src/jobs_automation/worker.py for platform/reliability semantics only
+- scripts/
+- analytics-related modules
+- related tests
+
+Avoid:
+- lifecycle/ owned by Lane B
+- Gmail/ingestion/docker-compose owned by Lane C
+- application/preparation/browser/automation owned by Lane A
+- shared DB models/migrations until ChatGPT clears a specific task
+
+Lane status:
+- coordination/lanes/ANTIGRAVITY_D.md
+
+## Scout — QA / Prep / Adversarial Review
+
+Branch:
+- scout/qa-prep
+
+Primary machine:
+- Mac
+
+Owns no production code by default.
+
+May:
+- inspect all worker branches,
+- run tests,
+- identify semantic/safety/integration defects,
+- prepare adversarial test plans,
+- propose SP1-SP5 decomposition,
+- write scout findings under coordination/scout/.
+
+Must not:
+- modify production source unless explicitly assigned,
+- modify shared coordination truth,
+- merge branches,
+- perform external/live actions.
+
+Status:
+- coordination/scout/SCOUT_STATUS.md
