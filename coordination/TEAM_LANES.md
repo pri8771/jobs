@@ -1,172 +1,97 @@
-# Parallel Team Lanes
+# Active Team Lanes
 
-## Purpose
+Authoritative operating model: **3 implementation lanes**.
 
-Run four Antigravity implementation lanes plus one Scout without file conflicts while ChatGPT leads artifact design, acceptance, and integration.
+ChatGPT is engineering/product lead and acceptance gate.
+`worker-pc` is an independent review/support resource when available; it is not a project lane.
 
-## Lane A — Application Execution
-
-Branch:
-- worker/v15-assisted-application
-
-Owns:
-- A-V15-BROWSER-SAFETY-CONTRACT implementation
-- A-V15-ASSISTED-APPLICATION
-- A-V16 submission engineering after V1.5 acceptance
-
-Primary paths:
-- src/jobs_automation/preparation/
-- src/jobs_automation/storage/
-- src/jobs_automation/browser/
-- src/jobs_automation/automation/
-- related tests/migrations
-
-Lane status:
-- coordination/lanes/ANTIGRAVITY_A.md
-
-## Lane B — Recruiting Operations
+## Lane 1 — V1.4 Real-Proof Critical Path
 
 Branch:
-- worker/recruiting-ops
+- `worker/v14-real-proof`
+
+Lane file:
+- `coordination/lanes/LANE_1.md`
 
 Owns:
-- repair/review completion of A-V17-CRM-EVIDENCE
-- repair/review completion of A-V17-INTERVIEW-FOLLOWUP
-- its already-implemented V2.0 dashboard/reliability/analytics batch through lead acceptance
+- RP14-T1..T7 proof-tool integrity
+- after P0A acceptance, RP14-C1..C3 real input readiness
+- first genuine V1.4 real-proof execution when real inputs are present
+- then candidate provenance / Gmail-readiness work previously assigned to old Lane C
 
 Primary paths:
-- src/jobs_automation/lifecycle/
-- related lifecycle/CRM/interview tests
+- proof scripts/schema/tests
+- later provenance/Gmail paths
 
-Lane status:
-- coordination/lanes/ANTIGRAVITY_B.md
+Priority:
+- P0
 
-## Shared file rule
+## Lane 2 — V1.5 Application Safety
 
-Workers do not edit these unless explicitly assigned:
+Branch:
+- `worker/v15-assisted-application`
+
+Lane file:
+- `coordination/lanes/LANE_2.md`
+
+Owns:
+- preserve accepted A-R15-01..05
+- A-R15-06..09
+- real-proof execution only if Lane 1 is P0A-accepted and this machine has genuine selected resume bytes
+- V1.6 remains blocked
+
+Primary paths:
+- `src/jobs_automation/browser/`
+- application execution tests
+
+## Lane 3 — V1.7 / V2.0 Recruiting & Reliability
+
+Branch:
+- `worker/recruiting-ops`
+
+Lane file:
+- `coordination/lanes/LANE_3.md`
+
+Owns:
+- preserve accepted B-R17-03 / B-R20-07 / B-R20-08
+- B-R20-05 / J20-14 repair
+- B-R20-01 / B-R20-02 headline funnel repair
+- later J20G-04 after Gmail readiness exists
+
+Primary paths:
+- lifecycle / worker / health / analytics / dashboard tests
+
+## Paused lanes
+
+Old Lane D / `worker/v23-foundations`:
+- PAUSED.
+- V2.3 work is intentionally deferred until V1.4 is complete and V2.0 is materially closer to engineering acceptance.
+
+Old Scout / `scout/qa-prep`:
+- PAUSED as an active session.
+- Independent review is performed by ChatGPT plus `worker-pc` when useful.
+- Scout branch/history remains available as audit evidence.
+
+Old Lane C / `worker/live-data-foundations`:
+- SUPERSEDED by clean Lane 1 branch `worker/v14-real-proof`.
+- It had no worker production code ahead of main.
+
+## Shared-file rule
+
+Workers do not edit lead-owned project truth unless explicitly assigned:
 - coordination/ARTIFACT_INDEX.md
 - coordination/WORK_QUEUE.md
 - coordination/CONTEXT.md
 - coordination/AI_SYNC.md
+- coordination/HEARTBEAT_DASHBOARD.md
 - state/CURRENT.md
 - docs/ROADMAP_1_TO_3.md
 
-ChatGPT owns shared program truth and integrates worker evidence.
+## Review model
 
-## Handoff
-
-Each lane:
-1. pull latest branch,
-2. read artifact contracts,
-3. implement bounded task IDs,
-4. run tests/lint/types,
-5. commit/push branch,
-6. update only its lane status file,
-7. stop at user/live external boundaries,
-8. report branch SHA for lead review.
-
-ChatGPT reviews branch diffs/CI, updates shared artifact state, and merges accepted work.
-
-## Lane C — Live Data & Provenance Foundations
-
-Branch:
-- worker/live-data-foundations
-
-Owns:
-- temporary P0 proof-tool integrity implementation RP14-T1..RP14-T7 for A-V14-REAL-PROOF until that tooling gate is lead-accepted
-- after the P0A tooling gate, A-V14-REAL-PROOF private input readiness/execution if this machine has the required real inputs
-- A-V12-CANDIDATE-PROVENANCE implementation
-- A-V20-GMAIL-RUNTIME-READINESS except final health/worker glue owned by Lane B
-- engineering side of A-V12-GMAIL-CANARY
-- later A-V20-INTEGRATION-FIXTURE when dependencies are stable
-- proof-job selection support tooling if explicitly advanced
-
-Immediate P0 ordering:
-1. rebase current main
-2. implement RP14-T1..RP14-T7 only in proof scripts/schema/tests/minimal docs; no private inputs and no actual proof run
-3. stop for ChatGPT/Scout review
-4. after P0A acceptance, execute RP14-C1..C3 and, if fully ready, RP14-E1/E2 before Gmail work
-
-Primary paths:
-- scripts/import_v14_proof_job.py
-- scripts/run_v14_real_proof.py
-- scripts/verify_v14_real_proof.py
-- coordination/proofs/v14_real_proof.schema.json
-- proof-tooling tests
-- src/jobs_automation/adapters/gmail.py
-- src/jobs_automation/ingestion/
-- src/jobs_automation/provenance/ (new)
-- src/jobs_automation/integration/ (new, later)
-- src/jobs_automation/cli/
-- docker-compose.yml
-- related tests/config docs
-
-Avoid:
-- private profile/resume proof execution before P0A lead acceptance
-- preparation/storage/browser/automation code owned by Lane A
-- lifecycle/dashboard/health/worker.py owned by Lane B
-- candidate_profile.py while Lane A is actively modifying resume-family behavior unless coordinated
-
-Lane status:
-- coordination/lanes/ANTIGRAVITY_C.md
-
-
-## Lane D — V2.3 Foundations
-
-Branch:
-- worker/v23-foundations
-
-Primary machine:
-- Windows
-
-Owns:
-- A-V23-OPPORTUNITY-GRAPH read/projection layer
-- A-V23-TARGET-COMPANY-WATCH local foundations
-- A-V23-AGENT-TOOLS read/local-write service contracts
-- V2.3 implementation that can be built without external actions or shared-schema churn
-
-Primary paths:
-- new src/jobs_automation/intelligence/
-- new src/jobs_automation/agent_tools/
-- related tests
-- V2.3-specific config/examples when needed
-
-Avoid:
-- V2.0 lifecycle/dashboard/health/worker code while Lane B is under re-review
-- Gmail/ingestion/provenance code owned by Lane C
-- application/browser/automation owned by Lane A
-- shared DB models/migrations unless ChatGPT explicitly assigns a schema task
-
-Lane status:
-- coordination/lanes/ANTIGRAVITY_D.md
-
-## Scout — QA / Prep / Adversarial Review
-
-Branch:
-- scout/qa-prep
-
-Primary machine:
-- Mac
-
-Owns no production code by default.
-
-May:
-- inspect all worker branches,
-- run tests,
-- identify semantic/safety/integration defects,
-- prepare adversarial test plans,
-- propose SP1-SP5 decomposition,
-- write scout findings under coordination/scout/.
-
-Immediate P0 review order:
-- independently attack Lane C's RP14-T1..RP14-T7 proof-tool integrity batch when it lands,
-- then perform RP14-S1 on actual real-proof candidate + verifier evidence.
-
-Must not:
-- modify production source unless explicitly assigned,
-- modify shared coordination truth,
-- merge branches,
-- perform external/live actions.
-
-Status:
-- coordination/scout/SCOUT_STATUS.md
+1. worker implements on its lane branch,
+2. heartbeat/progress feed proves liveness,
+3. worker pushes coherent tested batch,
+4. ChatGPT reviews actual diff/tests/CI,
+5. worker-pc may perform independent bounded audit,
+6. only ChatGPT updates acceptance state / merges accepted work.
