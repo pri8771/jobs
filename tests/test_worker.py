@@ -272,7 +272,7 @@ def test_worker_begin_persistence_failure_fails_closed(
     failing_factory = FailingSessionFactory(db_session_factory)
     adapter = MockEmailAdapter([])
     daemon = WorkerDaemon(
-        session_factory=failing_factory,  # type: ignore[arg-type]
+        session_factory=failing_factory,
         poll_interval_seconds=60,
         email_adapter=adapter,
     )
