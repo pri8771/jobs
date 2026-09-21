@@ -67,37 +67,42 @@ After repair:
 Engineering only. No live application/session without user approval.
 Do not start V1.6 until A-V15 is ACCEPTED.
 
-## Lane B — V1.7 + V2.0 Rework
+## Lane B — V1.7 accepted slices + bounded V2.0 residual
 
 Branch:
 - `worker/recruiting-ops`
 
-Existing worker commits:
-- 21f2be9 V1.7
-- bd98cf5 V2.0 platform/analytics batch
+Worker repair commit reviewed:
+- `33d18b4` — repairs B-R17-01..B-R20-06
 
-Do not throw these away.
+Authoritative lead re-review:
+- `docs/LANE_B_REREVIEW_2026_09_20.md`
 
-Lead re-audit:
-- docs/LANE_B_REAUDIT.md
+Lead-accepted repair slices:
+- B-R17-01 SP2 classifier paths for RECRUITER_FOLLOW_UP/BACKGROUND_CHECK/ONBOARDING/WITHDRAWAL
+- B-R17-02 SP2 contradictory rejection after OFFER_ACCEPTED/ONBOARDING -> review, no regression
+- B-R20-03 SP1 neutral/descriptive sample-size wording
+- B-R20-04 SP2 remove false Gmail readiness heuristics; default NOT_INTEGRATED until Lane C typed readiness
+- B-R20-06 SP2 dashboard write protection via loopback or operator token
 
-Rework tasks:
-- B-R17-01 SP2 add conservative classifier paths for RECRUITER_FOLLOW_UP/BACKGROUND_CHECK/ONBOARDING/WITHDRAWAL and end-to-end tests
-- B-R17-02 SP2 contradictory rejection after OFFER_ACCEPTED/ONBOARDING -> review, not silent regression
-- B-R20-01 SP3 historical funnel/resume/source/role outcome metrics use ApplicationEvent history, not current status only
-- B-R20-02 SP2 fix "applications submitted" denominator; simulation/non-submitted rows do not count as real submitted
-- B-R20-03 SP1 remove "statistically robust" overclaim; descriptive sample-size language only
-- B-R20-04 SP2 remove false Gmail readiness inference; wait for Lane C typed readiness for final integration
-- B-R20-06 SP2 protect dashboard state-changing POST when not strictly local/authorized
+B-R20-01/B-R20-02 are substantially repaired for source/role/resume analytics, but remain open because the headline `get_funnel_summary()` still uses current status/row semantics.
 
-Worker-run history claim J20-14 is NOT accepted yet.
-Do not expand it in this batch unless ChatGPT explicitly reassigns B-R20-05.
+Immediate residual:
+- B-R20-07 SP2 repair top-level funnel summary to use real-submission denominator + historical ever-reached screen/interview/offer stages; retain `status_breakdown` only as current-state view; add interview->rejection, offer->withdrawal/decline, and simulation exclusion tests
 
-After rework:
-- full tests
+Worker-run history claim J20-14 / B-R20-05 is NOT accepted yet.
+Do not expand it unless ChatGPT explicitly reassigns the dedicated worker-run-history repair.
+
+J20G-04 remains blocked on Lane C J20G-03 typed readiness.
+
+After B-R20-07:
+- rebase current main
+- targeted funnel-history tests
+- full pytest
 - Ruff
 - mypy
 - push
+- green integrated GitHub CI
 - READY FOR LEAD RE-REVIEW
 
 ## Lane C — Live Data & Candidate Provenance
@@ -162,7 +167,7 @@ Scout owns no production code by default.
 
 Immediate priorities:
 1. independently audit Lane A `3d17fa8` and specifically A-R15-01..A-R15-05 / J15-11 adversarial cases
-2. independently re-audit Lane B repair branch when a new commit lands
+2. independently audit Lane B `33d18b4`, especially B-R20-07/top-level funnel consistency
 3. audit Lane C Gmail/provenance branch when code lands
 4. audit Lane D V2.3 interfaces
 5. maintain V2 integration risk log
@@ -176,6 +181,7 @@ Even when B rework is accepted, V2.0 still requires:
 - Lane C Gmail runtime readiness
 - actual user OAuth/live Gmail canary
 - candidate provenance
+- durable worker-run operational evidence
 - A-V20 integration fixture after core branches merge
 - real-data integration evidence
 
