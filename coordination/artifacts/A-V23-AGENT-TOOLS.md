@@ -3,10 +3,10 @@
 - Type: service/tool architecture (V3 bridge)
 - Phase: V2.3
 - Status: READY
-- Owner: V2.3 implementation surface (lane per lead decision D3); `PermissionGate` requires Opus-class implementation or review
+- Owner: single active implementation worker when this artifact is active; `PermissionGate` requires Opus-class implementation or review
 - Reviewer: ChatGPT
 - Story points: 19 (V23-TL-01..11)
-- Dependencies: stable V2 services on main; V2.3 services for the tools that wrap them; V1.6 `ScopedApprovalService` (R16-A02) only for P3 *execution* — until it lands, P3 tools return `NEEDS_REVIEW/BLOCKED` truthfully
+- Dependencies: stable V2 services on main; V2.3 services for the tools that wrap them; V1.6 `ScopedApprovalService` (R16-A02) only for P3 *execution* — until migration 004 / the service lands, P3 tools return `NEEDS_REVIEW/BLOCKED` truthfully
 - Downstream: V3 agent runtime, A-V30-PERMISSION-MODEL (reuses the gate and approval table), any MCP/HTTP wrapper (deferred)
 
 ## Contract
