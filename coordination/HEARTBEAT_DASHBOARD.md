@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 16:45 ET
+Updated: 2026-09-21 17:00 ET
 
 ## Canonical standard
 
@@ -39,7 +39,11 @@ Latest observed branch head:
 - `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
 - heartbeat #18
 
-The worker file says `READY_FOR_LEAD_REVIEW`, but lead verdict remains **REWORK**. A worker-pc support fix now exists for the two prior verifier gaps, but lead review found a new production-contract mismatch: its verifier/tests require a richer Greenhouse `source_payload_json` than `scripts/import_v14_proof_job.py` actually persists. Lane 1 must reconcile importer/verifier behavior and validate on current main before P0A acceptance.
+Worker file says `READY_FOR_LEAD_REVIEW`, but lead verdict remains **REWORK**.
+
+Reviewed worker-pc support `062ca922...` usefully closes the prior missing-DB and persisted-Greenhouse-binding gaps but is not accepted because it lacks exact-head test/CI evidence. A follow-up static audit corrected an interim lead note: the support/Lane 1 importer already persists provider/public ID/question-list hash. The actual remaining real-path blockers are:
+- verifier reads `generation_metadata["origin"]` while production packet builder writes `generation_metadata_json["generation_origin"]`,
+- verifier DB resolver accepts plain PostgreSQL schemes but not the application's normal `postgresql+psycopg://` default URL.
 
 Before restarting Lane 1 heartbeat, verify the prior watcher process is dead; then launch exactly one current-epoch Lane 1 watcher.
 
@@ -87,18 +91,23 @@ Fresh main CI evidence still indicates **`CI_BLOCKED_ACCOUNT` / GitHub Actions r
 - `runner_id: 0`,
 - scheduled heartbeat monitor also failed during the same outage.
 
-Do not rewrite heartbeat workflow semantics merely to manufacture activity. Direct ChatGPT lead updates to issue #7 remain mandatory every lead run.
+Do not rewrite heartbeat workflow semantics merely to manufacture activity. A direct ChatGPT lead comment was posted to issue #7 this run.
 
 ## worker-pc support
 
-Completed support task:
+Completed support implementation:
 - `jobs-v14-p0a-remaining-fix-20260921-1545`
 - branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
 - commit `062ca922c640d964220b550a06f61288b9a040c9`
-- reviewed as useful but **not accepted** because no exact-head validation and production importer/verifier contract mismatch remains.
+- useful but **not accepted** due missing exact-head validation.
 
-New read-only audit dispatched:
+Completed read-only audit:
 - `jobs-v14-p0a-importer-contract-audit-20260921-1645`
+- corrected the interim importer diagnosis and surfaced the generation-metadata and driver-qualified PostgreSQL URL blockers.
+
+New bounded support task:
+- `jobs-v14-p0a-runtime-contract-fix-20260921-1700`
+- support only; no automatic merge.
 
 `worker-pc` remains infrastructure support only, never a fourth active implementation lane.
 
