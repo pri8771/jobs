@@ -8,9 +8,9 @@ interval_minutes: 5
 heartbeat_count: 21
 last_check_in_utc: 2026-09-21T21:26:53Z
 current_task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
-progress_note: P0A batch implemented on claude/serene-brown-g6uij0 (clean port + support 062ca92/7e88542 adapted + job-identity binding); full checks green locally; pushing for lead review
-review_state: WORKING
-lead_action_requested: NONE
+progress_note: P0A + clean port READY_FOR_LEAD_REVIEW at claude/serene-brown-g6uij0 3444076de27573ec57d9c8ae60876aece8e646d9; 205 tests, ruff, mypy green locally; CI_BLOCKED_ACCOUNT; no private inputs used; awaiting ChatGPT review before any proof run
+review_state: READY_FOR_LEAD_REVIEW
+lead_action_requested: REVIEW
 
 ## Entries
 
