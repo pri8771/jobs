@@ -73,6 +73,6 @@ Produce a machine-readable integration report containing:
 ## Worker tasks
 
 Suggested after V1.7 + core V2 repairs:
-- J20-12 SP3 — implement golden integration fixture.
-- J20-13 SP2 — emit machine-readable integration report.
-- J20-14 SP2 — add duplicate/out-of-order replay cases.
+- J20I-01 SP3 — implement golden integration fixture.
+- J20I-02 SP2 — emit machine-readable integration report.
+- J20I-03 SP2 — add duplicate/out-of-order replay cases.
