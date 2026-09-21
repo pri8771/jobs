@@ -1,142 +1,121 @@
 # Active Work Queue
 
-Owner directives:
-- **Exactly three active implementation lanes.**
-- **No version is COMPLETE until one genuine non-mock production-path example passes.**
-- **Each active lane runs exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` heartbeat watcher at ~5-minute cadence.**
-- Old Lane C/D/Scout are paused/superseded.
+Owner target:
+**Reach V1.7 with genuine live evidence at every required checkpoint.**
 
-## P0 — Lane 1 — V1.4 proof-tool integrity
+Operating rules:
+- one Antigravity implementation session,
+- one active artifact at a time,
+- one heartbeat watcher,
+- fixed 5-minute cadence,
+- worker tasks are SP1/SP2 unless explicitly approved,
+- version-sized assignments are prohibited,
+- live proof is a separate artifact from engineering implementation.
 
-Branch / PR:
+Canonical recovery plan:
+- `docs/AUDIT_V1_7_LIVE_GAP_20260921.md`
+- `docs/V1_4_TO_V1_7_RECOVERY_EXECUTION.md`
+- `coordination/RECOVERY_QUEUE_V14_TO_V17.md`
+- `docs/LIVE_CHECKPOINT_EVIDENCE_STANDARD_V14_V17.md`
+
+## Current live status
+
+We are **not** at V1.7.
+
+- V1.4 live proof: MISSING
+- V1.5 live assisted proof: MISSING
+- V1.6 real system submission: MISSING
+- V1.7 real lifecycle proof: MISSING
+
+Engineering code exists substantially beyond the live checkpoint, but version completion follows accepted live evidence.
+
+## P0 — A-V14-P0A-INTEGRITY
+
+Current worker source:
 - `worker/v14-real-proof`
-- draft PR #8
+- PR #8
+- latest substantive repair source audited: `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Artifact:
-- `A-V14-REAL-PROOF`
+Immediate task:
+- R14-P01 / SP1 — independently bind actual persisted Greenhouse JobSource attestation fields to `local_data.source_attestation`.
 
-Latest implementation reviewed:
-- `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+Required comparison:
+- provider
+- source_kind
+- public job ID
+- API URL
+- fetched_at_utc
+- description SHA
+- question-list SHA
+- canonical apply URL
 
-Lead verdict:
-- **REWORK**
-- P0A is not accepted.
-- private candidate/resume proof execution remains forbidden.
+Then:
+- R14-P02 / SP1 adversarial DB-source mismatch tests
+- R14-P03 / SP1 targeted + full local checks
+- R14-P04 / SP1 exact-head CI or `CI_BLOCKED_ACCOUNT` evidence + request independent validation
 
-Materially improved in this repair:
-- actual candidate-profile path/hash validation and copied-example rejection,
-- fetch timestamp/canonical URL/public-job-ID checks,
-- local question-file hashing/count checks,
-- mandatory packet/job/resume/artifact UUID fields,
-- persisted-row verification implementation when a database target is present.
+Gate:
+Do not use private profile/resume inputs until ChatGPT accepts A-V14-P0A-INTEGRITY.
 
-Remaining acceptance blockers:
-1. **RP14-T7 DB verification is optional.** `verify_database_linkage()` returns when the local bundle omits both `database_url` and `db_path`; PASS must require a proof DB target and successful persisted `ApplicationPacketModel` / `ResumeVariantModel` / artifact-row checks.
-2. **RP14-T3 source attestation is not independently tied to trusted import evidence.** Bind the attestation to persisted Greenhouse `JobSourceModel`/`JobModel` importer evidence (including provider/source job ID, description/content SHA, question-list SHA, API/canonical URL, fetch metadata) or perform the fresh same-flow public revalidation required by the tooling audit. A self-consistent local attestation/questions file is not enough.
-3. Add adversarial tests for both bypasses. The current positive verifier fixture has no DB target and uses a fabricated `description_sha256`, yet still expects PASS.
-4. Rebase/synchronize PR #8 to current `main`, run focused + full pytest/Ruff/mypy, and obtain exact-head GitHub CI after the final implementation commit.
+## Next artifacts
 
-Heartbeat:
-- Lane 1 is correctly emitting current-epoch ACTIVE_5M heartbeats, observed through 18:33:19Z at heartbeat #9.
+1. A-V14-CLEAN-INTEGRATION
+2. A-V14-REAL-PROOF
+3. A-V15-CLEAN-INTEGRATION
+4. A-V15-LIVE-ASSISTED-PROOF
+5. A-V16-AUTHORIZATION
+6. A-V16-IDEMPOTENCY
+7. A-V16-PREFLIGHT
+8. A-V16-CONFIRMATION
+9. A-V16-HYGIENE
+10. A-V16-TRANSPORT
+11. A-V16-FIRST-REAL-SUBMISSION
+12. A-V17-ENGINEERING-RECONCILIATION
+13. A-V17-LIVE-LIFECYCLE-PROOF
+14. A-V17-MILESTONE-GATE
 
-Remote support:
-- bounded read-only `worker-pc` post-repair audit `jobs-v14-p0a-postrepair-gap-audit-20260921-1420` dispatched; its claim cannot self-accept P0A.
+Use `coordination/RECOVERY_QUEUE_V14_TO_V17.md` for task IDs and dependencies.
 
-Next lead gate:
-- review the next coherent Lane 1 repair head before any real private-input proof run.
+## Branch hygiene
 
-## P0 next — Lane 1 or genuinely eligible Lane 2 — V1.4 real proof
+Old PR #8 and PR #2 are source/history containers.
 
-Only after explicit ChatGPT P0A acceptance:
-- Lane 1 validates actual private profile + exact intended resume mapping,
-- import/revalidate current live OpenSesame AI Automation Engineer job using the approved Greenhouse path,
-- run the production packet builder with non-mock deterministic generation,
-- emit runtime `REAL_PROOF_CANDIDATE`,
-- run the verifier with mandatory private/local/database cross-binding,
-- commit only redacted hashes/provenance plus the separate verifier receipt.
+For clean integration:
+- branch from latest main,
+- port only necessary code commits,
+- do not bring heartbeat/history/coordination churn,
+- keep review diffs small.
 
-Whichever genuinely eligible Lane 1 or Lane 2 machine first has all real private inputs may execute the proof; no cross-lane handoff is required.
+## Review rule
 
-Lane 2 is not eligible if its real profile still selects `resume_ai_software_engineer` without genuine mapped resume bytes. Do not synthesize/substitute another resume.
+After every artifact:
+- push coherent batch,
+- run checks,
+- mark READY_FOR_LEAD_REVIEW,
+- stop that artifact,
+- ChatGPT reviews,
+- proceed only after acceptance.
 
-Packet preparation only. No browser form prefill or submission.
+Do not accumulate multiple unreviewed artifacts.
 
-## Lane 2 — V1.5 assisted-application safety
+## Live gates
 
-Branch / PR:
-- `worker/v15-assisted-application`
-- draft PR #2
+No prompt self-authorizes:
+- private candidate/resume use,
+- Gmail OAuth/mailbox access,
+- live browser action,
+- real application submission,
+- external messaging,
+- calendar mutation,
+- spending.
 
-Preserve:
-- A-R15-01..05 accepted at task scope.
+When a live gate is reached, report exact required authorization and do not simulate PASS.
 
-Current work:
-- A-R15-06 page-level prompt-injection warning semantics,
-- A-R15-07 field-specific resume/cover-letter/file upload mapping,
-- A-R15-08 packet/provenance/artifact integrity revalidation immediately before browser use,
-- A-R15-09 unknown file inputs remain manual/unfilled.
+## Heartbeat
 
-Current evidence:
-- implementation exists and has historical green PR CI,
-- branch is materially diverged from current main,
-- latest heartbeat still uses superseded DAYWATCH metadata.
-
-Immediate bounded assignment:
-1. stop the old Lane 2 DAYWATCH watcher once,
-2. pull/rebase latest main while preserving accepted A-R15-01..05 and current A-R15-06..09 changes,
-3. start exactly one Lane 2 `FIVE_MIN_2026_09_21` watcher,
-4. run focused assisted-safety adversarial tests + full pytest/Ruff/mypy + exact-head branch CI,
-5. push one coherent current-main batch and mark `READY_FOR_LEAD_REVIEW` / `REVIEW`,
-6. do not expand into V1.6.
-
-No live browser action is authorized.
-
-## Lane 3 — recruiting/reliability
-
-Branch:
-- `worker/recruiting-ops`
-
-PR #3:
-- merged/closed; accepted repair integrated on main as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
-
-Preserve accepted scope:
-- B-R17-03,
-- B-R20-07,
-- B-R20-08,
-- B-R20-05 / J20-14,
-- B-R20-01,
-- B-R20-02.
-
-Do not redo accepted work merely to create activity.
-
-Immediate bounded assignment:
-1. stop any old Lane 3 DAYWATCH watcher once,
-2. sync/rebase `worker/recruiting-ops` to latest main,
-3. start exactly one Lane 3 `FIVE_MIN_2026_09_21` watcher,
-4. run targeted worker/health/dashboard tests + full pytest/Ruff/mypy on the integrated baseline,
-5. inspect accepted semantics for an actual integration regression,
-6. if green/no regression, report verification and await the next bounded lead assignment,
-7. if a real regression exists, repair only that bounded regression and request lead review.
-
-J20G-04 remains blocked on future Lane 1 Gmail-readiness dependency. No Gmail access is authorized.
-
-## Heartbeat standard
-
-Canonical epoch/mode:
+Epoch:
 - `FIVE_MIN_2026_09_21`
-- `ACTIVE_5M`
-- 5-minute interval
-- one watcher per active lane
-- no cadence transitions
 
-If an active branch still has DAYWATCH/PROVING/WATCH/hourly state, stop that old watcher once and migrate it to the canonical watcher after syncing latest main.
-
-Every heartbeat should produce an issue #7 comment. Actual commit timestamps outrank metadata/self-claims.
-
-## Remote worker
-
-`pri8771/remote-workers` is infrastructure only. Use `worker-pc` for bounded independent Jobs review/support when idle and useful. Respect capacity 1. Never accept or merge a remote-worker claim without inspecting any returned Jobs branch/diff/tests. Never auto-merge worker-pc branches.
-
-## Safety
-
-No live Gmail OAuth/mailbox access, browser application submission, external messaging, spending, MFA/CAPTCHA bypass, private candidate-data commits, or fabricated candidate facts without explicit scoped owner authorization.
+Exactly one watcher for the single active session.
+Every 5 minutes while active.
+Stop old watcher before switching branch.
