@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 04:45 ET / 2026-09-21T08:45Z
+Last evidence review: 2026-09-21 05:44 ET / 2026-09-21T09:44Z
 
 ## Cadence policy
 
@@ -29,10 +29,11 @@ ChatGPT lead automation:
 - Lane D remains at `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
 - Scout remains at `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
 - No V1.4 real-proof evidence JSON or verifier receipt has landed; `coordination/proofs/` still contains only the README and schema.
-- Jobs `main` pre-refresh head `379660b6a6b4dd93416eae33a637c96656a1fd96` completed standard CI successfully in run #304.
-- Scheduled heartbeat monitor run `35576477294` failed at `Check worker heartbeat freshness`; the workflow intentionally fails when any lane is missing, unproven, or stale. This is direct evidence that worker heartbeat proving has not advanced, not a product-CI regression.
-- The prior non-Jobs SwarmAI remote-worker workflow `35566726945` is now completed/cancelled, so the capacity-1 `worker-pc` became available.
-- ChatGPT dispatched bounded read-only Jobs task `jobs-v14-p0a-preflight-20260921-0445`; remote workflow `35579791471` is in progress. It is acceptance-preflight/adversarial mapping only and does not replace Lane C implementation.
+- Jobs `main` head `fa807c620addf2173884bc0100294d4f3a4cc7b8` completed standard CI successfully in run #309.
+- Scheduled heartbeat monitor run `35576477294` previously failed at `Check worker heartbeat freshness`; the workflow intentionally fails when any lane is missing, unproven, or stale. This remains a liveness signal, not a product-CI regression.
+- Remote Jobs preflight task `jobs-v14-p0a-preflight-20260921-0445` completed successfully in workflow `35579791471`. It was read-only/static, produced no Jobs branch or commit, and therefore cannot satisfy any RP14 implementation task.
+- The preflight independently maps the current P0A scope and explicitly confirms the RP14-T1 requirement that runtime output be `REAL_PROOF_CANDIDATE`, the verifier emit a separately bundle-bound PASS/FAIL receipt, and failure paths emit FAIL receipts rather than returning before evidence is written.
+- Immediately afterward the capacity-1 `worker-pc` was occupied by non-Jobs SwarmAI workflow `35580580156`, currently in progress, so no additional Jobs remote task was dispatched.
 
 ## Evidence notes
 
