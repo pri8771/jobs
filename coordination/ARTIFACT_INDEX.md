@@ -24,7 +24,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V17-MILESTONE-GATE | V1.7 | Integrated recruiting operations acceptance | milestone | ChatGPT | BLOCKED | A-V17-CRM-EVIDENCE, A-V17-INTERVIEW-FOLLOWUP | V2.0 |
 | A-V20-CONTROL-CENTER | V2.0 | Daily operator control center | implementation/UX | Lane 3 | LEAD_REVIEW | existing dashboard | A-V20-INTEGRATED-OS |
 | A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Lane 3 | IN_PROGRESS | existing CI/health/backup | A-V20-INTEGRATED-OS |
-| A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Lane 3 | IN_PROGRESS | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
+| A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Lane 3 | ACCEPTED | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
 | A-V20-ANALYTICS | V2.0 | Funnel/resume/source analytics | analytics | Lane 3 | IN_PROGRESS | resume attribution | A-V20-INTEGRATED-OS |
 | A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Lane 1 + Lane 3 J20G-04 glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
 | A-V20-LIVE-INGESTION | V2.0 | Real Gmail/live-data ingestion proof | live integration | Lane 1 + User | BLOCKED | A-V20-GMAIL-RUNTIME-READINESS + user OAuth | A-V20-INTEGRATED-OS |
@@ -53,9 +53,9 @@ Lane 1 P0A proof-tool integrity acceptance
 
 ## Exactly three active implementation lanes
 
-- Lane 1 / `worker/v14-real-proof`: RP14-T1..T7 first; after lead acceptance, genuine private input readiness + V1.4 real proof; then candidate provenance/Gmail readiness.
-- Lane 2 / `worker/v15-assisted-application`: preserve accepted A-R15-01..05, implement A-R15-06..09; no V1.6 until gates pass.
-- Lane 3 / `worker/recruiting-ops`: preserve accepted B-R17-03/B-R20-07/B-R20-08, repair B-R20-05/J20-14 + B-R20-01/B-R20-02.
+- Lane 1 / `worker/v14-real-proof`: P0A rework for RP14-T1..T7; after lead acceptance, genuine private input readiness + V1.4 real proof; then candidate provenance/Gmail readiness.
+- Lane 2 / `worker/v15-assisted-application`: preserve accepted A-R15-01..05 and complete/integrate A-R15-06..09; no V1.6 until gates pass.
+- Lane 3 / `worker/recruiting-ops`: B-R20-05/J20-14 + B-R20-01/B-R20-02 are accepted and integrated; run bounded post-integration verification, then wait on blocked J20G-04 dependency rather than inventing filler work.
 
 Old Lane C is superseded by Lane 1. Old Lane D and Scout are paused and must not be treated as active workers. `worker-pc` is infrastructure/support only, not an implementation lane.
 
