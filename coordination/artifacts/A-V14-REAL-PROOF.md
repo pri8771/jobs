@@ -38,7 +38,7 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied/example or fake private-profile evidence, extra fields, misleading generation metadata, and broken packet/artifact/database links. Targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Latest lead review — 2026-09-21 17:48 ET
+## Latest lead review — 2026-09-21 18:03 ET
 
 Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
 
@@ -47,8 +47,8 @@ Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
 Worker implementation:
 - clean implementation branch: `claude/serene-brown-g6uij0`
 - substantive commit: `3444076de27573ec57d9c8ae60876aece8e646d9`
-- parent: current reviewed `main` `927b33c0f523950ca206ead1cc2912e19a018184`
-- Lane 1 heartbeat reports `READY_FOR_LEAD_REVIEW`; current Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`.
+- parent: reviewed `main` `927b33c0f523950ca206ead1cc2912e19a018184`
+- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, then became stale; before resuming Lane 1 must confirm the old watcher is dead and launch exactly one current watcher.
 
 Lead inspected the actual clean-port diff rather than the worker claim. The implementation materially closes the previously identified runtime-contract gaps:
 - runner emits `REAL_PROOF_CANDIDATE`, not PASS,
@@ -84,21 +84,35 @@ That directly conflicts with the accepted P0A contract:
 
 The verifier has an explicit Python allowlist, but the committed schema is itself part of the proof contract and must agree with the production candidate shape. P0A therefore remains **REWORK** until the schema is corrected and regression-tested against the actual runner output.
 
-Required correction:
-1. set schema `additionalProperties: false`,
-2. make `result` require `REAL_PROOF_CANDIDATE`,
-3. include every legitimate production candidate field emitted by `scripts/run_v14_real_proof.py` and permitted by the verifier (including the current generation/candidate/question fields),
-4. add focused schema tests that accept a production-shape candidate and reject both arbitrary extra fields and a candidate self-declaring `REAL_PROOF_PASS`.
+### Reviewed worker-pc schema support
 
-A bounded `worker-pc` support task `jobs-v14-p0a-schema-gate-20260921-1748` was dispatched from the clean implementation branch for this schema-only gap. It is support only; Lane 1 must not wait for it or auto-merge it.
+Bounded task `jobs-v14-p0a-schema-gate-20260921-1748` completed successfully and returned:
+- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`,
+- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`,
+- direct parent `3444076de27573ec57d9c8ae60876aece8e646d9`.
+
+Lead inspected the actual Jobs diff. It changes only:
+- `coordination/proofs/v14_real_proof.schema.json`,
+- new `tests/test_real_proof_schema.py`,
+- `pyproject.toml` to add the `jsonschema` dev dependency.
+
+Structurally the support patch closes the schema gap:
+- `additionalProperties: false`,
+- `result.const: REAL_PROOF_CANDIDATE`,
+- schema `properties` and `required` are pinned to the runner's emitted top-level keys and verifier `ALLOWED_TOP_LEVEL_KEYS`,
+- legitimate production fields such as `candidate_unresolved_fact_categories`, `questions_count`, `generation_engine`, `model_provider`, and `model_name` are represented,
+- deterministic-generation labels are constrained consistently with the verifier,
+- tests cover production-shape candidate acceptance, arbitrary extra-field rejection, self-declared PASS rejection, missing required keys, and invalid out-of-contract values.
+
+**Support verdict: useful, not accepted or merge-ready.** The worker did not execute the test suite in its environment, and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or faithfully reimplement this patch inside its coherent current-main P0A batch, run focused and full validation, and obtain exact-head CI when hosted Actions execute. No support branch may auto-merge.
 
 ### CI gate still unresolved
 
-GitHub has no check runs for substantive clean-port commit `3444076...`.
+GitHub has no check runs for substantive clean-port commit `3444076...` or schema-support commit `70ef7adc...`.
 
-The current Lane 1 heartbeat head continues to trigger Actions jobs that fail before any workflow step executes (`steps: []`, `runner_id: 0`), consistent with the existing account/hosted-runner startup block. Do not call this green CI and do not rewrite proof behavior to work around an infrastructure outage.
+The current Lane 1 heartbeat head and latest main CI continue to trigger Actions jobs that fail before any workflow step executes (`steps: []`, `runner_id: 0`), consistent with the existing account/hosted-runner startup block. Do not call this green CI and do not rewrite proof behavior to work around an infrastructure outage.
 
-Before P0A acceptance, Lane 1 must land the schema correction on a clean current-main integration, rerun focused + full pytest/Ruff/mypy, and obtain exact-head branch CI when hosted runners execute. If Actions still fail before steps begin, record `CI_BLOCKED_ACCOUNT`; private proof execution remains forbidden until the lead resolves the acceptance gate.
+Before P0A acceptance, Lane 1 must land the reviewed schema correction on a clean current-main integration, rerun focused + full pytest/Ruff/mypy, and obtain exact-head branch CI when hosted runners execute. If Actions still fail before steps begin, record `CI_BLOCKED_ACCOUNT`; private proof execution remains forbidden until the lead resolves the acceptance gate.
 
 ## Real-proof execution after P0A acceptance
 
