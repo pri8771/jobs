@@ -1,4 +1,23 @@
-# Roadmap: V1.0 -> V3.0
+# Roadmap
+
+## Superseding milestone cadence — 2026-09-20
+
+The owner has changed the formal milestone checkpoints to:
+
+**V1.7 -> V2.0 -> V2.3 -> V3.0**
+
+V1.5/V1.6 remain required application-execution artifacts on the path to the next formal checkpoint, but they are no longer separate planning stops.
+
+The old V1.8 dashboard requirements and V1.9 reliability/learning requirements are **absorbed into V2.0 acceptance** rather than discarded.
+
+V2.3 is now the explicit bridge from the V2.0 operating system to the V3.0 multi-agent career network. Its contract is in `docs/V2_3_SPEC.md`.
+
+Execution program:
+- `docs/V1_7_TO_V3_ACCELERATION_PLAN.md`
+- `coordination/ARTIFACT_INDEX.md`
+- `coordination/WORK_QUEUE.md`
+
+: V1.0 -> V3.0
 
 This roadmap is outcome-based. Version labels represent demonstrated capabilities, not merely the presence of source files.
 
