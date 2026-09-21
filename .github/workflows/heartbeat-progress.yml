@@ -1,0 +1,78 @@
+name: Heartbeat Progress Feed
+
+on:
+  push:
+    branches:
+      - 'worker/v14-real-proof'
+      - 'worker/v15-assisted-application'
+      - 'worker/recruiting-ops'
+    paths:
+      - 'coordination/heartbeats/LANE_1.md'
+      - 'coordination/heartbeats/LANE_2.md'
+      - 'coordination/heartbeats/LANE_3.md'
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  post-progress:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find changed active-lane heartbeat
+        id: hb
+        shell: bash
+        run: |
+          set -euo pipefail
+          file=""
+          case "${GITHUB_REF_NAME}" in
+            worker/v14-real-proof) file="coordination/heartbeats/LANE_1.md" ;;
+            worker/v15-assisted-application) file="coordination/heartbeats/LANE_2.md" ;;
+            worker/recruiting-ops) file="coordination/heartbeats/LANE_3.md" ;;
+            *) exit 0 ;;
+          esac
+
+          get() {
+            sed -n "s/^$1:[[:space:]]*//p" "$file" | head -n1 | tr -d '\r'
+          }
+
+          echo "file=$file" >> "$GITHUB_OUTPUT"
+          echo "lane=$(get lane)" >> "$GITHUB_OUTPUT"
+          echo "mode=$(get mode)" >> "$GITHUB_OUTPUT"
+          echo "task=$(get current_task)" >> "$GITHUB_OUTPUT"
+          echo "note=$(get progress_note)" >> "$GITHUB_OUTPUT"
+          echo "streak=$(get consecutive_on_time)" >> "$GITHUB_OUTPUT"
+          echo "watch=$(get watch_checkins)" >> "$GITHUB_OUTPUT"
+          echo "missed=$(get missed_intervals)" >> "$GITHUB_OUTPUT"
+          echo "time=$(get last_check_in_utc)" >> "$GITHUB_OUTPUT"
+          echo "review=$(get review_state)" >> "$GITHUB_OUTPUT"
+          echo "action=$(get lead_action_requested)" >> "$GITHUB_OUTPUT"
+
+      - name: Post heartbeat to live progress issue
+        if: steps.hb.outputs.file != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LANE: ${{ steps.hb.outputs.lane }}
+          MODE: ${{ steps.hb.outputs.mode }}
+          TASK: ${{ steps.hb.outputs.task }}
+          NOTE: ${{ steps.hb.outputs.note }}
+          STREAK: ${{ steps.hb.outputs.streak }}
+          WATCH: ${{ steps.hb.outputs.watch }}
+          MISSED: ${{ steps.hb.outputs.missed }}
+          TIME: ${{ steps.hb.outputs.time }}
+          REVIEW: ${{ steps.hb.outputs.review }}
+          ACTION: ${{ steps.hb.outputs.action }}
+        shell: bash
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          body="**Lane ${LANE} heartbeat** — \`${TIME}\`
+
+          - **Task:** ${TASK}
+          - **Update:** ${NOTE}
+          - **Heartbeat:** ${MODE} — proving ${STREAK}/3 — 24h check-ins ${WATCH} — misses ${MISSED}
+          - **State:** ${REVIEW} / lead action ${ACTION}
+          - **Branch:** \`${GITHUB_REF_NAME}\` @ \`${short_sha}\`"
+
+          gh issue comment 7 --repo "${GITHUB_REPOSITORY}" --body "$body"
