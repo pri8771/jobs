@@ -3,41 +3,43 @@
 Purpose:
 Provide durable worker liveness and concise progress evidence through Git.
 
-## Active standard
+## Current epoch
 
-There is one heartbeat cadence for every active lane:
+Authoritative epoch:
+- `DAYWATCH_2026_09_21`
 
-**every 5 minutes while the lane session is active.**
-
-There are no proving, 15-minute, 24-hour, or hourly transitions.
-
-Current epoch:
-- `FIVE_MIN_2026_09_21`
-
-Active lanes:
+Exactly three active lanes:
 - Lane 1 — `worker/v14-real-proof`
 - Lane 2 — `worker/v15-assisted-application`
 - Lane 3 — `worker/recruiting-ops`
 
-Historical cadence/heartbeat entries are preserved only as audit history.
+Historical A/B/C/D/Scout files and any other epoch do not count for this exercise.
 
-## Detached watcher
+## Required cadence
 
-Launch exactly one watcher per active lane:
+### Phase 1 — `PROVING_5M`
 
-```bash
-python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch FIVE_MIN_2026_09_21 --detach
-```
+A fresh/current-epoch worker must produce 3 consecutive worker-authored heartbeats with gaps of **4–7 minutes**.
 
-The watcher:
-- uses a separate lightweight clone,
-- never dirties the implementation working tree,
-- emits at most one heartbeat inside a 4-minute minimum gap,
-- continues every 5 minutes until the process/session stops,
-- tolerates accidental duplicate watcher processes by suppressing too-soon duplicate writes,
-- never changes cadence.
+- first valid check-in: 1/3
+- next 4–7 minutes later: 2/3
+- next 4–7 minutes later: 3/3
+- any gap outside 4–7 minutes resets the proving streak to 1 on the newest check-in
 
-Do not restart the watcher merely because a new chat/session message arrives.
+After verified 3/3, enter `WATCH_15M_24H`.
+
+### Phase 2 — `WATCH_15M_24H`
+
+Publish approximately every 15 minutes for a clean 24-hour window.
+
+- any gap **>20 minutes** increments `missed_intervals`
+- that miss restarts the clean 24-hour window from the newest check-in
+- historical misses remain visible; the current clean-window start is `watch_started_utc`
+- after a clean 24 hours, switch to `STEADY_HOURLY`
+
+### Phase 3 — `STEADY_HOURLY`
+
+After the clean 24-hour watch completes, publish approximately hourly.
 
 ## Active heartbeat files
 
@@ -45,62 +47,57 @@ Do not restart the watcher merely because a new chat/session message arrives.
 - Lane 2: `coordination/heartbeats/LANE_2.md`
 - Lane 3: `coordination/heartbeats/LANE_3.md`
 
-## Required metadata
+Required top-level metadata:
 
 ```yaml
 lane: 1
 branch: worker/v14-real-proof
-heartbeat_epoch: FIVE_MIN_2026_09_21
-mode: ACTIVE_5M
+heartbeat_epoch: DAYWATCH_2026_09_21
+mode: PROVING_5M
 interval_minutes: 5
-heartbeat_count: 1
-last_check_in_utc: 2026-09-21T16:45:00Z
-current_task: V1.4 real-proof tooling RP14-T1..T7
+consecutive_on_time: 1
+last_check_in_utc: 2026-09-21T16:00:00Z
+watch_started_utc: null
+watch_until_utc: null
+watch_checkins: 0
+missed_intervals: 0
+watch_completed_utc: null
+current_task: assigned lane task
 progress_note: still working on assigned task
 review_state: WORKING
 lead_action_requested: NONE
 ```
 
 Valid review states:
-- WORKING
-- READY_FOR_LEAD_REVIEW
-- BLOCKED
+- `WORKING`
+- `READY_FOR_LEAD_REVIEW`
+- `BLOCKED`
 
 Valid lead actions:
-- NONE
-- REVIEW
-- DECOMPOSE
-- ARCHITECTURE_DECISION
-- USER_ACTION
+- `NONE`
+- `REVIEW`
+- `DECOMPOSE`
+- `ARCHITECTURE_DECISION`
+- `USER_ACTION`
 
-## Progress content
+## Detached watcher
 
-Every heartbeat must contain a useful concise update. It may be as small as:
-- `still working on assigned task`
-- `implementing verifier receipt binding; no blocker`
-- `tests running; no blocker`
+Launch one watcher per active worker session:
 
-Code does not need to be pushed every heartbeat.
+```bash
+python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch DAYWATCH_2026_09_21 --detach
+```
 
-Workers should update `progress_note` whenever a more specific short status is available.
+Do not run a watcher from another epoch at the same time. If a superseded fixed-5-minute/FIVE_MIN watcher is running, stop it before launching the DAYWATCH watcher.
 
-## Immediate events
+## Verification rules
 
-Do not wait for the next five-minute tick when:
-- BLOCKED
-- READY_FOR_LEAD_REVIEW
-- USER_ACTION required
-- architecture/safety decision required
+ChatGPT lead verifies actual Git commit timestamps and file metadata. Worker self-claims do not override timestamps.
 
-Update the heartbeat immediately, then resume normal five-minute cadence.
+Heartbeat proves liveness/progress only. It never substitutes for code review, tests, CI, artifact acceptance, or real proof.
 
 ## Human-visible feed
 
-Each Lane 1/2/3 heartbeat push triggers `.github/workflows/heartbeat-progress.yml` and posts to GitHub issue #7:
-`Jobs Automation — Live Progress`.
+Every active numeric-lane heartbeat push triggers `.github/workflows/heartbeat-progress.yml` and posts to GitHub issue #7, `Jobs Automation — Live Progress`.
 
-## Lead-side limitation
-
-ChatGPT's scheduled lead automation remains hourly. GitHub receives worker heartbeat evidence every five minutes; ChatGPT audits it hourly and whenever the user explicitly asks for status.
-
-Heartbeat proves liveness/progress only. It never substitutes for code review, tests, CI, artifact acceptance, or real proof.
+The scheduled ChatGPT lead check remains hourly due platform limits and must also post one concise lead comment to issue #7 on every run.
