@@ -1,99 +1,118 @@
-# Session Start — Antigravity
+# Session Start
 
-This file is the generic startup instruction for the single active Antigravity implementation session.
+Purpose: minimal startup router for Jobs Automation sessions.
 
-## Operating rule
+## Roles
 
-**One session. One heartbeat watcher. One active work surface at a time.**
+- User = product owner/final authority.
+- ChatGPT = engineering/product lead and acceptance gate.
+- Claude/Fable/Antigravity/Cursor = worker or planner as assigned.
+- Git = current project truth.
+- Relevant past conversation/memory may recover intent, but never overrides current Git state.
 
-Do not launch parallel Lane 1/Lane 2/Lane 3 Antigravity sessions.
+## Minimal startup
 
-ChatGPT handles lead review/acceptance and prepares downstream work.
+Do not load the whole repository.
 
-## Start
+1. `git fetch origin`
+2. read `CLAUDE.md` or the tool's thin adapter
+3. read `state/CURRENT.md`
+4. read `coordination/WORK_QUEUE.md`
+5. inspect latest main/active branch/PR/lead review
+6. inspect active heartbeat
+7. read the active artifact card
+8. use `coordination/CONTEXT_ROUTER.md` for deeper material
 
-1. Preserve/commit any current coherent local batch.
-2. `git fetch origin`
-3. read current repository instructions before trusting old chat prompts
-4. identify the highest-priority unblocked phase in `coordination/WORK_QUEUE.md`
-5. switch to the historical work branch for that phase
-6. rebase/synchronize on `origin/main` only between coherent batches and according to the lane/PR contract
-7. start exactly one heartbeat watcher for the active work branch
+Search/diff before opening large files.
 
-## Read in order
+## Assignment routing
 
-1. `AGENTS.md`
-2. `state/CURRENT.md`
-3. `coordination/WORK_QUEUE.md`
-4. `coordination/ARTIFACT_INDEX.md`
-5. `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
-6. `docs/AUTHORIZATION_GATES.md`
-7. `coordination/TEAM_LANES.md`
-8. the active historical lane status file
-9. relevant PR/diff/CI evidence
-10. `coordination/HEARTBEAT_PROTOCOL.md`
+### Fable 5.1 master planning pass
 
-Downstream planning reference:
-- `docs/V1_6_TO_V3_PREP_PLAN.md`
+If assigned to produce the definitive plan to V2.3:
+- read `docs/FABLE_V23_MASTER_PLANNING_BRIEF.md`
+- read `docs/MODEL_ROUTING_AND_TOKEN_EFFICIENCY.md`
+- audit Git first
+- plan V2.3 as the critical near-term target
+- design V3 compatibility without putting broad V3 implementation on the V2.3 critical path
+- write durable planning results into Git
+- do not broad-implement V2/V3 during the planning pass
+- finish `READY_FOR_LEAD_REVIEW`
 
-## Historical work branches
+### Implementation worker
 
-- V1.4: `worker/v14-real-proof` → `coordination/lanes/LANE_1.md`
-- V1.5/V1.6: `worker/v15-assisted-application` → `coordination/lanes/LANE_2.md`
-- V1.7: `worker/recruiting-ops` → `coordination/lanes/LANE_3.md`
+Take the highest-priority unblocked artifact in `coordination/WORK_QUEUE.md`.
 
-These are sequential work surfaces, not simultaneous active workers.
+Read only:
+- active artifact card,
+- active phase contract(s),
+- relevant code/tests/diffs.
 
-## Execution
+Prefer SP1/SP2 tasks and brownfield repair.
 
-- execute the highest-priority unblocked artifact in the canonical execution program,
-- stay within the active branch's code ownership,
-- run targeted tests + full pytest/Ruff/mypy before review handoff,
-- push coherent batches,
-- continue only across gates that are explicitly open,
-- stop/escalate architecture, safety, live-action, or private-input uncertainty,
-- do not self-accept milestone artifacts.
+After one artifact:
+- verify,
+- push,
+- evidence handoff,
+- `READY_FOR_LEAD_REVIEW`,
+- do not self-accept.
+
+## Historical work surfaces
+
+Historical branches may still exist:
+- V1.4 source/history: `worker/v14-real-proof`
+- V1.5/V1.6 source/history: `worker/v15-assisted-application`
+- V1.7 source/history: `worker/recruiting-ops`
+
+They are **not simultaneous active workers**.
+
+Follow current recovery/clean-integration artifacts instead of blindly continuing stale PR history.
 
 ## Heartbeat
 
+Owner rule:
+**one active implementation session = exactly one heartbeat watcher.**
+
 Epoch:
-- `FIVE_MIN_2026_09_21`
+`FIVE_MIN_2026_09_21`
 
-Mode:
-- `ACTIVE_5M`
+Cadence:
+5 minutes while implementation is actively running.
 
-For the currently active historical lane only:
+No 15-minute/hourly/proving transitions.
 
-```bash
-python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch FIVE_MIN_2026_09_21 --detach
-```
+A planning-only Fable session must not launch a second watcher if an implementation worker already owns the active watcher.
 
-Rules:
-- launch exactly one watcher,
-- heartbeat every 5 minutes while active,
-- no 15-minute/hourly transitions,
-- do not restart unnecessarily,
-- if switching work branches, stop the old watcher before starting the new one,
-- never leave two watchers running.
+When an implementation session intentionally switches branches:
+1. stop old watcher,
+2. verify it stopped,
+3. switch branch,
+4. start exactly one watcher on the new work surface.
 
-A heartbeat may simply say:
-`Still working on <artifact/task>; no blocker.`
+See `coordination/HEARTBEAT_PROTOCOL.md`.
 
-Code does not need to be pushed every heartbeat.
+## Live gates
 
-Visible progress:
-- GitHub issue #7, `Jobs Automation — Live Progress`
+No roadmap/planning prompt authorizes:
+- private candidate/resume live proof use,
+- Gmail OAuth/mailbox access,
+- real browser application actions,
+- application submission,
+- external messaging,
+- calendar mutation,
+- spending.
 
-## Finish / review handoff
+Follow `docs/AUTHORIZATION_GATES.md`.
 
-Report:
-- branch
-- exact head SHA
-- artifact/task IDs
-- code paths changed
-- tests/checks run
-- exact CI result
-- blockers
-- live-action authorization status
-- `WORKER_REPORTED_DONE`, `READY_FOR_LEAD_REVIEW`, or `BLOCKED`
-- exact next recommended action
+## Finish
+
+A meaningful handoff should contain only what the next lead/worker needs:
+- artifact/task,
+- exact SHA,
+- behavior changed/planned,
+- checks/evidence,
+- blocker/gate,
+- next action,
+- state.
+
+Persist durable context in Git instead of repeating a long chat summary.
