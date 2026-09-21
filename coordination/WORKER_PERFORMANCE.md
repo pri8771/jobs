@@ -9,9 +9,9 @@ Story points measure complexity/uncertainty, not time.
 
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 3 | 2 | 2 | 1 | 2 |
-| 2 | 15 | 11 | 7 | 8 | 22 |
-| 3 | 6 | 2 | 2 | 4 | 6 |
+| 1 | 4 | 3 | 3 | 1 | 3 |
+| 2 | 20 | 15 | 11 | 9 | 30 |
+| 3 | 7 | 2 | 2 | 5 | 6 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
 
@@ -76,20 +76,51 @@ GitHub evidence at lead review:
 | A-R15-04 | 1 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Unknown file inputs must not default to resume |
 | A-R15-05 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Rebase + implement J15-11 prompt-injection resistance |
 
+## Lane B bounded repair audit — commit 33d18b4
+
+Worker-reported local verification:
+- full pytest: 126 passed
+- Ruff: clean
+- mypy: clean
+
+GitHub evidence at lead review:
+- repair commit had no GitHub status/check result of its own,
+- branch was 3 commits ahead / 18 commits behind current main,
+- final integration requires rebase + green GitHub CI.
+
+| Task ID | SP | Status | Worker commit | CI first push | Rework cycles | Lead notes |
+|---|---:|---|---|---|---:|---|
+| B-R17-01 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Classifier emits missing lifecycle classes; fallback remains review; end-to-end tests added |
+| B-R17-02 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Rejection after OFFER_ACCEPTED/ONBOARDING preserves state and creates review task |
+| B-R20-01 | 3 | REWORK | 33d18b4 | no branch CI | 1 | Source/role/resume historical outcomes repaired, but headline funnel summary still uses current status rather than ever-reached history |
+| B-R20-02 | 2 | REWORK | 33d18b4 | no branch CI | 1 | Dimensional analytics real-submission denominator repaired, but headline funnel still counts status rows/simulation incorrectly |
+| B-R20-03 | 1 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Replaced statistical-robustness claim with descriptive N/sample-size wording |
+| B-R20-04 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Removed heuristic Gmail credential readiness; defaults NOT_INTEGRATED pending typed Lane C interface |
+| B-R20-06 | 2 | LEAD_ACCEPTED | 33d18b4 | no branch CI | 0 | Dashboard writes require loopback or configured operator token; tests cover deny/allow paths |
+
+## Lane B remaining residual
+
+| Task ID | SP | Status | Owner | Artifact | Lead notes |
+|---|---:|---|---|---|---|
+| B-R20-07 | 2 | READY | Antigravity Lane B | A-V20-ANALYTICS / A-V20-CONTROL-CENTER | Repair `get_funnel_summary()` to use real-submission + historical ever-reached stage semantics; add simulation and terminal-state regression tests |
+
+B-R20-05 / A-V20-WORKER-RUN-HISTORY remains deferred and unaccepted; J20G-04 remains blocked on Lane C J20G-03.
+
 ## Interpretation so far
 
 Latest accepted evidence:
 - V1.4 residual batch R14-01..R14-04: 4/4 SP2 rework tasks lead-accepted after one bounded repair cycle.
 - Main CI passed after merge 8a0cdb4.
 - V1.5 first pass shows good results on bounded SP1-SP3 mechanics, but cross-cutting trust-boundary semantics still require lead adversarial review: packet immutability/provenance and external evidence were the main misses.
+- Lane B's bounded repair batch closed five of seven assigned residuals cleanly; the remaining analytics defect is now reduced to one SP2 top-level funnel repair instead of reopening the full analytics work.
 
 Current evidence suggests:
 - SP1-SP2 bounded work is relatively strong when acceptance criteria are explicit.
-- SP3 work improves when the contract is narrow and testable; J15-03/J15-07 were accepted first pass.
+- SP3 work improves when the contract is narrow and testable; J15-03/J15-07 were accepted first pass, while broader historical-analytics semantics still needed another decomposition.
 - Semantic security/evidence boundaries deserve dedicated adversarial cases even when the broader test suite is green.
 - Do not infer long-term productivity rates from this small sample.
 - Continue delegating the bulk of SP1-SP2 work and most well-specified SP3 work.
-- For cross-cutting semantics, ChatGPT should continue supplying exact failure examples and acceptance tests rather than broad prose.
+- When a cross-cutting SP3 is partially correct, split the residual into a narrow SP1-SP2 task rather than reissuing the whole task.
 
 ## Rules
 
