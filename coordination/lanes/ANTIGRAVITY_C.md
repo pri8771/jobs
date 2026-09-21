@@ -40,11 +40,18 @@ At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main 
 
 This alignment is maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
 
-## Remote-worker support — do not duplicate production code
+## Remote-worker support — unavailable as reviewable code
 
-`worker-pc` became free after non-Jobs workflow `35580580156` completed with failure. ChatGPT dispatched bounded task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` from Jobs main.
+The bounded TESTS-ONLY support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure at the target Jobs branch-push step.
 
-That task is TESTS ONLY. It may return adversarial acceptance tests for the known P0A gaps but is forbidden from modifying production proof scripts/schema/docs/coordination/private data/Gmail/browser code. Treat any returned tests as untrusted review input until ChatGPT/Scout inspect the actual branch/diff. Continue production RP14-T1..T7 work; do not wait for the remote test task.
+Result:
+- no Jobs branch returned,
+- no commit returned,
+- no tests or summary returned,
+- no corresponding Jobs worker branch exists,
+- remote-workers successfully published only the sanitized failure result afterward.
+
+Do not wait for or depend on that task. It completed no RP14 work. The remote executor currently suppresses target-repository push stderr, so another identical branch-mode retry would be low-value until the infrastructure path has better diagnostics/recovery. Continue RP14-T1..T7 directly on `worker/live-data-foundations`.
 
 ## After P0A lead acceptance — real proof readiness
 
@@ -87,4 +94,4 @@ Do not perform real OAuth consent, access a live mailbox, open/prefill/submit a 
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
 Heartbeat proving: 0/3 worker-authored check-ins.
-Latest lead review: 2026-09-21 06:46 ET.
+Latest lead review: 2026-09-21 07:43 ET.
