@@ -14,6 +14,7 @@ Private candidate/resume proof execution is forbidden until ChatGPT accepts P0A.
 ### Lane C — production implementation owner
 
 Branch: `worker/live-data-foundations`
+Current head: `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`
 
 Required tasks:
 - RP14-T1 SP2 — `REAL_PROOF_CANDIDATE` runtime output + separately candidate-bundle-bound PASS/FAIL verifier receipt; rejected candidates still emit FAIL receipts.
@@ -26,30 +27,25 @@ Required tasks:
 
 Execution contract:
 1. rebase latest main,
-2. implement RP14-T1..T7 as bounded SP1-SP3 slices,
-3. add/adopt adversarial acceptance tests,
-4. run targeted tests + full pytest/Ruff/mypy,
-5. push one coherent batch + worker-authored `READY_FOR_LEAD_REVIEW` heartbeat,
-6. stop for Scout/ChatGPT review.
+2. launch `python scripts/worker_heartbeat_watch.py --lane C --epoch DAYWATCH_2026_09_21 --detach`,
+3. implement RP14-T1..T7 as bounded SP1-SP3 slices,
+4. add/adopt adversarial acceptance tests,
+5. run targeted tests + full pytest/Ruff/mypy,
+6. push one coherent batch + worker-authored `READY_FOR_LEAD_REVIEW` heartbeat,
+7. stop for Scout/ChatGPT review.
 
-Current lead evidence: Lane C remains at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with 0/3 worker-authored proving heartbeats and no RP14-T1..T7 implementation. This is the critical-path implementation task.
+Current lead evidence: Lane C still has no worker implementation or current-epoch heartbeat. This is the project critical path.
 
 ### Remote-worker support
 
 `pri8771/remote-workers` is infrastructure only; Jobs remains authoritative.
 
-Verified history:
-- audit retry confirmed forged-bundle acceptance and missing local/redacted binding;
-- first hardening attempt failed during clone;
-- hardening retry failed on branch push and returned no reviewable Jobs commit;
-- branch-push probe succeeded but is diagnostic-only and must not merge;
-- read-only P0A preflight completed successfully and reinforced T1..T7 but implemented nothing;
-- tests-only task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` failed on target Jobs branch push and returned no branch/commit/tests/summary.
+Verified history includes earlier audit/preflight evidence plus failed clone/push attempts. Current useful support evidence:
 
-New bounded support task:
-- `jobs-v14-p0a-t5-schema-20260921-0946` — RP14-T5 only; schema + adversarial tests, no private inputs/Gmail/browser/application code.
-- The task was dispatched after the prior non-Jobs worker run appeared finished, but a new SwarmAI workflow started moments before the Jobs dispatch became visible. Because `worker-pc` capacity is 1, the Jobs workflow is pending behind that run rather than executing concurrently.
-- Do not treat the queued task as progress or acceptance. If it eventually returns a Jobs branch/commit, ChatGPT must inspect the actual diff/tests before Lane C adopts it. No automatic merge.
+- RP14-T5 task `jobs-v14-p0a-t5-schema-20260921-0946` completed and returned actual Jobs branch `worker/jobs-v14-p0a-t5-schema-20260921-0946` at `1f4a9b9bd21ed402afaef211ac3cab852a293a22`.
+- Lead inspected the actual commit/diff. It is one bounded commit changing only `coordination/proofs/v14_real_proof.schema.json`, `scripts/verify_v14_real_proof.py`, and `tests/test_real_proof_verifier.py`; it closes the top-level/nested evidence allowlists and adds focused extra-field adversarial tests.
+- This is **support candidate code, not accepted RP14-T5 evidence**. The remote summary states pytest/Ruff/mypy execution was blocked, and no Jobs CI run exists for `1f4a9b9...`. The branch is also behind current main. Lane C may cherry-pick/reimplement it only after rebasing, and must rerun focused tests plus full pytest/Ruff/mypy/CI in the coherent P0A batch.
+- A separate bounded RP14-T6-only task `jobs-v14-p0a-t6-origin-20260921-1047` was dispatched after the worker became free. Remote workflow `35615000944` failed almost immediately; at review time no sanitized result or Jobs branch existed. Credit no T6 progress and do not retry a duplicate immediately.
 
 Lane C must not wait for remote-worker support.
 
@@ -60,7 +56,7 @@ State: BLOCKED on P0A. V1.4 engineering is accepted but V1.4 is NOT COMPLETE.
 Default target: OpenSesame — AI Automation Engineer
 `https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740`
 
-No runtime proof candidate or verifier receipt exists in `coordination/proofs/`.
+`coordination/proofs/` currently contains only `README.md` and `v14_real_proof.schema.json`; no runtime proof candidate or verifier receipt exists.
 
 ### Lane C readiness
 - RP14-C1 SP2 — validate actual private candidate profile + actual resume mappings; no example/synthetic inputs; private contents stay local.
@@ -90,9 +86,9 @@ Whichever Lane A or Lane C machine first has the complete genuine private profil
 ## Lane A — V1.5 assisted application
 
 Branch: `worker/v15-assisted-application`
-Current head: `088d4932458eadac86ec5396888181842347c370`
+Current head: `1a2c6461b191a536d4eebb09321e790a09c20ab8`
 PR #2: draft.
-Current-head GitHub CI run #328: SUCCESS.
+Current-head GitHub CI run #336: SUCCESS.
 
 Task-scope accepted: A-R15-01..A-R15-05. Current production browser implementation for that accepted scope remains the previously accepted code. V1.5 overall remains IN_PROGRESS.
 
@@ -104,7 +100,7 @@ While P0A is blocked, Lane A may continue these already-authorized non-conflicti
 
 No V1.6. No real application/browser action. After P0A, switch immediately to V1.4 proof if the actual selected resume mapping is genuinely available.
 
-Heartbeat correction: branch metadata claims `STEADY_HOURLY` / 3-of-3 from 02:41Z, 12:49Z, 13:05Z. Lead does not accept that transition. The 02:41Z -> 12:49Z gap reset the streak, 12:49Z -> 13:05Z was one valid proving interval, and the lane then missed the next <=20-minute proving check-in. The proving streak is now broken/stale; the next worker heartbeat must restart at 1/3 in `PROVING_15M`. Do not delete history.
+Heartbeat epoch correction: Lane A's 14:05Z `STEADY_HOURLY` self-claim predates the `DAYWATCH_2026_09_21` reset at 14:45Z and does not count. Lane A is 0/3 in the current epoch and must launch the detached watcher on a fresh session.
 
 ## Lane B — V1.7 / V2.0 recruiting operations
 
@@ -112,24 +108,23 @@ Branch: `worker/recruiting-ops`
 Current head: `68595d1fe825545b7f1506b7068d1c78376f7953`
 PR #3: draft.
 Current-head CI run #329: SUCCESS.
-Worker Heartbeat Validation for this head: FAILURE because the heartbeat file does not follow required top-level metadata/action format.
 
-Lead review of the new residual batch:
-- B-R17-03 SP2 — LEAD_ACCEPTED at task scope. `BACKGROUND_CHECK` records `BACKGROUND_CHECK_INITIATED` while preserving the existing application stage; it no longer fabricates offer state.
-- B-R20-07 SP1 — LEAD_ACCEPTED at task scope. `SIMULATED`, `simulation`, `auto_simulated`, `mock`, and `test` are excluded by `_is_real_submission`, with focused tests.
-- B-R20-08 SP2 — LEAD_ACCEPTED at task scope. Final-interview outcomes require explicit final/panel/onsite evidence and accepted counts/rates are exposed.
-- B-R20-05 / J20-14 SP3 — REWORK. The implementation is directionally correct but does not yet satisfy `docs/WORKER_RUN_HISTORY_REPAIR_GUIDE.md`.
+Lead review of the latest residual batch:
+- B-R17-03 SP2 — LEAD_ACCEPTED at task scope.
+- B-R20-07 SP1 — LEAD_ACCEPTED at task scope.
+- B-R20-08 SP2 — LEAD_ACCEPTED at task scope.
+- B-R20-05 / J20-14 SP3 — REWORK.
 
 B-R20-05 bounded rework:
 1. If durable `worker_run` begin persistence fails, do not continue an untracked production sweep; fail closed or otherwise guarantee no pipeline work proceeds without the durable attempt record.
-2. Do not persist raw `str(exc)` / upstream error text as `sample_errors`; store bounded safe categories/codes so tokens, email bodies, or other sensitive payloads cannot leak into operational metadata.
+2. Do not persist raw `str(exc)` / upstream error text as `sample_errors`; store bounded safe categories/codes.
 3. `check_worker()` must report the true newest attempt even when the newest attempt is an unfinished RUNNING begin; expose required `last_reconciliation_at` and `last_error_at/category` fields.
-4. Add the repair-guide acceptance cases that are still missing: caught exception after begin -> FAILED, pipeline rollback cannot erase run evidence, two runs get distinct run_ids, and adversarial secret/error sanitization. Preserve existing success/kill/stale tests.
-5. Fix `coordination/heartbeats/LANE_B.md` to the exact protocol header (`lane`, `branch`, `mode`, `interval_minutes`, `consecutive_on_time`, `last_check_in_utc`, `review_state`, `lead_action_requested`) and use a valid lead action such as `REVIEW`, not `AUDIT`.
+4. Add caught-exception-after-begin -> FAILED, rollback durability, distinct run IDs, and adversarial secret/error sanitization tests while preserving existing success/kill/stale cases.
+5. Replace the old heartbeat format with the exact current `DAYWATCH_2026_09_21` metadata and launch the detached watcher.
 
-Prior analytics residuals remain open and must not be silently dropped:
+Prior analytics residuals remain open:
 - B-R20-01 SP3 — headline funnel/history metrics still use current status rather than event-history outcomes.
-- B-R20-02 SP2 — headline funnel/submission semantics still do not use the same real-submission denominator; the new `_is_real_submission()` hardening fixes dimensional analytics but is not wired into `get_funnel_summary()`.
+- B-R20-02 SP2 — headline funnel/submission semantics still do not use the same real-submission denominator.
 
 J20G-04 waits for Lane C J20G-03 after the V1.4 proof sequence.
 
@@ -168,28 +163,28 @@ Priority:
 
 ## Heartbeat truth
 
-New liveness epoch:
+Current liveness epoch:
 - `DAYWATCH_2026_09_21`
 
-All lanes restart at 0/3 for this epoch, regardless of prior heartbeat attempts.
+Lead checked actual branch commit timestamps after the 14:45Z reset:
+- Lane A latest: 14:05Z — pre-epoch
+- Lane B latest: 13:26Z — pre-epoch
+- Lane C latest: 10:49Z — pre-epoch
+- Lane D latest: 02:15Z — pre-epoch
+- Scout latest: 02:15Z — pre-epoch
+
+Therefore all lanes are currently 0/3 for this epoch.
 
 Required:
-- 3 consecutive 5-minute worker-authored heartbeats (4-7 minute valid gap),
+- 3 consecutive 5-minute worker-authored heartbeats with 4-7 minute valid gaps,
 - then 15-minute heartbeats for a clean 24-hour window,
-- any gap >20 minutes restarts the clean 24-hour watch,
+- any gap >20 minutes increments misses and restarts the clean 24-hour watch,
 - then STEADY_HOURLY.
 
-Fresh sessions must launch:
+Fresh sessions launch:
 `python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
 
-Current epoch:
-- Lane A: 0/3
-- Lane B: 0/3
-- Lane C: 0/3
-- Lane D: 0/3
-- Scout: 0/3
-
-Old heartbeat entries are preserved for audit but do not count toward this epoch.
+Old heartbeat entries remain preserved for audit but do not count.
 
 ## Safety
 
