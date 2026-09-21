@@ -118,3 +118,11 @@ Produce:
 - dashboard endpoint/view evidence
 - analytics result summary
 - unresolved/user-gated items
+
+
+## Layer-by-layer acceptance matrix
+
+Use:
+- `docs/V2_0_END_TO_END_ACCEPTANCE_MATRIX.md`
+
+The matrix defines acceptance across inputs, discovery, matching, packet preparation, execution routing, lifecycle, operator experience, reliability, analytics, and auditability.
