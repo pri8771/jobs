@@ -44,16 +44,19 @@ Verified history:
 - hardening retry failed on branch push and returned no reviewable Jobs commit;
 - branch-push probe succeeded but is diagnostic-only and must not merge;
 - read-only P0A preflight completed successfully and reinforced T1..T7 but implemented nothing;
-- non-Jobs workflow `35580580156` later completed with failure, freeing `worker-pc`.
+- non-Jobs workflow `35580580156` later completed with failure, freeing `worker-pc`;
+- tests-only task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` also failed on target Jobs branch push.
 
-Current bounded support task:
-- `jobs-v14-p0a-adversarial-tests-20260921-0642`
-- remote workflow `35590523591`
-- scope: TESTS ONLY from Jobs main; no production/schema/docs/coordination/private-data/Gmail/browser changes
-- purpose: encode adversarial acceptance cases for the documented P0A gaps
-- current state at dispatch review: queued
+Latest remote result:
+- status: `failed`
+- error: `Worker branch push failed.`
+- returned Jobs branch: none
+- returned commit: none
+- returned tests/summary: none
+- corresponding Jobs worker branch: not present
+- workflow result publication itself succeeded after the target branch push failure
 
-The remote test worker must not self-accept P0A. Any returned branch/commit must be inspected before use. Lane C remains the production implementation owner; avoid duplicate production-code changes.
+The target-repository push stderr is currently suppressed by the remote executor, so the exact push cause is not recoverable from the published result/workflow log. Do not count or adopt any work from this failed attempt. Do not immediately repeat the same branch-mode support task merely to create activity; Lane C remains the production implementation owner and must continue independently.
 
 ## P0 — V1.4 real proof after P0A
 
@@ -139,8 +142,9 @@ Current head: `d221eecbe21aa33051c888b9e42f10a307ed9ecd`
 
 Priority:
 1. review Lane C RP14-T1..T7 as soon as it lands,
-2. review any returned remote P0A test-only branch for test quality/non-overlap,
-3. execute RP14-S1 as soon as genuine proof candidate + verifier receipt exist.
+2. execute RP14-S1 as soon as genuine proof candidate + verifier receipt exist.
+
+The failed remote test-only attempt produced no reviewable Jobs branch, so Scout has nothing to audit from that task.
 
 ## Heartbeat truth
 
