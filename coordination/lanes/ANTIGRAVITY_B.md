@@ -31,3 +31,12 @@ Audit/repair:
 ## Status
 
 READY
+
+
+## Lead audit reference
+
+- docs/V1_7_LEAD_AUDIT.md
+- docs/V2_0_BROWNFIELD_AUDIT.md
+- docs/V1_7_TO_V3_ACCELERATION_PLAN.md
+
+Rebase latest main before implementation.
