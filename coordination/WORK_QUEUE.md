@@ -3,143 +3,79 @@
 Owner directive:
 **No version is COMPLETE until one real non-mock production-path example passes.**
 
-Current team:
-- Lane 1 — V1.4 real-proof critical path
-- Lane 2 — V1.5 application safety
-- Lane 3 — V1.7/V2.0 recruiting/reliability
-
-Old Lane D and Scout are PAUSED.
-Old Lane C is SUPERSEDED by Lane 1.
-
-All lanes must use the current heartbeat epoch and live progress feed in GitHub issue #7.
-
-## Lead-verified execution preflight — 2026-09-21 15:44Z
-
-- Lane 1 branch is identical to main, has no worker implementation commit, and remains 0/3 in active heartbeat file `LANE_1.md`.
-- Lane 2 PR #2 head `552da79` has green CI but is 5 commits behind current main at inspection and still writes historical `LANE_A.md`; active `LANE_2.md` remains 0/3. Rebase and launch numeric Lane 2 watcher before new implementation work.
-- Lane 3 PR #3 head `68595d1` has green CI but is 49 commits behind current main at inspection and still uses historical `LANE_B.md`; active `LANE_3.md` is not yet on the branch. Rebase and launch numeric Lane 3 watcher before new implementation work.
-- Heartbeat progress posting to issue #7 is functioning for active Lane 1/2/3 files. Missing fresh comments reflect stale worker heartbeat paths, not a feed outage.
-- `worker-pc` is online but its capacity-1 slot is occupied by a non-Jobs task; no Jobs support dispatch this run.
-
-## Lane 1 — P0 — V1.4 proof-tool integrity
+## P0 — Lane 1 V1.4 proof-tool integrity review
 
 Branch:
 - `worker/v14-real-proof`
 
-Immediate:
-- launch numeric Lane 1 heartbeat watcher for `DAYWATCH_2026_09_21`,
-- RP14-T1 SP2 — runtime candidate + separate bundle-bound verifier receipt,
-- RP14-T2 SP2 — local/private evidence cross-binding,
-- RP14-T3 SP3 — approved Greenhouse job/question attestation binding,
-- RP14-T4 SP2 — copied/renamed example profile content detection,
-- RP14-T5 SP1 — explicit evidence allowlist,
-- RP14-T6 SP1 — truthful deterministic-production labeling,
-- RP14-T7 SP2 — packet/manifest/resume/job/artifact cross-link verification.
+PR:
+- #8
 
-Reference:
-- `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
+Worker implementation:
+- `8f8c21f88512aa32521c78285b72dc9da298672e`
 
-Reviewed remote T5 support:
-- branch `worker/jobs-v14-p0a-t5-schema-20260921-0946`
-- commit `1f4a9b9bd21ed402afaef211ac3cab852a293a22`
-- candidate code only, not accepted; adopt/reimplement only if useful and rerun all evidence.
-
-Exit:
-- targeted adversarial proof tests,
-- full pytest/Ruff/mypy,
-- green branch CI,
-- READY_FOR_LEAD_REVIEW,
-- ChatGPT + independent review.
+Current action:
+1. ChatGPT lead reviews actual RP14-T1..T7 diff against `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`.
+2. Verify proof tests + CI.
+3. Use worker-pc for bounded independent review if capacity is free and useful.
+4. Accept or write bounded rework.
+5. Do NOT run private-data proof before P0A lead acceptance.
 
 After P0A acceptance:
-1. RP14-C1..C3 real private input readiness,
-2. run genuine V1.4 proof,
-3. runtime-generated redacted candidate + separately generated verifier receipt,
-4. independent audit,
-5. only then V1.4 COMPLETE.
+- validate real private profile + exact resume mapping,
+- import/revalidate OpenSesame job/questions,
+- run production packet proof,
+- emit runtime redacted candidate + separate verifier receipt,
+- independent proof audit,
+- only then V1.4 COMPLETE.
 
-No browser application action is authorized.
-
-## Lane 2 — V1.5 assisted application
+## P1 — Lane 2 V1.5 application safety review
 
 Branch:
 - `worker/v15-assisted-application`
-- draft PR #2
 
-Preserve:
-- A-R15-01..05 task-scope accepted implementation.
+PR:
+- #2
 
-Before new work:
-- rebase latest main while preserving accepted source changes,
-- launch numeric Lane 2 watcher so `coordination/heartbeats/LANE_2.md` begins the current epoch,
-- do not use historical `LANE_A.md` for current-epoch credit.
-
-Implement:
-- A-R15-06 SP2 page-level prompt-injection warning semantics,
-- A-R15-07 SP2 exact field-specific cover-letter/file upload mapping,
-- A-R15-08 SP2 packet/provenance/artifact integrity revalidation before browser use,
-- A-R15-09 SP1 unknown file inputs stay manual/unfilled.
-
-Known real-proof readiness blocker:
-- selected `resume_ai_software_engineer` had no genuine mapped file on this machine,
-- do not synthesize/relabel/copy another resume to satisfy proof.
+Current action:
+1. ChatGPT lead reviews A-R15-06..09 implementation and adversarial tests.
+2. Preserve A-R15-01..05 accepted behavior.
+3. Require green CI on current implementation head after any rebase.
+4. Accept or write bounded rework.
 
 No V1.6.
+No real application action.
 
-## Lane 3 — V1.7 / V2.0
+## Lane 3
 
-Branch:
-- `worker/recruiting-ops`
-- draft PR #3
+Latest repair batch has been lead-accepted and merged:
+- PR #3
+- merge `be765ea42856bc695fc1eece9c1da396b4f162d4`
 
-Preserve accepted:
-- B-R17-03,
-- B-R20-07,
-- B-R20-08.
+Do not reopen completed repair tasks.
 
-Before new work:
-- rebase latest main while preserving accepted source changes,
-- launch numeric Lane 3 watcher so `coordination/heartbeats/LANE_3.md` begins the current epoch,
-- do not use historical `LANE_B.md` for current-epoch credit.
+Blocked future item:
+- J20G-04 waits for Lane 1 later Gmail readiness.
 
-Repair:
-- B-R20-05 / J20-14:
-  - durable begin before pipeline work,
-  - fail closed if begin persistence fails,
-  - safe bounded error categories,
-  - true latest-attempt health,
-  - last reconciliation/error fields,
-  - rollback/crash/run-id/secret-sanitization tests,
-- B-R20-01:
-  - headline funnel uses event-history outcomes,
-- B-R20-02:
-  - headline funnel denominator uses real-submission semantics.
+Until that dependency exists, keep Lane 3 idle or assign only a clearly unblocked, non-conflicting V2.0 integration/reliability task after explicit lead reprioritization. Do not create filler work.
 
-J20G-04 remains blocked until Lane 1 later produces Gmail readiness.
+## Heartbeat
 
-## Heartbeat / progress
+Canonical rule for active lanes:
+- `FIVE_MIN_2026_09_21`
+- `ACTIVE_5M`
+- every 5 minutes while active
+- one watcher per lane
+- no transitions
 
-Each active lane launches:
-- Lane 1: `python scripts/worker_heartbeat_watch.py --lane 1 --epoch DAYWATCH_2026_09_21 --detach`
-- Lane 2: `python scripts/worker_heartbeat_watch.py --lane 2 --epoch DAYWATCH_2026_09_21 --detach`
-- Lane 3: `python scripts/worker_heartbeat_watch.py --lane 3 --epoch DAYWATCH_2026_09_21 --detach`
+If an old DAYWATCH watcher is still running:
+1. stop it once,
+2. pull latest main,
+3. launch exactly one fixed-5m watcher.
 
-Cadence:
-1. 5-minute proving × 3,
-2. 15-minute heartbeat for a clean 24 hours,
-3. hourly after the watch passes.
-
-Each active numeric-lane heartbeat is also posted to GitHub issue #7:
-- `Jobs Automation — Live Progress`.
-
-## Paused backlog
-
-V2.3 opportunity graph / target-company / agent-tools:
-- paused until critical path and V2.0 integration justify reopening a lane.
-
-Scout:
-- paused; ChatGPT + worker-pc handle independent review.
+Visible progress:
+- GitHub issue #7
 
 ## Safety
 
-No live Gmail OAuth/mailbox access, real browser application action, submission, external messaging, MFA/CAPTCHA bypass, private candidate-data commits, or fabricated candidate facts without explicit scoped authorization.
+No live Gmail OAuth/mailbox access, browser application action, submission, external messaging, MFA/CAPTCHA bypass, private candidate-data commits, or fabricated candidate facts without explicit scoped authorization.
