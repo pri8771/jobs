@@ -1,19 +1,18 @@
 # Current State
 
-Updated: 2026-09-21
+Updated: 2026-09-21 14:20 ET
 
-## Current execution mode
+## Authoritative execution model
 
-Owner directive:
-- one active Antigravity implementation session at a time,
-- one active session = exactly one heartbeat watcher,
-- fixed 5-minute cadence under `FIVE_MIN_2026_09_21`,
-- historical Lane 1/Lane 2/Lane 3 branches are sequential work surfaces, not simultaneous active sessions,
-- ChatGPT focuses on lead review/acceptance and downstream V1.6→V3.0 preparation while Antigravity executes.
+Exactly three active implementation lanes:
+1. Lane 1 — `worker/v14-real-proof` — P0 V1.4 real-proof critical path.
+2. Lane 2 — `worker/v15-assisted-application` — V1.5 assisted-application safety.
+3. Lane 3 — `worker/recruiting-ops` — recruiting/reliability.
 
-Canonical program:
-- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
-- `docs/V1_6_TO_V3_PREP_PLAN.md`
+Old Lane C/D/Scout are paused/superseded and are not active workers.
+`worker-pc` is infrastructure-only bounded support and has no automatic merge authority.
+
+All three active lanes use heartbeat epoch `FIVE_MIN_2026_09_21`, mode `ACTIVE_5M`, interval 5 minutes, with exactly one watcher per lane and no cadence transitions.
 
 ## Official completion state
 
@@ -21,17 +20,17 @@ Canonical program:
 
 Accepted:
 - A-V14-PACKET-SAFETY engineering foundation.
-- Lane 3 B-R20-05/J20-14 + B-R20-01/B-R20-02 repair batch, plus previously accepted Lane 3 scope, is integrated on main via `be765ea42856bc695fc1eece9c1da396b4f162d4`.
+- V1.4 engineering implementation remains accepted.
 
 Still required before V1.4 COMPLETE:
-1. P0A proof-tool integrity lead acceptance,
-2. genuine private profile + exact intended resume mapping,
-3. real currently-live job + actual production packet path,
+1. P0A RP14-T1..T7 proof-tool integrity lead acceptance,
+2. actual private candidate profile and exact intended resume mapping,
+3. a current real live job through the production packet path,
 4. runtime-generated `REAL_PROOF_CANDIDATE`,
-5. separately generated candidate-bound verifier PASS receipt,
-6. independent proof audit and ChatGPT RP14-L1 acceptance.
+5. separately generated candidate-bound verifier `REAL_PROOF_PASS` receipt,
+6. ChatGPT real-proof acceptance.
 
-Owner rule: no version is COMPLETE until one genuine non-mock production-path example passes.
+Owner rule: no version is COMPLETE until at least one genuine non-mock production-path example passes in addition to engineering acceptance.
 
 ## Lane 1 — P0 V1.4 real-proof critical path
 
@@ -39,112 +38,125 @@ Branch / PR:
 - `worker/v14-real-proof`
 - draft PR #8
 
-Reviewed implementation:
-- `8f8c21f88512aa32521c78285b72dc9da298672e`
-- CI #401: SUCCESS
+Latest reviewed implementation commit:
+- `3ce19cffedcceba753686dae9c6240eccf6a2263`
 
-Lead + independent result:
-- **REWORK**. P0A is not accepted.
-- ChatGPT lead found four blocking proof-integrity defects.
-- worker-pc independent audit also returned **REWORK**.
-- additional material gaps include mandatory candidate/local bundle SHA binding, full approved Greenhouse source attestation, verifier enforcement of deterministic labels, and fuller RP14-T7 linkage.
+Lead result:
+- **REWORK**; P0A is not accepted.
 
-Current action:
-- one bounded Lane 1 rework batch incorporating all lead + worker-pc findings
-- no private-data proof until P0A is explicitly accepted
+The repair materially closes earlier candidate/receipt separation, structural-only PASS, default FAIL receipt, candidate-bundle binding, schema allowlist, deterministic-origin, and canonical packet-hash issues.
 
-## Lane 2 — V1.5 application safety
+Remaining blockers verified in actual source/tests:
+- RP14-T3 fetch/canonical source attestation is not independently bound strongly enough,
+- `fetched_at_utc` and `canonical_apply_url` are not required/validated and redacted `job_url` is not strongly bound to attested public job identity,
+- source description/question hashes are format-checked but not independently re-derived from trusted runtime `JobModel`/`JobSource` import evidence or a fresh same-flow public revalidation,
+- RP14-T4 verifier does not hash actual `candidate_profile_path` bytes and compare them to the private profile SHA; source class can still be trusted as a literal,
+- RP14-T7 verifier does not independently load/verify the persisted packet row and its resume/artifact IDs,
+- exact-head GitHub CI does not exist yet for `3ce19cf`; the latest verified PR CI preceded that repair.
+
+A verifier test fixture currently demonstrates the integrity hole by expecting PASS with a nonexistent candidate profile path plus fabricated-but-well-formed private/source-attestation hashes; that must become a rejection case.
+
+Heartbeat:
+- current-epoch ACTIVE_5M stream is live,
+- verified timestamps through `2026-09-21T18:18:14Z`,
+- latest observed heartbeat head `99ff7878288e74e30ee85d923af662d96d7fa19b`,
+- issue #7 heartbeat comments are functioning.
+
+Immediate:
+- Lane 1 closes the bounded remaining P0A gaps, rebases/synchronizes PR #8 to current main, runs targeted + full pytest/Ruff/mypy + exact-head CI, and returns for lead review.
+- Do not execute real private proof inputs before P0A acceptance.
+
+## Lane 2 — V1.5 assisted-application safety
 
 Branch / PR:
 - `worker/v15-assisted-application`
-- PR #2
+- draft PR #2
 
 Preserve:
 - A-R15-01..05 accepted at task scope.
 
-Current scope:
-- A-R15-06..09 implementation exists and has had green branch-CI evidence, but the lane is synchronizing against newer main and is not yet lead-accepted/integrated on a coherent current head.
+Current work:
+- A-R15-06..09.
 
-Heartbeat:
-- `DAYWATCH_2026_09_21`
-- valid re-proving: 16:28:06 → 16:33:07 → 16:38:09 UTC
-- clean watch start: 16:38:09 UTC
-- verified cadence check-in: 16:53:11 UTC (14.1-minute gap)
-- 16:39:07 and 16:54:09 are too-early duplicate writes, not valid 15-minute cadence evidence; overlapping watchers are suspected
-- misses: 0
+Current branch evidence at this review:
+- branch is diverged from main,
+- 32 commits ahead and 117 commits behind current main at the comparison point,
+- historical PR CI is green but is not current-main integration evidence,
+- latest heartbeat file still uses superseded `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last check-in `2026-09-21T17:39:16Z`.
 
 Immediate:
-- pull/rebase latest main,
-- ensure exactly one DAYWATCH watcher,
-- run focused + full pytest/Ruff/mypy + current-head CI,
-- request lead review on one coherent head.
+1. stop old Lane 2 DAYWATCH watcher once,
+2. pull/rebase latest main,
+3. launch exactly one Lane 2 `FIVE_MIN_2026_09_21` watcher,
+4. rerun focused + full pytest/Ruff/mypy + exact-head branch CI,
+5. request lead review on one coherent current-main head,
+6. do not expand into V1.6.
 
-Known V1.4 proof blocker on this machine remains: selected `resume_ai_software_engineer` had no genuine mapped resume bytes. Do not synthesize/substitute another resume.
+Known V1.4 proof blocker on the Lane 2 machine remains: the private profile previously selected `resume_ai_software_engineer` without genuine mapped resume bytes. Do not synthesize/substitute another resume.
 
-No V1.6.
+## Lane 3 — recruiting/reliability
 
-## Lane 3 — V1.7 / V2.0 recruiting & reliability
+Branch:
+- `worker/recruiting-ops`
 
 PR #3:
-- lead-reviewed, current-head CI green, merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
+- lead-reviewed and merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
 
-Newly accepted/integrated:
-- B-R20-05 / J20-14 worker-run durability/privacy/health repair,
-- B-R20-01 historical headline-funnel semantics,
-- B-R20-02 real-submission denominator semantics.
+Accepted/integrated scope:
+- B-R17-03,
+- B-R20-07,
+- B-R20-08,
+- B-R20-05 / J20-14,
+- B-R20-01,
+- B-R20-02.
 
-Previously accepted scope remains preserved, including B-R17-03, B-R20-07 and B-R20-08.
+Current branch evidence:
+- branch is 0 commits ahead and 105 commits behind current main at the comparison point,
+- latest heartbeat file still uses superseded DAYWATCH metadata, last check-in `2026-09-21T16:44:37Z`.
 
-Next bounded assignment:
-- pull/rebase branch onto current main,
-- run targeted worker/health/dashboard tests + full pytest/Ruff/mypy on the integrated baseline,
-- repair only a real integration regression,
-- otherwise record waiting status and stop implementation work.
+Immediate:
+1. stop any old Lane 3 watcher once,
+2. sync/rebase to latest main,
+3. launch exactly one Lane 3 `FIVE_MIN_2026_09_21` watcher,
+4. run targeted worker/health/dashboard tests + full pytest/Ruff/mypy on the integrated baseline,
+5. repair only a real integration regression; otherwise report verification and await the next bounded assignment.
 
-J20G-04 remains blocked on future Lane 1 Gmail-readiness dependency.
+Do not rebuild accepted work merely to create activity. Do not reopen V2.3/Scout lanes without a concrete bottleneck.
 
-Heartbeat:
-- worker metadata self-claims 3/3, but observed 16:18:20 → 16:34:20 → 16:44:37 UTC gaps are not 4–7 minutes,
-- therefore no valid 3/3 proving acceptance is credited; next worker heartbeat after pulling main restarts at 1/3.
+## Heartbeat / visible progress
 
-## Heartbeat standard
-
-Latest owner directive is authoritative:
+Canonical standard:
 - epoch `FIVE_MIN_2026_09_21`
 - mode `ACTIVE_5M`
-- every 5 minutes while the single Antigravity implementation session is active
-- exactly one watcher for that session
-- no proving/watch/hourly transitions
-- when switching historical work branches, stop the old watcher before starting the one watcher for the new active branch
+- interval 5 minutes
+- exactly one watcher per active lane
+- no transitions
 
-Any DAYWATCH instructions are superseded and retained only as historical evidence.
+GitHub issue #7 is the visible progress surface.
+Lane 1 current-epoch heartbeat comments are appearing correctly.
+Lane 2/3 must migrate their stale watcher state before their next heartbeat stream counts as current.
 
-Visible progress:
-- GitHub issue #7
+The lead is cleaning the heartbeat comment template so ACTIVE_5M comments show heartbeat count/interval instead of blank legacy proving/watch fields.
 
 ## Remote worker
 
 `worker-pc`:
-- online, capacity 1,
-- currently executing `jobs-v14-p0a-lane1-audit-20260921-1247` as a bounded read-only independent audit,
-- no implementation or merge authority.
+- online,
+- capacity 1,
+- last recent remote workflow completed and no newer task result was observed at this review,
+- available for bounded independent Jobs review/support when useful,
+- no implementation acceptance or merge authority.
 
 ## Critical path
 
-Lane 1 P0A rework
-→ lead + independent acceptance
-→ real private input readiness
+Lane 1 remaining P0A rework
+→ exact-head tests/CI + lead acceptance
+→ real private-input readiness
 → genuine V1.4 packet proof
-→ independent proof audit
-→ ChatGPT RP14-L1
+→ lead proof audit / RP14-L1
 → V1.4 COMPLETE.
 
-Sequential execution after the V1.4 gate:
-- move the single Antigravity session to the V1.5 work surface,
-- then V1.6 engineering when accepted/authorized,
-- then V1.7 recruiting-operations work.
-
-ChatGPT may prepare non-conflicting downstream V1.6→V3.0 contracts/tasks while Antigravity executes, without becoming a second implementation session.
+Lane 2 and Lane 3 continue their independent bounded work in parallel without weakening the V1.4 completion gate.
 
 ## Safety
 

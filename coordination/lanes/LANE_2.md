@@ -2,10 +2,10 @@
 
 Branch:
 - `worker/v15-assisted-application`
-- PR #2
+- draft PR #2
 
 Owner:
-- active Lane 2 worker
+- Lane 2 worker
 
 Reviewer:
 - ChatGPT lead
@@ -22,30 +22,39 @@ A-R15-06..09 only:
 - A-R15-08 — packet/provenance/artifact integrity revalidation immediately before browser use,
 - A-R15-09 — unknown file inputs remain manual/unfilled.
 
-Implementation for this scope is present on the worker branch and has had green branch CI evidence, but it is not yet lead-accepted/integrated. Keep PR #2 draft until a coherent current-head READY_FOR_LEAD_REVIEW batch is reviewed against latest main.
+Do not expand into V1.6 until the V1.5 gates pass or the owner/lead explicitly authorizes it.
 
-Do not expand into V1.6.
+## Latest lead evidence — 2026-09-21 14:20 ET
+
+At review time the branch is materially diverged from current main:
+- 32 commits ahead,
+- 117 commits behind.
+
+Historical PR CI is green, but it is not current-main integration evidence.
+
+Heartbeat is also stale relative to the owner standard:
+- current file still shows `DAYWATCH_2026_09_21` / `WATCH_15M_24H`,
+- latest observed check-in is `2026-09-21T17:39:16Z`.
 
 ## Immediate bounded assignment
 
-1. Pull/rebase latest `main` while preserving accepted A-R15-01..05 and current A-R15-06..09 source changes.
-2. Use only the fixed five-minute heartbeat:
-   `python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
-3. Ensure exactly one watcher process is active.
-4. Run focused assisted-safety adversarial tests + full pytest/Ruff/mypy + current-head branch CI.
-5. When the current head is coherent and green, set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes for lead review.
+1. Stop the old Lane 2 DAYWATCH watcher **once**. Confirm it is stopped before starting another watcher.
+2. Pull/rebase latest `main` while preserving accepted A-R15-01..05 and the intended A-R15-06..09 source changes.
+3. Start exactly one current watcher:
+   ```bash
+   python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach
+   ```
+4. Verify the heartbeat file shows epoch `FIVE_MIN_2026_09_21`, mode `ACTIVE_5M`, interval 5, and issue #7 receives the matching comments.
+5. Run focused assisted-safety adversarial tests + full `pytest` + Ruff + mypy.
+6. Obtain exact-head GitHub CI on the rebased coherent branch.
+7. Set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes for lead review.
 
 ## V1.4 proof eligibility
 
 Do not execute V1.4 real proof until Lane 1 P0A is lead-accepted.
 
-Known Lane 2 machine blocker remains: the real profile selected `resume_ai_software_engineer`, but no genuine mapped file for that selected variant was present. Do not synthesize, relabel, copy, or silently substitute another resume.
+Known Lane 2 machine blocker remains: the real profile previously selected `resume_ai_software_engineer`, but no genuine mapped file for that selected variant was present. Do not synthesize, relabel, copy, or silently substitute another resume.
 
-## Heartbeat
+## Safety
 
-Canonical owner directive:
-`python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
-
-Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
-
-No Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.
+No live Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.

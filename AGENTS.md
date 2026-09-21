@@ -9,278 +9,226 @@ Build and operate a portable personal job-search automation system that discover
 ## Operating model
 
 - User = product owner and final authority.
-- ChatGPT = lead agent, architect, reviewer, prioritizer, and quality gate.
-- Antigravity = primary execution workhorse.
-- Antigravity should keep executing the highest-priority unblocked work from coordination/WORK_QUEUE.md, test it, commit it, push it, and report progress.
-- ChatGPT reviews/audits Antigravity output, changes priority, resolves architecture ambiguity, and decides whether milestone exit criteria are actually met.
-- Explicit user instructions override both agents.
+- ChatGPT = engineering/product lead, architect, reviewer, prioritizer, integration owner, and quality gate.
+- Exactly **three active implementation lanes** are authorized:
+  1. Lane 1 — `worker/v14-real-proof` — P0 V1.4 real-proof critical path.
+  2. Lane 2 — `worker/v15-assisted-application` — V1.5 assisted-application safety.
+  3. Lane 3 — `worker/recruiting-ops` — recruiting/reliability work.
+- Old Lane C / `worker/live-data-foundations`, old Lane D / `worker/v23-foundations`, and old Scout / `scout/qa-prep` are paused/superseded and are not active workers.
+- `worker-pc` in `pri8771/remote-workers` is infrastructure for bounded independent support/review. It is not a fourth Jobs implementation lane and has no automatic merge authority.
+- Explicit user instructions override this file and all repository coordination files.
 
 ## Artifact-oriented project management
 
-This project uses artifact-oriented project management.
-
 Canonical artifact references:
-- docs/ARTIFACT_ORIENTED_PM.md
-- coordination/ARTIFACT_INDEX.md
-- coordination/artifacts/
+- `docs/ARTIFACT_ORIENTED_PM.md`
+- `coordination/ARTIFACT_INDEX.md`
+- `coordination/artifacts/`
 
 Rules:
 - every meaningful task should create, modify, verify, or accept a durable artifact,
-- every worker task in WORK_QUEUE should reference an artifact ID,
+- every worker task in `WORK_QUEUE.md` should reference an artifact ID where practical,
 - milestone completion is based on required artifact acceptance, not task prose,
-- update the artifact card and index when status/evidence changes,
-- when blocked on the active artifact, ChatGPT should prepare downstream/upstream artifacts and convert obvious implementation into bounded Antigravity TODOs,
-- heartbeats should report artifact/evidence state, not only activity,
-- artifact acceptance requires evidence appropriate to the artifact type.
+- update artifact state only from reviewed evidence,
+- worker claims are evidence inputs, not acceptance decisions,
+- ChatGPT owns milestone acceptance and cross-lane integration truth.
 
 ## Source of truth
 
 Do not rely on conversation memory as project state.
 
 Before meaningful work, read in this order:
-
-1. coordination/CONTEXT.md
-2. coordination/ARTIFACT_INDEX.md
-3. coordination/WORK_QUEUE.md
-4. recent entries in coordination/AI_SYNC.md
-5. README.md
-6. docs/PROJECT_SPEC.md
-7. docs/CANDIDATE_POSITIONING.md
-8. docs/ARCHITECTURE.md
-9. docs/PLATFORM_CONSTRAINTS.md
-10. docs/ROADMAP_1_TO_3.md
-11. state/CURRENT.md
-12. state/DECISIONS.md
-
-Only load deeper historical docs/code needed for the task at hand.
+1. `coordination/CONTEXT.md`
+2. `coordination/ARTIFACT_INDEX.md`
+3. `coordination/WORK_QUEUE.md`
+4. `coordination/TEAM_LANES.md`
+5. `coordination/HEARTBEAT_PROTOCOL.md`
+6. active lane file under `coordination/lanes/`
+7. recent entries in `coordination/AI_SYNC.md`
+8. `state/CURRENT.md`
+9. task-specific docs/code/tests
 
 If these conflict, use this precedence:
-explicit user instruction > AGENTS.md > coordination/WORK_QUEUE.md > docs/PROJECT_SPEC.md > state/DECISIONS.md > coordination/CONTEXT.md > other docs > code comments.
+explicit user instruction > `AGENTS.md` > `coordination/WORK_QUEUE.md` > `docs/PROJECT_SPEC.md` > `state/DECISIONS.md` > `coordination/CONTEXT.md` > other docs > code comments.
 
-## Owner heartbeat + active-session directive — 2026-09-21
+## Owner three-lane directive — 2026-09-21
 
-Latest explicit owner instruction:
-- use **one active Antigravity implementation session at a time**,
-- one active session gets **exactly one heartbeat watcher**,
-- the heartbeat runs every **5 minutes while that session is active**,
-- there are **no cadence transitions** to 15-minute or hourly modes,
-- canonical epoch is `FIVE_MIN_2026_09_21`,
-- when the same session switches historical lane branches, stop the old branch watcher before starting the single watcher for the new active branch,
-- never run duplicate watchers for the same active session,
-- historical Lane 1/Lane 2/Lane 3 branches remain work surfaces, not simultaneous active worker sessions,
-- any DAYWATCH/PROVING_5M/WATCH_15M_24H/STEADY_HOURLY instruction is superseded unless the owner explicitly changes this again.
+Exactly three implementation lanes are active in parallel:
 
-Canonical sequential execution program:
-- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+### Lane 1 — P0 V1.4 real proof
+- branch: `worker/v14-real-proof`
+- lane file: `coordination/lanes/LANE_1.md`
+- draft PR: #8 while P0A is under review
+- current priority: RP14-T1..T7 proof-tool integrity
+- after P0A lead acceptance: genuine private-input readiness and V1.4 packet proof
+- later candidate provenance/Gmail-readiness work only when assigned
 
-This owner directive overrides older coordination files or automation output.
+### Lane 2 — V1.5 assisted application
+- branch: `worker/v15-assisted-application`
+- lane file: `coordination/lanes/LANE_2.md`
+- PR: #2
+- preserve accepted A-R15-01..05
+- current scope: A-R15-06..09
+- no V1.6 until gates pass or the owner/lead explicitly authorizes it
+
+### Lane 3 — recruiting/reliability
+- branch: `worker/recruiting-ops`
+- lane file: `coordination/lanes/LANE_3.md`
+- PR #3 is historical/merged for the accepted B repair batch
+- preserve accepted B-R17-03/B-R20-07/B-R20-08 and B-R20-05/J20-14 + B-R20-01/B-R20-02
+- verify the integrated baseline and repair only evidence-backed regressions; do not rebuild accepted work
+
+Do not reopen V2.3/Scout or legacy Lane C/D simply to create activity.
+
+## Heartbeat directive
+
+Canonical heartbeat standard:
+- epoch: `FIVE_MIN_2026_09_21`
+- mode: `ACTIVE_5M`
+- interval: 5 minutes
+- active lanes: exactly 3
+- watcher count: exactly one watcher per active lane
+- cadence transitions: none
+
+Every active lane should emit a worker-authored heartbeat approximately every 5 minutes for the full active session.
+
+There is no proving phase, 24-hour watch, or hourly transition. Any `DAYWATCH_2026_09_21`, `PROVING_5M`, `WATCH_15M_24H`, or `STEADY_HOURLY` instruction is historical and superseded.
+
+If an active lane still has an old watcher:
+1. stop that old watcher once,
+2. pull/rebase latest main as required by the lane file,
+3. start exactly one watcher for the lane with epoch `FIVE_MIN_2026_09_21`,
+4. do not start duplicates.
+
+Watcher commands:
+- Lane 1: `python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --detach`
+- Lane 2: `python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --detach`
+- Lane 3: `python scripts/worker_heartbeat_watch.py --lane 3 --epoch FIVE_MIN_2026_09_21 --detach`
+
+Heartbeat files:
+- `coordination/heartbeats/LANE_1.md`
+- `coordination/heartbeats/LANE_2.md`
+- `coordination/heartbeats/LANE_3.md`
+
+Actual Git commit/file timestamps outrank worker self-claims.
+Heartbeat is liveness/progress evidence only; it never substitutes for tests, CI, code review, artifact acceptance, real proof, or version completion.
+
+Each heartbeat should produce a GitHub Actions comment on issue #7, `Jobs Automation — Live Progress`. If commits continue but comments stop, ChatGPT must diagnose the heartbeat workflow.
 
 ## Inter-agent coordination
 
-Use lane-specific heartbeat files under coordination/heartbeats/ as the primary worker -> ChatGPT coordination channel. ChatGPT may summarize accepted/rework/cross-lane decisions into coordination/AI_SYNC.md.
+While actively working:
+- each lane reads its own lane file and heartbeat file,
+- each lane stays inside its bounded ownership unless the lead explicitly reassigns scope,
+- workers do not edit lead-owned shared coordination truth unless explicitly assigned,
+- workers push coherent tested batches and mark `READY_FOR_LEAD_REVIEW` only when the batch is actually ready,
+- ChatGPT reviews actual branch diff/tests/CI before accepting or integrating,
+- after an accepted integration, ChatGPT writes the next bounded assignment into the lane file immediately.
 
-While actively working on this project:
-- read `coordination/SESSION_START.md` and the heartbeat file for the currently active historical lane branch,
-- keep exactly one watcher for the single active Antigravity session,
-- publish the heartbeat every 5 minutes while active; a minimal "still working on X; no blocker" update is valid,
-- post immediately on milestone completion, meaningful blocker, architecture/policy question, or test failure requiring lead attention,
-- milestone/review handoffs must state Done, Next, Blockers/risks, Commits, and Message to lead.
+Lead-owned shared truth includes:
+- `coordination/ARTIFACT_INDEX.md`
+- `coordination/WORK_QUEUE.md`
+- `coordination/TEAM_LANES.md`
+- `coordination/HEARTBEAT_PROTOCOL.md`
+- `coordination/HEARTBEAT_DASHBOARD.md`
+- `coordination/CONTEXT.md`
+- `coordination/AI_SYNC.md`
+- `state/CURRENT.md`
 
-Do not put durable architecture truth only in AI_SYNC:
-- durable project memory -> coordination/CONTEXT.md
-- execution priorities -> coordination/WORK_QUEUE.md
-- implementation/milestone truth -> state/CURRENT.md
-- architecture decisions -> state/DECISIONS.md
-
-Keep compact context compact; do not reload the whole repository/conversation every hour.
-
-## Non-negotiable rules
+## Non-negotiable safety rules
 
 - Keep the system portable across IDEs, LLMs, and model providers.
 - Keep business logic independent from Antigravity, Cursor, Claude, ChatGPT, or any single model API.
 - Use provider adapters and typed interfaces.
-- Do not commit passwords, API keys, OAuth refresh tokens, cookies, browser profiles, resumes containing private data unless the user explicitly chooses to store them.
-- Secrets belong in environment variables, local secret files ignored by Git, or a secret manager.
+- Do not commit passwords, API keys, OAuth refresh tokens, cookies, browser profiles, private candidate profiles, or private resume contents.
+- Secrets belong in environment variables, ignored local secret files, or a secret manager.
 - No CAPTCHA bypass, anti-bot evasion, fingerprint spoofing, rate-limit bypass, or stealth scraping.
-- Do not automate job submission on a platform when its current terms prohibit that behavior.
-- Prefer official APIs, email alerts, feeds, approved integrations, and employer/ATS application pages.
-- Every automated action that can change external state must be auditable.
-- Submission must be idempotent: never intentionally submit twice to the same job.
-- Never fabricate answers to application questions. Unknown candidate facts must pause or route to a review queue.
-- Never invent work authorization, sponsorship, salary history, education, certifications, dates, or employment details.
-- Follow docs/CANDIDATE_POSITIONING.md for role targeting and resume strategy.
-- Maintain targeted resume versions; do not collapse the candidate into one generic resume.
-- A model may recommend or draft; deterministic code owns state transitions, deduplication, policy checks, and audit logging.
+- Do not automate submission on a platform when its current terms prohibit that behavior.
+- Every external-state-changing action must be auditable.
+- Submission must be idempotent.
+- Never fabricate application answers or candidate facts.
+- Unknown work authorization, sponsorship, salary history, education, certifications, dates, employment details, or similar facts must remain unresolved/manual.
 - Simulation/mock behavior must never masquerade as a real external action.
+- No live Gmail OAuth/mailbox access, browser application submission, external messaging, spending, or MFA/CAPTCHA handling without explicit scoped owner authorization.
 
-## Agent start protocol
+## Worker execution protocol
 
-At the start of a task:
-
-1. Pull/fetch the latest repository state.
-2. Read compact context, queue, recent sync, and current state.
-3. Inspect recent commits relevant to the current task.
-4. Work from the highest-priority unblocked queue item unless ChatGPT/user gave a newer instruction.
-5. Prefer tests and small interfaces before broad implementation.
-
-## Single-session worker discipline
-
-The current owner-directed execution mode is sequential:
-
-- exactly one Antigravity implementation session is active at a time,
-- historical lane branches remain separate work surfaces for code ownership and PR history,
-- only the branch currently being worked by the active session has an active heartbeat watcher,
-- do not keep Lane 1/Lane 2/Lane 3 worker sessions running in parallel,
-- before moving to another historical lane branch, finish/push a coherent batch and stop the old heartbeat watcher,
-- rebase/synchronize the next work branch as required by its lane file,
-- start exactly one heartbeat watcher for the newly active branch,
-- workers do not edit lead-owned shared coordination/state files unless explicitly assigned,
-- ChatGPT owns shared artifact index, work queue, current state, cross-branch integration, acceptance, and downstream planning.
-
-Historical work surfaces:
-- Lane 1 / `worker/v14-real-proof` — V1.4 proof critical path,
-- Lane 2 / `worker/v15-assisted-application` — V1.5 and later V1.6 application execution,
-- Lane 3 / `worker/recruiting-ops` — V1.7 recruiting operations and V2 operations support.
-
-Current sequential program:
-- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
-
-Future preparation:
-- `docs/V1_6_TO_V3_PREP_PLAN.md`
-
-## Antigravity execution protocol
-
-Antigravity is expected to keep moving the queue while active.
-
-1. Take the highest-priority unblocked task.
-2. Implement a coherent batch.
-3. Run relevant tests/lint/type checks.
-4. Commit and push.
-5. Post a sync message.
-6. Continue to the next unblocked task when the queue and milestone boundaries make it safe to do so.
-7. Escalate architectural/safety uncertainty through AI_SYNC instead of silently changing strategy.
+For each Lane 1/2/3 worker:
+1. Pull/fetch current repository state.
+2. Read the compact project truth and its lane file.
+3. Inspect relevant recent commits/PR state.
+4. Keep exactly one current-epoch heartbeat watcher running for that lane.
+5. Implement only the assigned bounded scope.
+6. Run relevant focused tests, full tests where required, Ruff, mypy, and branch CI as required by the lane contract.
+7. Commit and push a coherent batch.
+8. Mark `READY_FOR_LEAD_REVIEW` / `REVIEW` only when the batch is coherent.
+9. Stop implementation changes at a review boundary unless the lane file explicitly authorizes continued independent work.
 
 ## ChatGPT lead protocol
 
-ChatGPT should:
-1. review new Antigravity commits,
-2. audit claims against implementation,
-3. update WORK_QUEUE priority,
-4. update CONTEXT when durable memory changes,
-5. communicate directives through AI_SYNC,
-6. enforce milestone exit criteria,
-7. keep docs/ROADMAP_1_TO_3.md coherent.
+At each lead run, ChatGPT should:
+1. read latest main project truth and active lane files,
+2. inspect Lane 1/2/3 branches, heartbeat files, PR state, branch CI, and compare each branch to main,
+3. inspect `pri8771/remote-workers` worker-pc status and recent Jobs task results,
+4. verify heartbeat timestamps and issue #7 heartbeat comments,
+5. prioritize `READY_FOR_LEAD_REVIEW` over new planning,
+6. review actual diffs/tests/CI before accepting,
+7. update canonical coordination/artifact truth only from reviewed evidence,
+8. integrate accepted coherent batches according to project rules,
+9. immediately write the next bounded lane assignment after integration,
+10. post one concise ChatGPT lead heartbeat to issue #7.
 
-### No-idle lead rule
+If a branch is ahead of main and has no open PR, create a draft PR to main automatically. Keep it draft until lead acceptance evidence is complete.
 
-If the active milestone is temporarily blocked by Antigravity, CI, or a user-interactive boundary, ChatGPT should not sit idle.
+Use `worker-pc` for bounded independent review/support when idle and useful. Respect capacity 1. Never auto-merge worker-pc branches.
 
-Instead:
-1. read coordination/FUTURE_BACKLOG.md,
-2. choose the highest-value safe non-conflicting future task,
-3. prefer work that shortens the critical path for the next milestone,
-4. commit reusable findings/plans/tests/contracts to Git,
-5. report the work in AI_SYNC,
-6. keep the current acceptance gate unchanged unless new evidence warrants reprioritization.
+## Real-proof version completion rule
 
-Safe pull-forward work includes audits, adversarial test design, schemas, migration plans, acceptance contracts, runbooks, benchmarks, research notes, and non-conflicting implementation preparation.
+Owner directive:
+A version is not COMPLETE until both engineering acceptance and at least one genuine non-mock production-path example pass.
 
-This rule does NOT authorize ChatGPT to:
-- connect OAuth/accounts,
-- change external account state,
-- submit applications,
-- send messages,
-- bypass MFA/CAPTCHA/policy restrictions,
-- fabricate candidate facts,
-- or silently expand the user-approved product scope.
+For V1.4, engineering is accepted but the version remains **NOT COMPLETE** until:
+1. P0A RP14-T1..T7 proof-tool integrity is lead-accepted,
+2. a genuine real input packet proof runs through the production packet path,
+3. runtime `REAL_PROOF_CANDIDATE` evidence and a separately bound verifier PASS receipt survive lead review.
 
-## Delegation and story-point policy
+Policy:
+- `docs/REAL_PROOF_ACCEPTANCE_POLICY.md`
+- `coordination/artifacts/A-V14-REAL-PROOF.md`
+- `docs/V1_4_REAL_PROOF_RUNBOOK.md`
 
-Use docs/WORKER_STORY_POINTS.md.
+Workers must never use fixture/mock/simulated evidence to satisfy a version-complete gate.
+Private inputs stay local; only redacted hashes/provenance/evidence may be committed.
 
-Default behavior:
-- give Antigravity the bulk of implementation work,
-- especially delegate almost all SP1-SP2 and most SP3 tasks,
-- delegate well-specified SP4 tasks when architecture/acceptance is clear,
-- assign SP5 only when tightly bounded,
-- never assign >SP5 as one unit; ChatGPT must decompose it first.
+## Application automation policy
 
-ChatGPT should avoid consuming easy worker work. Its primary value is architecture, debugging, decomposition, adversarial review, acceptance, and preparing future work.
+The execution engine classifies every destination as:
+- `MANUAL_ONLY`
+- `ASSISTED`
+- `AUTO_ALLOWED`
+- `BLOCKED`
 
-Every meaningful worker implementation task should have a task ID + SP1-SP5 estimate before or when it enters WORK_QUEUE.
-
-Worker performance is tracked in coordination/WORKER_PERFORMANCE.md. Worker completion is self-reported; only ChatGPT may mark milestone-relevant tasks LEAD_ACCEPTED.
-
-If a worker struggles with an SP4/SP5 task, split it into smaller independent tasks instead of repeatedly reissuing the same oversized prompt.
-
-## Agent finish protocol
-
-Before ending a meaningful work session:
-
-1. Run the relevant tests, lint, and type checks.
-2. Update state/CURRENT.md with:
-   - what changed
-   - what was verified
-   - current blockers
-   - exact next task
-3. Update state/DECISIONS.md if an architectural or behavioral decision changed.
-4. Update coordination/CONTEXT.md if durable context changed.
-5. Update coordination/WORK_QUEUE.md if execution priority changed.
-6. Append an AI_SYNC check-in.
-7. Update docs when implementation changes the truth.
-8. Commit with a clear message.
-9. Push the branch if credentials permit.
+A model may recommend or draft; deterministic code owns state transitions, deduplication, policy checks, and audit logging.
 
 ## Development style
 
 - Python 3.12+.
 - Strong typing where practical.
 - Small modules with explicit interfaces.
-- Pydantic models for external and internal payload boundaries.
+- Pydantic models for payload boundaries.
 - SQL migrations for persistent schema changes.
 - Structured logs.
 - Tests for parsers, scoring, lifecycle transitions, deduplication, and policy enforcement.
-- Make integrations replaceable.
-- Keep LLM prompts versioned in the repository.
-- Prefer deterministic parsing before LLM extraction; use LLMs for ambiguity, semantic matching, summarization, tailoring, and drafting.
-
-## Pulling facts from email
-
-Email is evidence, not absolute truth. Normalize and link messages to job/company/application records, but preserve original provider message IDs and timestamps so decisions can be traced.
-
-## Application automation policy
-
-The execution engine must classify every destination into one of:
-
-- MANUAL_ONLY
-- ASSISTED
-- AUTO_ALLOWED
-- BLOCKED
-
-The policy decision is stored with the application attempt. AUTO_ALLOWED requires an explicit adapter or allowlist entry and no known platform-policy conflict.
-
-## Real-proof version completion rule
-
-Owner directive:
-A release/version milestone is not COMPLETE until it has at least one real, non-mock production-path example appropriate to that milestone.
-
-Tests, CI, fixtures, adversarial cases, and lead code review can establish ENGINEERING_ACCEPTED, but not COMPLETE.
-
-Required policy:
-- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
-
-Workers must never use fixture/mock/simulated evidence to satisfy a version-complete gate.
-
-Private real inputs may remain local; commit redacted hashes/provenance/evidence only.
-
-Later-version engineering may continue in parallel while an earlier real-proof gate is pending, but project status must not call that earlier version complete.
+- Replaceable integrations.
+- Versioned prompts.
+- Prefer deterministic parsing before LLM extraction.
 
 ## Definition of done
 
-A feature is not done until:
+A task is not done until:
 - it has tests or a documented verification procedure,
-- state is updated,
 - failure behavior is explicit,
-- secrets are not exposed,
-- simulation is clearly separated from real external success,
-- and a different agent can understand how to continue by reading compact context + queue + recent sync.
+- secrets/private data are not exposed,
+- simulation is separated from real external success,
+- the lane has durable evidence a different agent can inspect,
+- and ChatGPT lead has accepted any milestone-relevant claim.
