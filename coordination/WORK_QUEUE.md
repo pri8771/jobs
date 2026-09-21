@@ -10,6 +10,29 @@ Workers should start from:
 Formal milestones:
 V1.4 REAL_PROOF -> V1.5 -> V1.7 -> V2.0 -> V2.3 -> V3.0
 
+## P0A — real-proof tooling integrity
+
+Before using private profile/resume data for the milestone-completing proof, repair the proof-verification chain in:
+
+- docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md
+
+Required bounded tasks:
+- RP14-T1 SP2 runtime emits REAL_PROOF_CANDIDATE; verifier emits separate bundle-bound PASS/FAIL receipt
+- RP14-T2 SP2 local private bundle SHAs must cross-match redacted evidence fields and proof_run_id
+- RP14-T3 SP3 bind JobModel/questions to the actual current public Greenhouse fetch/attestation
+- RP14-T4 SP2 reject copied/renamed example candidate profile using content-level evidence, not filename alone
+- RP14-T5 SP1 redacted evidence schema/validator uses explicit allowlist; no arbitrary extra fields
+- RP14-T6 SP1 unambiguous deterministic generation labeling
+- RP14-T7 SP2 verify packet/manifest/resume-variant/artifact cross-links locally
+
+Acceptance:
+- forged/hand-authored proof bundle is rejected,
+- unrelated local files cannot satisfy redacted hashes,
+- fake JobModel/questions cannot satisfy the approved live-source binding,
+- targeted proof-integrity tests + full pytest/Ruff/mypy/CI pass.
+
+Do not run the private-data proof until P0A is lead-accepted.
+
 ## P0 — V1.4 real proof
 
 Artifact:
