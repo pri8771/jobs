@@ -16,45 +16,45 @@ Old Lane C/D/Scout remain paused/superseded. `worker-pc` is bounded support infr
 Status: **REWORK**.
 V1.4 is **NOT COMPLETE**.
 
-Latest Lane 1 branch evidence:
-- substantive repair: `5e5058461d5371f292c93e0c53cb0b93caba7e44`
-- branch head: `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
-- heartbeat-only commits through #18 at `2026-09-21T19:18:36Z`; stream is stale
-- PR #8 remains draft/non-mergeable and materially diverged from main.
+Latest reviewed implementation evidence:
+- clean branch `claude/serene-brown-g6uij0`
+- substantive commit `3444076de27573ec57d9c8ae60876aece8e646d9`
+- direct parent `927b33c0f523950ca206ead1cc2912e19a018184`
+- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, current epoch/mode, worker reports READY_FOR_LEAD_REVIEW
+- draft PR #8 remains a review container but carries historical heartbeat/coordination divergence; review the clean implementation commit for code truth.
 
-### Reviewed worker-pc support branch
+Lead review confirms the clean-port materially closes the previously identified runtime verifier gaps: candidate/receipt separation, local/candidate SHA binding, mandatory persisted DB evidence, Greenhouse persisted-source binding, copied-example-profile rejection, production `generation_origin`, driver-qualified PostgreSQL URL handling, and re-derived packet/manifest/resume/artifact/DB links.
 
-Task `jobs-v14-p0a-remaining-fix-20260921-1545` returned branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545` at `062ca922c640d964220b550a06f61288b9a040c9`.
+Worker-reported local validation at `3444076...`: pytest 205 passed; Ruff clean; mypy `src tests` clean; 16 formerly-xfail adversarial probes reported passing. These claims do not equal acceptance.
 
-Lead inspection confirms useful support for:
-- mandatory fail-closed proof DB validation,
-- persisted packet/resume/artifact graph checks,
-- persisted Greenhouse `JobSource`/`Job` attestation checks.
+### Remaining blocker — stale proof schema
 
-It remains **support input only**, not accepted: no exact-head CI and worker-side pytest/Ruff/mypy were sandbox-blocked.
+At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` still has:
+- `additionalProperties: true`, and
+- `result.const: REAL_PROOF_PASS`.
 
-### Corrected production-path findings
-
-The support/Lane 1 importer at `062ca922...` already persists `provider`, `public_job_id`, `question_list_sha256`, `api_url`, `fetched_at_utc`, `content_sha256`, `screening_question_count`, and `source_kind`. An earlier interim note comparing against older main was incorrect; importer payload shape is not the blocker.
-
-Actual blockers:
-1. Production packet builder writes `generation_metadata_json["generation_origin"]`, while support verifier reads `generation_metadata["origin"]`; genuine packets therefore fail the verifier and current verifier tests use a non-production metadata shape.
-2. Support `resolve_proof_db_url()` accepts `postgresql://` / `postgres://`, while normal `AppSettings.database_url` defaults to `postgresql+psycopg://...`; the real application DB URL can therefore be rejected/misread before DB proof validation.
+This directly violates RP14-T1/RP14-T5. Runtime evidence is a `REAL_PROOF_CANDIDATE`; committed candidate evidence must be closed/allowlisted.
 
 ### Immediate Lane 1 assignment
 
-1. Verify the stale watcher is dead; sync/clean-port the P0A implementation onto latest main.
-2. Adapt the useful `062ca922...` DB/source-binding changes.
-3. Validate canonical `generation_origin` from real packet-builder metadata; keep any legacy fallback narrow/fail-closed.
-4. Accept the actual SQLAlchemy PostgreSQL driver-qualified DB URL form, including `postgresql+psycopg://`, while retaining fail-closed unsupported/SQLite checks.
-5. Keep Greenhouse provider/job/questions/content/canonical URL binding against real importer + persisted `JobSourceModel`/`JobModel` evidence.
-6. Add focused tests using real production metadata/importer shapes plus adversarial wrong-origin, DB target, packet/resume/artifact, and forged source/question cases.
-7. Run focused importer/runner/verifier tests + full `pytest` + `ruff check .` + `mypy src tests`.
-8. If hosted Actions still fail before steps start, record `CI_BLOCKED_ACCOUNT`; do not claim CI green.
-9. Start exactly one Lane 1 `FIVE_MIN_2026_09_21` watcher and push one coherent `READY_FOR_LEAD_REVIEW` batch.
-10. Do not use private candidate/resume inputs or run the genuine proof until ChatGPT accepts P0A.
+1. Clean-sync the reviewed implementation with latest `main` coordination truth; avoid importing historical heartbeat churn into the implementation diff.
+2. Fix `coordination/proofs/v14_real_proof.schema.json`:
+   - `additionalProperties: false`,
+   - candidate `result` must be `REAL_PROOF_CANDIDATE`,
+   - schema fields match the actual runner candidate and verifier allowlist, including current candidate fact, question, and deterministic-generation fields.
+3. Add focused schema tests that:
+   - accept an actual production-shape candidate,
+   - reject an arbitrary extra field,
+   - reject candidate evidence that self-declares `REAL_PROOF_PASS`.
+4. Re-run focused importer/runner/verifier/schema tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
+5. Push one coherent current-main `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
+6. Obtain exact-head GitHub CI when hosted Actions execute. If jobs still fail before steps with `runner_id: 0` / `steps: []`, record `CI_BLOCKED_ACCOUNT`; never call that green.
+7. Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
 
-Worker-pc task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched for bounded support on exactly the two runtime-contract blockers. Lane 1 must not wait for it; no support branch auto-merges.
+Bounded support:
+- completed runtime-contract support `7e88542b5ce5d8cf1c607a24d8f92399556c15ce` was incorporated into the clean-port,
+- new `worker-pc` task `jobs-v14-p0a-schema-gate-20260921-1748` targets only the remaining schema contract and focused tests,
+- Lane 1 must not wait for worker-pc and no support branch auto-merges.
 
 ## Lane 2 — V1.5 assisted application
 
@@ -65,12 +65,19 @@ Scope:
 - current A-R15-06..09 only,
 - no V1.6 until gates pass or owner/lead explicitly authorizes it.
 
+Current heartbeat remains obsolete:
+- `DAYWATCH_2026_09_21`
+- `WATCH_15M_24H`
+- last check-in `2026-09-21T17:39:16Z`.
+
 Immediate assignment:
-1. stop/verify stopped old DAYWATCH watcher once,
+1. stop/verify stopped the old watcher once,
 2. sync/rebase latest main,
-3. start exactly one Lane 2 `FIVE_MIN_2026_09_21` watcher,
+3. start exactly one Lane 2 `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
 4. run focused assisted-safety adversarial tests + full pytest/Ruff/mypy,
-5. request lead review on one coherent batch.
+5. request lead review on one coherent A-R15-06..09 batch.
+
+Historical head checks only validate the old heartbeat/progress workflows; they do not establish current-main implementation CI.
 
 Known V1.4 proof blocker on this machine remains the missing genuine selected `resume_ai_software_engineer` mapping. Never substitute another resume.
 
@@ -80,10 +87,15 @@ PR #3 is merged. Accepted/integrated scope includes B-R17-03, B-R20-07, B-R20-08
 
 Worker head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` is 0 commits ahead and stale/behind main.
 
+Current heartbeat remains obsolete:
+- `DAYWATCH_2026_09_21`
+- `PROVING_5M`
+- last check-in `2026-09-21T16:44:37Z`.
+
 Immediate assignment:
-1. stop/verify stopped old DAYWATCH watcher,
+1. stop/verify stopped the old watcher once,
 2. sync latest main,
-3. start exactly one Lane 3 `FIVE_MIN_2026_09_21` watcher,
+3. start exactly one Lane 3 `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
 4. run targeted worker/health/dashboard tests plus full pytest/Ruff/mypy,
 5. verify integrated accepted semantics,
 6. repair only a real evidence-backed regression,
@@ -98,9 +110,9 @@ For Lane 1/2/3:
 - exactly one watcher per active lane,
 - no cadence transitions.
 
-Issue #7 is the user-visible progress surface. Worker heartbeats should comment there when Actions infrastructure is available. ChatGPT posts one concise lead comment every hourly run.
+Issue #7 is the user-visible progress surface. Worker heartbeat Git commits remain authoritative liveness evidence when hosted Actions cannot post comments. ChatGPT posts one concise lead comment every hourly run.
 
-Current Actions diagnosis remains `CI_BLOCKED_ACCOUNT`: recent jobs fail before steps execute with `runner_id: 0` / `steps: []`.
+Current Actions diagnosis remains `CI_BLOCKED_ACCOUNT`: current Lane 1 heartbeat jobs fail before steps execute with `runner_id: 0` / `steps: []`. Do not rewrite heartbeat semantics merely to create visible activity.
 
 ## Real-proof sequence after P0A
 
