@@ -1,11 +1,26 @@
-# Active Team Lanes
+# Historical Work Surfaces / Single Active Session
 
-Authoritative operating model: **3 implementation lanes**.
+Authoritative operating model:
+**one Antigravity implementation session is active at a time.**
+
+The historical lane branches remain useful because they preserve code ownership, PR history, and bounded work surfaces. They are not three simultaneous active worker sessions.
 
 ChatGPT is engineering/product lead and acceptance gate.
-`worker-pc` is an independent review/support resource when available; it is not a project lane.
+`worker-pc` may provide independent bounded audit/support; it is not an implementation session.
 
-## Lane 1 — V1.4 Real-Proof Critical Path
+Canonical execution program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+
+## Current sequential order
+
+1. Lane 1 work surface — V1.4 real-proof critical path
+2. Lane 2 work surface — V1.5 assisted application, then V1.6 when authorized
+3. Lane 3 work surface — V1.7 recruiting operations
+4. later V2.0/V2.3/V3.0 work per canonical roadmap/prep plan
+
+Only one of these work surfaces is active in Antigravity at a time.
+
+## Lane 1 work surface — V1.4 Real-Proof Critical Path
 
 Branch:
 - `worker/v14-real-proof`
@@ -14,19 +29,14 @@ Lane file:
 - `coordination/lanes/LANE_1.md`
 
 Owns:
-- RP14-T1..T7 proof-tool integrity
-- after P0A acceptance, RP14-C1..C3 real input readiness
-- first genuine V1.4 real-proof execution when real inputs are present
-- then candidate provenance / Gmail-readiness work previously assigned to old Lane C
-
-Primary paths:
-- proof scripts/schema/tests
-- later provenance/Gmail paths
+- RP14 proof-tool integrity
+- after P0A acceptance, genuine V1.4 real proof
+- later candidate provenance/Gmail-readiness work when assigned
 
 Priority:
-- P0
+- P0 until V1.4 proof gate is cleared
 
-## Lane 2 — V1.5 Application Safety
+## Lane 2 work surface — V1.5 / V1.6 Application Execution
 
 Branch:
 - `worker/v15-assisted-application`
@@ -34,17 +44,14 @@ Branch:
 Lane file:
 - `coordination/lanes/LANE_2.md`
 
-Owns:
+Current scope:
 - preserve accepted A-R15-01..05
-- A-R15-06..09
-- real-proof execution only if Lane 1 is P0A-accepted and this machine has genuine selected resume bytes
-- V1.6 remains blocked
+- finish/verify A-R15-06..09
+- V1.6 starts only after V1.5 acceptance or explicit lead authorization
 
-Primary paths:
-- `src/jobs_automation/browser/`
-- application execution tests
+No live submission authority is implied.
 
-## Lane 3 — V1.7 / V2.0 Recruiting & Reliability
+## Lane 3 work surface — V1.7 Recruiting Operations
 
 Branch:
 - `worker/recruiting-ops`
@@ -52,46 +59,52 @@ Branch:
 Lane file:
 - `coordination/lanes/LANE_3.md`
 
-Owns:
-- preserve accepted B-R17-03 / B-R20-07 / B-R20-08
-- B-R20-05 / J20-14 repair
-- B-R20-01 / B-R20-02 headline funnel repair
-- later J20G-04 after Gmail readiness exists
+Owns when this becomes the active work surface:
+- audit/close remaining A-V17-CRM-EVIDENCE gaps
+- audit/close remaining A-V17-INTERVIEW-FOLLOWUP gaps
+- bounded V2.0 recruiting/reliability support later
 
-Primary paths:
-- lifecycle / worker / health / analytics / dashboard tests
+Substantial Lane 3 work is already accepted/merged; audit before rebuilding anything.
 
-## Paused lanes
+## Paused historical branches
 
 Old Lane D / `worker/v23-foundations`:
-- PAUSED.
-- V2.3 work is intentionally deferred until V1.4 is complete and V2.0 is materially closer to engineering acceptance.
+- paused as an implementation session.
 
 Old Scout / `scout/qa-prep`:
-- PAUSED as an active session.
-- Independent review is performed by ChatGPT plus `worker-pc` when useful.
-- Scout branch/history remains available as audit evidence.
+- paused as an active session.
 
 Old Lane C / `worker/live-data-foundations`:
-- SUPERSEDED by clean Lane 1 branch `worker/v14-real-proof`.
-- It had no worker production code ahead of main.
+- superseded by the current work-surface structure.
+
+## Heartbeat
+
+One active Antigravity session = exactly one heartbeat watcher.
+
+When changing work surfaces:
+- stop old watcher,
+- switch/sync branch,
+- start one watcher for the new active work surface.
+
+See:
+- `coordination/HEARTBEAT_PROTOCOL.md`
 
 ## Shared-file rule
 
-Workers do not edit lead-owned project truth unless explicitly assigned:
-- coordination/ARTIFACT_INDEX.md
-- coordination/WORK_QUEUE.md
-- coordination/CONTEXT.md
-- coordination/AI_SYNC.md
-- coordination/HEARTBEAT_DASHBOARD.md
-- state/CURRENT.md
-- docs/ROADMAP_1_TO_3.md
+Antigravity does not edit lead-owned project truth unless explicitly assigned:
+- `coordination/ARTIFACT_INDEX.md`
+- `coordination/WORK_QUEUE.md`
+- `coordination/CONTEXT.md`
+- `coordination/AI_SYNC.md`
+- `coordination/HEARTBEAT_DASHBOARD.md`
+- `state/CURRENT.md`
+- `docs/ROADMAP_1_TO_3.md`
 
 ## Review model
 
-1. worker implements on its lane branch,
-2. heartbeat/progress feed proves liveness,
-3. worker pushes coherent tested batch,
+1. Antigravity works the current historical lane branch,
+2. the single heartbeat watcher proves session liveness,
+3. worker pushes a coherent tested batch,
 4. ChatGPT reviews actual diff/tests/CI,
-5. worker-pc may perform independent bounded audit,
-6. only ChatGPT updates acceptance state / merges accepted work.
+5. worker-pc may provide bounded independent audit,
+6. only ChatGPT updates acceptance/integration truth.
