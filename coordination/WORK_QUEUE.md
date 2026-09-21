@@ -20,14 +20,14 @@ Latest reviewed implementation evidence:
 - clean branch `claude/serene-brown-g6uij0`
 - substantive commit `3444076de27573ec57d9c8ae60876aece8e646d9`
 - direct parent `927b33c0f523950ca206ead1cc2912e19a018184`
-- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, current epoch/mode, worker reports READY_FOR_LEAD_REVIEW
+- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, then became stale
 - draft PR #8 remains a review container but carries historical heartbeat/coordination divergence; review the clean implementation commit for code truth.
 
 Lead review confirms the clean-port materially closes the previously identified runtime verifier gaps: candidate/receipt separation, local/candidate SHA binding, mandatory persisted DB evidence, Greenhouse persisted-source binding, copied-example-profile rejection, production `generation_origin`, driver-qualified PostgreSQL URL handling, and re-derived packet/manifest/resume/artifact/DB links.
 
 Worker-reported local validation at `3444076...`: pytest 205 passed; Ruff clean; mypy `src tests` clean; 16 formerly-xfail adversarial probes reported passing. These claims do not equal acceptance.
 
-### Remaining blocker — stale proof schema
+### Remaining blocker — stale proof schema in the clean-port
 
 At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` still has:
 - `additionalProperties: true`, and
@@ -35,26 +35,32 @@ At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` still has:
 
 This directly violates RP14-T1/RP14-T5. Runtime evidence is a `REAL_PROOF_CANDIDATE`; committed candidate evidence must be closed/allowlisted.
 
+### Reviewed worker-pc schema support
+
+Task `jobs-v14-p0a-schema-gate-20260921-1748` completed successfully and returned:
+- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`,
+- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`,
+- parent `3444076...`.
+
+Lead inspected the actual support diff. It changes only the proof schema, new schema regression tests, and the dev dependency needed to execute JSON-schema semantics. Structurally it:
+- closes the top-level allowlist (`additionalProperties: false`),
+- pins candidate `result` to `REAL_PROOF_CANDIDATE`,
+- pins schema keys to runner-emitted keys and verifier `ALLOWED_TOP_LEVEL_KEYS`,
+- includes the current candidate fact/question/generation fields,
+- adds tests for production-shape acceptance, extra-field rejection, self-declared PASS rejection, required fields, and invalid deterministic-generation values.
+
+**Support verdict: useful, not accepted/merge-ready.** The worker environment did not execute the test suite and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or faithfully reimplement the patch in its coherent current-main batch and prove it with focused/full validation. No support branch auto-merges.
+
 ### Immediate Lane 1 assignment
 
-1. Clean-sync the reviewed implementation with latest `main` coordination truth; avoid importing historical heartbeat churn into the implementation diff.
-2. Fix `coordination/proofs/v14_real_proof.schema.json`:
-   - `additionalProperties: false`,
-   - candidate `result` must be `REAL_PROOF_CANDIDATE`,
-   - schema fields match the actual runner candidate and verifier allowlist, including current candidate fact, question, and deterministic-generation fields.
-3. Add focused schema tests that:
-   - accept an actual production-shape candidate,
-   - reject an arbitrary extra field,
-   - reject candidate evidence that self-declares `REAL_PROOF_PASS`.
-4. Re-run focused importer/runner/verifier/schema tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
-5. Push one coherent current-main `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
-6. Obtain exact-head GitHub CI when hosted Actions execute. If jobs still fail before steps with `runner_id: 0` / `steps: []`, record `CI_BLOCKED_ACCOUNT`; never call that green.
-7. Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
-
-Bounded support:
-- completed runtime-contract support `7e88542b5ce5d8cf1c607a24d8f92399556c15ce` was incorporated into the clean-port,
-- new `worker-pc` task `jobs-v14-p0a-schema-gate-20260921-1748` targets only the remaining schema contract and focused tests,
-- Lane 1 must not wait for worker-pc and no support branch auto-merges.
+1. Verify the stale Lane 1 watcher is dead.
+2. Pull latest `main` and start exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher.
+3. Clean-sync the reviewed implementation with latest `main` coordination truth; avoid importing historical heartbeat churn into the implementation diff.
+4. Adopt or faithfully reimplement reviewed support `70ef7adc...`.
+5. Run focused schema/importer/runner/verifier tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
+6. Push one coherent current-main `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
+7. Obtain exact-head GitHub CI when hosted Actions execute. If jobs still fail before steps with `runner_id: 0` / `steps: []`, record `CI_BLOCKED_ACCOUNT`; never call that green.
+8. Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
 
 ## Lane 2 — V1.5 assisted application
 
@@ -112,7 +118,7 @@ For Lane 1/2/3:
 
 Issue #7 is the user-visible progress surface. Worker heartbeat Git commits remain authoritative liveness evidence when hosted Actions cannot post comments. ChatGPT posts one concise lead comment every hourly run.
 
-Current Actions diagnosis remains `CI_BLOCKED_ACCOUNT`: current Lane 1 heartbeat jobs fail before steps execute with `runner_id: 0` / `steps: []`. Do not rewrite heartbeat semantics merely to create visible activity.
+Current Actions diagnosis remains `CI_BLOCKED_ACCOUNT`: current Lane 1 heartbeat jobs and latest main CI fail before steps execute with `runner_id: 0` / `steps: []`. Do not rewrite heartbeat semantics merely to create visible activity.
 
 ## Real-proof sequence after P0A
 
