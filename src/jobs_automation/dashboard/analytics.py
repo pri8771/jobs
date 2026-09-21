@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 from pydantic import BaseModel
@@ -10,7 +11,6 @@ from sqlalchemy.orm import Session
 
 from jobs_automation.db.models import (
     ApplicationModel,
-    ApplicationPacketModel,
     JobModel,
     JobSourceModel,
     ResumeVariantModel,
@@ -143,179 +143,283 @@ class FunnelAnalyticsService:
         ).all()
         return {provider: count for provider, count in results}
 
-    def get_source_performance(self) -> list[dict[str, Any]]:
-        """Calculates downstream application funnel conversion grouped by job discovery source."""
-        stmt = (
-            select(
-                JobSourceModel.provider,
-                func.count(JobSourceModel.id).label("jobs_discovered"),
-                func.count(ApplicationModel.id).label("applications_submitted"),
+    def _is_real_submission(self, app: ApplicationModel) -> bool:
+        """Determines if an application represents a confirmed real submission.
+
+        Excludes draft, discovered, prepared states, and explicit simulation mode.
+        Requires applied_at timestamp and/or verified submission event evidence.
+        """
+        if app.status in ("DISCOVERED", "PREPARED", "DRAFT"):
+            return False
+        if getattr(app, "application_mode", None) == "simulation":
+            return False
+        if app.applied_at is not None:
+            return True
+        return any(e.event_type == "APPLICATION_SUBMITTED" for e in (app.events or []))
+
+    def _get_application_historical_outcomes(self, app: ApplicationModel) -> dict[str, bool]:
+        """Derives cumulative 'ever reached stage' flags from ApplicationEvent history, interviews, and status.
+
+        Ensures that downstream outcomes (e.g. interviewed then rejected, or offered then declined)
+        preserve historical funnel stage achievements.
+        """
+        events = app.events or []
+        event_types = {e.event_type for e in events}
+        interviews = app.interviews or []
+
+        screen_events = {
+            "SCREENING_REQUESTED",
+            "SCREENING_SCHEDULED",
+            "SCREENING_CONFIRMED",
+            "ASSESSMENT_REQUESTED",
+            "ASSESSMENT_INVITATION",
+            "RECRUITER_CONTACTED",
+            "RECRUITER_FOLLOWED_UP",
+        }
+        ever_screened = bool(
+            (event_types & screen_events)
+            or len(interviews) > 0
+            or app.status in (
+                "SCREENING",
+                "ASSESSMENT",
+                "INTERVIEWING",
+                "OFFER_RECEIVED",
+                "OFFER_ACCEPTED",
+                "ONBOARDING",
             )
-            .join(JobModel, JobModel.id == JobSourceModel.job_id)
-            .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
-            .group_by(JobSourceModel.provider)
         )
-        rows = self.session.execute(stmt).all()
+
+        interview_events = {
+            "INTERVIEW_REQUESTED",
+            "INTERVIEW_CONFIRMED",
+            "INTERVIEW_SCHEDULED",
+            "INTERVIEW_RESCHEDULED",
+        }
+        ever_interviewed = bool(
+            (event_types & interview_events)
+            or len(interviews) > 0
+            or app.status in (
+                "INTERVIEWING",
+                "OFFER_RECEIVED",
+                "OFFER_ACCEPTED",
+                "ONBOARDING",
+            )
+        )
+
+        offer_events = {
+            "OFFER_EXTENDED",
+            "OFFER_RECEIVED",
+            "OFFER_ACCEPTED",
+            "OFFER_DECLINED",
+        }
+        ever_offered = bool(
+            (event_types & offer_events)
+            or app.status in (
+                "OFFER_RECEIVED",
+                "OFFER_ACCEPTED",
+                "ONBOARDING",
+            )
+        )
+
+        ever_accepted = bool(
+            ("OFFER_ACCEPTED" in event_types)
+            or app.status in ("OFFER_ACCEPTED", "ONBOARDING")
+        )
+
+        ever_rejected = bool(
+            ("APPLICATION_REJECTED" in event_types)
+            or app.status == "REJECTED"
+        )
+
+        ever_withdrawn = bool(
+            ("APPLICATION_WITHDRAWN" in event_types)
+            or app.status == "WITHDRAWN"
+        )
+
+        return {
+            "ever_screened": ever_screened,
+            "ever_interviewed": ever_interviewed,
+            "ever_offered": ever_offered,
+            "ever_accepted": ever_accepted,
+            "ever_rejected": ever_rejected,
+            "ever_withdrawn": ever_withdrawn,
+        }
+
+    def get_source_performance(self) -> list[dict[str, Any]]:
+        """Calculates downstream application funnel conversion grouped by job discovery source.
+
+        Follows B-R20-01 and B-R20-02:
+        - uses historical 'ever reached stage' event evidence rather than current status alone,
+        - uses confirmed submissions (applied_at present / not simulation) for the denominator,
+        - attributes jobs with multiple sources to the primary (earliest) discovery source to avoid double-counting.
+        """
+        all_sources = self.session.scalars(
+            select(JobSourceModel).order_by(
+                JobSourceModel.job_id,
+                JobSourceModel.first_seen_at.asc(),
+                JobSourceModel.id.asc(),
+            )
+        ).all()
+
+        # Group sources by provider and map each job to its primary discovery source
+        primary_source_by_job: dict[uuid.UUID, str] = {}
+        jobs_discovered_by_provider: dict[str, set[uuid.UUID]] = {}
+        all_providers: set[str] = set()
+
+        for s in all_sources:
+            all_providers.add(s.provider)
+            if s.job_id not in primary_source_by_job:
+                primary_source_by_job[s.job_id] = s.provider
+            if s.provider not in jobs_discovered_by_provider:
+                jobs_discovered_by_provider[s.provider] = set()
+            jobs_discovered_by_provider[s.provider].add(s.job_id)
+
+        all_apps = self.session.scalars(select(ApplicationModel)).all()
 
         performance: list[dict[str, Any]] = []
-        for provider, disc, apps in rows:
-            # Query status breakdown for applications from this provider
-            app_stmt = (
-                select(ApplicationModel.status, func.count(ApplicationModel.id))
-                .join(JobModel, JobModel.id == ApplicationModel.job_id)
-                .join(JobSourceModel, JobSourceModel.job_id == JobModel.id)
-                .where(JobSourceModel.provider == provider)
-                .group_by(ApplicationModel.status)
-            )
-            app_status_counts: dict[str, int] = {
-                str(st): int(cnt) for st, cnt in self.session.execute(app_stmt).all()
-            }
+        for provider in sorted(all_providers):
+            disc_count = len(jobs_discovered_by_provider.get(provider, set()))
 
-            screens = sum(
-                app_status_counts.get(s, 0)
-                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            interviews = sum(
-                app_status_counts.get(s, 0)
-                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            offers = sum(
-                app_status_counts.get(s, 0)
-                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            rejections = app_status_counts.get("REJECTED", 0)
+            # Attribute applications whose job primary source is this provider
+            provider_apps = [
+                app for app in all_apps
+                if app.job_id and primary_source_by_job.get(app.job_id) == provider
+            ]
 
-            response_rate = round((screens / apps * 100), 1) if apps else 0.0
-            offer_rate = round((offers / apps * 100), 1) if apps else 0.0
+            # Denominator: only count real submissions (exclude DRAFT, DISCOVERED, PREPARED, simulation)
+            submitted_apps = [a for a in provider_apps if self._is_real_submission(a)]
+            submitted_count = len(submitted_apps)
+
+            # Historical outcome counts across all submitted applications
+            screens = 0
+            interviews = 0
+            offers = 0
+            rejections = 0
+            for a in submitted_apps:
+                outcomes = self._get_application_historical_outcomes(a)
+                if outcomes["ever_screened"]:
+                    screens += 1
+                if outcomes["ever_interviewed"]:
+                    interviews += 1
+                if outcomes["ever_offered"]:
+                    offers += 1
+                if outcomes["ever_rejected"]:
+                    rejections += 1
+
+            response_rate = round((screens / submitted_count * 100), 1) if submitted_count else 0.0
+            offer_rate = round((offers / submitted_count * 100), 1) if submitted_count else 0.0
+            low_sample = submitted_count < 5
 
             performance.append(
                 {
                     "provider": provider,
-                    "jobs_discovered": disc,
-                    "applications_submitted": apps,
+                    "jobs_discovered": disc_count,
+                    "applications_submitted": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
                     "offers": offers,
                     "rejections": rejections,
                     "response_rate_pct": response_rate,
                     "offer_rate_pct": offer_rate,
-                    "low_sample_size": apps < 5,
-                    "note": "Sample size warning: N < 5" if apps < 5 else "Reliable sample",
+                    "low_sample_size": low_sample,
+                    "note": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }
             )
         return performance
 
     def get_role_family_performance(self) -> list[dict[str, Any]]:
-        """Calculates conversion and outcome distribution by target role/title family."""
-        stmt = (
-            select(
-                JobModel.normalized_title,
-                func.count(ApplicationModel.id).label("applications_count"),
-            )
-            .join(ApplicationModel, ApplicationModel.job_id == JobModel.id)
-            .group_by(JobModel.normalized_title)
-            .order_by(func.count(ApplicationModel.id).desc())
-        )
-        rows = self.session.execute(stmt).all()
+        """Calculates conversion and historical outcome distribution by target role/title family."""
+        all_apps = self.session.scalars(select(ApplicationModel)).all()
+
+        # Group applications by normalized job title
+        apps_by_role: dict[str, list[ApplicationModel]] = {}
+        for a in all_apps:
+            title = a.job.normalized_title if a.job and a.job.normalized_title else "Unspecified"
+            if title not in apps_by_role:
+                apps_by_role[title] = []
+            apps_by_role[title].append(a)
 
         results: list[dict[str, Any]] = []
-        for role, apps_count in rows:
-            sub_stmt = (
-                select(ApplicationModel.status, func.count(ApplicationModel.id))
-                .join(JobModel, JobModel.id == ApplicationModel.job_id)
-                .where(JobModel.normalized_title == role)
-                .group_by(ApplicationModel.status)
-            )
-            counts: dict[str, int] = {
-                str(st): int(cnt) for st, cnt in self.session.execute(sub_stmt).all()
-            }
+        for role, apps in sorted(apps_by_role.items(), key=lambda x: len(x[1]), reverse=True):
+            submitted_apps = [a for a in apps if self._is_real_submission(a)]
+            submitted_count = len(submitted_apps)
 
-            screens = sum(
-                counts.get(s, 0)
-                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            interviews = sum(
-                counts.get(s, 0)
-                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            offers = sum(
-                counts.get(s, 0)
-                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            rejections = counts.get("REJECTED", 0)
+            screens = 0
+            interviews = 0
+            offers = 0
+            rejections = 0
+            for a in submitted_apps:
+                outcomes = self._get_application_historical_outcomes(a)
+                if outcomes["ever_screened"]:
+                    screens += 1
+                if outcomes["ever_interviewed"]:
+                    interviews += 1
+                if outcomes["ever_offered"]:
+                    offers += 1
+                if outcomes["ever_rejected"]:
+                    rejections += 1
 
+            low_sample = submitted_count < 5
             results.append(
                 {
                     "role_family": role,
-                    "applications_count": apps_count,
+                    "applications_count": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
                     "offers": offers,
                     "rejections": rejections,
-                    "interview_rate_pct": round((interviews / apps_count * 100), 1) if apps_count else 0.0,
-                    "offer_rate_pct": round((offers / apps_count * 100), 1) if apps_count else 0.0,
-                    "low_sample_size": apps_count < 5,
+                    "interview_rate_pct": round((interviews / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "offer_rate_pct": round((offers / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "low_sample_size": low_sample,
+                    "sample_size_note": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }
             )
         return results
 
     def get_resume_performance(self) -> list[dict[str, Any]]:
         """Calculates funnel efficacy grouped by immutable resume variant and resume family."""
-        stmt = (
-            select(
-                ResumeVariantModel.resume_family,
-                ResumeVariantModel.name,
-                ResumeVariantModel.version,
-                func.count(ApplicationModel.id).label("applications_count"),
-            )
-            .join(ApplicationPacketModel, ApplicationPacketModel.resume_variant_id == ResumeVariantModel.id)
-            .join(ApplicationModel, ApplicationModel.packet_id == ApplicationPacketModel.id)
-            .group_by(ResumeVariantModel.resume_family, ResumeVariantModel.name, ResumeVariantModel.version)
-        )
-        rows = self.session.execute(stmt).all()
+        variants = self.session.scalars(select(ResumeVariantModel)).all()
 
         results: list[dict[str, Any]] = []
-        for family, name, version, count in rows:
-            app_stmt = (
-                select(ApplicationModel.status, func.count(ApplicationModel.id))
-                .join(ApplicationPacketModel, ApplicationPacketModel.id == ApplicationModel.packet_id)
-                .join(ResumeVariantModel, ResumeVariantModel.id == ApplicationPacketModel.resume_variant_id)
-                .where(
-                    ResumeVariantModel.name == name,
-                    ResumeVariantModel.version == version,
-                )
-                .group_by(ApplicationModel.status)
-            )
-            counts: dict[str, int] = {
-                str(st): int(cnt) for st, cnt in self.session.execute(app_stmt).all()
-            }
+        for variant in variants:
+            # Applications linked to this resume variant via packets
+            apps = [
+                pkt_app
+                for pkt in variant.packets
+                for pkt_app in self.session.scalars(
+                    select(ApplicationModel).where(ApplicationModel.packet_id == pkt.id)
+                ).all()
+            ]
 
-            screens = sum(
-                counts.get(s, 0)
-                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            interviews = sum(
-                counts.get(s, 0)
-                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
-            offers = sum(
-                counts.get(s, 0)
-                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
-            )
+            submitted_apps = [a for a in apps if self._is_real_submission(a)]
+            submitted_count = len(submitted_apps)
 
+            screens = 0
+            interviews = 0
+            offers = 0
+            for a in submitted_apps:
+                outcomes = self._get_application_historical_outcomes(a)
+                if outcomes["ever_screened"]:
+                    screens += 1
+                if outcomes["ever_interviewed"]:
+                    interviews += 1
+                if outcomes["ever_offered"]:
+                    offers += 1
+
+            low_sample = submitted_count < 5
             results.append(
                 {
-                    "resume_family": family,
-                    "variant_name": name,
-                    "version": version,
-                    "applications_count": count,
+                    "resume_family": variant.resume_family,
+                    "variant_name": variant.name,
+                    "version": variant.version,
+                    "applications_count": submitted_count,
                     "screenings": screens,
                     "interviews": interviews,
                     "offers": offers,
-                    "interview_rate_pct": round((interviews / count * 100), 1) if count else 0.0,
-                    "offer_rate_pct": round((offers / count * 100), 1) if count else 0.0,
-                    "low_sample_size": count < 5,
-                    "confidence_label": "Descriptive (N < 5)" if count < 5 else "Statistically robust",
+                    "interview_rate_pct": round((interviews / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "offer_rate_pct": round((offers / submitted_count * 100), 1) if submitted_count else 0.0,
+                    "low_sample_size": low_sample,
+                    "confidence_label": f"Descriptive (N={submitted_count})" if not low_sample else f"Low sample size (N={submitted_count} < 5)",
                 }
             )
         return results

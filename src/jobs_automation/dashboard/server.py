@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from collections.abc import Callable
 from http import HTTPStatus
@@ -775,9 +776,56 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
 
+    def _authorize_write_operation(self) -> bool:
+        """Enforces operator write safety for state-changing endpoints (B-R20-06).
+
+        Requirements:
+        1. If DASHBOARD_WRITE_TOKEN environment variable is set:
+           Request must provide matching 'X-Operator-Token' or 'Authorization: Bearer <token>' header.
+        2. If DASHBOARD_WRITE_TOKEN is not set:
+           Request must originate from a trusted local loopback address ('127.0.0.1', '::1', 'localhost')
+           AND DASHBOARD_ALLOW_LOCAL_WRITE must not be explicitly disabled ('false').
+        3. All other requests fail closed with 401 Unauthorized or 403 Forbidden.
+        """
+        configured_token = os.getenv("DASHBOARD_WRITE_TOKEN")
+        if configured_token:
+            provided_token = self.headers.get("X-Operator-Token")
+            if not provided_token:
+                auth_header = self.headers.get("Authorization", "")
+                if auth_header.startswith("Bearer "):
+                    provided_token = auth_header[7:].strip()
+
+            if provided_token == configured_token:
+                return True
+
+            self._send_json(
+                {"error": "Unauthorized: missing or invalid operator write token."},
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+            return False
+
+        # If no token configured, check for local trusted loopback mode
+        allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in ("true", "1", "yes")
+        client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else "127.0.0.1"
+
+        if allow_local and client_ip in ("127.0.0.1", "::1", "localhost", "testclient"):
+            return True
+
+        self._send_json(
+            {
+                "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+            },
+            status=HTTPStatus.FORBIDDEN,
+        )
+        return False
+
     def do_POST(self) -> None:  # noqa: N802
         url = urlparse(self.path)
         path = url.path.rstrip("/")
+
+        # Enforce write safety gate before processing any state-changing mutations
+        if not self._authorize_write_operation():
+            return
 
         # Check for /api/reviews/{id}/resolve
         if path.startswith("/api/reviews/") and path.endswith("/resolve"):

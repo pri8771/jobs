@@ -1,6 +1,7 @@
 """Tests for V0.6 communication and lifecycle automation."""
 
 import datetime
+import uuid
 from collections.abc import Generator
 
 import pytest
@@ -20,6 +21,8 @@ from jobs_automation.db.models import (
     MessageLinkModel,
     TaskModel,
 )
+from jobs_automation.ingestion.classifier import EmailClassifier
+from jobs_automation.ingestion.models import EmailClassification, RawEmailMessage
 from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.crm import RecruiterCRMService
 from jobs_automation.lifecycle.engine import LifecycleEngine
@@ -1179,4 +1182,260 @@ def test_extended_lifecycle_transitions(db_session: Session) -> None:
     assert res_onboard is not None
     assert res_onboard.new_status == "ONBOARDING"
     assert app.status == "ONBOARDING"
+
+
+def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> None:
+    """Tests B-R17-01:
+    - EmailClassifier emits BACKGROUND_CHECK, ONBOARDING, WITHDRAWAL, RECRUITER_FOLLOW_UP.
+    - Ambiguous cases route to UNKNOWN_REVIEW_REQUIRED.
+    - Classified messages feed into LifecycleEngine end-to-end.
+    """
+    classifier = EmailClassifier()
+    engine = LifecycleEngine(db_session)
+
+    # 1. Verify classifier outputs
+    now = datetime.datetime.now(datetime.UTC)
+
+    def make_email(subject: str, body: str) -> RawEmailMessage:
+        return RawEmailMessage(
+            provider_message_id=f"raw-{uuid.uuid4()}",
+            received_at=now,
+            sender="talent@company.com",
+            subject=subject,
+            body_text=body,
+        )
+
+    c_bg = classifier.classify(make_email("Background Check Form", "Please fill out the background verification form."))
+    assert c_bg.classification == EmailClassification.BACKGROUND_CHECK
+    assert c_bg.confidence >= 0.85
+
+    c_onboard = classifier.classify(make_email("Welcome to the team!", "Here is your employee onboarding paperwork and first day instructions."))
+    assert c_onboard.classification == EmailClassification.ONBOARDING
+    assert c_onboard.confidence >= 0.85
+
+    c_withdraw = classifier.classify(make_email("Application Withdrawn", "We have processed your withdrawal request and confirmed your application has been withdrawn."))
+    assert c_withdraw.classification == EmailClassification.WITHDRAWAL
+    assert c_withdraw.confidence >= 0.85
+
+    c_followup = classifier.classify(make_email("Following up on your application", "Following up on our conversation regarding the Research Scientist role."))
+    assert c_followup.classification == EmailClassification.RECRUITER_FOLLOW_UP
+    assert c_followup.confidence >= 0.80
+
+    c_ambiguous = classifier.classify(make_email("Hello", "Are you around next week?"))
+    assert c_ambiguous.classification == EmailClassification.UNKNOWN_REVIEW_REQUIRED
+
+    # 2. Feed into LifecycleEngine end-to-end
+    comp = CompanyModel(normalized_name="cohere")
+    db_session.add(comp)
+    db_session.flush()
+
+    job = JobModel(company_id=comp.id, normalized_title="ML Engineer")
+    db_session.add(job)
+    db_session.flush()
+
+    app = ApplicationModel(job_id=job.id, status="OFFER_RECEIVED")
+    db_session.add(app)
+    db_session.flush()
+
+    # End-to-end: BACKGROUND_CHECK
+    msg_bg = InboundMessageModel(
+        provider_message_id="msg-e2e-bg",
+        provider_thread_id="th-cohere-1",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="hr@cohere.com",
+        subject="Background Check Form",
+        body_text="Please fill out the background verification form.",
+        classification=c_bg.classification.value,
+        confidence=c_bg.confidence,
+    )
+    db_session.add(msg_bg)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_bg.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res_bg = engine.process_message(msg_bg)
+    assert res_bg is not None
+    assert res_bg.event_type == "BACKGROUND_CHECK_INITIATED"
+    assert app.status == "OFFER_RECEIVED"
+
+    # End-to-end: ONBOARDING
+    msg_ob = InboundMessageModel(
+        provider_message_id="msg-e2e-ob",
+        provider_thread_id="th-cohere-1",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="hr@cohere.com",
+        subject="Welcome to the team!",
+        body_text="Here is your employee onboarding paperwork and first day instructions.",
+        classification=c_onboard.classification.value,
+        confidence=c_onboard.confidence,
+    )
+    db_session.add(msg_ob)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_ob.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res_ob = engine.process_message(msg_ob)
+    assert res_ob is not None
+    assert res_ob.new_status == "ONBOARDING"
+    assert app.status == "ONBOARDING"
+
+    # End-to-end: RECRUITER_FOLLOW_UP (preserves status, logs event)
+    msg_fu = InboundMessageModel(
+        provider_message_id="msg-e2e-fu",
+        provider_thread_id="th-cohere-1",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="recruiter@cohere.com",
+        subject="Following up on your application",
+        body_text="Following up on our conversation regarding the Research Scientist role.",
+        classification=c_followup.classification.value,
+        confidence=c_followup.confidence,
+    )
+    db_session.add(msg_fu)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_fu.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res_fu = engine.process_message(msg_fu)
+    assert res_fu is not None
+    assert res_fu.event_type == "RECRUITER_FOLLOWED_UP"
+    assert app.status == "ONBOARDING"
+
+    # End-to-end: WITHDRAWAL
+    app2 = ApplicationModel(job_id=job.id, status="INTERVIEWING")
+    db_session.add(app2)
+    db_session.flush()
+
+    msg_wd = InboundMessageModel(
+        provider_message_id="msg-e2e-wd",
+        provider_thread_id="th-cohere-2",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="careers@cohere.com",
+        subject="Application Withdrawn",
+        body_text="We have processed your withdrawal request and confirmed your application has been withdrawn.",
+        classification=c_withdraw.classification.value,
+        confidence=c_withdraw.confidence,
+    )
+    db_session.add(msg_wd)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_wd.id, application_id=app2.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res_wd = engine.process_message(msg_wd)
+    assert res_wd is not None
+    assert res_wd.new_status == "WITHDRAWN"
+    assert app2.status == "WITHDRAWN"
+
+
+def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) -> None:
+    """Tests B-R17-02:
+    - Generic rejection after OFFER_ACCEPTED or ONBOARDING does not silently regress state.
+    - Route contradictory post-acceptance evidence to review task.
+    - Legitimate rejection from INTERVIEWING still transitions to REJECTED.
+    """
+    engine = LifecycleEngine(db_session)
+
+    comp = CompanyModel(normalized_name="scale")
+    db_session.add(comp)
+    db_session.flush()
+
+    job = JobModel(company_id=comp.id, normalized_title="AI Research Lead")
+    db_session.add(job)
+    db_session.flush()
+
+    # 1. OFFER_ACCEPTED application receives generic rejection
+    app_accepted = ApplicationModel(job_id=job.id, status="OFFER_ACCEPTED")
+    db_session.add(app_accepted)
+    db_session.flush()
+
+    msg_rej_accepted = InboundMessageModel(
+        provider_message_id="msg-rej-accepted",
+        provider_thread_id="th-scale-1",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="no-reply@scale.com",
+        subject="Status update on your application",
+        body_text="Thank you for applying. Unfortunately we have decided not to move forward with your candidacy.",
+        classification="REJECTION",
+        confidence=0.95,
+    )
+    db_session.add(msg_rej_accepted)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_accepted.id, application_id=app_accepted.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res1 = engine.process_message(msg_rej_accepted)
+    assert res1 is not None
+    assert res1.regression_prevented is True
+    assert res1.new_status == "OFFER_ACCEPTED"
+    assert app_accepted.status == "OFFER_ACCEPTED"
+
+    # Verify review task was created
+    task1 = (
+        db_session.query(TaskModel)
+        .filter(TaskModel.application_id == app_accepted.id, TaskModel.task_type == "NEEDS_REVIEW")
+        .first()
+    )
+    assert task1 is not None
+    assert task1.status == "pending"
+    assert task1.payload_json["current_status"] == "OFFER_ACCEPTED"
+
+    # 2. ONBOARDING application receives generic rejection
+    app_onboarding = ApplicationModel(job_id=job.id, status="ONBOARDING")
+    db_session.add(app_onboarding)
+    db_session.flush()
+
+    msg_rej_onboard = InboundMessageModel(
+        provider_message_id="msg-rej-onboard",
+        provider_thread_id="th-scale-2",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="no-reply@scale.com",
+        subject="Your application with Scale",
+        body_text="We appreciate your time, but have decided to pursue other applicants.",
+        classification="REJECTION",
+        confidence=0.95,
+    )
+    db_session.add(msg_rej_onboard)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_onboard.id, application_id=app_onboarding.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res2 = engine.process_message(msg_rej_onboard)
+    assert res2 is not None
+    assert res2.regression_prevented is True
+    assert res2.new_status == "ONBOARDING"
+    assert app_onboarding.status == "ONBOARDING"
+
+    task2 = (
+        db_session.query(TaskModel)
+        .filter(TaskModel.application_id == app_onboarding.id, TaskModel.task_type == "NEEDS_REVIEW")
+        .first()
+    )
+    assert task2 is not None
+    assert task2.payload_json["current_status"] == "ONBOARDING"
+
+    # 3. INTERVIEWING application receives generic rejection -> normal legitimate transition
+    app_interview = ApplicationModel(job_id=job.id, status="INTERVIEWING")
+    db_session.add(app_interview)
+    db_session.flush()
+
+    msg_rej_interview = InboundMessageModel(
+        provider_message_id="msg-rej-interview",
+        provider_thread_id="th-scale-3",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="recruiter@scale.com",
+        subject="Interview update",
+        body_text="Thank you for taking the time to interview. At this stage we are not moving forward.",
+        classification="REJECTION",
+        confidence=0.95,
+    )
+    db_session.add(msg_rej_interview)
+    db_session.flush()
+    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_interview.id, application_id=app_interview.id, confidence=0.95, method="match"))
+    db_session.commit()
+
+    res3 = engine.process_message(msg_rej_interview)
+    assert res3 is not None
+    assert res3.regression_prevented is False
+    assert res3.new_status == "REJECTED"
+    assert app_interview.status == "REJECTED"
+
 

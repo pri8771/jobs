@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import io
 import json
+import os
 import uuid
 from collections.abc import Generator
 from typing import Any, cast
@@ -29,11 +30,16 @@ from jobs_automation.db.models import (
 
 
 @pytest.fixture
-def db_session() -> Generator[Session, None, None]:
+def db_session_factory() -> Generator[sessionmaker[Session], None, None]:
     engine = create_engine("sqlite:///:memory:")
     Base.metadata.create_all(engine)
-    session_factory = sessionmaker(bind=engine)
-    with session_factory() as session:
+    factory = sessionmaker(bind=engine)
+    yield factory
+
+
+@pytest.fixture
+def db_session(db_session_factory: sessionmaker[Session]) -> Generator[Session, None, None]:
+    with db_session_factory() as session:
         yield session
 
 
@@ -139,6 +145,7 @@ class DummyRequestHandler(DashboardRequestHandler):
         body: bytes = b"",
         headers: dict[str, str] | None = None,
         session_factory: Any = None,
+        client_address: tuple[str, int] = ("127.0.0.1", 12345),
     ) -> None:
         self.command = method
         self.path = path
@@ -148,6 +155,7 @@ class DummyRequestHandler(DashboardRequestHandler):
         self.mock_wfile = io.BytesIO()
         self.wfile = cast(Any, self.mock_wfile)
         self.session_factory = session_factory
+        self.client_address = client_address
         self.status_code: int = 200
         self.response_headers: dict[str, str] = {}
 
@@ -467,7 +475,7 @@ def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
     assert li_perf["applications_submitted"] == 1
     assert li_perf["interviews"] == 1
     assert li_perf["low_sample_size"] is True  # N=1 < 5
-    assert "Sample size warning" in li_perf["note"]
+    assert "Low sample size" in li_perf["note"]
 
     # Test get_role_family_performance()
     roles = analytics.get_role_family_performance()
@@ -484,7 +492,7 @@ def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
     assert ai_resume["variant_name"] == "ai_research_v1"
     assert ai_resume["interviews"] == 1
     assert ai_resume["low_sample_size"] is True
-    assert "Descriptive" in ai_resume["confidence_label"]
+    assert "Low sample size" in ai_resume["confidence_label"]
 
     # Test get_time_to_stage()
     tts = analytics.get_time_to_stage()
@@ -496,5 +504,348 @@ def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
     assert tts["sample_sizes"]["interview"] == 1
     assert tts["sample_sizes"]["rejection"] == 1
     assert tts["sample_sizes"]["offer"] == 0
+
+
+def test_historical_outcomes_and_real_submission_denominator(db_session: Session) -> None:
+    """Tests B-R20-01 (event-driven historical funnel) and B-R20-02 (real submission denominator)."""
+    comp = CompanyModel(id=uuid.uuid4(), normalized_name="anthropic")
+    db_session.add(comp)
+    db_session.flush()
+
+    job1 = JobModel(
+        id=uuid.uuid4(),
+        company_id=comp.id,
+        normalized_title="Safety Researcher",
+        description_text="Alignment",
+        status="ACTIVE",
+    )
+    job2 = JobModel(
+        id=uuid.uuid4(),
+        company_id=comp.id,
+        normalized_title="Systems Engineer",
+        description_text="Infra",
+        status="ACTIVE",
+    )
+    db_session.add_all([job1, job2])
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    # Multiple sources for job1: Greenhouse first, then LinkedIn
+    src1_1 = JobSourceModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        provider="GREENHOUSE",
+        source_job_id="gh-101",
+        source_url="https://boards.greenhouse.io/anthropic/jobs/101",
+        first_seen_at=now - datetime.timedelta(days=15),
+    )
+    src1_2 = JobSourceModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        provider="LINKEDIN",
+        source_job_id="li-202",
+        source_url="https://linkedin.com/jobs/view/202",
+        first_seen_at=now - datetime.timedelta(days=10),
+    )
+    # Source for job2
+    src2 = JobSourceModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        provider="COMPANY_CAREERS",
+        source_job_id="cc-303",
+        source_url="https://anthropic.com/careers/303",
+        first_seen_at=now - datetime.timedelta(days=12),
+    )
+    db_session.add_all([src1_1, src1_2, src2])
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    # App A: Interviewed then REJECTED (B-R20-01)
+    # Status is currently REJECTED, but event history has INTERVIEW_REQUESTED
+    app_a = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        status="REJECTED",
+        applied_at=now - datetime.timedelta(days=14),
+        closed_at=now - datetime.timedelta(days=2),
+    )
+    ev_a_screen = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app_a.id,
+        event_type="SCREENING_SCHEDULED",
+        occurred_at=now - datetime.timedelta(days=12),
+        source="email",
+    )
+    ev_a_interview = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app_a.id,
+        event_type="INTERVIEW_REQUESTED",
+        occurred_at=now - datetime.timedelta(days=8),
+        source="email",
+    )
+    ev_a_reject = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app_a.id,
+        event_type="APPLICATION_REJECTED",
+        occurred_at=now - datetime.timedelta(days=2),
+        source="email",
+    )
+
+    # App B: Offered then DECLINED / WITHDRAWN (B-R20-01)
+    # Status is currently WITHDRAWN, but event history has OFFER_EXTENDED
+    app_b = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        status="WITHDRAWN",
+        applied_at=now - datetime.timedelta(days=20),
+        closed_at=now - datetime.timedelta(days=1),
+    )
+    ev_b_offer = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app_b.id,
+        event_type="OFFER_EXTENDED",
+        occurred_at=now - datetime.timedelta(days=5),
+        source="email",
+    )
+    ev_b_withdraw = ApplicationEventModel(
+        id=uuid.uuid4(),
+        application_id=app_b.id,
+        event_type="APPLICATION_WITHDRAWN",
+        occurred_at=now - datetime.timedelta(days=1),
+        source="email",
+    )
+
+    # App C: Unsubmitted / draft row (B-R20-02)
+    # Status is DRAFT, applied_at is None -> MUST NOT be in submitted denominator
+    app_c = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        status="DRAFT",
+        applied_at=None,
+    )
+
+    # App D: Simulation mode (B-R20-02)
+    # MUST NOT be counted as real submission
+    app_d = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        status="INTERVIEWING",
+        applied_at=now - datetime.timedelta(days=3),
+        application_mode="simulation",
+    )
+
+    db_session.add_all([
+        app_a, app_b, app_c, app_d,
+        ev_a_screen, ev_a_interview, ev_a_reject,
+        ev_b_offer, ev_b_withdraw,
+    ])
+    db_session.commit()
+
+    analytics = FunnelAnalyticsService(db_session)
+
+    # Check App A historical outcomes
+    outcomes_a = analytics._get_application_historical_outcomes(app_a)
+    assert outcomes_a["ever_screened"] is True
+    assert outcomes_a["ever_interviewed"] is True
+    assert outcomes_a["ever_rejected"] is True
+    assert outcomes_a["ever_offered"] is False
+
+    # Check App B historical outcomes
+    outcomes_b = analytics._get_application_historical_outcomes(app_b)
+    assert outcomes_b["ever_offered"] is True
+    assert outcomes_b["ever_withdrawn"] is True
+
+    # Check submission filtering
+    assert analytics._is_real_submission(app_a) is True
+    assert analytics._is_real_submission(app_b) is True
+    assert analytics._is_real_submission(app_c) is False  # DRAFT & no applied_at
+    assert analytics._is_real_submission(app_d) is False  # simulation mode
+
+    # Check source performance
+    sources = analytics.get_source_performance()
+    # job1 had GREENHOUSE (earliest) and LINKEDIN.
+    # app_a (job1) should be attributed to GREENHOUSE (primary source) and not double-counted on LINKEDIN.
+    gh_perf = next((s for s in sources if s["provider"] == "GREENHOUSE"), None)
+    assert gh_perf is not None
+    assert gh_perf["applications_submitted"] == 1
+    assert gh_perf["interviews"] == 1  # Retained even though current status is REJECTED
+    assert gh_perf["rejections"] == 1
+
+    li_perf = next((s for s in sources if s["provider"] == "LINKEDIN"), None)
+    assert li_perf is not None
+    assert li_perf["jobs_discovered"] == 1
+    assert li_perf["applications_submitted"] == 0  # Not double-counted!
+
+
+def test_neutral_statistical_wording_and_sample_sizes(db_session: Session) -> None:
+    """Tests B-R20-03 (neutral statistical wording, no 'statistically robust' overclaim)."""
+    comp = CompanyModel(id=uuid.uuid4(), normalized_name="google")
+    db_session.add(comp)
+    db_session.flush()
+
+    res = ResumeVariantModel(
+        id=uuid.uuid4(),
+        name="swe_v1",
+        resume_family="software_eng",
+        version=1,
+        content_hash="swe_hash_1",
+    )
+    db_session.add(res)
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+
+    # Create 6 jobs and submitted applications with resume variant `res` (N=6 >= 5)
+    for i in range(6):
+        j = JobModel(
+            id=uuid.uuid4(),
+            company_id=comp.id,
+            normalized_title=f"SWE {i}",
+            description_text="Coding",
+            status="ACTIVE",
+        )
+        db_session.add(j)
+        db_session.flush()
+
+        src = JobSourceModel(
+            id=uuid.uuid4(),
+            job_id=j.id,
+            provider="GOOGLE_CAREERS",
+            source_job_id=f"g-{i}",
+        )
+        db_session.add(src)
+
+        pkt = ApplicationPacketModel(
+            id=uuid.uuid4(),
+            job_id=j.id,
+            candidate_profile_version=1,
+            resume_variant_id=res.id,
+            packet_hash=f"pkt-hash-{i}",
+        )
+        db_session.add(pkt)
+        db_session.flush()
+
+        app = ApplicationModel(
+            id=uuid.uuid4(),
+            job_id=j.id,
+            packet_id=pkt.id,
+            status="INTERVIEWING",
+            applied_at=now - datetime.timedelta(days=i + 1),
+        )
+        db_session.add(app)
+
+    db_session.commit()
+
+    analytics = FunnelAnalyticsService(db_session)
+    resumes = analytics.get_resume_performance()
+    swe_res = next(r for r in resumes if r["resume_family"] == "software_eng")
+
+    assert swe_res["applications_count"] == 6
+    assert swe_res["low_sample_size"] is False
+    # Must be descriptive, NOT 'statistically robust'
+    assert swe_res["confidence_label"] == "Descriptive (N=6)"
+    assert "statistically robust" not in swe_res["confidence_label"].lower()
+
+    # Also verify source performance wording for N=6
+    sources = analytics.get_source_performance()
+    g_src = next(s for s in sources if s["provider"] == "GOOGLE_CAREERS")
+    assert g_src["low_sample_size"] is False
+    assert g_src["note"] == "Descriptive (N=6)"
+    assert "statistically robust" not in g_src["note"].lower()
+
+
+def test_dashboard_write_safety_loopback_and_token(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """Tests B-R20-06 (dashboard write safety):
+    - Non-loopback requests without authorization fail closed (403 Forbidden).
+    - Non-loopback requests with invalid token fail closed (401 Unauthorized).
+    - Non-loopback requests with valid token succeed.
+    - Loopback requests (127.0.0.1) succeed.
+    """
+    with db_session_factory() as session:
+        task = TaskModel(
+            id=uuid.uuid4(),
+            task_type="CLASSIFIER_REVIEW",
+            status="pending",
+            payload_json={"msg": "review required"},
+        )
+        session.add(task)
+        session.commit()
+        task_id = str(task.id)
+
+    resolve_body = json.dumps({"notes": "resolved by lead"}).encode("utf-8")
+
+    # 1. Non-loopback client (192.168.1.50) without token -> 403 Forbidden
+    handler_remote_no_token = DummyRequestHandler(
+        method="POST",
+        path=f"/api/reviews/{task_id}/resolve",
+        body=resolve_body,
+        session_factory=db_session_factory,
+        client_address=("192.168.1.50", 54321),
+    )
+    handler_remote_no_token.do_POST()
+    assert handler_remote_no_token.status_code == 403
+    resp_403 = json.loads(handler_remote_no_token.mock_wfile.getvalue().decode("utf-8"))
+    assert "forbidden" in resp_403["error"].lower()
+
+    # 2. Non-loopback client with invalid token -> 401 Unauthorized
+    os.environ["DASHBOARD_WRITE_TOKEN"] = "secret-token-12345"
+    try:
+        handler_remote_bad_token = DummyRequestHandler(
+            method="POST",
+            path=f"/api/reviews/{task_id}/resolve",
+            body=resolve_body,
+            headers={"X-Operator-Token": "wrong-token"},
+            session_factory=db_session_factory,
+            client_address=("192.168.1.50", 54321),
+        )
+        handler_remote_bad_token.do_POST()
+        assert handler_remote_bad_token.status_code == 401
+        resp_401 = json.loads(handler_remote_bad_token.mock_wfile.getvalue().decode("utf-8"))
+        assert "unauthorized" in resp_401["error"].lower()
+
+        # 3. Non-loopback client with valid token -> 200 OK
+        handler_remote_valid_token = DummyRequestHandler(
+            method="POST",
+            path=f"/api/reviews/{task_id}/resolve",
+            body=resolve_body,
+            headers={"X-Operator-Token": "secret-token-12345"},
+            session_factory=db_session_factory,
+            client_address=("192.168.1.50", 54321),
+        )
+        handler_remote_valid_token.do_POST()
+        assert handler_remote_valid_token.status_code == 200
+        resp_200 = json.loads(handler_remote_valid_token.mock_wfile.getvalue().decode("utf-8"))
+        assert resp_200["success"] is True
+    finally:
+        del os.environ["DASHBOARD_WRITE_TOKEN"]
+
+    # 4. Loopback client (127.0.0.1) without token -> 200 OK (trusted local operator)
+    with db_session_factory() as session:
+        task2 = TaskModel(
+            id=uuid.uuid4(),
+            task_type="CLASSIFIER_REVIEW",
+            status="pending",
+            payload_json={"msg": "another review"},
+        )
+        session.add(task2)
+        session.commit()
+        task2_id = str(task2.id)
+
+    handler_loopback = DummyRequestHandler(
+        method="POST",
+        path=f"/api/reviews/{task2_id}/resolve",
+        body=resolve_body,
+        session_factory=db_session_factory,
+        client_address=("127.0.0.1", 12345),
+    )
+    handler_loopback.do_POST()
+    assert handler_loopback.status_code == 200
+    resp_loopback = json.loads(handler_loopback.mock_wfile.getvalue().decode("utf-8"))
+    assert resp_loopback["success"] is True
+
 
 

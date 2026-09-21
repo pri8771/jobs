@@ -183,19 +183,30 @@ def test_worker_daemon_run_sweep(
 
 def test_gmail_health_check(db_session_factory: sessionmaker[Session]) -> None:
     checker = HealthCheckService(db_session_factory)
-    # Default without credentials configured -> DEGRADED (mock mode)
+    # Default fails safely as DEGRADED / NOT_INTEGRATED without false credential heuristics
     health = checker.check_gmail()
     assert health.status == "DEGRADED"
-    assert "mock adapter" in health.message
+    assert "NOT_INTEGRATED" in health.message
+    assert health.details["status"] == "NOT_INTEGRATED"
 
-    # With credentials configured -> HEALTHY
+    # Environment variable presence must NOT produce false HEALTHY readiness
     os.environ["GMAIL_CREDENTIALS_JSON"] = '{"type": "service_account"}'
     try:
-        health_configured = checker.check_gmail()
-        assert health_configured.status == "HEALTHY"
-        assert health_configured.details["credentials_configured"] is True
+        health_still_safe = checker.check_gmail()
+        assert health_still_safe.status == "DEGRADED"
+        assert "NOT_INTEGRATED" in health_still_safe.message
     finally:
         del os.environ["GMAIL_CREDENTIALS_JSON"]
+
+    # When explicit typed readiness result is supplied (e.g. from Lane C service)
+    typed_readiness = {
+        "status": "HEALTHY",
+        "message": "Gmail OAuth token verified and fresh.",
+        "account": "candidate@example.com",
+    }
+    health_typed = checker.check_gmail(readiness_result=typed_readiness)
+    assert health_typed.status == "HEALTHY"
+    assert health_typed.details["account"] == "candidate@example.com"
 
 
 def test_backup_restore_script_security(tmp_path: pathlib.Path) -> None:
