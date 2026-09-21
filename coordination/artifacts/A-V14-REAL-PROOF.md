@@ -4,7 +4,7 @@
 - Phase: V1.4
 - Status: BLOCKED
 - Priority: P0
-- Owner: Lane C + Lane A + Scout + ChatGPT lead
+- Owner: Lane 1 + ChatGPT lead; Lane 2 may execute proof only after P0A if its machine has genuine selected resume bytes; worker-pc may provide independent bounded audit/support
 - Dependencies: `A-V14-PACKET-SAFETY` engineering accepted; P0A proof-tool integrity accepted
 - Downstream: V1.4 COMPLETE designation and every later completed-version claim
 
@@ -30,34 +30,34 @@ Required repairs:
 - RP14-T4 SP2 — copied/renamed example candidate profiles are rejected by content evidence, not filename alone.
 - RP14-T5 SP1 — committed redacted evidence uses an explicit allowlist and rejects arbitrary extra fields.
 - RP14-T6 SP1 — deterministic generation is labeled unambiguously as deterministic production generation, never mock/test or fictitious external-provider output.
-- RP14-T7 SP2 — packet/manifest/resume-variant/artifact cross-links are independently re-derived and verified.
+- RP14-T7 SP2 — packet/manifest/resume/job/artifact cross-links are independently re-derived and verified.
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied example profile contents, extra fields, misleading generation metadata, and broken packet/artifact links; targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Current lead review — 2026-09-21 10:53 ET
+## Current lead review — 2026-09-21 11:44 ET
 
-- `coordination/proofs/` still contains only `README.md` and `v14_real_proof.schema.json`; there is no runtime `REAL_PROOF_CANDIDATE` and no independently bound verifier receipt. V1.4 remains NOT COMPLETE.
-- Lane C remains at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored current-epoch heartbeat and no RP14-T1..T7 implementation. P0A remains NOT ACCEPTED.
-- Current heartbeat epoch is `DAYWATCH_2026_09_21`. Actual branch commit timestamps were checked after the epoch reset: Lane A latest heartbeat commit is 14:05Z, Lane B 13:26Z, Lane C 10:49Z, Lane D 02:15Z, and Scout 02:15Z; all predate the 14:45Z epoch reset. Therefore A/B/C/D/Scout are all 0/3 for `PROVING_5M` regardless of older self-claims.
-- Lane A remains `REAL_PROOF_BLOCKED_PRIVATE_INPUT` because the selected `resume_ai_software_engineer` mapping is absent on that machine. No alternate resume may be synthesized, relabeled, copied, or silently substituted.
-- Remote support task `jobs-v14-p0a-t5-schema-20260921-0946` completed and returned actual Jobs branch `worker/jobs-v14-p0a-t5-schema-20260921-0946` at commit `1f4a9b9bd21ed402afaef211ac3cab852a293a22`. Lead inspected the real commit/diff: it changes only the proof schema, verifier, and verifier tests, closing the top-level/nested evidence allowlists and adding focused extra-field adversarial cases. The branch is one commit ahead of base `79ae338...` and is now behind current main.
-- RP14-T5 is **NOT lead-accepted yet**. The remote result's free-text report says command execution for pytest/Ruff/mypy was blocked, and Jobs has no CI workflow run for commit `1f4a9b9...`. The outer worker did commit/push the branch, but the result's generic `tests` array is not treated as test evidence. Lane C may cherry-pick/reimplement the reviewed T5 support change after rebasing latest main, but must run focused tests plus full pytest/Ruff/mypy/CI in its coherent P0A batch.
-- After the T5 review, lead dispatched a separate bounded RP14-T6-only remote support task `jobs-v14-p0a-t6-origin-20260921-1047`. Its remote workflow failed almost immediately and no sanitized result/Jobs branch was available at review time; no T6 progress is credited and no immediate duplicate retry is warranted.
-- Jobs `main` head `18ceca39bc73a0ced16c1ee04f73ebe176a9aebe` passed CI run #345 before this coordination refresh.
+- V1.4 remains **NOT COMPLETE**. P0A is not accepted and there is no genuine runtime `REAL_PROOF_CANDIDATE` plus separately bound verifier receipt.
+- Authoritative operating model is exactly three active implementation lanes. Old Lane C is superseded by Lane 1; old Lane D and Scout are paused and must not be treated as active workers.
+- Lane 1 / `worker/v14-real-proof` is the P0 owner for RP14-T1..T7. At this review it had no worker production commits; lead fast-forwarded it to the current main coordination baseline after canonical state updates. Active `LANE_1.md` remains 0/3 in epoch `DAYWATCH_2026_09_21`.
+- Lane 2 / `worker/v15-assisted-application` remains eligible to execute the real packet proof only after P0A if its machine has genuine selected resume bytes. Its prior real-input attempt correctly failed closed because `resume_ai_software_engineer` had no genuine mapped file; no substitute resume may be synthesized, relabeled, copied, or silently substituted.
+- Remote RP14-T5 support branch `worker/jobs-v14-p0a-t5-schema-20260921-0946` at `1f4a9b9bd21ed402afaef211ac3cab852a293a22` remains candidate code only. It is not accepted because complete test/CI evidence was not established. Lane 1 may adopt or reimplement it inside the coherent P0A batch and must rerun focused + full validation.
+- Remote RP14-T6 support task `jobs-v14-p0a-t6-origin-20260921-1047` has a task record but no sanitized `results/<task-id>.json` or usable Jobs branch at this review; zero T6 progress is credited.
+- `worker-pc` is online with capacity 1, but a non-Jobs workflow occupies that slot this run, so no competing Jobs task was dispatched.
+- Heartbeat progress posting to issue #7 is functioning for the active numeric `LANE_1.md`/`LANE_2.md`/`LANE_3.md` paths. Historical A/B/C/D/Scout files do not count in the current epoch.
 
 ## Real-proof execution after P0A acceptance
 
-### RP14-C1 — SP2 — Lane C
+### RP14-C1 — SP2 — Lane 1
 Validate the actual private candidate profile and actual resume mappings locally. Do not use `candidate_profile.example.yaml`, temp/synthetic resumes, or commit private contents. Emit only redacted readiness evidence or `REAL_PROOF_BLOCKED_PRIVATE_INPUT`.
 
-### RP14-C2 — SP2 — Lane C
+### RP14-C2 — SP2 — Lane 1
 Import/validate the current real OpenSesame JobModel/source/questions using `scripts/import_v14_proof_job.py` and current public Greenhouse data.
 
-### RP14-C3 — SP1 — Lane C
+### RP14-C3 — SP1 — Lane 1
 Confirm the production packet path has a non-mock generation route. `DeterministicModelGateway` is acceptable only when represented honestly as deterministic production generation. No silent fallback to mock.
 
-### RP14-E1/E2 — SP2 + SP2 — first eligible Lane A or Lane C machine
-Whichever worker machine first has the actual private profile and real mapped resume bytes runs, after P0A acceptance:
+### RP14-E1/E2 — SP2 + SP2 — first genuinely eligible Lane 1 or Lane 2 machine
+Whichever eligible machine first has the actual private profile and real mapped resume bytes runs, after P0A acceptance:
 - `python scripts/import_v14_proof_job.py`
 - `python scripts/run_v14_real_proof.py ...`
 - `python scripts/verify_v14_real_proof.py ... --local-full-bundle ...`
@@ -66,11 +66,11 @@ Do not wait for a cross-lane handoff when one eligible machine has all inputs. P
 
 A machine without the actual selected resume mapping is not eligible merely because another real resume file exists locally. Do not synthesize, relabel, or silently substitute resume bytes to make the proof pass.
 
-### RP14-S1 — SP2 — Scout
-Independently audit runtime derivation, no mock/fixture contamination, current-job binding, candidate-bundle SHA binding, local/artifact hash consistency, packet/manifest/resume linkage, generation origin, and privacy.
+### RP14-I1 — independent audit
+After genuine candidate + verifier evidence appears, ChatGPT lead performs the acceptance audit and may use `worker-pc` for a bounded independent audit of runtime derivation, no mock/fixture contamination, current-job binding, candidate-bundle SHA binding, local/artifact hash consistency, packet/manifest/resume linkage, generation origin, and privacy. Old Scout is paused and is not an active dependency.
 
 ### RP14-L1 — Lead
-ChatGPT re-audits candidate evidence, verifier receipt, Scout findings, implementation/test/CI evidence, and marks this artifact ACCEPTED only on genuine `REAL_PROOF_PASS`.
+ChatGPT re-audits candidate evidence, verifier receipt, independent findings when available, implementation/test/CI evidence, and marks this artifact ACCEPTED only on genuine `REAL_PROOF_PASS`.
 
 ## Completion
 
