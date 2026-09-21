@@ -31,7 +31,7 @@ Authoritative audit:
 - `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
 
 Required repairs:
-- RP14-T1 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separately bound PASS/FAIL receipt
+- RP14-T1 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separately bound PASS/FAIL receipt. Rejected candidates must still produce a bound `REAL_PROOF_FAIL` receipt rather than returning before receipt emission.
 - RP14-T2 local private artifact hashes cross-match the committed redacted candidate bundle
 - RP14-T3 JobModel/questions bind to the actual current approved Greenhouse source/fetch
 - RP14-T4 copied/renamed example candidate profiles are rejected by content evidence, not filename only
@@ -50,6 +50,11 @@ Remote worker evidence at the current lead check:
 - a subsequent infrastructure-only branch-push smoke task `jobs-push-probe-20260921-0146` succeeded against `pri8771/jobs` and returned branch `worker/jobs-push-probe-20260921-0146`, commit `b6c800f0ed4ffe8450aceb0021b0c417ac7e16ae`;
 - ChatGPT inspected that commit and confirmed it adds exactly one diagnostic Markdown file and no production/artifact/queue/lane changes; the probe must not be merged;
 - the Jobs remote branch-push path is therefore currently smoke-verified, but the failed hardening work remains unrecovered and unaccepted.
+- read-only preflight `jobs-v14-p0a-preflight-20260921-0445` completed successfully in remote workflow `35579791471` against Jobs main `379660b6a6b4dd93416eae33a637c96656a1fd96`;
+- the preflight performed static inspection only, produced no Jobs branch or commit, and cannot satisfy any RP14 implementation task;
+- its visible T1 mapping independently confirms that the runner currently self-labels PASS, the verifier must instead require `REAL_PROOF_CANDIDATE`, a separate candidate-bundle-bound receipt schema/output is required, and failure paths must emit `REAL_PROOF_FAIL` receipts rather than returning before receipt generation;
+- no scope expansion beyond RP14-T1..T7 is required from the visible preflight evidence;
+- immediately after the preflight, non-Jobs SwarmAI workflow `35580580156` occupied the capacity-1 `worker-pc`, so no additional Jobs remote task was dispatched.
 
 Critical-path implementation remains assigned to Lane C: rebase current main, implement RP14-T1..T7 as separate SP1-SP3 tasks in proof tooling/schema/tests/minimal docs, run targeted/full validation, push one coherent batch, and stop for Scout/ChatGPT review. Do not use private candidate/resume inputs and do not execute the actual proof during P0A hardening.
 
@@ -77,7 +82,7 @@ The importer reads current public Greenhouse job/question data into the configur
 
 The runner is intended to:
 - reject example/test candidate-profile paths/content,
-- resolve and hash the actual selected resume source,
+- resolve and hash the actual resume source,
 - require a real persisted JobModel/source,
 - use the normal `ApplicationPacketBuilder`,
 - use `DeterministicModelGateway` as an explicit production-safe non-mock generation path,
@@ -220,3 +225,14 @@ V1.4 is COMPLETE only when:
 - The prior non-Jobs SwarmAI remote-worker workflow `35566726945` was cancelled at 2026-09-21T08:02:31Z, freeing the capacity-1 worker in the remote-workers control plane.
 - ChatGPT dispatched one bounded, read-only, non-conflicting Jobs task: `jobs-v14-p0a-preflight-20260921-0445`. Its purpose is acceptance-preflight mapping/adversarial review of current proof tooling only; it does not implement RP14-T1..T7, touch private candidate/resume inputs, or execute the proof. Remote-workers workflow `35579791471` is currently in progress.
 - Artifact status remains **BLOCKED**. Lane C remains the P0A implementation owner and must not wait for the remote preflight result to begin its own bounded RP14-T1..T7 batch.
+
+### Lead recheck — 2026-09-21 05:44 ET
+
+- Jobs pre-refresh `main` is `fa807c620addf2173884bc0100294d4f3a4cc7b8`; CI run #309 completed successfully.
+- All implementation/scout branch heads remain unchanged: A `ed875775122f0d390af6ab15beb378904af2a476`, B `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`, C `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`, D `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`, Scout `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
+- No worker-authored Lane C heartbeat or RP14-T1..T7 implementation batch exists; there is nothing to accept or score in WORKER_PERFORMANCE this cycle.
+- `coordination/proofs/` still contains only README/schema. There is no runtime real-proof candidate and no verifier receipt.
+- Remote preflight `jobs-v14-p0a-preflight-20260921-0445` / workflow `35579791471` completed successfully, read-only. It returned no Jobs branch/commit and therefore is advisory evidence only.
+- The visible preflight mapping reinforces the current P0A contract and specifically requires a separate bundle-bound receipt even on verifier failure paths.
+- `worker-pc` is currently occupied by non-Jobs SwarmAI workflow `35580580156`; capacity=1 means no Jobs remote task was dispatched.
+- Artifact remains **BLOCKED on P0A**. Private candidate/resume proof execution remains forbidden until Lane C's tooling batch is reviewed and accepted by ChatGPT.
