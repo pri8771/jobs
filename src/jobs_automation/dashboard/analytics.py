@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from jobs_automation.db.models import (
     ApplicationModel,
@@ -39,67 +39,49 @@ class FunnelAnalyticsService:
         self.session = session
 
     def get_funnel_summary(self) -> dict[str, Any]:
-        """Calculates discovery-to-submission-to-offer funnel stages and rates."""
+        """Calculates discovery-to-submission-to-offer funnel stages and rates.
+
+        Follows B-R20-01 and B-R20-02:
+        - derives historical stages (screening, interviewing, offers, rejections)
+          from ApplicationEvent history, interviews, and status (not current status alone),
+        - uses confirmed real submissions (excluding simulation/mock modes and unsubmitted drafts)
+          for the submitted denominator and conversion rates.
+        """
         total_discovered = self.session.scalar(select(func.count(JobModel.id))) or 0
 
-        # Query counts grouped by application status
-        status_counts_raw = self.session.execute(
-            select(ApplicationModel.status, func.count(ApplicationModel.id)).group_by(
-                ApplicationModel.status
+        # Query all applications with events and interviews joined
+        applications = self.session.scalars(
+            select(ApplicationModel)
+            .options(
+                joinedload(ApplicationModel.events),
+                joinedload(ApplicationModel.interviews),
             )
-        ).all()
-        status_map: dict[str, int] = {
-            s: count for s, count in status_counts_raw
-        }
+        ).unique().all()
 
-        submitted = sum(
-            status_map.get(s, 0)
-            for s in [
-                "SUBMITTED",
-                "CONFIRMED",
-                "SCREENING",
-                "ASSESSMENT",
-                "INTERVIEWING",
-                "OFFER_RECEIVED",
-                "OFFER_ACCEPTED",
-                "OFFER_DECLINED",
-                "ONBOARDING",
-                "REJECTED",
-                "WITHDRAWN",
-            ]
-        )
-        screening = sum(
-            status_map.get(s, 0)
-            for s in [
-                "SCREENING",
-                "ASSESSMENT",
-                "INTERVIEWING",
-                "OFFER_RECEIVED",
-                "OFFER_ACCEPTED",
-                "OFFER_DECLINED",
-                "ONBOARDING",
-            ]
-        )
-        interviewing = sum(
-            status_map.get(s, 0)
-            for s in [
-                "INTERVIEWING",
-                "OFFER_RECEIVED",
-                "OFFER_ACCEPTED",
-                "OFFER_DECLINED",
-                "ONBOARDING",
-            ]
-        )
-        offers = sum(
-            status_map.get(s, 0)
-            for s in [
-                "OFFER_RECEIVED",
-                "OFFER_ACCEPTED",
-                "OFFER_DECLINED",
-                "ONBOARDING",
-            ]
-        )
-        rejected = status_map.get("REJECTED", 0)
+        status_map: dict[str, int] = {}
+        for app in applications:
+            s = app.status
+            status_map[s] = status_map.get(s, 0) + 1
+
+        submitted = 0
+        screening = 0
+        interviewing = 0
+        offers = 0
+        rejected = 0
+
+        for app in applications:
+            if not self._is_real_submission(app):
+                continue
+            submitted += 1
+            outcomes = self._get_application_historical_outcomes(app)
+            if outcomes["ever_screened"]:
+                screening += 1
+            if outcomes["ever_interviewed"]:
+                interviewing += 1
+            if outcomes["ever_offered"]:
+                offers += 1
+            if outcomes["ever_rejected"] or app.status == "REJECTED":
+                rejected += 1
 
         # Pending reviews count
         pending_reviews = (
@@ -154,13 +136,12 @@ class FunnelAnalyticsService:
         """Determines if an application represents a confirmed real submission.
 
         Excludes:
-        - DISCOVERED, PREPARED, DRAFT statuses (not yet submitted),
+        - DISCOVERED, PREPARED, DRAFT, NEEDS_REVIEW statuses (not yet submitted),
         - SIMULATED status (auto-engine simulation outputs),
         - any application_mode indicating simulation/mock/test
           (e.g. "simulation", "auto_simulated", "mock", "test").
-        Requires applied_at timestamp and/or verified submission event evidence.
         """
-        if app.status in ("DISCOVERED", "PREPARED", "DRAFT"):
+        if app.status in ("DISCOVERED", "PREPARED", "DRAFT", "NEEDS_REVIEW"):
             return False
         if app.status in self._SIMULATION_STATUSES:
             return False
@@ -168,6 +149,20 @@ class FunnelAnalyticsService:
         if mode in self._SIMULATION_MODES:
             return False
         if app.applied_at is not None:
+            return True
+        if app.status in (
+            "SUBMITTED",
+            "CONFIRMED",
+            "SCREENING",
+            "ASSESSMENT",
+            "INTERVIEWING",
+            "OFFER_RECEIVED",
+            "OFFER_ACCEPTED",
+            "OFFER_DECLINED",
+            "ONBOARDING",
+            "REJECTED",
+            "WITHDRAWN",
+        ):
             return True
         return any(e.event_type == "APPLICATION_SUBMITTED" for e in (app.events or []))
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import re
 import signal
 import time
 import uuid
@@ -22,6 +23,52 @@ from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.engine import LifecycleEngine
 
 logger = logging.getLogger(__name__)
+
+# Regex patterns for sensitive tokens, credentials, and bodies
+_SECRET_PATTERNS = [
+    re.compile(r"ya29\.[a-zA-Z0-9_\-]+"),
+    re.compile(r"bearer\s+[a-zA-Z0-9_\-\.]+", re.IGNORECASE),
+    re.compile(r"ghp_[a-zA-Z0-9]+"),
+    re.compile(r"client_secret=[^\s&]+", re.IGNORECASE),
+    re.compile(r"password=[^\s&]+", re.IGNORECASE),
+    re.compile(r"access_token=[^\s&]+", re.IGNORECASE),
+    re.compile(r"refresh_token=[^\s&]+", re.IGNORECASE),
+]
+
+
+def sanitize_error_message(err: Any, max_length: int = 256) -> str:
+    """Sanitizes an error string to scrub OAuth tokens, passwords, bearer credentials, and secrets."""
+    clean = str(err)
+    for pattern in _SECRET_PATTERNS:
+        clean = pattern.sub("[REDACTED_SECRET]", clean)
+    clean = clean.strip().replace("\n", " ")
+    if len(clean) > max_length:
+        clean = clean[:max_length] + "..."
+    return clean
+
+
+def categorize_error(err: Any) -> str:
+    """Categorizes error strings into safe bounded category codes."""
+    err_lower = str(err).lower()
+    if (
+        "gmail adapter unavailable" in err_lower
+        or "credentials" in err_lower
+        or "oauth" in err_lower
+        or "token" in err_lower
+        or "auth" in err_lower
+    ):
+        return "GMAIL_AUTH_ERROR"
+    if "gmail" in err_lower or "http" in err_lower or "timeout" in err_lower or "connection" in err_lower:
+        return "GMAIL_API_ERROR"
+    if "kill_switch" in err_lower:
+        return "KILL_SWITCH_ACTIVE"
+    if "database" in err_lower or "sql" in err_lower or "session" in err_lower or "integrity" in err_lower:
+        return "DB_ERROR"
+    if "config" in err_lower or "profile" in err_lower:
+        return "CONFIG_ERROR"
+    if "pipeline" in err_lower or "lifecycle" in err_lower or "ingestion" in err_lower:
+        return "PIPELINE_ERROR"
+    return "UNKNOWN_ERROR"
 
 
 class WorkerDaemon:
@@ -151,7 +198,9 @@ class WorkerDaemon:
                 begin_exc,
                 exc_info=True,
             )
-            results["warnings"].append(f"begin_record_failed: {begin_exc}")
+            # FAIL CLOSED: do NOT proceed with pipeline sweep if operational begin cannot be persisted
+            results["errors"].append("begin_record_failed: operational evidence store unavailable")
+            return results
 
         # Check safety kill switch — must record KILLED if blocked
         ks = KillSwitchManager()
@@ -269,7 +318,9 @@ class WorkerDaemon:
         are stored in the metadata.
         """
         finished_at = datetime.datetime.now(datetime.UTC)
-        safe_errors = [str(e) for e in results.get("errors", [])][:10]
+        raw_errors = results.get("errors", [])
+        safe_errors = [sanitize_error_message(e) for e in raw_errors][:10]
+        error_categories = sorted(list({categorize_error(e) for e in raw_errors}))
         metadata: dict[str, Any] = {
             "run_id": run_id,
             "final_status": final_status,
@@ -281,11 +332,12 @@ class WorkerDaemon:
             "unanswered_alerts": results.get("unanswered_alerts", 0),
             "stale_alerts": results.get("stale_alerts", 0),
             "reconciliation_performed": results.get("reconciliation_performed", False),
-            "error_count": len(results.get("errors", [])),
+            "error_count": len(raw_errors),
+            "error_categories": error_categories,
             "sample_errors": safe_errors,
         }
         if error_note:
-            metadata["error_note"] = error_note
+            metadata["error_note"] = sanitize_error_message(error_note)
 
         try:
             with self.session_factory() as fin_session:

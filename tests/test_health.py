@@ -289,6 +289,7 @@ def test_worker_metadata_does_not_contain_secrets(
             "stale_alerts",
             "reconciliation_performed",
             "error_count",
+            "error_categories",
             "sample_errors",
             "error_note",
         }
@@ -297,4 +298,86 @@ def test_worker_metadata_does_not_contain_secrets(
             # Confirm no secret-looking content
             assert "token" not in str(meta[k]).lower()
             assert "secret" not in str(meta[k]).lower()
+
+
+def test_worker_health_shows_unfinished_running_attempt(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Health service reflects unfinished RUNNING attempts as true latest attempt."""
+    checker = HealthCheckService(db_session_factory)
+    now = datetime.datetime.now(datetime.UTC)
+    active_run_id = str(uuid.uuid4())
+
+    with db_session_factory() as session:
+        # Prior finished run from 1 hour ago
+        old_finish = AuditLogModel(
+            action_type="worker_run_finished",
+            entity_type="worker",
+            actor="worker_daemon",
+            result="SUCCESS",
+            external_reference="old-run-id",
+            occurred_at=now - datetime.timedelta(hours=1),
+            metadata_json={"reconciliation_performed": True},
+        )
+        session.add(old_finish)
+
+        # Fresh begin record (5 minutes ago, still running)
+        begin_rec = AuditLogModel(
+            action_type="worker_run",
+            entity_type="worker",
+            actor="worker_daemon",
+            result="RUNNING",
+            external_reference=active_run_id,
+            occurred_at=now - datetime.timedelta(minutes=5),
+            metadata_json={"run_id": active_run_id, "started_at": (now - datetime.timedelta(minutes=5)).isoformat()},
+        )
+        session.add(begin_rec)
+        session.commit()
+
+    health = checker.check_worker()
+    assert health.details["last_attempt_status"] == "RUNNING"
+    assert health.details["last_success_at"] is not None
+    assert health.details["last_reconciliation_at"] is not None
+    assert "RUNNING in progress" in health.message
+
+
+def test_worker_health_reports_reconciliation_and_error_fields(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Health service exposes last_reconciliation_at, last_error_at, and last_error_category."""
+    checker = HealthCheckService(db_session_factory)
+    now = datetime.datetime.now(datetime.UTC)
+
+    with db_session_factory() as session:
+        failed_finish = AuditLogModel(
+            action_type="worker_run_finished",
+            entity_type="worker",
+            actor="worker_daemon",
+            result="FAILED",
+            external_reference="fail-run-id",
+            occurred_at=now - datetime.timedelta(minutes=15),
+            metadata_json={
+                "reconciliation_performed": False,
+                "error_categories": ["GMAIL_AUTH_ERROR"],
+                "sample_errors": ["Gmail authentication expired"],
+            },
+        )
+        reconciled_finish = AuditLogModel(
+            action_type="worker_run_finished",
+            entity_type="worker",
+            actor="worker_daemon",
+            result="SUCCESS",
+            external_reference="rec-run-id",
+            occurred_at=now - datetime.timedelta(hours=4),
+            metadata_json={"reconciliation_performed": True},
+        )
+        session.add_all([failed_finish, reconciled_finish])
+        session.commit()
+
+    health = checker.check_worker()
+    assert health.details["last_error_at"] is not None
+    assert health.details["last_error_category"] == "GMAIL_AUTH_ERROR"
+    assert health.details["last_reconciliation_at"] is not None
+    assert health.status == "DEGRADED"
+
 
