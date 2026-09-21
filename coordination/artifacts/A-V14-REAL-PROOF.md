@@ -50,6 +50,8 @@ Remote worker evidence at the current lead check:
 
 Do not treat the remote-worker attempt as RP14-T1..T7 completion. Before another branch-mode retry, diagnose or repair the remote push path so work is not lost again. The remote control plane remains infrastructure only; Jobs remains authoritative.
 
+Critical-path fallback is now assigned to Lane C: rebase current main, implement RP14-T1..T7 as separate SP1-SP3 tasks in proof tooling/schema/tests/minimal docs, run targeted/full validation, push one coherent batch, and stop for Scout/ChatGPT review. Do not use private candidate/resume inputs and do not execute the actual proof during P0A hardening.
+
 Once P0A is lead-accepted, this artifact returns to READY and Lane A or Lane C may execute the real proof immediately on whichever machine has the actual private profile + mapped real resume bytes.
 
 ## Current execution readiness after P0A
@@ -137,10 +139,10 @@ Verifier receipt must include at minimum:
 
 ## Task split
 
-### P0A proof-tool integrity — implementation worker
+### P0A proof-tool integrity — Lane C
 Implement RP14-T1..RP14-T7 from `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`, add adversarial tests, run targeted/full tests plus Ruff/mypy/CI, push a bounded worker branch, and stop for lead review. No private proof execution in this task.
 
-Remote worker-pc may be retried only after its branch-push path is diagnosed/repaired; otherwise assign the same bounded artifact work to a non-conflicting implementation lane rather than losing another completed local batch.
+Remote worker-pc may be retried only after its branch-push path is diagnosed/repaired. Do not duplicate Lane C's active P0A implementation once Lane C starts.
 
 ### RP14-C1 — SP2 — Lane C
 After P0A acceptance, locate/validate the real private candidate profile and actual resume-source mappings locally.
