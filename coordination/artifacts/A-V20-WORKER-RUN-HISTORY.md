@@ -15,4 +15,4 @@ Persist truthful worker-run evidence and expose last-success/error/reconciliatio
 See docs/V2_0_WORKER_RUN_HISTORY_CONTRACT.md.
 
 ## Worker task
-- J20-07 SP3
+- J20-14 SP3
