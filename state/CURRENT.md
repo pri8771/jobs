@@ -17,15 +17,15 @@ External control plane:
 
 Verified project use:
 - worker: `worker-pc`
-- worker status: online, capacity 1
+- worker status record: online, capacity 1
 - read-only task `jobs-v14-real-proof-audit-retry-20260920` completed successfully
 - independent verdict: CHANGES_REQUIRED
 - confirmed highest-severity proof-integrity gaps: forged structurally valid bundles can pass; local evidence is not bound to the redacted bundle
-- the first branch repair task `jobs-v14-proof-hardening-20260920` failed before implementation because repository clone failed
-- retry branch task `jobs-v14-proof-hardening-r2` is executing RP14-T1..T7
-- retry task status at the latest lead check: IN_PROGRESS; no result JSON, Jobs branch, or returned commit has been published yet
-- do not dispatch another remote task while worker-pc capacity is occupied
-- no worker result is accepted until ChatGPT reviews the actual returned Jobs branch/diff/tests and project CI
+- first branch repair task `jobs-v14-proof-hardening-20260920` failed before implementation because repository clone failed
+- retry `jobs-v14-proof-hardening-r2` ran but returned `failed` with `Worker branch push failed.`
+- retry sanitized result contains no branch, commit, tests, or summary; no matching Jobs worker branch exists
+- no implementation result from either remote branch task is accepted
+- do not spend another long worker-pc branch run until the Jobs branch-push path is diagnosed/repaired
 
 The remote-worker control plane remains infrastructure only; Jobs planning/acceptance remains authoritative here.
 
@@ -49,8 +49,10 @@ Required before private proof execution:
 - packet/manifest/runtime cross-links verified.
 
 Current P0A status:
-- IN_PROGRESS via `jobs-v14-proof-hardening-r2`
-- no implementation result is lead-accepted yet
+- NOT ACCEPTED
+- worker-pc implementation attempts did not produce a reviewable branch
+- critical-path fallback assigned to Lane C as separate RP14-T1..T7 SP1-SP3 tasks on `worker/live-data-foundations`
+- Lane C must rebase current main, implement/test the bounded tooling repairs without private inputs, push one coherent batch, and stop for lead review
 
 ## V1.4
 
@@ -117,9 +119,16 @@ Branch:
 - `worker/live-data-foundations`
 
 No worker-authored heartbeat or implementation batch has landed after the seeded heartbeat instructions.
-The branch status predates the current P0/P0A instructions and must pull/rebase main before new proof work.
+The branch status predates the current P0/P0A instructions and must pull/rebase main before new work.
 
-Immediate next after P0A lead acceptance:
+Immediate P0 engineering assignment:
+1. implement RP14-T1..T7 from `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md` as separate SP1-SP3 tasks
+2. add adversarial proof-integrity tests
+3. run targeted tests + full pytest/Ruff/mypy
+4. push one coherent branch batch and heartbeat READY_FOR_LEAD_REVIEW
+5. stop before private proof execution
+
+After P0A lead acceptance:
 1. RP14-C1..C3 real private input/job/generation readiness
 2. if this machine has all required real inputs, run RP14-E1/E2 directly
 3. only after the proof attempt, continue candidate provenance/Gmail readiness
@@ -140,7 +149,7 @@ Branch:
 - `scout/qa-prep`
 
 No worker-authored heartbeat/audit has landed after the seeded heartbeat instructions.
-Immediate review priority is the P0A proof-tool hardening branch once a coherent worker result appears; RP14-S1 becomes highest priority once real-proof candidate + verifier evidence exists.
+Immediate review priority is the Lane C P0A proof-tool hardening batch once it appears; RP14-S1 becomes highest priority once real-proof candidate + verifier evidence exists.
 
 ## Heartbeat truth
 
