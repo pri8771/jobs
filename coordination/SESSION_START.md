@@ -47,12 +47,20 @@ A task/status from an old prompt is superseded when the current repo says otherw
 Do not self-accept milestone artifacts. ChatGPT lead accepts/rejects after code/evidence review.
 
 
-## Heartbeat proving mode
+## Heartbeat liveness exercise
 
-Every active worker session begins or resumes in `PROVING_15M` unless its branch heartbeat already contains verified `STEADY_HOURLY` status.
+For the current epoch `DAYWATCH_2026_09_21`:
 
-Follow `coordination/HEARTBEAT_PROTOCOL.md`.
+1. Pull/rebase latest main before implementation work.
+2. Launch the detached watcher for your lane:
+   `python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
+3. Confirm the command prints `HEARTBEAT_WATCH_STARTED`.
+4. Continue normal lane work immediately.
+5. The watcher performs:
+   - 5-minute heartbeat × 3 consecutive valid check-ins,
+   - then 15-minute heartbeats for a clean 24-hour window,
+   - then hourly heartbeat.
+6. Do not manually fabricate timestamps or cadence state.
+7. Preserve historical heartbeat entries; only the current epoch counts for this exercise.
 
-Do not count ChatGPT-seeded heartbeat files as worker check-ins.
-
-After three consecutive worker-authored on-time 15-minute heartbeats, update your own heartbeat mode to `STEADY_HOURLY` and continue hourly while active.
+Read `coordination/HEARTBEAT_PROTOCOL.md` for exact timing and metadata rules.
