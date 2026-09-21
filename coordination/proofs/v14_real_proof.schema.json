@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "V1.4 Real Proof Redacted Evidence",
+  "description": "Closed allowlist for committed redacted proof evidence. Unknown top-level or nested fields are rejected so arbitrary private content cannot ride along inside committed evidence (RP14-T5).",
   "type": "object",
-  "additionalProperties": true,
+  "additionalProperties": false,
   "required": [
     "result",
     "proof_run_id",
@@ -75,6 +76,28 @@
         "integer",
         "string"
       ]
+    },
+    "candidate_unresolved_fact_categories": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "work_authorization": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "target": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "experience_dates": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
     },
     "resume_family": {
       "type": "string",
@@ -150,6 +173,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "questions_count": {
+      "type": "integer",
+      "minimum": 0
     },
     "read_back_verification": {
       "const": true

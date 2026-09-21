@@ -2,6 +2,8 @@
 """Validate a redacted V1.4 real-proof evidence bundle.
 
 This verifies evidence structure and anti-mock/anti-fixture invariants.
+Committed evidence is held to a closed allowlist: unknown top-level or nested fields are
+rejected so arbitrary content cannot be smuggled into the committed bundle.
 It does not itself prove that private local files exist unless a local full bundle is supplied.
 """
 
@@ -40,6 +42,56 @@ PRIVATE_KEYS = {
     "api_key",
 }
 
+# RP14-T5: committed redacted evidence is a closed allowlist. Anything outside these keys
+# is rejected so arbitrary notes, raw model text, or private paths cannot ride along in
+# committed evidence. Keep in sync with coordination/proofs/v14_real_proof.schema.json.
+ALLOWED_TOP_LEVEL_KEYS = frozenset(
+    {
+        "result",
+        "proof_run_id",
+        "run_timestamp_utc",
+        "code_commit_sha",
+        "job_url",
+        "job_title",
+        "company",
+        "job_snapshot_sha256",
+        "candidate_profile_source_class",
+        "candidate_profile_version",
+        "candidate_unresolved_fact_categories",
+        "resume_family",
+        "resume_variant",
+        "resume_version",
+        "resume_source_sha256",
+        "resume_source_byte_count",
+        "model_provider",
+        "model_name",
+        "model_origin",
+        "generation_origin",
+        "packet_id",
+        "packet_hash",
+        "resume_artifact_sha256",
+        "cover_letter_artifact_sha256",
+        "manifest_sha256",
+        "is_live_ready",
+        "resolved_answers_count",
+        "unresolved_questions",
+        "questions_count",
+        "read_back_verification",
+        "mock_or_fixture_inputs_present",
+    }
+)
+
+# Nested allowlist for the only committed object-valued evidence field. Values are counts,
+# never the unresolved fact values themselves.
+ALLOWED_UNRESOLVED_FACT_CATEGORY_KEYS = frozenset(
+    {
+        "identity",
+        "work_authorization",
+        "target",
+        "experience_dates",
+    }
+)
+
 
 class ProofValidationError(Exception):
     """Raised when a real-proof evidence invariant fails."""
@@ -71,6 +123,51 @@ def _walk_forbidden_private_keys(value: Any, path: str = "") -> None:
             _walk_forbidden_private_keys(child, f"{path}[{i}]")
 
 
+def _assert_allowlisted_keys(data: dict[str, Any]) -> None:
+    """Reject any committed evidence field outside the explicit redacted allowlist.
+
+    The committed bundle is a closed structure: unknown top-level fields and unknown
+    fields inside the nested evidence objects are rejected rather than ignored.
+    """
+    extra = sorted(str(key) for key in data if str(key) not in ALLOWED_TOP_LEVEL_KEYS)
+    if extra:
+        raise ProofValidationError(
+            "non-allowlisted field must not be committed: " + ", ".join(extra)
+        )
+
+    categories = data.get("candidate_unresolved_fact_categories")
+    if categories is not None:
+        if not isinstance(categories, dict):
+            raise ProofValidationError(
+                "candidate_unresolved_fact_categories must be an object of category counts"
+            )
+        nested_extra = sorted(
+            str(key)
+            for key in categories
+            if str(key) not in ALLOWED_UNRESOLVED_FACT_CATEGORY_KEYS
+        )
+        if nested_extra:
+            raise ProofValidationError(
+                "non-allowlisted field must not be committed: "
+                + ", ".join(f"candidate_unresolved_fact_categories.{key}" for key in nested_extra)
+            )
+        for key, value in categories.items():
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise ProofValidationError(
+                    f"candidate_unresolved_fact_categories.{key} must be a non-negative count"
+                )
+
+    questions = data.get("unresolved_questions")
+    if questions is not None:
+        if not isinstance(questions, list):
+            raise ProofValidationError("unresolved_questions must be an array of strings")
+        for index, item in enumerate(questions):
+            if not isinstance(item, str):
+                raise ProofValidationError(
+                    f"unresolved_questions[{index}] must be a string, not a nested structure"
+                )
+
+
 def _assert_no_fixture_markers(data: dict[str, Any]) -> None:
     """Reject mock/fixture markers in evidence values, not schema/key names."""
 
@@ -97,6 +194,7 @@ def _assert_no_fixture_markers(data: dict[str, Any]) -> None:
 
 def validate_redacted_bundle(data: dict[str, Any]) -> None:
     _walk_forbidden_private_keys(data)
+    _assert_allowlisted_keys(data)
 
     result = str(_require(data, "result"))
     if result != "REAL_PROOF_PASS":
