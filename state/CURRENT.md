@@ -163,21 +163,27 @@ worker-pc:
 
 ## Heartbeat & visible progress
 
+Only the new three-lane operating model counts.
+
+Historical A/B/C/D/Scout heartbeat streams are CLOSED and retained only for audit history.
+
 Current epoch:
 - `DAYWATCH_2026_09_21`
 
-Lead-verified active-lane state:
+Lead-verified new-lane state:
 - Lane 1: 0/3
-- Lane 2: 0/3
+- Lane 2: 2/3
+  - 2026-09-21T15:58:58Z -> 1/3
+  - 2026-09-21T16:04:00Z -> 2/3
+  - interval is valid for the 4–7 minute proving rule
 - Lane 3: 0/3
+
+Each active heartbeat is mirrored to GitHub issue #7. Lane 2's new-epoch updates are already visible there.
 
 Required:
 - 3 valid ~5-minute heartbeats,
 - then 15-minute cadence for a clean 24 hours,
 - then hourly.
-
-Every valid active Lane 1/2/3 heartbeat should be posted automatically to GitHub issue #7.
-The progress workflow is functioning; current missing comments are caused by workers not yet using the active numeric heartbeat files, not by a feed outage.
 
 Heartbeat is liveness/progress evidence, not code acceptance.
 
