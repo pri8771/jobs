@@ -22,6 +22,20 @@ Write only a redacted readiness report.
 
 ## Phase 2 — real job
 
+Preferred live import:
+
+```bash
+python scripts/import_v14_proof_job.py
+```
+
+This calls Greenhouse's public Job Board API for the current OpenSesame job, upserts a real `JobModel`/`JobSourceModel` in the configured Jobs database, and writes the current non-standard application question labels to:
+
+`.local/proofs/opensesame_7967740_questions.json`
+
+Use the returned `job_id` with the proof runner. The questions file is local/runtime-derived and gitignored.
+
+
+
 Default target:
 - OpenSesame — AI Automation Engineer
 - https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740
