@@ -269,6 +269,7 @@ def test_controlled_auto_apply_live_not_implemented(
         answers_json={"remote_experience": "yes"},
         unresolved_questions_json=[],
         packet_hash="packet_hash_airbnb",
+        is_live_ready=True,
     )
     db_session.add(packet)
     db_session.commit()

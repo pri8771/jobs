@@ -259,6 +259,10 @@ class ApplicationPacketModel(Base):
         JSONType, default=list, nullable=False
     )
     packet_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    is_live_ready: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    generation_metadata_json: Mapped[dict[str, Any]] = mapped_column(
+        JSONType, default=dict, nullable=False
+    )
     created_at: Mapped[datetime.datetime] = mapped_column(
         UTCDateTime, default=utc_now, nullable=False
     )

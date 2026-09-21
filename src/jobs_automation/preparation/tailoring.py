@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from jobs_automation.adapters.base import ModelGateway
+from jobs_automation.adapters.models import MockModelGateway
 from jobs_automation.core import CandidateProfileConfig
 from jobs_automation.db.models import JobModel
 
@@ -13,7 +15,15 @@ logger = logging.getLogger(__name__)
 
 
 class ResumeVariantSelector:
-    """Selects the most targeted base resume variant according to role family and job title."""
+    """Selects the most targeted base resume variant and resolves exact resume family attribution."""
+
+    VARIANT_FAMILY_MAP: dict[str, str] = {
+        "resume_enterprise_automation": "Enterprise Automation & Solutions Architect",
+        "resume_ai_software_engineer": "Senior Software Engineer / AI Automation Engineer",
+        "resume_mobile_ios": "Senior iOS Engineer / Mobile Engineering Lead",
+        "resume_technical_product": "Technical Product / Platform Product",
+        "resume_sap_btp": "SAP BTP / Enterprise Automation",
+    }
 
     @staticmethod
     def select_variant(job: JobModel, matched_role_family: str | None = None) -> str:
@@ -31,6 +41,25 @@ class ResumeVariantSelector:
         else:
             # Default to primary high-value positioning
             return "resume_enterprise_automation"
+
+    @classmethod
+    def get_resume_family(
+        cls, variant_name: str, profile: CandidateProfileConfig | None = None
+    ) -> str:
+        """Resolves the exact resume family name for the given variant (R14-02).
+
+        Checks configured profile versions first, then canonical mapping.
+        Never falls back to target.primary_headline across all variants.
+        """
+        if profile and profile.resume:
+            for ver in profile.resume.recommended_versions:
+                if ver.id == variant_name and ver.family:
+                    return ver.family
+
+        if variant_name in cls.VARIANT_FAMILY_MAP:
+            return cls.VARIANT_FAMILY_MAP[variant_name]
+
+        return variant_name.replace("resume_", "").replace("_", " ").title()
 
 
 class CoverLetterDrafter:
@@ -55,7 +84,9 @@ class CoverLetterDrafter:
             lines.append(f"Core Skills: {', '.join(profile.skills.primary[:6])}")
         return "\n".join(lines)
 
-    def draft(self, job: JobModel, profile: CandidateProfileConfig) -> str:
+    def draft_with_metadata(
+        self, job: JobModel, profile: CandidateProfileConfig
+    ) -> tuple[str, dict[str, Any]]:
         company_name = job.company.normalized_name if job.company else "Hiring Team"
         title = job.normalized_title or "the position"
         cand_ctx = self._build_candidate_context(profile)
@@ -69,10 +100,20 @@ class CoverLetterDrafter:
 
         res = self.gateway.complete(task="cover_letter", prompt=prompt)
         text = str(res.get("cover_letter_text") or res.get("content") or "")
+        origin = str(
+            res.get("origin")
+            or ("mock" if isinstance(self.gateway, MockModelGateway) else "real")
+        )
+        metadata: dict[str, Any] = {
+            "origin": origin,
+            "model": res.get("model", getattr(self.gateway, "model_name", None)),
+        }
+
         if text and profile.identity.full_name not in text:
             text = f"{text}\n\nSincerely,\n{profile.identity.full_name}"
         if not text:
             # Truthful fallback dynamically rendered strictly from candidate profile facts
+            metadata["origin"] = "deterministic"
             exp_paragraphs = []
             if profile.experience.current_role:
                 cr = profile.experience.current_role
@@ -101,6 +142,10 @@ class CoverLetterDrafter:
                 f"Sincerely,\n"
                 f"{profile.identity.full_name}"
             )
+        return text, metadata
+
+    def draft(self, job: JobModel, profile: CandidateProfileConfig) -> str:
+        text, _ = self.draft_with_metadata(job, profile)
         return text
 
 
@@ -335,7 +380,43 @@ class ScreeningQuestionAnsweringService:
                     unresolved.append(f"Compensation question: '{q_clean}' requires confirmation.")
                 continue
 
-            # 10. Technical Experience / Skills resolution (J14-08)
+            # 10. Quantitative Experience / Duration / Count claims check (R14-04)
+            # Questions asking about years of experience, duration, headcount, or counts
+            # require exact canonical evidence. Mere skill presence in skills.primary/secondary
+            # is insufficient evidence to substantiate a quantitative duration/count claim.
+            is_quantitative = bool(
+                re.search(
+                    r"\b(how\s+many\s+years|years\s+of\s+experience|number\s+of\s+years|years\s+with|years\s+using|how\s+many\s+(people|engineers|direct\s+reports|reports|teams))\b",
+                    q_lower,
+                )
+                or (
+                    "years" in q_lower
+                    and any(
+                        term in q_lower
+                        for term in [
+                            "experience",
+                            "work",
+                            "using",
+                            "programming",
+                            "engineering",
+                            "leading",
+                        ]
+                    )
+                )
+                or any(
+                    phrase in q_lower
+                    for phrase in ["team size", "direct reports", "how long have you"]
+                )
+            )
+
+            if is_quantitative:
+                unresolved.append(
+                    f"Quantitative claim in question '{q_clean}' requires exact canonical evidence. "
+                    f"Skill presence alone is insufficient."
+                )
+                continue
+
+            # 11. Technical Experience / Skills resolution (J14-08)
             # Provide canonical candidate context to model
             cand_skills = profile.skills.primary + profile.skills.secondary + profile.skills.certifications
             cand_skills_str = ", ".join(cand_skills) if cand_skills else "None listed"
@@ -359,11 +440,23 @@ class ScreeningQuestionAnsweringService:
                     )
                     continue
 
+                # Safety check (R14-04): reject model assertions containing unverified quantitative claims
+                ans_str = str(res["answer"]).lower()
+                if any(k in ans_str for k in ["year", "years", "headcount", "reports"]) and any(c.isdigit() for c in ans_str):
+                    unresolved.append(
+                        f"Unverified question: '{q_clean}' (Model assertion rejected: quantitative claim '{res['answer']}' not supported by canonical profile facts)"
+                    )
+                    continue
+
+                model_origin = str(
+                    res.get("origin")
+                    or ("mock" if isinstance(self.gateway, MockModelGateway) else "real")
+                )
                 answers[q_clean] = res["answer"]
                 provenance[q_clean] = {
                     "method": "model_assisted",
                     "sources": ["skills.primary", "positioning.summary"],
-                    "model_origin": res.get("origin", "unknown"),
+                    "model_origin": model_origin,
                     "confidence": 0.85,
                 }
             else:

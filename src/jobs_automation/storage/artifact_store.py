@@ -20,8 +20,14 @@ class ArtifactStore:
         content: str | bytes,
         artifact_type: str,
         filename: str,
+        content_addressed: bool = True,
     ) -> tuple[str, str, int]:
         """Atomically stores content and performs read-back hash verification.
+
+        When content_addressed is True (default), the target filename incorporates the
+        content hash prefix so that distinct builds never overwrite historical artifact bytes.
+        If a file with differing content already exists at the target path, a FileExistsError
+        is raised to guarantee that historical artifact bytes are immutable.
 
         Returns:
             tuple of (storage_uri, sha256_hash, byte_count)
@@ -30,9 +36,30 @@ class ArtifactStore:
         computed_sha = hashlib.sha256(raw_bytes).hexdigest()
         byte_count = len(raw_bytes)
 
+        p = Path(filename)
+        sha_suffix = computed_sha[:16]
+        if content_addressed and not p.stem.endswith(sha_suffix):
+            actual_filename = f"{p.stem}_{sha_suffix}{p.suffix}"
+        else:
+            actual_filename = filename
+
         target_dir = self.base_dir / artifact_type
         target_dir.mkdir(parents=True, exist_ok=True)
-        target_path = target_dir / filename
+        target_path = target_dir / actual_filename
+
+        # Enforce immutability if target_path already exists
+        if target_path.exists():
+            existing_bytes = target_path.read_bytes()
+            existing_sha = hashlib.sha256(existing_bytes).hexdigest()
+            if existing_sha == computed_sha:
+                # Content is identical: idempotent return without overwriting
+                storage_uri = f"file://{target_path.resolve()}"
+                return storage_uri, computed_sha, byte_count
+            else:
+                raise FileExistsError(
+                    f"Immutable artifact at '{target_path}' already exists with different content (SHA {existing_sha}). "
+                    f"Historical artifact bytes cannot be overwritten."
+                )
 
         # Atomic write using tempfile in same directory
         temp_file = tempfile.NamedTemporaryFile(
