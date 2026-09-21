@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 14:59 ET
+Updated: 2026-09-21 15:50 ET
 
 ## Canonical standard
 
@@ -8,12 +8,12 @@ Updated: 2026-09-21 14:59 ET
 - mode: `ACTIVE_5M`
 - interval: 5 minutes
 - active implementation lanes: **3**
-- watchers: **one per active lane**
+- watchers: **exactly one per active lane**
 - cadence transitions: none
 
 ## Lane 1 — `worker/v14-real-proof`
 
-Status: current-epoch heartbeat stream active.
+Status: current-epoch stream was active, but is now stale and must be process-checked before any restart.
 
 Verified current-epoch timestamps from actual branch commits:
 - 17:54:00Z
@@ -29,12 +29,19 @@ Verified current-epoch timestamps from actual branch commits:
 - 18:43:24Z
 - 18:48:25Z
 - 18:53:27Z
+- 18:58:29Z
+- 19:03:31Z
+- 19:08:33Z
+- 19:13:34Z
+- 19:18:36Z
 
 Latest observed branch head:
-- `bac19e5dd12a93644320ff9274ed562f1e347f20`
-- heartbeat #13
+- `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
+- heartbeat #18
 
-Worker file says `READY_FOR_LEAD_REVIEW`, but the latest substantive implementation remains `5e5058461d5371f292c93e0c53cb0b93caba7e44`; later commits are heartbeat-only. Lead verdict remains **REWORK** because mandatory DB linkage can still be bypassed by omitting the DB target and source attestation is not independently bound to persisted Greenhouse `JobSource` evidence.
+The worker file says `READY_FOR_LEAD_REVIEW`, but compare evidence shows commits after substantive implementation `5e505846...` changed only `coordination/heartbeats/LANE_1.md`. Lead verdict remains **REWORK**: mandatory DB linkage can still be bypassed by omitting the DB target and source attestation is still not independently bound to persisted Greenhouse `JobSource` evidence.
+
+The last heartbeat is more than 30 minutes old at this lead run. Before restarting, verify the prior Lane 1 watcher is no longer running; then run exactly one current-epoch watcher.
 
 ## Lane 2 — `worker/v15-assisted-application`
 
@@ -47,11 +54,10 @@ Actual latest branch heartbeat evidence:
 - branch head `ddb4f848a97dec87033cfdef7ca33642480d99bc`
 
 Required migration:
-1. stop the old Lane 2 DAYWATCH watcher once,
+1. stop/verify stopped the old Lane 2 watcher once,
 2. synchronize/rebase latest main,
 3. launch exactly one `FIVE_MIN_2026_09_21` watcher for Lane 2,
-4. do not launch a duplicate,
-5. verify issue #7 posting after GitHub Actions runner execution is restored.
+4. do not launch a duplicate.
 
 ## Lane 3 — `worker/recruiting-ops`
 
@@ -62,10 +68,10 @@ Actual latest branch heartbeat evidence:
 - mode `PROVING_5M`
 - last check-in `2026-09-21T16:44:37Z`
 - branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- branch was 0 commits ahead / 128 behind main at lead review; accepted PR #3 batch is already merged
+- branch remains 0 commits ahead of main; accepted PR #3 batch is already merged
 
 Required migration:
-1. stop any old Lane 3 watcher once,
+1. stop/verify stopped any old Lane 3 watcher once,
 2. synchronize to latest main,
 3. launch exactly one `FIVE_MIN_2026_09_21` watcher,
 4. run post-integration verification,
@@ -73,26 +79,17 @@ Required migration:
 
 ## Issue #7 / workflow health
 
-Automated heartbeat comments were confirmed through Lane 1 heartbeat 18:18:14Z. Issue #7 then stopped receiving bot heartbeat comments while Lane 1 heartbeat commits continued through 18:53:27Z.
+Automated heartbeat comments were confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`. Comments then stopped while Lane 1 heartbeat commits continued through `19:18:36Z`.
 
-This is currently diagnosed as **`CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure**, not a heartbeat workflow-code regression:
-- Lane 1 `validate-heartbeat` / `post-progress` jobs on newer heartbeat commits fail before any workflow steps are available,
-- current ordinary main CI jobs also fail within seconds before any workflow steps are available,
-- Lane 2 heartbeat validation/post-progress had succeeded earlier at 17:39Z before the current runner blockage.
+Current diagnosis is **`CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure**, not a heartbeat-workflow-code regression:
+- latest Lane 1 `post-progress` job failed with `steps: []` and `runner_id: 0`,
+- latest ordinary main CI also failed with `steps: []` and `runner_id: 0`,
+- Lane 2 heartbeat validation/post-progress had succeeded earlier before the runner blockage.
 
-Do not change heartbeat workflow semantics merely to manufacture activity. Re-check on the next lead run. Direct ChatGPT lead updates to issue #7 remain mandatory and continue even while Actions posting is blocked.
+Do not rewrite heartbeat workflow semantics merely to manufacture activity. Direct ChatGPT lead updates to issue #7 remain mandatory every lead run.
 
 ## Interpretation
 
-Heartbeat is liveness/progress evidence only. It does not establish:
-- code correctness,
-- CI acceptance,
-- artifact acceptance,
-- `REAL_PROVEN`,
-- version `COMPLETE`.
+Heartbeat is liveness/progress evidence only. It does not establish code correctness, CI acceptance, artifact acceptance, `REAL_PROVEN`, or version `COMPLETE`.
 
-Visible progress surface:
-- GitHub issue #7 — `Jobs Automation — Live Progress`
-
-Canonical protocol:
-- `coordination/HEARTBEAT_PROTOCOL.md`
+Visible progress surface: GitHub issue #7 — `Jobs Automation — Live Progress`.
