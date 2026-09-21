@@ -3,10 +3,10 @@
 - Type: analytics / strategy
 - Phase: V2.3
 - Status: PROPOSED
-- Owner: Lane 3 (PG3) per `docs/V23_MASTER_PLAN.md` §6, subject to lead decision D3
+- Owner: single active implementation worker when this artifact is active
 - Reviewer: ChatGPT
 - Story points: 9 (V23-SL-01..07) + shared V23-F01/F03/F04
-- Dependencies: A-V20-ANALYTICS (`FunnelAnalyticsService` real-submission filters, historical outcomes, N/low-sample logic already on main), migration 004 experiment tables, `RoleFamilyClassifier`
+- Dependencies: A-V20-ANALYTICS (`FunnelAnalyticsService` real-submission filters, historical outcomes, N/low-sample logic already on main), migration 005 experiment tables, `RoleFamilyClassifier`
 - Downstream: A-V23-CAREER-BRIEFING, A-V23-AGENT-TOOLS, V3 Resume Strategist / Analytics Agent
 
 ## Contract
