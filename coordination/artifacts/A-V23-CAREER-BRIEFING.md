@@ -3,7 +3,7 @@
 - Type: implementation / user-facing intelligence composition
 - Phase: V2.3
 - Status: PROPOSED
-- Owner: V2.3 implementation surface (lane per lead decision D3)
+- Owner: single active implementation worker when this artifact is active
 - Reviewer: ChatGPT
 - Story points: 6 (V23-CB-01..05, all SP1/SP2)
 - Dependencies: A-V23-OPPORTUNITY-GRAPH, A-V23-STRATEGY-LEARNING, A-V23-TARGET-COMPANY-WATCH, A-V23-INTERVIEW-INTELLIGENCE (services), A-V20-ANALYTICS
