@@ -43,9 +43,7 @@ jobs:
           echo "mode=$(get mode)" >> "$GITHUB_OUTPUT"
           echo "task=$(get current_task)" >> "$GITHUB_OUTPUT"
           echo "note=$(get progress_note)" >> "$GITHUB_OUTPUT"
-          echo "streak=$(get consecutive_on_time)" >> "$GITHUB_OUTPUT"
-          echo "watch=$(get watch_checkins)" >> "$GITHUB_OUTPUT"
-          echo "missed=$(get missed_intervals)" >> "$GITHUB_OUTPUT"
+          echo "count=$(get heartbeat_count)" >> "$GITHUB_OUTPUT"
           echo "time=$(get last_check_in_utc)" >> "$GITHUB_OUTPUT"
           echo "review=$(get review_state)" >> "$GITHUB_OUTPUT"
           echo "action=$(get lead_action_requested)" >> "$GITHUB_OUTPUT"
@@ -58,9 +56,7 @@ jobs:
           MODE: ${{ steps.hb.outputs.mode }}
           TASK: ${{ steps.hb.outputs.task }}
           NOTE: ${{ steps.hb.outputs.note }}
-          STREAK: ${{ steps.hb.outputs.streak }}
-          WATCH: ${{ steps.hb.outputs.watch }}
-          MISSED: ${{ steps.hb.outputs.missed }}
+          COUNT: ${{ steps.hb.outputs.count }}
           TIME: ${{ steps.hb.outputs.time }}
           REVIEW: ${{ steps.hb.outputs.review }}
           ACTION: ${{ steps.hb.outputs.action }}
@@ -71,7 +67,7 @@ jobs:
 
           - **Task:** ${TASK}
           - **Update:** ${NOTE}
-          - **Heartbeat:** ${MODE} — proving ${STREAK}/3 — 24h check-ins ${WATCH} — misses ${MISSED}
+          - **Heartbeat:** ${MODE} — count ${COUNT} — fixed 5-minute cadence
           - **State:** ${REVIEW} / lead action ${ACTION}
           - **Branch:** \`${GITHUB_REF_NAME}\` @ \`${short_sha}\`"
 
