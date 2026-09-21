@@ -1,71 +1,74 @@
 # Heartbeat Protocol
 
 Purpose:
-Provide durable worker liveness and concise progress evidence through Git.
+Provide durable liveness/progress evidence for the single active Antigravity implementation session.
 
-## Current authoritative epoch
+## Authoritative owner mode
 
-- `DAYWATCH_2026_09_21`
+- epoch: `FIVE_MIN_2026_09_21`
+- mode: `ACTIVE_5M`
+- interval: 5 minutes while active
+- active implementation sessions: exactly 1
+- heartbeat watchers for that active session: exactly 1
+- cadence transitions: none
 
-Exactly three active lanes:
+All DAYWATCH / PROVING_5M / WATCH_15M_24H / STEADY_HOURLY instructions are historical and superseded.
+
+## One session, one heartbeat
+
+The active Antigravity session works one historical lane branch at a time.
+
+Historical work surfaces:
 - Lane 1 — `worker/v14-real-proof`
 - Lane 2 — `worker/v15-assisted-application`
 - Lane 3 — `worker/recruiting-ops`
 
-Historical A/B/C/D/Scout files and any other epoch do not count for this exercise.
+Only the currently active work surface gets a watcher.
 
-## Required cadence
+If the same Antigravity session changes branches:
+1. finish/push a coherent batch,
+2. stop the old watcher,
+3. switch/sync the next branch,
+4. start exactly one watcher for the new active branch.
 
-### Phase 1 — `PROVING_5M`
+Never leave two heartbeat watcher processes running.
 
-A fresh/current-epoch worker must produce 3 consecutive worker-authored heartbeats with gaps of **4–7 minutes**.
+## Heartbeat files
 
-- first valid check-in: 1/3
-- next 4–7 minutes later: 2/3
-- next 4–7 minutes later: 3/3
-- any gap outside 4–7 minutes resets the proving streak to 1 on the newest check-in
+Use the existing lane-specific heartbeat file for whichever historical branch is currently active:
+- `coordination/heartbeats/LANE_1.md`
+- `coordination/heartbeats/LANE_2.md`
+- `coordination/heartbeats/LANE_3.md`
 
-After verified 3/3, enter `WATCH_15M_24H`.
+The inactive branch heartbeat files are historical status, not evidence that another worker session is active.
 
-### Phase 2 — `WATCH_15M_24H`
+## Watcher
 
-Publish approximately every 15 minutes for a clean 24-hour window.
+For the currently active historical lane only:
 
-- any gap **>20 minutes** increments `missed_intervals`
-- that miss restarts the clean 24-hour window from the newest check-in
-- historical misses remain visible; the current clean-window start is `watch_started_utc`
-- after a clean 24 hours, switch to `STEADY_HOURLY`
-
-### Phase 3 — `STEADY_HOURLY`
-
-After the clean 24-hour watch completes, publish approximately hourly.
-
-## Active heartbeat files
-
-- Lane 1: `coordination/heartbeats/LANE_1.md`
-- Lane 2: `coordination/heartbeats/LANE_2.md`
-- Lane 3: `coordination/heartbeats/LANE_3.md`
-
-Required top-level metadata:
-
-```yaml
-lane: 1
-branch: worker/v14-real-proof
-heartbeat_epoch: DAYWATCH_2026_09_21
-mode: PROVING_5M
-interval_minutes: 5
-consecutive_on_time: 1
-last_check_in_utc: 2026-09-21T16:00:00Z
-watch_started_utc: null
-watch_until_utc: null
-watch_checkins: 0
-missed_intervals: 0
-watch_completed_utc: null
-current_task: assigned lane task
-progress_note: still working on assigned task
-review_state: WORKING
-lead_action_requested: NONE
+```bash
+python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch FIVE_MIN_2026_09_21 --detach
 ```
+
+Start it once.
+Do not restart it unless it died or the active session is intentionally switching branches.
+Before restarting, ensure the prior process is stopped.
+
+## Heartbeat content
+
+A normal heartbeat may be minimal:
+
+`Still working on <artifact/task>; no blocker.`
+
+No code push is required at every heartbeat.
+
+At a meaningful milestone/blocker/review boundary, include:
+- current artifact/task,
+- progress/evidence,
+- blocker if any,
+- branch/head,
+- review state,
+- lead action requested.
 
 Valid review states:
 - `WORKING`
@@ -79,24 +82,19 @@ Valid lead actions:
 - `ARCHITECTURE_DECISION`
 - `USER_ACTION`
 
-## Detached watcher
+## Verification
 
-Launch one watcher per active worker session:
+Actual Git/file timestamps outrank worker self-claims.
 
-```bash
-python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch DAYWATCH_2026_09_21 --detach
-```
-
-Do not run a watcher from another epoch at the same time. If a superseded `FIVE_MIN_2026_09_21` watcher is running, stop it before launching/continuing DAYWATCH.
-
-## Verification rules
-
-ChatGPT lead verifies actual Git commit/file timestamps. Worker self-claims do not override timestamps.
-
-Heartbeat proves liveness/progress only. It never substitutes for code review, tests, CI, artifact acceptance, or real proof.
+Heartbeat is liveness/progress evidence only.
+It never substitutes for:
+- tests,
+- CI,
+- code review,
+- artifact acceptance,
+- real proof.
 
 ## Human-visible feed
 
-Every active numeric-lane heartbeat push triggers `.github/workflows/heartbeat-progress.yml` and posts to GitHub issue #7, `Jobs Automation — Live Progress`.
-
-The scheduled ChatGPT lead check remains hourly due platform limits and must also post one concise lead comment to issue #7 on every run.
+Heartbeat pushes for the active numeric lane are mirrored to GitHub issue #7:
+`Jobs Automation — Live Progress`.
