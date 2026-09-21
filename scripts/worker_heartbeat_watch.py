@@ -22,11 +22,26 @@ import time
 from pathlib import Path
 
 LANES = {
+    "1": ("worker/v14-real-proof", Path("coordination/heartbeats/LANE_1.md")),
+    "2": ("worker/v15-assisted-application", Path("coordination/heartbeats/LANE_2.md")),
+    "3": ("worker/recruiting-ops", Path("coordination/heartbeats/LANE_3.md")),
+    # Historical lane aliases retained for old evidence only.
     "A": ("worker/v15-assisted-application", Path("coordination/heartbeats/LANE_A.md")),
     "B": ("worker/recruiting-ops", Path("coordination/heartbeats/LANE_B.md")),
     "C": ("worker/live-data-foundations", Path("coordination/heartbeats/LANE_C.md")),
     "D": ("worker/v23-foundations", Path("coordination/heartbeats/LANE_D.md")),
     "SCOUT": ("scout/qa-prep", Path("coordination/heartbeats/SCOUT.md")),
+}
+
+DEFAULT_TASKS = {
+    "1": "V1.4 real-proof tooling RP14-T1..T7",
+    "2": "V1.5 assisted-application safety A-R15-06..09",
+    "3": "V1.7/V2.0 worker-run and funnel repairs",
+    "A": "historical Lane A",
+    "B": "historical Lane B",
+    "C": "historical Lane C",
+    "D": "historical Lane D",
+    "SCOUT": "historical Scout",
 }
 
 DEFAULT_EPOCH = "DAYWATCH_2026_09_21"
@@ -148,7 +163,7 @@ def write_and_push(
     raise RuntimeError(f"heartbeat push failed after retries: {last_error}")
 
 
-def reset_epoch(text: str, lane: str, branch: str, epoch: str) -> str:
+def reset_epoch(text: str, lane: str, branch: str, epoch: str, task: str | None = None) -> str:
     now = utc_now()
     values = {
         "lane": lane,
@@ -166,6 +181,8 @@ def reset_epoch(text: str, lane: str, branch: str, epoch: str) -> str:
         "review_state": "WORKING",
         "lead_action_requested": "NONE",
         "watcher_started_utc": iso_z(now),
+        "current_task": task or DEFAULT_TASKS.get(lane, "assigned lane work"),
+        "progress_note": "still working on assigned task",
     }
     for key, value in values.items():
         text = replace_metadata(text, key, value)
@@ -183,7 +200,7 @@ def proving_transform(lane: str, branch: str, epoch: str):
     def apply(text: str) -> str:
         now = utc_now()
         if read_metadata(text, "heartbeat_epoch") != epoch:
-            text = reset_epoch(text, lane, branch, epoch)
+            text = reset_epoch(text, lane, branch, epoch, DEFAULT_TASKS.get(lane))
 
         previous = parse_utc(read_metadata(text, "last_check_in_utc"))
         prior_streak = metadata_int(text, "consecutive_on_time", 0)
@@ -281,7 +298,7 @@ def watch_transform(lane: str, branch: str, epoch: str):
     return apply
 
 
-def run_watch(lane: str, epoch: str) -> int:
+def run_watch(lane: str, epoch: str, task: str | None = None) -> int:
     source_root = git_root()
     branch, hb_path = LANES[lane]
     clone_root = source_root / ".local" / "heartbeat-watch" / lane.lower()
@@ -291,7 +308,7 @@ def run_watch(lane: str, epoch: str) -> int:
         clone_root,
         branch,
         hb_path,
-        lambda text: reset_epoch(text, lane, branch, epoch),
+        lambda text: reset_epoch(text, lane, branch, epoch, task or DEFAULT_TASKS.get(lane)),
         f"heartbeat({lane}): reset {epoch} to 5-minute proving",
     )
 
@@ -324,7 +341,7 @@ def run_watch(lane: str, epoch: str) -> int:
     return 0
 
 
-def detach(lane: str, epoch: str) -> int:
+def detach(lane: str, epoch: str, task: str | None = None) -> int:
     root = git_root()
     log_dir = root / ".local" / "heartbeat-watch-logs"
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -336,6 +353,8 @@ def detach(lane: str, epoch: str) -> int:
         lane,
         "--epoch",
         epoch,
+        "--task",
+        task or DEFAULT_TASKS.get(lane, "assigned lane work"),
         "--child",
     ]
     log_handle = open(log_path, "a", encoding="utf-8")
@@ -363,12 +382,13 @@ def main() -> int:
     parser.add_argument("--lane", required=True, choices=LANES.keys())
     parser.add_argument("--epoch", default=DEFAULT_EPOCH)
     parser.add_argument("--detach", action="store_true")
+    parser.add_argument("--task", default=None)
     parser.add_argument("--child", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     if args.detach and not args.child:
-        return detach(args.lane, args.epoch)
-    return run_watch(args.lane, args.epoch)
+        return detach(args.lane, args.epoch, args.task)
+    return run_watch(args.lane, args.epoch, args.task)
 
 
 if __name__ == "__main__":
