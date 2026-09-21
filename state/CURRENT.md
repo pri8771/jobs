@@ -2,6 +2,19 @@
 
 Updated: 2026-09-21
 
+## Current execution mode
+
+Owner directive:
+- one active Antigravity implementation session at a time,
+- one active session = exactly one heartbeat watcher,
+- fixed 5-minute cadence under `FIVE_MIN_2026_09_21`,
+- historical Lane 1/Lane 2/Lane 3 branches are sequential work surfaces, not simultaneous active sessions,
+- ChatGPT focuses on lead review/acceptance and downstream V1.6→V3.0 preparation while Antigravity executes.
+
+Canonical program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
+
 ## Official completion state
 
 **V1.4 is NOT COMPLETE.**
@@ -99,9 +112,10 @@ Heartbeat:
 Latest owner directive is authoritative:
 - epoch `FIVE_MIN_2026_09_21`
 - mode `ACTIVE_5M`
-- every 5 minutes while active
-- one watcher per active lane
+- every 5 minutes while the single Antigravity implementation session is active
+- exactly one watcher for that session
 - no proving/watch/hourly transitions
+- when switching historical work branches, stop the old watcher before starting the one watcher for the new active branch
 
 Any DAYWATCH instructions are superseded and retained only as historical evidence.
 
@@ -125,9 +139,12 @@ Lane 1 P0A rework
 → ChatGPT RP14-L1
 → V1.4 COMPLETE.
 
-Parallel:
-- Lane 2 completes current V1.5 safety batch,
-- Lane 3 verifies the just-merged integration and then waits on its blocked dependency.
+Sequential execution after the V1.4 gate:
+- move the single Antigravity session to the V1.5 work surface,
+- then V1.6 engineering when accepted/authorized,
+- then V1.7 recruiting-operations work.
+
+ChatGPT may prepare non-conflicting downstream V1.6→V3.0 contracts/tasks while Antigravity executes, without becoming a second implementation session.
 
 ## Safety
 
