@@ -34,10 +34,14 @@ Runbook:
 
 Lane C should do RP14-C1..C3 before Gmail tasks.
 
-### Lane A — next immediately after current coherent V1.5 rework batch
-- RP14-A1 SP2 run production ApplicationPacketBuilder with real JobModel + real private profile + actual resume bytes + non-mock generation
-- RP14-A2 SP2 emit redacted runtime-derived proof bundle + artifact read-back hashes
+### P0 execution race — Lane A or Lane C
+- RP14-E1 SP2: whichever lane first has the real private profile + real resume mapping should run the complete proof immediately
+- run `scripts/import_v14_proof_job.py` if the real job is not already imported
+- run `scripts/run_v14_real_proof.py`
+- run `scripts/verify_v14_real_proof.py` with the private full bundle locally
+- RP14-E2 SP2: push only the redacted runtime-derived evidence JSON
 - no browser/app submission needed
+- do not wait for a C→A handoff if one machine has all required real inputs
 
 ### Scout
 - RP14-S1 SP2 independently audit the proof bundle for mock/fixture contamination, real job evidence, internal hash/link consistency, non-mock generation origin, and privacy leaks
