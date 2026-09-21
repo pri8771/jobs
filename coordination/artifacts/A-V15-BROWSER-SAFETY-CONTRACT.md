@@ -56,3 +56,8 @@ Key gaps captured by the contract:
 ## Risks
 
 Do not implement or execute this artifact ahead of the V1.4 packet-safety acceptance gate unless ChatGPT explicitly reprioritizes a non-conflicting preparation slice.
+
+
+## Additional security task
+
+- J15-11 SP2 — Treat all external form/page content as untrusted data; add prompt-injection resistance and adversarial tests.
