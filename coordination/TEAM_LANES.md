@@ -73,13 +73,26 @@ Branch:
 - worker/live-data-foundations
 
 Owns:
+- temporary P0 proof-tool integrity implementation RP14-T1..RP14-T7 for A-V14-REAL-PROOF until that tooling gate is lead-accepted
+- after the P0A tooling gate, A-V14-REAL-PROOF private input readiness/execution if this machine has the required real inputs
 - A-V12-CANDIDATE-PROVENANCE implementation
 - A-V20-GMAIL-RUNTIME-READINESS except final health/worker glue owned by Lane B
 - engineering side of A-V12-GMAIL-CANARY
 - later A-V20-INTEGRATION-FIXTURE when dependencies are stable
 - proof-job selection support tooling if explicitly advanced
 
+Immediate P0 ordering:
+1. rebase current main
+2. implement RP14-T1..RP14-T7 only in proof scripts/schema/tests/minimal docs; no private inputs and no actual proof run
+3. stop for ChatGPT/Scout review
+4. after P0A acceptance, execute RP14-C1..C3 and, if fully ready, RP14-E1/E2 before Gmail work
+
 Primary paths:
+- scripts/import_v14_proof_job.py
+- scripts/run_v14_real_proof.py
+- scripts/verify_v14_real_proof.py
+- coordination/proofs/v14_real_proof.schema.json
+- proof-tooling tests
 - src/jobs_automation/adapters/gmail.py
 - src/jobs_automation/ingestion/
 - src/jobs_automation/provenance/ (new)
@@ -89,6 +102,7 @@ Primary paths:
 - related tests/config docs
 
 Avoid:
+- private profile/resume proof execution before P0A lead acceptance
 - preparation/storage/browser/automation code owned by Lane A
 - lifecycle/dashboard/health/worker.py owned by Lane B
 - candidate_profile.py while Lane A is actively modifying resume-family behavior unless coordinated
@@ -143,6 +157,10 @@ May:
 - prepare adversarial test plans,
 - propose SP1-SP5 decomposition,
 - write scout findings under coordination/scout/.
+
+Immediate P0 review order:
+- independently attack Lane C's RP14-T1..RP14-T7 proof-tool integrity batch when it lands,
+- then perform RP14-S1 on actual real-proof candidate + verifier evidence.
 
 Must not:
 - modify production source unless explicitly assigned,
