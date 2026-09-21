@@ -1,48 +1,38 @@
 # Heartbeat Protocol
 
-Purpose: durable liveness/progress evidence for the **single active implementation session**.
+Purpose: provide durable liveness/progress evidence for the **exactly three active implementation lanes** authorized by the owner and `AGENTS.md`.
 
 ## Authoritative owner standard
 
 - epoch: `FIVE_MIN_2026_09_21`
 - mode: `ACTIVE_5M`
 - interval: 5 minutes
-- active implementation sessions: exactly 1
-- active heartbeat watchers: exactly 1
+- active implementation lanes: exactly 3
+- watchers: exactly one watcher per active lane
 - cadence transitions: none
 
-There is no proving phase, 24-hour watch, or hourly transition.
+There is no proving phase, 24-hour watch, or hourly transition. Any `DAYWATCH_2026_09_21`, `PROVING_5M`, `WATCH_15M_24H`, or `STEADY_HOURLY` instruction is historical and superseded.
 
-All `DAYWATCH_2026_09_21`, `PROVING_5M`, `WATCH_15M_24H`, and `STEADY_HOURLY` instructions are historical and superseded.
+## Active lanes
 
-## Historical lane files
+- Lane 1 — `worker/v14-real-proof` — `coordination/heartbeats/LANE_1.md`
+- Lane 2 — `worker/v15-assisted-application` — `coordination/heartbeats/LANE_2.md`
+- Lane 3 — `worker/recruiting-ops` — `coordination/heartbeats/LANE_3.md`
 
-Historical work surfaces may still use:
-- Lane 1 / `worker/v14-real-proof` / `coordination/heartbeats/LANE_1.md`
-- Lane 2 / `worker/v15-assisted-application` / `coordination/heartbeats/LANE_2.md`
-- Lane 3 / `worker/recruiting-ops` / `coordination/heartbeats/LANE_3.md`
+Each active lane owns one current-epoch watcher while its worker session is active. One lane's heartbeat is never evidence for another lane. Do not launch duplicate watchers in a lane.
 
-These files do **not** mean three workers should run.
+## Migration from an old watcher
 
-Only the branch/work surface currently owned by the one active implementation session has a live watcher.
+If an active lane still shows an old epoch/mode:
+1. stop that old watcher once,
+2. confirm it stopped,
+3. pull/rebase latest main as required by the lane file,
+4. start exactly one current watcher for that lane,
+5. verify the heartbeat file shows `FIVE_MIN_2026_09_21` / `ACTIVE_5M` / `interval_minutes: 5`.
 
-Inactive historical heartbeat files are audit history.
+If a current-epoch watcher has stopped, verify no old process remains before restarting exactly one watcher.
 
-## Start / branch switch
-
-Before starting a watcher:
-1. check whether the active implementation session already has one,
-2. never start a duplicate.
-
-When the implementation session intentionally switches branch/work surface:
-1. finish/push the coherent batch,
-2. stop the old watcher,
-3. verify the old watcher stopped,
-4. switch/sync branch,
-5. start exactly one watcher for the new active work surface,
-6. verify current epoch/mode/interval.
-
-Example commands when that historical work surface is active:
+## Watcher commands
 
 Lane 1:
 ```bash
@@ -59,32 +49,22 @@ Lane 3:
 python scripts/worker_heartbeat_watch.py --lane 3 --epoch FIVE_MIN_2026_09_21 --detach
 ```
 
-Run **only one** of these for the active implementation session.
-
-## Planning sessions
-
-A Fable/Claude planning-only session is not a second implementation worker.
-
-If an implementation watcher is already active:
-- inspect it,
-- do not start another watcher merely because planning is happening.
-
 ## Required heartbeat metadata
 
-Active heartbeat should expose:
-- lane/work surface
-- branch
-- heartbeat_epoch
-- mode
-- interval_minutes
-- heartbeat_count
-- last_check_in_utc
-- current artifact/task
-- progress_note
-- review_state
-- lead_action_requested
+Each current heartbeat should expose at least:
+- `lane`
+- `branch`
+- `heartbeat_epoch`
+- `mode`
+- `interval_minutes`
+- `heartbeat_count`
+- `last_check_in_utc`
+- `current_task`
+- `progress_note`
+- `review_state`
+- `lead_action_requested`
 
-Expected:
+Expected fixed values:
 - `heartbeat_epoch: FIVE_MIN_2026_09_21`
 - `mode: ACTIVE_5M`
 - `interval_minutes: 5`
@@ -101,27 +81,24 @@ Valid lead actions:
 - `ARCHITECTURE_DECISION`
 - `USER_ACTION`
 
-A normal heartbeat may be:
-`Still working on <artifact/task>; no blocker.`
-
-No code push is required every heartbeat.
+A normal heartbeat may be minimal: `Still working on <artifact/task>; no blocker.`
 
 ## Verification
 
-Actual branch commits and heartbeat-file timestamps outrank worker self-claims.
+Actual branch commit timestamps and heartbeat-file contents outrank worker self-claims. A worker cannot declare itself current if the actual timestamp stream disagrees.
 
-Heartbeat proves liveness/progress only. It never establishes:
-- correctness,
-- CI acceptance,
-- artifact acceptance,
-- `REAL_PROVEN`,
-- milestone `COMPLETE`.
+Heartbeat is liveness/progress evidence only. It never establishes code correctness, CI acceptance, artifact acceptance, `REAL_PROVEN`, or version `COMPLETE`.
 
-## Human-visible feed
+## Human-visible progress
 
-The active heartbeat should be mirrored to GitHub issue #7 when Actions infrastructure is available.
+Every active-lane heartbeat push should be mirrored automatically to GitHub issue #7, `Jobs Automation — Live Progress`, by `.github/workflows/heartbeat-progress.yml` when GitHub Actions runners are available.
 
-If heartbeat commits continue but issue comments stop:
-- first check Actions runner/account state,
-- do not rewrite working heartbeat logic solely to create activity,
-- record infrastructure blockage truthfully.
+At each ChatGPT lead run:
+- inspect actual Lane 1/2/3 heartbeat timestamps,
+- inspect matching issue #7 comments,
+- if heartbeat commits continue but comments stop, diagnose runner/workflow state before changing heartbeat logic,
+- post one concise ChatGPT lead comment to issue #7 regardless of whether code changed.
+
+## Scope boundary
+
+Planning-only sessions do not replace or collapse the three active implementation lanes. Old Lane C, old Lane D, and old Scout remain paused/superseded. `worker-pc` is bounded support infrastructure, not a fourth Jobs implementation lane.
