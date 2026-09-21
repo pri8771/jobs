@@ -115,13 +115,27 @@ After P0A acceptance, whichever Lane A or Lane C machine first has the actual pr
 
 ## Heartbeat truth
 
-- Lane A: proving streak BROKEN/STALE; branch STEADY_HOURLY claim is not lead-accepted. Next worker heartbeat restarts at 1/3 in PROVING_15M.
-- Lane B: 0/3 protocol-valid; one worker heartbeat exists but its file failed repository heartbeat validation and the proving window elapsed.
+Current heartbeat epoch:
+- `DAYWATCH_2026_09_21`
+
+This epoch deliberately resets liveness proving for all fresh sessions. Historical heartbeats remain in Git but do not count.
+
+Required progression:
+1. PROVING_5M — 3 consecutive worker-authored check-ins with 4-7 minute gaps.
+2. WATCH_15M_24H — 15-minute cadence for a clean 24 hours; any gap >20 minutes restarts the clean 24-hour watch.
+3. STEADY_HOURLY only after the 24-hour watch passes.
+
+Fresh epoch status:
+- Lane A: 0/3
+- Lane B: 0/3
 - Lane C: 0/3
 - Lane D: 0/3
 - Scout: 0/3
 
-Lead-seeded heartbeat commits and lead branch maintenance do not count. PROVING_15M remains required until three consecutive on-time worker-authored heartbeats, then STEADY_HOURLY.
+Fresh sessions must rebase latest main and launch the detached watcher:
+`python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
+
+ChatGPT lead review remains hourly; the worker watcher generates the 5m/15m Git evidence independently.
 
 ## Remote worker
 
