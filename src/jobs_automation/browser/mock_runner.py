@@ -19,54 +19,64 @@ class MockBrowserRunner(BrowserRunner):
         interactive_submitted: bool = True,
         receipt_text: str = "Thank you for your application! Application ID: MOCK-APP-9981",
         detected_ats: str | None = "greenhouse",
+        custom_fields: list[FormField] | None = None,
+        custom_inspection: FormInspectionResult | None = None,
     ) -> None:
         self.interactive_submitted = interactive_submitted
         self.receipt_text = receipt_text
         self.detected_ats = detected_ats
+        self.custom_fields = custom_fields
+        self.custom_inspection = custom_inspection
         self.inspected_urls: list[str] = []
         self.prefilled_calls: list[tuple[str, dict[str, str]]] = []
         self.sessions_opened: list[tuple[str, dict[str, str]]] = []
 
     def inspect_form(self, url: str) -> FormInspectionResult:
         self.inspected_urls.append(url)
+        if self.custom_inspection is not None:
+            return self.custom_inspection
+
+        fields = self.custom_fields if self.custom_fields is not None else [
+            FormField(
+                name="first_name", selector="#first_name", required=True, label="First Name"
+            ),
+            FormField(
+                name="last_name", selector="#last_name", required=True, label="Last Name"
+            ),
+            FormField(
+                name="email",
+                selector="#email",
+                field_type="email",
+                required=True,
+                label="Email",
+            ),
+            FormField(
+                name="phone", selector="#phone", field_type="tel", required=True, label="Phone"
+            ),
+            FormField(
+                name="linkedin", selector="#linkedin", required=False, label="LinkedIn Profile"
+            ),
+            FormField(
+                name="github", selector="#github", required=False, label="GitHub Profile"
+            ),
+            FormField(
+                name="resume",
+                selector="#resume",
+                field_type="file",
+                required=True,
+                label="Resume/CV",
+            ),
+        ]
         return FormInspectionResult(
             url=url,
             title="Careers Application Form",
             detected_ats=self.detected_ats,
             has_file_upload=True,
-            fields=[
-                FormField(
-                    name="first_name", selector="#first_name", required=True, label="First Name"
-                ),
-                FormField(
-                    name="last_name", selector="#last_name", required=True, label="Last Name"
-                ),
-                FormField(
-                    name="email",
-                    selector="#email",
-                    field_type="email",
-                    required=True,
-                    label="Email",
-                ),
-                FormField(
-                    name="phone", selector="#phone", field_type="tel", required=True, label="Phone"
-                ),
-                FormField(
-                    name="linkedin", selector="#linkedin", required=False, label="LinkedIn Profile"
-                ),
-                FormField(
-                    name="github", selector="#github", required=False, label="GitHub Profile"
-                ),
-                FormField(
-                    name="resume",
-                    selector="#resume",
-                    field_type="file",
-                    required=True,
-                    label="Resume/CV",
-                ),
-            ],
+            fields=fields,
             form_found=True,
+            form_fingerprint=f"mock_fingerprint_{len(fields)}",
             metadata={"mock": True},
+            is_mock=True,
         )
 
     def prefill_form(
@@ -83,6 +93,7 @@ class MockBrowserRunner(BrowserRunner):
             attached_files=dict(file_uploads or {}),
             success=True,
             message="Mock form prefilled successfully",
+            is_mock=True,
         )
 
     def open_interactive_session(
@@ -97,5 +108,15 @@ class MockBrowserRunner(BrowserRunner):
             submitted=self.interactive_submitted,
             confirmation_url=f"{url}/confirmation" if self.interactive_submitted else None,
             receipt_text=self.receipt_text if self.interactive_submitted else None,
+            external_confirmation_evidence=(
+                {
+                    "type": "mock_confirmation",
+                    "receipt_id": "MOCK-APP-9981",
+                    "simulated": True,
+                }
+                if self.interactive_submitted
+                else None
+            ),
             notes="Mock interactive session completed",
+            is_mock=True,
         )

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from jobs_automation.browser.assisted_engine import (
     AssistedApplicationEngine,
 )
+from jobs_automation.browser.base import FormField
 from jobs_automation.browser.mock_runner import MockBrowserRunner
 from jobs_automation.core import CandidateProfileConfig, ConfigLoader
 from jobs_automation.core.policy_registry import (
@@ -207,7 +208,19 @@ def test_assisted_application_prefill_and_confirm(
     policy_config: PolicyRegistryConfig,
 ) -> None:
     evaluator = PolicyEvaluator(policy_config)
-    runner = MockBrowserRunner(interactive_submitted=True)
+    runner = MockBrowserRunner(
+        interactive_submitted=True,
+        custom_fields=[
+            FormField(name="first_name", selector="#first_name", required=True, label="First Name"),
+            FormField(name="last_name", selector="#last_name", required=True, label="Last Name"),
+            FormField(name="email", selector="#email", field_type="email", required=True, label="Email"),
+            FormField(name="phone", selector="#phone", field_type="tel", required=True, label="Phone"),
+            FormField(name="linkedin", selector="#linkedin", required=False, label="LinkedIn Profile"),
+            FormField(name="github", selector="#github", required=False, label="GitHub Profile"),
+            FormField(name="resume", selector="#resume", field_type="file", required=True, label="Resume/CV"),
+            FormField(name="years_of_experience", selector="#years_of_experience", required=False, label="Years of Experience"),
+        ],
+    )
     engine = AssistedApplicationEngine(
         session=db_session,
         policy_evaluator=evaluator,
@@ -264,7 +277,12 @@ def test_assisted_application_prefill_and_confirm(
     db_session.commit()
 
     # Execute assisted apply
-    res = engine.execute(job_id=job.id, auto_confirm=True)
+    res = engine.execute(
+        job_id=job.id,
+        packet_id=packet.id,
+        auto_confirm=True,
+        allow_simulation=True,
+    )
 
     assert res.status == "SUBMITTED"
     assert res.policy_decision == "assisted"
@@ -320,6 +338,7 @@ def test_assisted_application_idempotency(
         policy_evaluator=evaluator,
         browser_runner=runner,
         candidate_profile=candidate_profile,
+        allow_simulation=True,
     )
 
     company = CompanyModel(normalized_name="tech inc")
@@ -340,13 +359,43 @@ def test_assisted_application_idempotency(
         canonical_apply_url="https://boards.greenhouse.io/techinc/1001",
     )
     db_session.add(source)
+    db_session.flush()
+
+    resume_art = ArtifactModel(
+        type="resume_markdown",
+        storage_uri="/artifacts/resumes/techinc_resume.md",
+        sha256="techinc_resume_hash",
+    )
+    db_session.add(resume_art)
+    db_session.flush()
+
+    packet = ApplicationPacketModel(
+        job_id=job.id,
+        candidate_profile_version=1,
+        resume_artifact_id=resume_art.id,
+        answers_json={},
+        unresolved_questions_json=[],
+        packet_hash="packet_hash_idempotency_123",
+        is_live_ready=True,
+    )
+    db_session.add(packet)
     db_session.commit()
 
     # First submission
-    res1 = engine.execute(job_id=job.id, auto_confirm=True)
+    res1 = engine.execute(
+        job_id=job.id,
+        packet_id=packet.id,
+        auto_confirm=True,
+        allow_simulation=True,
+    )
     assert res1.status == "SUBMITTED"
 
     # Second attempt must be rejected by idempotency check
-    res2 = engine.execute(job_id=job.id, auto_confirm=True)
+    res2 = engine.execute(
+        job_id=job.id,
+        packet_id=packet.id,
+        auto_confirm=True,
+        allow_simulation=True,
+    )
     assert res2.status == "ALREADY_SUBMITTED"
     assert "was already submitted" in res2.message
