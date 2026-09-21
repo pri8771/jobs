@@ -1,3 +1,20 @@
+## 2026-09-21 planning-priority override
+
+This file is **planning input**, not a directly executable worker queue.
+
+Near-term product priority:
+- get V2.3 genuinely working ASAP,
+- design V3 compatibility now,
+- defer broad V3 implementation until V2.3 works unless ChatGPT explicitly advances it.
+
+The SP3-SP5 items below are legacy coarse decomposition. Fable's master planning pass must split implementation work into SP1/SP2 wherever reasonably possible and route it through the artifact-oriented canonical queue after ChatGPT review.
+
+Canonical planning brief:
+- `docs/FABLE_V23_MASTER_PLANNING_BRIEF.md`
+
+Model/token policy:
+- `docs/MODEL_ROUTING_AND_TOKEN_EFFICIENCY.md`
+
 # Prepared Work Queue — V1.6 to V3.0
 
 Purpose:
