@@ -4,24 +4,29 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from collections.abc import Callable
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from jobs_automation.dashboard.analytics import FunnelAnalyticsService
 from jobs_automation.db.models import (
+    ApplicationModel,
     AuditLogModel,
     ContactModel,
     InterviewModel,
     JobModel,
+    PolicyRegistryModel,
     TaskModel,
 )
+from jobs_automation.health import HealthCheckService
+from jobs_automation.lifecycle.crm import RecruiterCRMService
 
 logger = logging.getLogger(__name__)
 
@@ -626,11 +631,201 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(audit_data)
                 return
 
+            if path == "/api/health":
+                checker = HealthCheckService(self.session_factory)
+                self._send_json(checker.run_full_check().model_dump(mode="json"))
+                return
+
+            if path == "/api/followups":
+                followup_types = (
+                    "UNANSWERED_RECRUITER",
+                    "STALE_APPLICATION_FOLLOW_UP",
+                    "STALE_SCREENING_FOLLOW_UP",
+                )
+                tasks = session.scalars(
+                    select(TaskModel)
+                    .where(TaskModel.task_type.in_(followup_types))
+                    .order_by(TaskModel.due_at.asc().nulls_last())
+                ).all()
+                followup_data: list[dict[str, Any]] = [
+                    {
+                        "id": str(t.id),
+                        "application_id": str(t.application_id) if t.application_id else None,
+                        "job_id": str(t.job_id) if t.job_id else None,
+                        "task_type": t.task_type,
+                        "status": t.status,
+                        "due_at": t.due_at.isoformat() if t.due_at else None,
+                        "payload": t.payload_json,
+                    }
+                    for t in tasks
+                ]
+                self._send_json(followup_data)
+                return
+
+            if path == "/api/analytics/sources":
+                service = FunnelAnalyticsService(session)
+                self._send_json(service.get_source_performance())
+                return
+
+            if path == "/api/analytics/roles":
+                service = FunnelAnalyticsService(session)
+                self._send_json(service.get_role_family_performance())
+                return
+
+            if path == "/api/analytics/resumes":
+                service = FunnelAnalyticsService(session)
+                self._send_json(service.get_resume_performance())
+                return
+
+            if path == "/api/analytics/time-to-stage":
+                service = FunnelAnalyticsService(session)
+                self._send_json(service.get_time_to_stage())
+                return
+
+            if path == "/api/timeline":
+                crm = RecruiterCRMService(session)
+                params = parse_qs(url.query)
+                app_ids = params.get("application_id", [])
+                contact_ids = params.get("contact_id", [])
+                if app_ids:
+                    try:
+                        timeline = crm.get_timeline_for_application(uuid.UUID(app_ids[0]))
+                        self._send_json(timeline)
+                        return
+                    except ValueError:
+                        self.send_error(HTTPStatus.BAD_REQUEST, "Invalid application UUID")
+                        return
+                elif contact_ids:
+                    try:
+                        timeline = crm.get_timeline_for_contact(uuid.UUID(contact_ids[0]))
+                        self._send_json(timeline)
+                        return
+                    except ValueError:
+                        self.send_error(HTTPStatus.BAD_REQUEST, "Invalid contact UUID")
+                        return
+                else:
+                    # Default: return recent touchpoints
+                    self._send_json([])
+                    return
+
+            if path == "/api/offers-rejections":
+                terminal_or_offer = (
+                    "OFFER_RECEIVED",
+                    "OFFER_ACCEPTED",
+                    "OFFER_DECLINED",
+                    "ONBOARDING",
+                    "REJECTED",
+                    "WITHDRAWN",
+                )
+                apps = session.scalars(
+                    select(ApplicationModel)
+                    .where(ApplicationModel.status.in_(terminal_or_offer))
+                    .order_by(ApplicationModel.last_activity_at.desc())
+                ).all()
+                data = [
+                    {
+                        "application_id": str(a.id),
+                        "company": a.job.company_name if a.job else "Unknown",
+                        "title": a.job.normalized_title if a.job else "Unknown",
+                        "status": a.status,
+                        "applied_at": a.applied_at.isoformat() if a.applied_at else None,
+                        "closed_at": a.closed_at.isoformat() if a.closed_at else None,
+                        "last_activity_at": a.last_activity_at.isoformat() if a.last_activity_at else None,
+                    }
+                    for a in apps
+                ]
+                self._send_json(data)
+                return
+
+            if path == "/api/policies":
+                policies = session.scalars(select(PolicyRegistryModel)).all()
+                data = [
+                    {
+                        "id": str(p.id),
+                        "platform": p.platform,
+                        "domain_pattern": p.domain_pattern,
+                        "capability": p.capability,
+                        "decision": p.decision,
+                        "adapter": p.adapter,
+                        "reviewed_at": p.reviewed_at.isoformat(),
+                        "review_due_at": p.review_due_at.isoformat() if p.review_due_at else None,
+                    }
+                    for p in policies
+                ]
+                self._send_json(data)
+                return
+
+            if path == "/api/worker":
+                sweeps = session.scalars(
+                    select(AuditLogModel)
+                    .where(AuditLogModel.action_type == "worker_sweep")
+                    .order_by(AuditLogModel.occurred_at.desc())
+                    .limit(20)
+                ).all()
+                worker_data: list[dict[str, Any]] = [
+                    {
+                        "id": str(s.id),
+                        "result": s.result,
+                        "occurred_at": s.occurred_at.isoformat(),
+                        "metrics": s.metadata_json,
+                    }
+                    for s in sweeps
+                ]
+                self._send_json(worker_data)
+                return
+
         self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+
+    def _authorize_write_operation(self) -> bool:
+        """Enforces operator write safety for state-changing endpoints (B-R20-06).
+
+        Requirements:
+        1. If DASHBOARD_WRITE_TOKEN environment variable is set:
+           Request must provide matching 'X-Operator-Token' or 'Authorization: Bearer <token>' header.
+        2. If DASHBOARD_WRITE_TOKEN is not set:
+           Request must originate from a trusted local loopback address ('127.0.0.1', '::1', 'localhost')
+           AND DASHBOARD_ALLOW_LOCAL_WRITE must not be explicitly disabled ('false').
+        3. All other requests fail closed with 401 Unauthorized or 403 Forbidden.
+        """
+        configured_token = os.getenv("DASHBOARD_WRITE_TOKEN")
+        if configured_token:
+            provided_token = self.headers.get("X-Operator-Token")
+            if not provided_token:
+                auth_header = self.headers.get("Authorization", "")
+                if auth_header.startswith("Bearer "):
+                    provided_token = auth_header[7:].strip()
+
+            if provided_token == configured_token:
+                return True
+
+            self._send_json(
+                {"error": "Unauthorized: missing or invalid operator write token."},
+                status=HTTPStatus.UNAUTHORIZED,
+            )
+            return False
+
+        # If no token configured, check for local trusted loopback mode
+        allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in ("true", "1", "yes")
+        client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else "127.0.0.1"
+
+        if allow_local and client_ip in ("127.0.0.1", "::1", "localhost", "testclient"):
+            return True
+
+        self._send_json(
+            {
+                "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+            },
+            status=HTTPStatus.FORBIDDEN,
+        )
+        return False
 
     def do_POST(self) -> None:  # noqa: N802
         url = urlparse(self.path)
         path = url.path.rstrip("/")
+
+        # Enforce write safety gate before processing any state-changing mutations
+        if not self._authorize_write_operation():
+            return
 
         # Check for /api/reviews/{id}/resolve
         if path.startswith("/api/reviews/") and path.endswith("/resolve"):

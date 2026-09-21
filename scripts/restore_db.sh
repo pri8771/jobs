@@ -22,14 +22,30 @@ if [ -f "${CHECKSUM_FILE}" ]; then
   echo "Verifying SHA-256 integrity checksum..."
   shasum -a 256 -c "${CHECKSUM_FILE}"
 else
-  echo "Warning: No checksum file found at '${CHECKSUM_FILE}'. Proceeding with caution."
+  if [ "${FORCE}" = "--skip-checksum-emergency-override" ] || [ "${3:-}" = "--skip-checksum-emergency-override" ]; then
+    echo "AUDIT WARNING: Emergency checksum override activated. Restoring without SHA-256 verification."
+  else
+    echo "Error: Checksum file '${CHECKSUM_FILE}' is missing. Restore failed closed to prevent corruption."
+    echo "To override in an emergency, specify --skip-checksum-emergency-override."
+    exit 1
+  fi
 fi
 
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5433}"
 DB_USER="${DB_USER:-jobs}"
 DB_NAME="${DB_NAME:-jobs}"
-export PGPASSWORD="${DB_PASSWORD:-jobs}"
+
+if [ -z "${DB_PASSWORD:-}" ]; then
+  if [ "${ALLOW_DEFAULT_DEV_CREDENTIALS:-false}" = "true" ]; then
+    export PGPASSWORD="jobs"
+  else
+    echo "Error: DB_PASSWORD must be set in environment (or set ALLOW_DEFAULT_DEV_CREDENTIALS=true for local dev)."
+    exit 1
+  fi
+else
+  export PGPASSWORD="${DB_PASSWORD}"
+fi
 
 echo "=========================================================="
 echo "Jobs Automation OS — Database Restore Utility"

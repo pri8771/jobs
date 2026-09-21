@@ -251,3 +251,158 @@ def test_worker_reconciliation_remains_due_when_polling_fails(
     res2 = daemon.run_sweep()
     assert res2["reconciliation_performed"] is False
     assert daemon.last_reconciliation_at is None
+
+
+def test_worker_begin_persistence_failure_fails_closed(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Worker fails closed and does not execute pipeline if begin record cannot be persisted."""
+    class FailingSessionFactory:
+        def __init__(self, real_factory: sessionmaker[Session]) -> None:
+            self.real_factory = real_factory
+            self.calls = 0
+
+        def __call__(self) -> Session:
+            self.calls += 1
+            # First call is for begin record: simulate DB failure
+            if self.calls == 1:
+                raise RuntimeError("Database disk full during begin record commit")
+            return self.real_factory()
+
+    failing_factory = FailingSessionFactory(db_session_factory)
+    adapter = MockEmailAdapter([])
+    daemon = WorkerDaemon(
+        session_factory=failing_factory,
+        poll_interval_seconds=60,
+        email_adapter=adapter,
+    )
+
+    results = daemon.run_sweep()
+    assert any("begin_record_failed" in err for err in results["errors"])
+    assert results["messages_polled"] == 0
+    assert results["messages_ingested"] == 0
+    assert results["jobs_discovered"] == 0
+    # Pipeline did not execute further
+    assert failing_factory.calls == 1
+
+
+def test_worker_distinct_run_ids_per_sweep(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Distinct sweeps have distinct unique run_ids."""
+    adapter = MockEmailAdapter([])
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        email_adapter=adapter,
+    )
+
+    res1 = daemon.run_sweep()
+    res2 = daemon.run_sweep()
+
+    assert res1["run_id"] != res2["run_id"]
+
+    with db_session_factory() as session:
+        from jobs_automation.db.models import AuditLogModel
+
+        runs = session.scalars(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run")
+            .order_by(AuditLogModel.occurred_at.asc())
+        ).all()
+        assert len(runs) == 2
+        assert runs[0].external_reference == res1["run_id"]
+        assert runs[1].external_reference == res2["run_id"]
+
+
+def test_worker_pipeline_rollback_preserves_run_evidence(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Pipeline exception and rollback cannot erase operational begin and finish audit evidence."""
+    class CrashingEmailAdapter(EmailAdapter):
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            raise ValueError("Critical unexpected parsing explosion")
+
+        def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
+            return []
+
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        email_adapter=CrashingEmailAdapter(),
+    )
+
+    results = daemon.run_sweep()
+    run_id = results["run_id"]
+    assert any("Critical unexpected parsing explosion" in err for err in results["errors"])
+
+    with db_session_factory() as session:
+        from jobs_automation.db.models import AuditLogModel
+
+        begin_audit = session.scalar(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run")
+            .where(AuditLogModel.external_reference == run_id)
+        )
+        assert begin_audit is not None
+        assert begin_audit.result == "RUNNING"
+
+        finish_audit = session.scalar(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run_finished")
+            .where(AuditLogModel.external_reference == run_id)
+        )
+        assert finish_audit is not None
+        assert finish_audit.result in ("PARTIAL", "FAILED")
+
+
+def test_worker_error_sanitization_removes_secrets_and_categorizes(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """B-R20-05: Raw secrets, OAuth tokens, and passwords are sanitized in finalize records."""
+    class SecretLeakingAdapter(EmailAdapter):
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            raise RuntimeError(
+                "OAuth failure with token ya29.a0AfH6SMBabc123456789xyz and Bearer my-secret-jwt-token"
+            )
+
+        def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
+            return []
+
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        email_adapter=SecretLeakingAdapter(),
+    )
+
+    results = daemon.run_sweep()
+    run_id = results["run_id"]
+
+    with db_session_factory() as session:
+        from jobs_automation.db.models import AuditLogModel
+
+        finish_audit = session.scalar(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run_finished")
+            .where(AuditLogModel.external_reference == run_id)
+        )
+        assert finish_audit is not None
+        meta = finish_audit.metadata_json
+        sample_errors_str = " ".join(meta.get("sample_errors", []))
+
+        # Secrets must be redacted
+        assert "ya29.a0AfH6SMBabc123456789xyz" not in sample_errors_str
+        assert "Bearer my-secret-jwt-token" not in sample_errors_str
+        assert "[REDACTED_SECRET]" in sample_errors_str
+        assert "GMAIL_AUTH_ERROR" in meta.get("error_categories", [])
+
