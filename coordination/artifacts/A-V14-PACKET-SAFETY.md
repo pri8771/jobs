@@ -2,7 +2,7 @@
 
 - Type: implementation / acceptance
 - Phase: V1.4
-- Status: IN_PROGRESS
+- Status: ACCEPTED
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V1.1 accepted
@@ -85,3 +85,10 @@ Four bounded residual tasks remain:
 - R14-04 SP2 — model-assisted quantitative claims (for example years of Python) need exact canonical evidence; skill presence alone is insufficient.
 
 After these pass with green CI, A-V14 can be accepted immediately.
+
+
+## Final lead acceptance
+
+Accepted after re-audit of Lane A commit `1410bf7`, merge PR #1, and green main CI on merge commit `8a0cdb4`.
+
+V1.4 is no longer an active worker artifact.
