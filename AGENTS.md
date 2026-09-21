@@ -57,6 +57,17 @@ Only load deeper historical docs/code needed for the task at hand.
 If these conflict, use this precedence:
 explicit user instruction > AGENTS.md > coordination/WORK_QUEUE.md > docs/PROJECT_SPEC.md > state/DECISIONS.md > coordination/CONTEXT.md > other docs > code comments.
 
+## Owner heartbeat directive — 2026-09-21
+
+Latest explicit owner instruction:
+- all active Jobs lanes heartbeat every **5 minutes** while active,
+- there are **no cadence transitions** to 15-minute or hourly modes,
+- use exactly one watcher process per lane,
+- canonical epoch is `FIVE_MIN_2026_09_21`,
+- any DAYWATCH/PROVING_5M/WATCH_15M_24H/STEADY_HOURLY instruction is superseded unless the owner explicitly changes this again.
+
+This owner directive overrides older coordination files or automation output.
+
 ## Inter-agent coordination
 
 Use lane-specific heartbeat files under coordination/heartbeats/ as the primary worker -> ChatGPT coordination channel. ChatGPT may summarize accepted/rework/cross-lane decisions into coordination/AI_SYNC.md.
