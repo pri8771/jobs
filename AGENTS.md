@@ -104,6 +104,20 @@ At the start of a task:
 4. Work from the highest-priority unblocked queue item unless ChatGPT/user gave a newer instruction.
 5. Prefer tests and small interfaces before broad implementation.
 
+## Parallel worker lane discipline
+
+When multiple Antigravity sessions are active:
+- each session owns a named lane and dedicated branch,
+- code-path ownership should not overlap without an explicit lead decision,
+- workers do not edit lead-owned shared coordination/state files on their branches,
+- each worker updates only its lane status file,
+- workers rebase their lane branch on latest main before starting a new artifact batch,
+- workers push coherent artifact batches for ChatGPT review,
+- ChatGPT owns shared artifact index, work queue, current state, cross-lane integration, and milestone acceptance.
+
+Current lane contract:
+- coordination/TEAM_LANES.md
+
 ## Antigravity execution protocol
 
 Antigravity is expected to keep moving the queue while active.
