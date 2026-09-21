@@ -8,11 +8,21 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | Artifact ID | Phase | Artifact | Type | Owner | Status | Depends on | Unblocks |
 |---|---|---|---|---|---|---|---|
 | A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/engineering acceptance | historical Lane A | ACCEPTED | V1.1 accepted | A-V14-REAL-PROOF, V1.5 |
+| A-V14-P0A-INTEGRITY | V1.4 | Fail-closed real-proof verifier integrity | proof tooling/integrity | Antigravity | IN_PROGRESS | A-V14-PACKET-SAFETY | A-V14-CLEAN-INTEGRATION, A-V14-REAL-PROOF |
+| A-V14-CLEAN-INTEGRATION | V1.4 | Clean current-main integration of proof tooling | integration | Antigravity | BLOCKED | A-V14-P0A-INTEGRITY | A-V14-REAL-PROOF |
 | A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Lane 1 + ChatGPT + worker-pc independent review | BLOCKED | A-V14-PACKET-SAFETY ACCEPTED + P0A proof-tool integrity acceptance | V1.4 COMPLETE |
 | A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Lane 2 | IN_PROGRESS | A-V14-PACKET-SAFETY ACCEPTED | A-V15-ASSISTED-APPLICATION |
 | A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Lane 2 | IN_PROGRESS | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT | V1.6 |
+| A-V15-CLEAN-INTEGRATION | V1.5 | Port assisted-safety code to clean current-main branch | integration | Antigravity | BLOCKED | A-V14-REAL-PROOF | A-V15-BROWSER-SAFETY-CONTRACT, A-V15-ASSISTED-APPLICATION |
+| A-V15-LIVE-ASSISTED-PROOF | V1.5 | Real visible-browser assisted-flow proof to review boundary | live evidence | Antigravity + User | BLOCKED | V1.5 engineering acceptance + owner browser authorization | V1.5 COMPLETE, V1.6 |
 | A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
 | A-V16-SUBMISSION-ENGINE-REPAIR | V1.6 | Submission truth/idempotency/authorization repair | implementation/safety | Lane 2 | BLOCKED | A-V15-ASSISTED-APPLICATION | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-AUTHORIZATION | V1.6 | Scoped job+packet+method submission authorization | implementation/permission | Antigravity | BLOCKED | V1.5 COMPLETE | A-V16-IDEMPOTENCY, A-V16-PREFLIGHT |
+| A-V16-IDEMPOTENCY | V1.6 | Durable attempt state and duplicate/concurrency prevention | implementation/state | Antigravity | BLOCKED | A-V16-AUTHORIZATION | A-V16-CONFIRMATION |
+| A-V16-PREFLIGHT | V1.6 | Immediate pre-submit packet/artifact/policy integrity gate | implementation/safety | Antigravity | BLOCKED | A-V16-AUTHORIZATION | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-CONFIRMATION | V1.6 | External confirmation/reconciliation truth | implementation/evidence | Antigravity | BLOCKED | A-V16-IDEMPOTENCY | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-HYGIENE | V1.6 | Submission task/telemetry/error hygiene | implementation/reliability | Antigravity | BLOCKED | V1.5 COMPLETE | A-V16-SUBMISSION-ENGINE-REPAIR |
+| A-V16-TRANSPORT | V1.6 | Current-policy compliant live system-submit transport | policy/implementation | Antigravity + ChatGPT | READY | public research none; implementation after safety artifacts | A-V16-FIRST-REAL-SUBMISSION |
 | A-V16-FIRST-REAL-SUBMISSION | V1.6 | First system-submitted externally confirmed application | live-evidence | Lane 2 + User | PROPOSED | A-V15-ASSISTED-APPLICATION, A-PROOF-JOB-SELECTION, A-V16-SUBMISSION-CONTRACT | strategy review |
 | A-V12-CANDIDATE-PROVENANCE | V1.2 | Private-safe candidate fact provenance contract | data/evidence | Lane 1 | READY | none | safe packet answers |
 | A-V12-GMAIL-CANARY | V1.2 | Read-only Gmail OAuth + ingestion canary | integration/evidence | Lane 1 + User | PROPOSED | user OAuth | V1.3 live discovery |
@@ -21,6 +31,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-LINKEDIN-NETWORK-GROWTH | future | Targeted LinkedIn network growth design | product/design | ChatGPT | PROPOSED | first real application review | networking roadmap |
 | A-V17-CRM-EVIDENCE | V1.7 | Recruiter/contact/thread evidence graph | implementation/evidence | Lane 3 | LEAD_REVIEW | existing lifecycle assets | A-V17-MILESTONE-GATE |
 | A-V17-INTERVIEW-FOLLOWUP | V1.7 | Interview + follow-up operating layer | implementation/evidence | Lane 3 | LEAD_REVIEW | existing lifecycle assets | A-V17-MILESTONE-GATE |
+| A-V17-ENGINEERING-RECONCILIATION | V1.7 | Audit/reconcile merged V1.7 implementation against artifact criteria | audit/acceptance | Antigravity | READY | merged V1.7 code | A-V17-MILESTONE-GATE |
+| A-V17-LIVE-LIFECYCLE-PROOF | V1.7 | Genuine recruiter/application/interview lifecycle proof | live evidence | Antigravity + User | BLOCKED | V1.7 engineering + read-only Gmail authorization/readiness | A-V17-MILESTONE-GATE, V2.0 |
 | A-V17-MILESTONE-GATE | V1.7 | Integrated recruiting operations acceptance | milestone | ChatGPT | BLOCKED | A-V17-CRM-EVIDENCE, A-V17-INTERVIEW-FOLLOWUP | V2.0 |
 | A-V20-CONTROL-CENTER | V2.0 | Daily operator control center | implementation/UX | Lane 3 | LEAD_REVIEW | existing dashboard | A-V20-INTEGRATED-OS |
 | A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Lane 3 | IN_PROGRESS | existing CI/health/backup | A-V20-INTEGRATED-OS |
