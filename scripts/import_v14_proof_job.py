@@ -25,12 +25,11 @@ from sqlalchemy import select
 
 from jobs_automation.db.models import CompanyModel, JobModel, JobSourceModel
 from jobs_automation.db.session import get_sessionmaker
+from jobs_automation.preparation.packet_builder import compute_questions_sha256
 
 DEFAULT_BOARD_TOKEN = "opensesame"
 DEFAULT_JOB_ID = "7967740"
-DEFAULT_JOB_URL = (
-    "https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740"
-)
+DEFAULT_JOB_URL = "https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740"
 
 STANDARD_LABEL_PREFIXES = (
     "first name",
@@ -127,7 +126,10 @@ def _source_payload(job_payload: dict[str, Any], api_url: str) -> dict[str, Any]
         "fetched_at_utc": datetime.datetime.now(datetime.UTC).isoformat(),
         "content_sha256": hashlib.sha256(content_text.encode("utf-8")).hexdigest(),
         "screening_question_count": len(questions),
+        "question_list_sha256": compute_questions_sha256(questions),
         "source_kind": "greenhouse_public_job_board_api",
+        "provider": "GREENHOUSE",
+        "public_job_id": str(job_payload.get("id", "")),
     }
 
 
@@ -182,9 +184,7 @@ def main() -> int:
         session_factory = get_sessionmaker()
         with session_factory() as session:
             company = session.scalar(
-                select(CompanyModel).where(
-                    CompanyModel.normalized_name == "OpenSesame"
-                )
+                select(CompanyModel).where(CompanyModel.normalized_name == "OpenSesame")
             )
             if company is None:
                 company = CompanyModel(
@@ -206,9 +206,7 @@ def main() -> int:
             if existing_source is not None:
                 job = existing_source.job
                 if job is None:
-                    raise ProofJobImportError(
-                        "Existing Greenhouse source has no linked JobModel"
-                    )
+                    raise ProofJobImportError("Existing Greenhouse source has no linked JobModel")
                 job.company_id = company.id
                 job.normalized_title = title
                 job.location_text = location or job.location_text

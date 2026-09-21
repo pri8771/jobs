@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,41 @@ from jobs_automation.preparation.tailoring import (
     ScreeningQuestionAnsweringService,
 )
 from jobs_automation.storage.artifact_store import ArtifactStore
+
+
+def compute_canonical_packet_hash(
+    job_id: str | uuid.UUID,
+    profile_version: int | str,
+    resume_variant_id: str | uuid.UUID | None,
+    resume_sha: str,
+    cover_letter_sha: str | None,
+    answers: dict[str, Any] | None,
+    answer_provenance: dict[str, Any] | None,
+) -> str:
+    """Compute the deterministic SHA-256 identity of an application packet payload.
+
+    The payload shape is the canonical packet-hash contract shared by packet
+    preparation, the assisted-browser pre-write revalidation and the real-proof
+    verifier. For fully populated inputs the digest is byte-identical to the original
+    inline formula; ``None`` inputs are normalized (``""`` variant, ``{}`` maps) instead
+    of hashing the literal string ``"None"``.
+    """
+    payload = {
+        "job_id": str(job_id),
+        "profile_version": profile_version,
+        "resume_variant_id": str(resume_variant_id) if resume_variant_id else "",
+        "resume_sha": resume_sha,
+        "cover_letter_sha": cover_letter_sha,
+        "answers": answers or {},
+        "answer_provenance": answer_provenance or {},
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def compute_questions_sha256(questions: list[str]) -> str:
+    """Compute canonical SHA-256 hash of application questions list."""
+    serialized = json.dumps(questions, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
 
 
 class PacketBuildResult(BaseModel):
@@ -193,18 +229,15 @@ class ApplicationPacketBuilder:
         )
 
         # 7. Deterministic Packet Hash
-        packet_payload = {
-            "job_id": str(job.id),
-            "profile_version": self.profile.version,
-            "resume_variant_id": str(resume_variant.id),
-            "resume_sha": resume_sha,
-            "cover_letter_sha": cl_sha,
-            "answers": answers,
-            "answer_provenance": answer_provenance,
-        }
-        packet_hash = hashlib.sha256(
-            json.dumps(packet_payload, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        packet_hash = compute_canonical_packet_hash(
+            job_id=str(job.id),
+            profile_version=self.profile.version,
+            resume_variant_id=str(resume_variant.id),
+            resume_sha=resume_sha,
+            cover_letter_sha=cl_sha,
+            answers=answers,
+            answer_provenance=answer_provenance,
+        )
 
         # 8. Persist ApplicationPacketModel with ResumeVariant Linkage and Readiness
         packet = ApplicationPacketModel(
