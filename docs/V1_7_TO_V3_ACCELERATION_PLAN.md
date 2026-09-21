@@ -124,11 +124,36 @@ Primary code ownership:
 - src/jobs_automation/lifecycle/
 - src/jobs_automation/dashboard/
 - src/jobs_automation/health.py
-- src/jobs_automation/worker.py when not conflicting with active Lane A work
+- src/jobs_automation/worker.py
 - scripts/
 - relevant tests
 
-Does NOT own preparation/browser/auto-application implementation.
+Does NOT own preparation/browser/auto-application implementation or Gmail adapter/OAuth internals.
+
+### Lane C — Live Data & Provenance Foundations
+Branch: worker/live-data-foundations
+
+Owns:
+- private-safe candidate provenance foundation
+- Gmail adapter partial-fetch safety
+- runtime OAuth/token-path wiring without committing secrets
+- safe REAL-Gmail diagnostic output
+- engineering side of the Gmail canary
+- later deterministic cross-subsystem integration fixture once dependencies are stable
+
+Primary code ownership:
+- src/jobs_automation/adapters/gmail.py
+- src/jobs_automation/ingestion/
+- src/jobs_automation/provenance/
+- src/jobs_automation/integration/ later
+- src/jobs_automation/cli/
+- docker-compose.yml
+- relevant tests/config docs
+
+Cross-lane boundary:
+- Lane C publishes a typed, secret-free Gmail readiness report.
+- Lane B consumes that report in health/worker-run evidence.
+- Lane B must not duplicate interactive OAuth or serialize credential/token contents.
 
 ### ChatGPT lead
 Owns:
@@ -336,8 +361,14 @@ A-V17 CRM evidence
 -> A-V17 milestone gate
 -> A-V20 control center/reliability/analytics
 
-Shared:
-A-V12 Gmail canary + candidate provenance + proof-job selection
+Lane C:
+A-V12 candidate provenance
++ A-V20 Gmail runtime readiness
+-> engineering side of A-V12 Gmail canary
+-> A-V20 integration fixture after dependencies stabilize
+
+Shared/user:
+A-V12 Gmail canary live OAuth + proof-job selection
 
 Final:
 A-V20-INTEGRATED-OS
@@ -345,7 +376,7 @@ A-V20-INTEGRATED-OS
 ## Rules for speed
 
 - validate existing code before rebuilding
-- use two independent branches
+- use three dedicated worker branches
 - no shared-file churn by workers
 - SP1-SP3 work goes to workers
 - >SP5 is decomposed
