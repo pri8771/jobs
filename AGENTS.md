@@ -118,7 +118,7 @@ When multiple Antigravity sessions are active:
 Current lane contract:
 - coordination/TEAM_LANES.md
 
-Current workers may include three parallel lanes: application execution, recruiting operations, and live-data/provenance foundations.
+Current team may include four implementation lanes — application execution, recruiting operations, live-data/provenance foundations, and V2 platform/reliability — plus one non-owning Scout for QA/prep/adversarial review.
 
 ## Antigravity execution protocol
 
