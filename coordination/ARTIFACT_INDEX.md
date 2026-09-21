@@ -18,8 +18,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-PROOF-JOB-SELECTION | V1.3/V1.5 | User-approved proof-job selection record | decision/evidence | ChatGPT + User | PROPOSED | real jobs | A-V15, A-V16 |
 | A-RESUME-OUTCOME-METRICS | post-first-app | Resume/application outcome analytics | analytics/spec | Antigravity | PROPOSED | immutable resume attribution + lifecycle events | learning loop |
 | A-LINKEDIN-NETWORK-GROWTH | future | Targeted LinkedIn network growth design | product/design | ChatGPT | PROPOSED | first real application review | networking roadmap |
-| A-V17-CRM-EVIDENCE | V1.7 | Recruiter/contact/thread evidence graph | implementation/evidence | Antigravity Lane B | IN_PROGRESS | existing lifecycle assets | A-V17-MILESTONE-GATE |
-| A-V17-INTERVIEW-FOLLOWUP | V1.7 | Interview + follow-up operating layer | implementation/evidence | Antigravity Lane B | IN_PROGRESS | existing lifecycle assets | A-V17-MILESTONE-GATE |
+| A-V17-CRM-EVIDENCE | V1.7 | Recruiter/contact/thread evidence graph | implementation/evidence | Antigravity Lane B | LEAD_REVIEW | existing lifecycle assets | A-V17-MILESTONE-GATE |
+| A-V17-INTERVIEW-FOLLOWUP | V1.7 | Interview + follow-up operating layer | implementation/evidence | Antigravity Lane B | LEAD_REVIEW | existing lifecycle assets | A-V17-MILESTONE-GATE |
 | A-V17-MILESTONE-GATE | V1.7 | Integrated recruiting operations acceptance | milestone | ChatGPT | BLOCKED | A-V17-CRM-EVIDENCE, A-V17-INTERVIEW-FOLLOWUP | V2.0 |
 | A-V20-CONTROL-CENTER | V2.0 | Daily operator control center | implementation/UX | Antigravity Lane B | LEAD_REVIEW | existing dashboard | A-V20-INTEGRATED-OS |
 | A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Antigravity Lane B | IN_PROGRESS | existing CI/health/backup | A-V20-INTEGRATED-OS |
@@ -51,7 +51,7 @@ A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION residual repair
 ## Parallel implementation lanes
 
 - Lane A: V1.5 residual repair, then V1.6 after acceptance.
-- Lane B: A-V17 repair plus existing V2.0 dashboard/reliability/analytics bounded rework.
+- Lane B: V1.7 integration evidence/CI plus one bounded top-level funnel residual B-R20-07; existing V2.0 dashboard/reliability/analytics remain under lead acceptance.
 - Lane C: A-V12-CANDIDATE-PROVENANCE + A-V20-GMAIL-RUNTIME-READINESS J20G-01..03; later V2 integration fixture.
 - Lane D: non-conflicting V2.3 foundations only.
 - Scout: independent non-owning QA/adversarial review.
