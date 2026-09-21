@@ -115,6 +115,11 @@ Then continue on the same lane with V2.0 brownfield validation:
 - J20-06 SP3 migration + backup/restore verification automation
 - J20-07 SP3 durable worker-run history/evidence
 - J20-08 SP2 health/recovery regression coverage
+- J20-12 SP2 distinguish registered/simulated/not-implemented/live-capable adapter health
+- J20-13 SP2 expose Gmail + worker last-success/last-error readiness
+- J20-14 SP3 persist durable worker run history
+- J20-15 SP1 fail restore when checksum is missing unless explicit audited emergency override
+- J20-16 SP1 remove silent production DB-password default behavior
 
 ### A-V20-ANALYTICS
 - J20-09 SP2 audit current analytics dimensions
