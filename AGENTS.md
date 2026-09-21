@@ -118,7 +118,7 @@ When multiple Antigravity sessions are active:
 Current lane contract:
 - coordination/TEAM_LANES.md
 
-Current team may include four implementation lanes — V1.5+ application execution, V1.7/V2.0 repair, live-data/provenance foundations, and V2.3 foundations — plus one non-owning Scout for QA/prep/adversarial review.
+Current active team is exactly three implementation lanes: Lane 1 V1.4 real-proof critical path, Lane 2 V1.5 application safety, and Lane 3 V1.7/V2.0 recruiting/reliability. V2.3 and Scout are paused. ChatGPT performs lead review; worker-pc may provide independent bounded review/support.
 
 ## Antigravity execution protocol
 
