@@ -1,3 +1,14 @@
+## Current priority — V2.3 ASAP
+
+This document remains architecture/planning reference.
+
+Current owner priority is to get **V2.3 genuinely working as fast as safely possible**. V3 contracts should be designed now only as needed for compatibility; broad V3 runtime/specialist implementation should not delay V2.3.
+
+The master planning/decomposition pass is defined in:
+- `docs/FABLE_V23_MASTER_PLANNING_BRIEF.md`
+
+The resulting implementation tasks should be predominantly SP1/SP2 and suitable for lower-cost workers where possible.
+
 # Downstream Preparation Plan — V1.6 to V3.0
 
 Purpose:
