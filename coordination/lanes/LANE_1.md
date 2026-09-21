@@ -14,51 +14,58 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
-## Latest lead re-review — 2026-09-21 14:58 ET
+## Latest lead re-review — 2026-09-21 15:50 ET
 
 Latest substantive implementation reviewed:
 - `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Current Lane 1 branch head observed:
-- `bac19e5dd12a93644320ff9274ed562f1e347f20`
-- heartbeat #13 at `2026-09-21T18:53:27Z`
-- commits after `5e505846...` remain heartbeat-only
+Current Lane 1 branch head:
+- `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
+- heartbeat #18 at `2026-09-21T19:18:36Z`
+- compare from `5e505846...` through current head changes only `coordination/heartbeats/LANE_1.md`; no later production repair exists
 
 Verdict:
 - **REWORK**
 - P0A is not accepted
-- private candidate/resume proof execution remains forbidden
+- private candidate/profile/resume proof execution remains forbidden
 
-The worker-pc read-only post-repair audit independently confirmed the remaining source-attestation integrity defect. The follow-up tests-only support task also completed and returned an actual Jobs branch:
-- branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449`
+Direct lead inspection of current `scripts/verify_v14_real_proof.py` confirms both remaining defects still exist:
+
+1. `verify_database_linkage()` resolves `database_url` / `db_path` and performs a bare `return` when neither is present. Omitting the proof DB target therefore still bypasses persisted packet/resume/artifact validation.
+2. The verifier contains no persisted `JobSource` binding for Greenhouse source attestation. The local attestation/questions evidence is not independently proven against persisted import evidence.
+
+## Independent support
+
+Reviewed tests-only support branch:
+- `worker/jobs-v14-p0a-remaining-tests-20260921-1449`
 - commit `cffae70577b6719c92e7d7edc3ecd94d00db622d`
-- actual diff reviewed by ChatGPT: exactly one file changed, `tests/test_real_proof_verifier.py`, +420 lines, no production files
-- no GitHub CI exists for that worker commit and the worker sandbox could not execute pytest/Ruff/Python, so this commit is **review input only**, not acceptance evidence
+- actual reviewed diff: only `tests/test_real_proof_verifier.py`, +420 lines
+- no worker-side pytest/Ruff/Python execution and no GitHub CI on that support commit
+- useful as adversarial review input only; not accepted/integrated automatically
 
-The support tests explicitly encode the two remaining fail-closed requirements and may be cherry-picked or adapted into the Lane 1 repair. Do not merge the worker-pc branch automatically.
+New bounded support task dispatched this run:
+- `jobs-v14-p0a-remaining-fix-20260921-1545`
+- worker: `worker-pc`
+- scope: only the two remaining production verifier defects + focused verifier tests
+- remote workflow `35647203812` was `in_progress` at dispatch review
+
+Lane 1 must not wait for worker-pc. Any returned support branch is review input only and must be inspected before use.
 
 ## Remaining bounded assignment
 
-Close these two acceptance-critical gaps in one coherent production batch.
+Close these two acceptance-critical gaps in one coherent Lane 1 production batch.
 
 ### 1. RP14-T7 — database linkage is mandatory for PASS
 
-`verify_database_linkage()` must never treat absence of a proof DB target as success.
-
 Requirements:
 - REAL_PROOF_PASS requires an explicitly configured proof DB target,
-- failure to open/resolve the configured DB fails closed,
-- persisted `ApplicationPacketModel` row must match the proof packet ID/job/resume linkage,
-- persisted `ResumeVariantModel` must match the selected variant and resume artifact,
-- required resume/cover-letter artifact rows and hashes must match the candidate evidence,
-- omitted `database_url` / `db_path` must fail,
+- missing/unopenable/unresolvable DB target fails closed,
+- persisted `ApplicationPacketModel` row must match proof packet ID, job, selected resume, and relevant linkage,
+- persisted `ResumeVariantModel` must match selected variant and resume artifact,
+- required resume/cover-letter artifact rows and hashes must match candidate evidence,
 - unrelated or tampered persisted rows must fail.
 
-Adopt/adapt the worker-pc adversarial tests for missing DB target and persisted-row contradictions.
-
 ### 2. RP14-T3 — source attestation is independently bound to persisted import evidence
-
-The local bundle and local questions file must not be able to mutually attest themselves into PASS.
 
 Load the corresponding persisted Greenhouse `JobSource` and `Job` evidence and bind at minimum:
 - provider,
@@ -71,50 +78,30 @@ Load the corresponding persisted Greenhouse `JobSource` and `Job` evidence and b
 - canonical apply URL,
 - linked `JobModel` identity/apply URL as appropriate.
 
-A bundle with a self-consistent forged `source_attestation`, locally authored questions file, and fabricated description/content SHA must fail even if its internal hashes are mutually consistent.
-
-Adopt/adapt the worker-pc tests for:
-- forged description SHA,
-- forged questions file/hash,
-- mismatched JobSource provider/source kind/public job ID/API URL,
-- mismatched fetched timestamp,
-- mismatched canonical apply URL,
-- JobSource linked to a different Job.
+A self-consistent forged local `source_attestation`, locally authored questions file, and fabricated description/content SHA must fail.
 
 ## Final validation / review boundary
 
 After both repairs:
-1. synchronize/rebase the Lane 1 production changes onto latest main while avoiding unrelated historical coordination churn,
-2. run focused real-proof verifier/runner tests, including the worker-pc adversarial cases,
+1. synchronize/rebase production changes onto latest main without importing unrelated historical coordination churn,
+2. run focused real-proof verifier/runner tests including adversarial cases,
 3. run full `pytest`,
 4. run `ruff check .`,
 5. run `mypy src tests`,
 6. obtain exact-head GitHub CI when Actions runners execute again,
-7. if Actions remain blocked before any steps start, record `CI_BLOCKED_ACCOUNT` and request independent exact-head validation rather than calling CI green,
+7. if Actions still fail before steps start, record `CI_BLOCKED_ACCOUNT` and provide independent exact-head validation rather than claiming CI green,
 8. set `READY_FOR_LEAD_REVIEW` / `REVIEW`, push the coherent batch, and stop implementation changes for lead review.
 
 Do **not** use private candidate/resume inputs or execute the real proof until ChatGPT explicitly accepts P0A.
 
 ## Heartbeat
 
-Lane 1 is correctly on the owner heartbeat standard.
+Canonical Lane 1 heartbeat:
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- interval 5 minutes
+- exactly one Lane 1 watcher
 
-Latest verified current-epoch heartbeat:
-- `2026-09-21T18:53:27Z`
-- heartbeat #13
-- branch head `bac19e5dd...`
+Latest verified heartbeat is #18 at `2026-09-21T19:18:36Z`; the stream is now stale by more than 30 minutes. Before restarting, verify the prior watcher process is not still running. If dead, start exactly one current watcher; never create a duplicate.
 
-Canonical command:
-```bash
-python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --task "V1.4 real-proof P0A rework" --detach
-```
-
-Rules:
-- epoch `FIVE_MIN_2026_09_21`,
-- mode `ACTIVE_5M`,
-- every ~5 minutes while active,
-- exactly one Lane 1 watcher,
-- no cadence transitions,
-- do not restart a healthy watcher or create a duplicate.
-
-Issue #7 automated heartbeat posting is currently degraded by an account-level GitHub Actions runner startup failure: heartbeat commits continue, but post-progress/validation jobs fail before steps run. Keep the single watcher running; do not duplicate it to work around the Actions outage.
+Issue #7 automated heartbeat posting is currently blocked by GitHub Actions runner startup failure (`steps: []`, `runner_id: 0`). Keep truthful Git heartbeat evidence and do not rewrite heartbeat semantics to work around the account-level runner outage.
