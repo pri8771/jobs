@@ -9,6 +9,14 @@ Owner:
 Reviewer:
 - ChatGPT lead
 
+## Lead checkpoint — 2026-09-21 15:44Z
+
+- Draft PR #3 head is `68595d1fe825545b7f1506b7068d1c78376f7953`.
+- Current-head CI is green, but the branch is far behind main and must be rebased before new work.
+- Historical `LANE_B.md` does not count for `DAYWATCH_2026_09_21`.
+- Active `coordination/heartbeats/LANE_3.md` is not yet on the branch because it has not rebased the three-lane reset; after rebasing, launch the numeric Lane 3 watcher and start at 0/3.
+- Preserve accepted B-R17-03/B-R20-07/B-R20-08 exactly while completing the remaining durability and headline-funnel residuals.
+
 ## Already lead-accepted at task scope
 
 - B-R17-03
