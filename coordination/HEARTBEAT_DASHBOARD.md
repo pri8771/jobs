@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 17:48 ET
+Updated: 2026-09-21 17:58 ET
 
 ## Canonical standard
 
@@ -13,7 +13,7 @@ Updated: 2026-09-21 17:48 ET
 
 ## Lane 1 — `worker/v14-real-proof`
 
-Status: **canonical current-epoch stream active in Git; worker READY_FOR_LEAD_REVIEW; lead verdict REWORK**.
+Status: **canonical current-epoch stream is stale; worker reported READY_FOR_LEAD_REVIEW; lead verdict REWORK**.
 
 Latest verified heartbeat file:
 - branch head observed `df4045883c1fde7b29af92a20028d3b6397e9a93`
@@ -22,7 +22,7 @@ Latest verified heartbeat file:
 - epoch `FIVE_MIN_2026_09_21`
 - mode `ACTIVE_5M`
 
-The stream restarted after the earlier stale gap and then emitted consecutive ~5-minute heartbeats through #22. Exactly one current Lane 1 watcher should continue while the active worker session remains alive; do not start a duplicate.
+No newer Lane 1 heartbeat commit appeared after more than three expected 5-minute intervals. Before Lane 1 resumes work, verify the previous watcher is dead, pull latest main, then launch exactly one current-epoch watcher. Never launch a duplicate watcher.
 
 Substantive implementation under review:
 - clean branch `claude/serene-brown-g6uij0`
@@ -30,7 +30,8 @@ Substantive implementation under review:
 
 Lead review found the runtime verifier chain substantially repaired, but P0A remains **REWORK** because the committed proof schema is stale:
 - `additionalProperties: true`,
-- candidate `result` still constrained to `REAL_PROOF_PASS` rather than `REAL_PROOF_CANDIDATE`.
+- candidate `result` still constrained to `REAL_PROOF_PASS` rather than `REAL_PROOF_CANDIDATE`,
+- repository search found no existing test referencing `v14_real_proof.schema.json`.
 
 Lane 1 must fix/test the schema contract and rerun full validation before another lead review. No private proof run is authorized.
 
@@ -73,7 +74,7 @@ Required migration:
 
 Automated heartbeat comments were last confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`.
 
-Lane 1 Git heartbeat commits continued substantially later, including the restarted current stream through `21:31:56Z`, but the current heartbeat workflow jobs still fail before executing any step. Latest inspected heartbeat-validation job shows:
+Lane 1 Git heartbeat commits continued substantially later, including a restarted stream through `21:31:56Z`, but the current heartbeat workflow jobs still fail before executing any step. Latest inspected heartbeat-validation job shows:
 - `steps: []`,
 - `runner_id: 0`,
 - conclusion `failure` within seconds.
@@ -90,9 +91,10 @@ Completed runtime-contract support:
 - commit `7e88542b5ce5d8cf1c607a24d8f92399556c15ce`
 - actual Jobs diff was inspected and limited to verifier/tests; Lane 1 incorporated the relevant fixes into `3444076...`.
 
-New bounded schema support task:
+Current bounded schema support task:
 - `jobs-v14-p0a-schema-gate-20260921-1748`
 - base `claude/serene-brown-g6uij0`
+- workflow is executing on actual `worker-pc` (`runner_id: 2`)
 - schema/test support only; no automatic merge or acceptance.
 
 ## Interpretation
