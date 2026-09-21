@@ -14,7 +14,7 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
-## Latest lead re-review — 2026-09-21 16:45 ET
+## Latest lead re-review — 2026-09-21 17:00 ET
 
 Current Lane 1 branch head:
 - `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
@@ -24,110 +24,88 @@ Current Lane 1 branch head:
 Latest substantive Lane 1 implementation reviewed:
 - `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Current comparison to latest main at this review:
-- PR #8 remains draft and non-mergeable,
-- Lane 1 is materially diverged from main,
-- support/final validation must be rebased or cleanly ported onto current main before acceptance.
-
 Verdict:
 - **REWORK**
 - P0A is not accepted
 - private candidate/profile/resume proof execution remains forbidden
 
-## New worker-pc support result reviewed
+## Reviewed worker-pc support branch
 
-Remote task:
+Task:
 - `jobs-v14-p0a-remaining-fix-20260921-1545`
 
-Returned Jobs branch / commit:
+Returned branch / commit:
 - `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
 - `062ca922c640d964220b550a06f61288b9a040c9`
 
-Actual lead-inspected diff:
+Lead-inspected diff is limited to:
 - `scripts/verify_v14_real_proof.py`
 - `tests/test_real_proof_verifier.py`
-- no coordination/private/Gmail/browser/submission files changed
 
-The support patch usefully addresses the two previously identified verifier gaps:
-1. missing proof DB target fails closed instead of silently bypassing persisted packet/resume/artifact verification,
-2. source attestation is checked against persisted Greenhouse `JobSource`/`Job` evidence.
+It usefully addresses the two previously identified verifier gaps:
+1. proof DB target/persisted packet-resume-artifact validation becomes mandatory/fail-closed,
+2. source attestation is bound to persisted Greenhouse `JobSource`/`Job` evidence.
 
-However, **the support commit is not accepted or merge-ready**:
-- it has no exact-head GitHub CI/check run,
-- worker-side pytest/Ruff/mypy were not executed,
-- its new tests construct stronger Greenhouse source payload evidence than the current production importer actually persists.
+The support commit is **not accepted or merge-ready** because it has no exact-head GitHub CI and worker-side pytest/Ruff/mypy were sandbox-blocked.
 
-### Newly identified production-path contract mismatch
+## Corrected production-path audit
 
-Lead comparison against current `scripts/import_v14_proof_job.py` found that production `_source_payload()` currently persists:
+An interim lead note incorrectly compared the support verifier to the older importer on main. Independent audit plus direct lead inspection of the support/Lane 1 importer corrected that finding.
+
+At `062ca922...`, `scripts/import_v14_proof_job.py::_source_payload()` already persists:
 - `api_url`,
 - `fetched_at_utc`,
 - `content_sha256`,
 - `screening_question_count`,
-- `source_kind`.
-
-The worker-pc verifier patch additionally requires `source_payload_json` to contain:
+- `question_list_sha256`,
+- `source_kind`,
 - `provider`,
-- `public_job_id`,
-- `question_list_sha256`.
+- `public_job_id`.
 
-Current production import stores provider and public/source job ID in `JobSourceModel.provider` / `source_job_id`, not in the payload, and it does not currently persist `question_list_sha256` at all. Therefore the support patch as written can reject a genuine production importer → runner → verifier path even with valid real inputs. Its tests hide this incompatibility by hand-constructing a richer `_greenhouse_source_payload()` than production writes.
+So the importer payload is **not** the current blocker.
 
-This must be repaired before P0A acceptance. Prefer binding provider/public job identity to the real `JobSourceModel` columns and add a production-derived persisted question-list hash (or an equivalently strong runtime capture) rather than trusting a test-only richer payload. Add an integration/adversarial test that uses the same production importer payload contract rather than a hand-authored stronger substitute.
+Two actual production-path blockers remain:
 
-A new bounded read-only worker-pc audit was dispatched to independently inspect this importer/verifier contract. Lane 1 must not wait for it.
+### A. Generation metadata key mismatch
+
+Production `packet_builder.py` writes `generation_metadata_json` with:
+- `generation_origin`,
+- `cover_letter_origin`,
+- `cover_letter_model`.
+
+Support verifier `062ca922...` reads `generation_metadata.get("origin", "")` and requires it to equal `deterministic`. A genuine production packet therefore fails even when its real generation metadata is correct. Existing verifier tests also use the non-production `origin` key and must be corrected to the real packet-builder shape.
+
+Required repair:
+- verify `generation_origin` as the canonical production key,
+- preserve a legacy fallback only if justified and fail closed for misleading values,
+- test actual production metadata shape and adversarial wrong-origin cases.
+
+### B. PostgreSQL proof DB URL mismatch
+
+Support `resolve_proof_db_url()` accepts `postgresql://` and `postgres://`, but the application's default `AppSettings.database_url` is `postgresql+psycopg://jobs:jobs@localhost:5432/jobs`.
+
+A genuine run using the normal application DB URL can therefore be misinterpreted as a local SQLite path and fail before persisted proof validation.
+
+Required repair:
+- accept the real SQLAlchemy PostgreSQL driver-qualified form, including `postgresql+psycopg://`,
+- retain fail-closed behavior for unsupported/unusable targets and persisted SQLite checks,
+- add focused DB URL normalization tests.
 
 ## Remaining bounded assignment
 
-Close the full P0A chain coherently on current main.
-
-### 1. RP14-T7 — database linkage mandatory for PASS
-
-Requirements:
-- REAL_PROOF_PASS requires an explicitly configured/resolvable proof DB target,
-- missing/unopenable/unrelated/tampered DB evidence fails closed,
-- persisted `ApplicationPacketModel` identity/job/resume/artifact/packet-hash/profile/live-ready/generation links match runtime/redacted evidence,
-- persisted `ResumeVariantModel` and required artifact rows/hashes/storage links match the verified local bytes.
-
-The worker-pc implementation may be adapted, but do not blindly cherry-pick it without resolving production importer compatibility and current-main divergence.
-
-### 2. RP14-T3 — independently trusted Greenhouse source binding
-
-Bind source evidence across the **actual importer contract**, persisted `JobSourceModel`/`JobModel`, local questions file, and redacted proof.
-
-At minimum verify:
-- `JobSourceModel.provider == GREENHOUSE`,
-- `JobSourceModel.source_job_id` equals approved public job ID,
-- source kind/API URL/fetched-at/content SHA are persisted from the real public import,
-- canonical/source URL agrees with the approved job URL and linked Job identity,
-- description hash is recomputed from persisted job description,
-- question-list hash/count are derived from the actual imported questions and persistently bound,
-- a forged self-consistent local attestation/questions file cannot pass.
-
-Do not create a verifier contract that the real importer cannot satisfy.
-
-### 3. Production-contract regression coverage
-
-Required focused tests include:
-- no DB target → FAIL receipt,
-- absent/corrupt/unrelated/tampered DB → fail,
-- packet/resume/artifact row mismatch → fail,
-- forged Greenhouse attestation / public ID / URL / fetched time / content hash / questions → fail,
-- **real production importer payload shape → verifier-compatible pass**, without a richer hand-authored test-only payload,
-- changed imported questions after persistence → fail.
-
-### 4. Current-main synchronization and final validation
-
-1. Verify the stale Lane 1 watcher is dead before restarting anything.
-2. Synchronize/rebase/clean-port the P0A implementation to latest `main` without unrelated historical coordination churn.
-3. Start exactly one canonical watcher:
+1. Verify the stale Lane 1 watcher is dead.
+2. Synchronize/clean-port the P0A implementation onto latest `main` without historical coordination churn.
+3. Adapt the useful `062ca922...` DB/source-binding changes.
+4. Fix the generation metadata and PostgreSQL URL production-contract blockers above.
+5. Keep Greenhouse source binding against the actual importer output and persisted `JobSourceModel`/`JobModel` evidence.
+6. Required adversarial coverage includes missing/unopenable/unrelated/tampered DB, packet/resume/artifact mismatch, forged Greenhouse source/question data, production generation metadata shape, wrong generation origin, and driver-qualified PostgreSQL URL handling.
+7. Run focused importer/runner/verifier tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
+8. Obtain exact-head GitHub CI when Actions runners execute; if jobs fail before steps start, record `CI_BLOCKED_ACCOUNT` rather than claiming green CI.
+9. Start exactly one canonical watcher:
    `python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --task "V1.4 real-proof tooling RP14-T1..T7" --detach`
-4. Run focused real-proof importer/runner/verifier/adversarial tests.
-5. Run full `pytest`.
-6. Run `ruff check .`.
-7. Run `mypy src tests`.
-8. Obtain exact-head GitHub CI when Actions runners execute. If Actions still fail before steps start, record `CI_BLOCKED_ACCOUNT` and provide independent exact-head validation rather than claiming green CI.
-9. Set `READY_FOR_LEAD_REVIEW` / `REVIEW`, push one coherent current-main batch, and stop implementation changes for lead review.
+10. Push one coherent `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
+
+A new bounded support task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched to worker-pc for only the two runtime-contract fixes above. Lane 1 must not wait for it and must not auto-merge its output.
 
 Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
 
@@ -141,4 +119,4 @@ Canonical Lane 1 heartbeat:
 
 Latest verified heartbeat remains #18 at `2026-09-21T19:18:36Z`; it is stale. Before restarting, verify the prior watcher process is not still running. Never create a duplicate.
 
-Issue #7 automated heartbeat posting remains blocked by GitHub Actions runner startup failure (`steps: []`, `runner_id: 0`). Keep truthful Git heartbeat evidence and do not rewrite heartbeat semantics to work around an account-level runner outage.
+Issue #7 automated heartbeat posting remains blocked by GitHub Actions runner startup failure (`steps: []`, `runner_id: 0`). Keep truthful Git heartbeat evidence and do not rewrite heartbeat semantics to work around the runner outage.
