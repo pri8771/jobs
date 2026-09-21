@@ -31,6 +31,9 @@ Verified project use:
 - ChatGPT inspected the probe diff: exactly one new diagnostic Markdown file, no production/coordination-truth changes; the probe is not for merge
 - conclusion: the remote Jobs branch-push path is currently smoke-verified, but the prior failed hardening batch remains unrecovered/unreviewable
 - remote worker may be used for a future bounded independent non-conflicting task when idle; do not duplicate Lane C's active P0A work
+- the prior non-Jobs SwarmAI workflow `35566726945` was cancelled at 2026-09-21T08:02:31Z, freeing the capacity-1 worker
+- ChatGPT dispatched read-only task `jobs-v14-p0a-preflight-20260921-0445` against Jobs main; workflow `35579791471` is in progress
+- that task is acceptance-preflight/adversarial mapping only: it must not write the Jobs repo, use private candidate/resume data, access Gmail/OAuth, open application flows, or self-accept P0A
 
 The remote-worker control plane remains infrastructure only; Jobs planning/acceptance remains authoritative here.
 
@@ -58,6 +61,7 @@ Current P0A status:
 - worker-pc implementation attempts did not produce a reviewable repair branch
 - critical-path implementation remains assigned to Lane C as separate RP14-T1..T7 SP1-SP3 tasks on `worker/live-data-foundations`
 - Lane C must rebase current main, implement/test the bounded tooling repairs without private inputs, push one coherent batch, and stop for lead review
+- the new worker-pc read-only preflight is advisory evidence only and does not replace Lane C implementation
 
 ## V1.4
 
@@ -162,6 +166,7 @@ The proving protocol has NOT yet been demonstrated across all workers.
 
 - Lane A has one worker-authored READY_FOR_LEAD_REVIEW heartbeat at 2026-09-21T02:41:00Z; this is not three consecutive on-time proving heartbeats.
 - Lanes B, C, D, and Scout have only lead-seeded heartbeat files and no worker-authored proving entries at the latest check.
+- Scheduled heartbeat monitor run `35576477294` failed specifically on the freshness/proving check, which is consistent with this state and should not be mistaken for a product-CI regression.
 - Do not claim STEADY_HOURLY for any of those lanes yet.
 
 ## Current official version
@@ -183,3 +188,13 @@ Future consequential gates remain:
 - exact application-job approval
 - login/MFA/CAPTCHA/manual barriers
 - external application submission authorization
+
+## Lead evidence recheck — 2026-09-21 04:45 ET
+
+- Jobs pre-update main `379660b6a6b4dd93416eae33a637c96656a1fd96` passed standard CI run #304.
+- No implementation worker branch advanced and no new worker-authored heartbeat landed.
+- `coordination/proofs/` still contains only README/schema; there is no real-proof candidate or verifier receipt.
+- `worker-pc` capacity became available after the prior SwarmAI remote workflow was cancelled.
+- A bounded read-only P0A acceptance-preflight task is now running remotely; it cannot complete RP14-T1..T7 or V1.4 by itself.
+- Lane C remains the implementation owner and must rebase current main and execute RP14-T1..T7 without waiting for that advisory preflight.
+- V1.4 remains NOT COMPLETE and private proof execution remains blocked until P0A lead acceptance.
