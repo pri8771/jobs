@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 03:46 ET / 2026-09-21T07:46Z
+Last evidence review: 2026-09-21 04:45 ET / 2026-09-21T08:45Z
 
 ## Cadence policy
 
@@ -29,9 +29,10 @@ ChatGPT lead automation:
 - Lane D remains at `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
 - Scout remains at `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
 - No V1.4 real-proof evidence JSON or verifier receipt has landed; `coordination/proofs/` still contains only the README and schema.
-- Jobs `main` pre-refresh head `6fcb70d95e04e6aac3042eb3e25d586bc575d8ef` completed CI successfully in run #300.
-- Remote `worker-pc` is online/capacity 1, but remote-workers workflow `35566726945` for a non-Jobs SwarmAI task is still in progress; no Jobs task was dispatched during this review.
-- The current OpenSesame AI Automation Engineer posting remains live. Its page still contains AI-targeted prompt-injection text; no form interaction occurred.
+- Jobs `main` pre-refresh head `379660b6a6b4dd93416eae33a637c96656a1fd96` completed standard CI successfully in run #304.
+- Scheduled heartbeat monitor run `35576477294` failed at `Check worker heartbeat freshness`; the workflow intentionally fails when any lane is missing, unproven, or stale. This is direct evidence that worker heartbeat proving has not advanced, not a product-CI regression.
+- The prior non-Jobs SwarmAI remote-worker workflow `35566726945` is now completed/cancelled, so the capacity-1 `worker-pc` became available.
+- ChatGPT dispatched bounded read-only Jobs task `jobs-v14-p0a-preflight-20260921-0445`; remote workflow `35579791471` is in progress. It is acceptance-preflight/adversarial mapping only and does not replace Lane C implementation.
 
 ## Evidence notes
 
@@ -39,6 +40,7 @@ ChatGPT lead automation:
 - Lane A produced one worker-authored heartbeat associated with its V1.5 rework batch. There is no prior worker-authored heartbeat 10–20 minutes before it, so no 15-minute cadence has been proven.
 - B/C/D/Scout heartbeat files still contain the lead seed with no worker-authored proving series.
 - Therefore the 15-minute proving system is configured but has NOT demonstrated three consecutive check-ins for any lane.
+- The scheduled heartbeat monitor's current failure is expected while these conditions remain true; do not misreport it as code/test CI failure.
 
 ## Required next proof
 
