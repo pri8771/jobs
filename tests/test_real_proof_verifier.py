@@ -10,6 +10,8 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from jobs_automation.db.base import Base
 from jobs_automation.db.models import (
     ApplicationPacketModel,
@@ -600,3 +602,421 @@ def test_real_proof_verifier_validates_database_records_when_database_url_provid
     result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
     assert result.returncode == 0
     assert "REAL_PROOF_VALIDATION_PASS" in result.stdout
+
+
+# ---------------------------------------------------------------------------
+# Lane 1 V1.4 P0A adversarial coverage for the remaining verifier gaps.
+#
+# Every test below encodes a requirement the *independent* verifier must enforce
+# before P0A can be accepted. Tests carrying ``xfail(strict=True)`` currently
+# FAIL against the production verifier in scripts/verify_v14_real_proof.py: they
+# document an open proof-integrity gap, not a flaky expectation. When the
+# verifier is repaired each one XPASSes, which strict mode turns into a hard
+# failure so the marker has to be removed deliberately. Tests without the marker
+# are green controls proving the adversarial harness itself is sound.
+# ---------------------------------------------------------------------------
+
+_PROOF_DESCRIPTION_TEXT = "Greenhouse job description body for the V1.4 real-proof job."
+
+
+def _rebind_candidate_bundle_sha(
+    bundle: dict[str, Any], local_bundle_data: dict[str, Any]
+) -> None:
+    """Recompute candidate_bundle_sha256 exactly as ``_run_verifier`` serializes the bundle."""
+    content = json.dumps(bundle, indent=2) + "\n"
+    local_bundle_data["candidate_bundle_sha256"] = hashlib.sha256(
+        content.encode("utf-8")
+    ).hexdigest()
+
+
+def _persist_proof_database(
+    tmp_path: Path,
+    bundle: dict[str, Any],
+    local_bundle_data: dict[str, Any],
+    questions: list[str],
+    *,
+    db_name: str = "v14_proof_source.db",
+    description_text: str = _PROOF_DESCRIPTION_TEXT,
+    source_column_overrides: dict[str, Any] | None = None,
+    source_payload_overrides: dict[str, Any] | None = None,
+    variant_overrides: dict[str, Any] | None = None,
+    resume_artifact_overrides: dict[str, Any] | None = None,
+    packet_overrides: dict[str, Any] | None = None,
+    omit_packet: bool = False,
+) -> str:
+    """Persist the production-shaped proof records and return the SQLite database URL.
+
+    Defaults persist an internally honest run: the Greenhouse ``JobSourceModel``
+    carries exactly the evidence the local bundle's ``source_attestation`` claims,
+    and ``JobModel.description_hash`` matches ``description_text``. Each override
+    injects one adversarial divergence.
+    """
+    db_file = tmp_path / db_name
+    db_url = f"sqlite:///{db_file}"
+    engine = get_engine(db_url)
+    Base.metadata.create_all(bind=engine)
+    session_factory = get_sessionmaker(engine)
+
+    attestation = local_bundle_data["source_attestation"]
+    description_sha = hashlib.sha256(description_text.encode("utf-8")).hexdigest()
+
+    job_uuid = uuid.UUID(local_bundle_data["job_id"])
+    packet_uuid = uuid.UUID(local_bundle_data["packet_id"])
+    variant_uuid = uuid.UUID(local_bundle_data["resume_variant_id"])
+    resume_art_uuid = uuid.UUID(local_bundle_data["resume_artifact_id"])
+    cl_art_uuid = uuid.UUID(local_bundle_data["cover_letter_artifact_id"])
+
+    source_columns: dict[str, Any] = {
+        "job_id": job_uuid,
+        "provider": "GREENHOUSE",
+        "source_job_id": str(attestation["public_job_id"]),
+        "source_url": str(attestation["canonical_apply_url"]),
+        "canonical_apply_url": str(attestation["canonical_apply_url"]),
+    }
+    source_columns.update(source_column_overrides or {})
+
+    source_payload: dict[str, Any] = {
+        "source_kind": str(attestation["source_kind"]),
+        "api_url": str(attestation["api_url"]),
+        "fetched_at_utc": str(attestation["fetched_at_utc"]),
+        "content_sha256": description_sha,
+        "question_list_sha256": compute_questions_sha256(questions),
+    }
+    source_payload.update(source_payload_overrides or {})
+
+    variant_columns: dict[str, Any] = {
+        "id": variant_uuid,
+        "resume_family": bundle["resume_family"],
+        "name": bundle["resume_variant"],
+        "version": 1,
+        "content_hash": bundle["resume_source_sha256"],
+    }
+    variant_columns.update(variant_overrides or {})
+
+    resume_artifact_columns: dict[str, Any] = {
+        "id": resume_art_uuid,
+        "type": "resume",
+        "storage_uri": f"file://{local_bundle_data['local_artifacts'][1]['path']}",
+        "sha256": bundle["resume_artifact_sha256"],
+    }
+    resume_artifact_columns.update(resume_artifact_overrides or {})
+
+    packet_columns: dict[str, Any] = {
+        "id": packet_uuid,
+        "job_id": job_uuid,
+        "candidate_profile_version": bundle["candidate_profile_version"],
+        "resume_variant_id": variant_uuid,
+        "resume_artifact_id": resume_art_uuid,
+        "cover_letter_artifact_id": cl_art_uuid,
+        "packet_hash": bundle["packet_hash"],
+        "generation_metadata_json": {"origin": "deterministic"},
+        "is_live_ready": bundle["is_live_ready"],
+    }
+    packet_columns.update(packet_overrides or {})
+
+    with session_factory() as session:
+        company = CompanyModel(normalized_name=str(bundle["company"]))
+        session.add(company)
+        session.flush()
+
+        session.add(
+            JobModel(
+                id=job_uuid,
+                company_id=company.id,
+                normalized_title=str(bundle["job_title"]),
+                description_text=description_text,
+                description_hash=description_sha,
+            )
+        )
+        session.add(JobSourceModel(source_payload_json=source_payload, **source_columns))
+        session.add(ResumeVariantModel(**variant_columns))
+        session.add(ArtifactModel(**resume_artifact_columns))
+        session.add(
+            ArtifactModel(
+                id=cl_art_uuid,
+                type="cover_letter",
+                storage_uri=f"file://{local_bundle_data['local_artifacts'][2]['path']}",
+                sha256=bundle["cover_letter_artifact_sha256"],
+            )
+        )
+        if not omit_packet:
+            session.add(ApplicationPacketModel(**packet_columns))
+        session.commit()
+
+    return db_url
+
+
+def _setup_full_run_with_persisted_source(
+    tmp_path: Path, **db_kwargs: Any
+) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    """Build a complete local/redacted proof pair backed by persisted DB records."""
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    questions: list[str] = json.loads(
+        Path(local_bundle_data["questions_json_path"]).read_text(encoding="utf-8")
+    )
+    # The honest attestation quotes the SHA of the description actually persisted.
+    local_bundle_data["source_attestation"]["description_sha256"] = hashlib.sha256(
+        _PROOF_DESCRIPTION_TEXT.encode("utf-8")
+    ).hexdigest()
+    db_url = _persist_proof_database(
+        tmp_path, bundle, local_bundle_data, questions, **db_kwargs
+    )
+    local_bundle_data["database_url"] = db_url
+    _rebind_candidate_bundle_sha(bundle, local_bundle_data)
+    return bundle, local_bundle_data, questions
+
+
+def _verify(
+    tmp_path: Path, bundle: dict[str, Any], local_bundle_data: dict[str, Any]
+) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    receipt_file = tmp_path / "receipt.json"
+    result = _run_verifier(
+        tmp_path,
+        bundle,
+        local_bundle_path=local_bundle_file,
+        receipt_path=receipt_file,
+    )
+    receipt = json.loads(receipt_file.read_text(encoding="utf-8"))
+    return result, receipt
+
+
+def _assert_fails_closed(
+    result: subprocess.CompletedProcess[str], receipt: dict[str, Any]
+) -> None:
+    assert result.returncode == 1, (
+        f"verifier granted PASS on an adversarial bundle; stdout={result.stdout!r}"
+    )
+    assert "REAL_PROOF_VALIDATION_PASS" not in result.stdout
+    assert receipt["result"] == "REAL_PROOF_FAIL"
+    assert receipt["rejection_reasons"], "fail-closed receipt must record a rejection reason"
+
+
+def test_persisted_source_baseline_passes_so_adversarial_variants_are_isolated(
+    tmp_path: Path,
+) -> None:
+    """Green control: the honest DB-backed run is the only difference-free case."""
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(tmp_path)
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    assert result.returncode == 0, result.stderr
+    assert receipt["result"] == "REAL_PROOF_PASS"
+    assert receipt["local_full_bundle_verified"] is True
+
+
+# Contradictions between the proof bundle and the persisted packet/variant/artifact
+# rows. Each must fail closed whether or not the local bundle points at the DB.
+_PERSISTED_RECORD_CONTRADICTIONS: dict[str, dict[str, Any]] = {
+    "packet_row_absent": {"omit_packet": True},
+    "packet_hash": {"packet_overrides": {"packet_hash": "0" * 64}},
+    "packet_generation_origin": {
+        "packet_overrides": {"generation_metadata_json": {"origin": "llm-authored"}}
+    },
+    "resume_variant_name": {"variant_overrides": {"name": "resume_unrelated_variant"}},
+    "resume_variant_family": {"variant_overrides": {"resume_family": "Unrelated Family"}},
+    "resume_artifact_sha256": {"resume_artifact_overrides": {"sha256": "1" * 64}},
+}
+
+
+@pytest.mark.parametrize("contradiction", sorted(_PERSISTED_RECORD_CONTRADICTIONS))
+def test_persisted_record_contradiction_fails_when_database_target_is_configured(
+    tmp_path: Path, contradiction: str
+) -> None:
+    """Green control: with database_url present, persisted-record checks do bite."""
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(
+        tmp_path, **_PERSISTED_RECORD_CONTRADICTIONS[contradiction]
+    )
+    assert local_bundle_data["database_url"]
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="P0A gap: verify_database_linkage returns silently when the local bundle "
+    "declares no database_url/db_path, so REAL_PROOF_PASS is granted with zero "
+    "persisted-record verification.",
+)
+def test_real_proof_pass_requires_a_configured_proof_database_target(tmp_path: Path) -> None:
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(tmp_path)
+    del local_bundle_data["database_url"]
+    assert "db_path" not in local_bundle_data
+
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
+
+
+@pytest.mark.parametrize("contradiction", sorted(_PERSISTED_RECORD_CONTRADICTIONS))
+@pytest.mark.xfail(
+    strict=True,
+    reason="P0A gap: omitting database_url/db_path from the local bundle skips the "
+    "persisted ApplicationPacketModel/ResumeVariant/Artifact checks entirely, so a "
+    "bundle that provably contradicts the database still receives REAL_PROOF_PASS.",
+)
+def test_omitting_database_target_must_not_bypass_persisted_record_checks(
+    tmp_path: Path, contradiction: str
+) -> None:
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(
+        tmp_path, **_PERSISTED_RECORD_CONTRADICTIONS[contradiction]
+    )
+    # Same database on disk, same contradicting rows — only the pointer is withheld.
+    del local_bundle_data["database_url"]
+    assert "db_path" not in local_bundle_data
+
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
+
+
+# source_attestation fields that must be independently bound to the persisted
+# Greenhouse JobSource/Job evidence. Each case leaves the attestation internally
+# self-consistent and diverges only the persisted side.
+_SOURCE_ATTESTATION_BINDINGS = [
+    pytest.param(
+        "provider",
+        {"source_column_overrides": {"provider": "LEVER"}},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.provider is only string-compared to the "
+            "literal 'GREENHOUSE'; no persisted GREENHOUSE JobSource row is required.",
+        ),
+    ),
+    pytest.param(
+        "source_kind",
+        {"source_payload_overrides": {"source_kind": "manual_paste"}},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.source_kind is never compared with the "
+            "persisted JobSource source_payload_json.source_kind.",
+        ),
+    ),
+    pytest.param(
+        "public_job_id",
+        {"source_column_overrides": {"source_job_id": "1234567"}},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.public_job_id is only checked for "
+            "substring presence in self-supplied URLs, never against JobSource.source_job_id.",
+        ),
+    ),
+    pytest.param(
+        "api_url",
+        {
+            "source_payload_overrides": {
+                "api_url": "https://boards-api.greenhouse.io/v1/boards/other/jobs/1234567?questions=true"
+            }
+        },
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.api_url is only prefix-checked, never "
+            "compared with the persisted JobSource source_payload_json.api_url.",
+        ),
+    ),
+    pytest.param(
+        "fetched_at_utc",
+        {"source_payload_overrides": {"fetched_at_utc": "2019-01-01T00:00:00Z"}},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.fetched_at_utc is only parsed for ISO "
+            "validity, never compared with the persisted fetch timestamp.",
+        ),
+    ),
+    pytest.param(
+        "description_sha256",
+        {"description_text": "An entirely different job description body."},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.description_sha256 is only shape-checked "
+            "as 64 hex chars, never compared with JobModel.description_hash or the "
+            "persisted JobSource content_sha256.",
+        ),
+    ),
+    pytest.param(
+        "question_list_sha256",
+        {"source_payload_overrides": {"question_list_sha256": "2" * 64}},
+        marks=pytest.mark.xfail(
+            strict=True,
+            reason="P0A gap: source_attestation.question_list_sha256 is only recomputed "
+            "from the self-supplied questions file, never compared with the persisted "
+            "JobSource question_list_sha256 attestation.",
+        ),
+    ),
+    # Already enforced today, indirectly, via the JobModel.apply_url comparison.
+    pytest.param(
+        "canonical_apply_url",
+        {
+            "source_column_overrides": {
+                "canonical_apply_url": "https://job-boards.greenhouse.io/opensesame/jobs/1234567",
+                "source_url": "https://job-boards.greenhouse.io/opensesame/jobs/1234567",
+            }
+        },
+    ),
+]
+
+
+@pytest.mark.parametrize("field, db_divergence", _SOURCE_ATTESTATION_BINDINGS)
+def test_source_attestation_must_bind_to_persisted_greenhouse_evidence(
+    tmp_path: Path, field: str, db_divergence: dict[str, Any]
+) -> None:
+    """Every attested Greenhouse field must be independently bound to the DB record."""
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(
+        tmp_path, **db_divergence
+    )
+    # The attestation itself is untouched and self-consistent; only the persisted
+    # Greenhouse evidence disagrees, which must fail closed.
+    assert local_bundle_data["source_attestation"]["provider"] == "GREENHOUSE"
+
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
+
+
+def _forge_questions_and_description(
+    bundle: dict[str, Any], local_bundle_data: dict[str, Any]
+) -> None:
+    """Replace the questions file and description SHA with self-consistent fabrications."""
+    forged_questions = [
+        "Do you require visa sponsorship now or in the future?",
+        "Describe your automation platform experience.",
+    ]
+    Path(local_bundle_data["questions_json_path"]).write_text(
+        json.dumps(forged_questions), encoding="utf-8"
+    )
+    attestation = local_bundle_data["source_attestation"]
+    attestation["question_list_sha256"] = compute_questions_sha256(forged_questions)
+    attestation["description_sha256"] = hashlib.sha256(
+        b"fabricated job description that was never fetched"
+    ).hexdigest()
+    bundle["questions_count"] = len(forged_questions)
+    _rebind_candidate_bundle_sha(bundle, local_bundle_data)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="P0A gap: a forged questions file plus a recomputed question_list_sha256 and "
+    "a fabricated description_sha256 are internally self-consistent, and the verifier "
+    "never cross-checks either against the persisted Greenhouse evidence.",
+)
+def test_self_consistent_forged_questions_and_description_sha_cannot_pass(
+    tmp_path: Path,
+) -> None:
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(tmp_path)
+    _forge_questions_and_description(bundle, local_bundle_data)
+    assert local_bundle_data["database_url"]
+
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="P0A gap: the same self-consistent questions/description forgery passes with "
+    "no proof database target at all, combining the missing-DB-target and "
+    "unbound-attestation defects.",
+)
+def test_self_consistent_forgery_without_database_target_cannot_pass(tmp_path: Path) -> None:
+    bundle, local_bundle_data, _ = _setup_full_run_with_persisted_source(tmp_path)
+    _forge_questions_and_description(bundle, local_bundle_data)
+    del local_bundle_data["database_url"]
+    assert "db_path" not in local_bundle_data
+
+    result, receipt = _verify(tmp_path, bundle, local_bundle_data)
+    _assert_fails_closed(result, receipt)
