@@ -19,10 +19,10 @@ See:
 
 ## Worker tasks
 
-- J20-15 SP2 — fail closed on partial Gmail fetch
-- J20-16 SP2 — runtime/container OAuth token wiring
-- J20-17 SP2 — safe real-Gmail diagnostic
-- J20-18 SP2 — health/worker evidence integration
+- J20G-01 SP2 — fail closed on partial Gmail fetch
+- J20G-02 SP2 — runtime/container OAuth token wiring
+- J20G-03 SP2 — safe real-Gmail diagnostic
+- J20G-04 SP2 — health/worker evidence integration
 
 ## Live boundary
 
