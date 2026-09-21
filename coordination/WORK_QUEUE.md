@@ -1,197 +1,126 @@
 # Active Work Queue
 
 Owner target:
-**Advance the three authorized implementation lanes while enforcing genuine live-evidence gates.**
+**Get V2.3 genuinely working as fast as safely possible, with a real-life production-path test for every required checkpoint.**
 
-Authoritative execution model:
-- exactly three active implementation lanes,
-- exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher per lane while active,
-- fixed 5-minute cadence with no proving/watch/hourly transitions,
-- `worker-pc` is bounded independent support infrastructure only,
-- live proof is separate from engineering implementation,
-- version completion requires genuine non-mock production-path evidence.
+## Operating model
 
-## Current live status
+- exactly one active implementation worker/session,
+- exactly one five-minute heartbeat watcher,
+- historical branches are sequential work surfaces,
+- worker tasks should normally be SP1/SP2,
+- live proof is separate from engineering acceptance,
+- later engineering may proceed behind a blocked live gate, but formal REAL_PROVEN/COMPLETE remains sequential.
 
-- V1.4 live proof: **MISSING — NOT COMPLETE**
-- V1.5 live assisted proof: MISSING
-- V1.6 real system submission: MISSING
+Lead-accepted V2.3 planning package:
+- `docs/V23_LEAD_REVIEW_20260921.md`
+- `docs/V23_MASTER_PLAN.md`
+- `coordination/V23_WORKER_QUEUE.md`
+
+The V23 worker queue is planning inventory. ChatGPT promotes one bounded artifact/task at a time here.
+
+## Formal live status
+
+- V1.4 live proof: MISSING
+- V1.5 live assisted-browser proof: MISSING
+- V1.6 real externally-confirmed system submission: MISSING
 - V1.7 real lifecycle proof: MISSING
+- V2.0 live acceptance: MISSING
+- V2.3 live acceptance: MISSING
 
-## Lane 1 — P0 / A-V14-P0A-INTEGRITY
+No later checkpoint may be called REAL_PROVEN/COMPLETE while an earlier required checkpoint remains incomplete.
 
-Branch:
+## P0 — A-V14-P0A-INTEGRITY
+
+Active historical work surface:
 - `worker/v14-real-proof`
-- draft PR #8
+- PR #8 is historical review/source container
 
-Latest substantive implementation reviewed:
-- `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+Latest active-branch production state:
+- substantive proof repair: `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+- later active-branch commits through `f3a0c414...` are heartbeat-only
+- lead verdict on the active branch: REWORK
 
-Current branch head:
-- `f3a0c414f4da08e7fb92549f64cdff39cccb3186` — heartbeat #18 at `2026-09-21T19:18:36Z`
-- all commits after `5e505846...` are heartbeat-only
+Two verified defects remain on that active branch:
+1. persisted DB linkage is bypassed if no DB target is supplied;
+2. source attestation is not independently bound to persisted Greenhouse `JobSource` evidence.
 
-Lead verdict:
-- **REWORK**
-- no private profile/resume proof execution yet
+### New bounded support evidence
 
-### R14-P01 / RP14-T7 — mandatory database linkage
+worker-pc branch:
+- `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
+- commit `062ca922c640d964220b550a06f61288b9a040c9`
+- changed only:
+  - `scripts/verify_v14_real_proof.py`
+  - `tests/test_real_proof_verifier.py`
 
-Current verifier still performs a bare success return when neither `database_url` nor `db_path` is supplied.
+Lead diff inspection indicates this support commit attempts to:
+- make a proof DB target mandatory,
+- reject unusable/in-memory/unrelated proof DB evidence,
+- bind persisted Job/JobSource Greenhouse provider/source kind/public ID/API URL/fetch time/content hash/question hash/canonical URL,
+- add adversarial tests for forged/missing/tampered persisted evidence.
 
-REAL_PROOF_PASS must require:
-- an explicitly configured/resolvable proof DB target,
-- persisted `ApplicationPacketModel` identity/job/resume linkage,
-- persisted `ResumeVariantModel` selected variant + artifact linkage,
-- required resume/cover-letter artifact rows and matching hashes,
-- failure on missing/unopenable DB, unrelated rows, mismatched linkage, or tampering.
+Support branch remains **review input only**, not accepted/integrated truth.
 
-### R14-P02 / RP14-T3 — independently trusted Greenhouse source attestation
+### Immediate bounded assignment
 
-Current verifier still has no persisted `JobSource` binding.
+Artifact:
+`A-V14-P0A-INTEGRITY`
 
-Bind the proof to persisted Greenhouse `JobSource`/`Job` evidence at minimum:
-- provider,
-- source kind,
-- public/source job ID,
-- API URL,
-- fetched_at_utc,
-- description/content SHA,
-- question-list SHA,
-- canonical apply URL,
-- linked Job identity/apply URL.
+Tasks:
+1. **R14-P01 / SP1** — audit support commit `062ca922...` against the exact P0A contract; port/adapt only the correct production changes onto the current V1.4 work surface or clean integration branch.
+2. **R14-P02 / SP1** — make every persisted-source/DB forgery case fail; remove any temporary xfail once behavior is correct.
+3. **R14-P03 / SP1** — run the full proof-integrity adversarial suite; every required case must pass.
+4. **R14-P04 / SP1** — exact-head full pytest, Ruff, format, mypy; record `CI_BLOCKED_ACCOUNT` if hosted Actions still cannot start; obtain independent exact-head validation when practical.
+5. set `READY_FOR_LEAD_REVIEW`.
 
-A self-consistent forged local source attestation + locally authored questions + fabricated description hash must fail.
+Do not use private candidate/resume inputs until ChatGPT accepts P0A.
 
-### R14-P03 — adversarial verification
+## After P0A lead acceptance
 
-Reviewed worker-pc test input remains available:
-- branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449`,
-- commit `cffae70577b6719c92e7d7edc3ecd94d00db622d`,
-- actual diff previously inspected: only `tests/test_real_proof_verifier.py`, +420 lines,
-- no worker-side pytest/Ruff/Python execution and no GitHub CI,
-- support evidence only; never auto-merge.
+Next canonical order:
 
-New bounded worker-pc production-support task:
-- `jobs-v14-p0a-remaining-fix-20260921-1545`,
-- isolated support branch mode,
-- limited to the two remaining verifier defects and focused tests,
-- remote workflow `35647203812` was in progress when dispatched,
-- no credit/acceptance until its actual returned Jobs branch/diff/tests are reviewed.
+1. `A-V14-CLEAN-INTEGRATION`
+2. `A-V14-REAL-PROOF` — real job + genuine private profile + exact genuine selected resume + production packet + separate verifier PASS
+3. `A-V15-CLEAN-INTEGRATION`
+4. V1.5 engineering acceptance
+5. `A-V15-LIVE-ASSISTED-PROOF`
+6. V1.6 authorization/idempotency/preflight/confirmation/hygiene/transport engineering
+7. `A-V16-FIRST-REAL-SUBMISSION`
+8. `A-V17-ENGINEERING-RECONCILIATION`
+9. `A-V17-LIVE-LIFECYCLE-PROOF`
+10. V2.0 engineering/live campaign
+11. V2.3 engineering/live campaign
 
-Lane 1 must continue independently and must not wait for worker-pc.
+Safe V2.0/V2.3 preparation may be pulled forward when it does not conflict with the active artifact and the plan permits it.
 
-### R14-P04 — final validation / review boundary
+## Real test identity authorization
 
-- synchronize production changes to latest main without unrelated historical coordination churn,
-- focused verifier/runner/adversarial tests,
-- full `pytest`,
-- `ruff check .`,
-- `mypy src tests`,
-- exact-head CI when GitHub Actions runners execute,
-- if Actions fail before any steps, record `CI_BLOCKED_ACCOUNT` and provide independent exact-head validation,
-- set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes.
+The owner has authorized bounded real-provider canaries using an existing owner-controlled identity or a dedicated test identity via the owner's `unsubscriber` Google Cloud alias when supported.
 
-Gate:
-**Do not use private profile/resume inputs until ChatGPT lead-accepts P0A.**
+See:
+- `docs/AUTHORIZATION_GATES.md`
 
-After P0A acceptance:
-1. real private profile/resume mapping readiness,
-2. genuine V1.4 packet proof,
-3. runtime `REAL_PROOF_CANDIDATE`,
-4. separately bound verifier PASS receipt,
-5. lead review,
-6. only then V1.4 may become COMPLETE.
+This does not authorize employer submission, unsolicited third-party messaging, calendar mutation, or spending.
 
-## Lane 2 — V1.5 assisted application
+## Heartbeat
 
-Branch:
-- `worker/v15-assisted-application`
-- draft PR #2
+Epoch:
+`FIVE_MIN_2026_09_21`
 
-Preserve:
-- accepted A-R15-01..05
+One active implementation session = one watcher.
 
-Current bounded scope:
-- A-R15-06 — page-level prompt-injection warning semantics,
-- A-R15-07 — field-specific cover-letter/file upload mapping,
-- A-R15-08 — packet/provenance/artifact integrity revalidation immediately before browser use,
-- A-R15-09 — unknown file inputs remain manual/unfilled.
-
-Current branch evidence:
-- head `ddb4f848a97dec87033cfdef7ca33642480d99bc`,
-- latest observed comparison before newest lead-only commits: 32 ahead / 151 behind main,
-- heartbeat still obsolete `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last `17:39:16Z`.
-
-Immediate assignment:
-1. stop/verify stopped the old watcher once,
-2. synchronize/rebase latest main preserving accepted behavior and intended A-R15-06..09 changes,
-3. start exactly one `FIVE_MIN_2026_09_21` Lane 2 watcher,
-4. run focused adversarial tests + full pytest/Ruff/mypy,
-5. obtain exact-head CI when available or truthfully record the account-level runner block,
-6. mark READY_FOR_LEAD_REVIEW and stop.
-
-Do not enter V1.6 until the V1.5 gate passes or the owner/lead explicitly authorizes it.
-
-## Lane 3 — recruiting/reliability
-
-Branch:
-- `worker/recruiting-ops`
-- PR #3 accepted batch already merged
-
-Preserve accepted behavior:
-- B-R17-03,
-- B-R20-07,
-- B-R20-08,
-- B-R20-05 / J20-14,
-- B-R20-01,
-- B-R20-02.
-
-Current branch evidence:
-- head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`,
-- latest observed comparison before newest lead-only commits: 0 ahead / 139 behind main,
-- heartbeat still obsolete DAYWATCH, last `16:44:37Z`.
-
-Immediate assignment:
-1. stop/verify stopped any old Lane 3 watcher once,
-2. synchronize branch to latest main,
-3. start exactly one `FIVE_MIN_2026_09_21` Lane 3 watcher,
-4. run targeted worker/health/dashboard tests + full pytest/Ruff/mypy,
-5. inspect accepted B semantics for a real integration regression,
-6. if clean, report verification and wait,
-7. if a real regression exists, repair only that bounded regression and request lead review.
-
-If new Lane 3 worker commits become ahead of main and no open PR exists, ChatGPT creates a draft PR automatically.
-
-J20G-04 remains blocked on later Lane 1 Gmail-readiness work. Do not reopen old V2.3/Scout implementation lanes simply to create activity.
-
-## Heartbeat / GitHub issue #7
-
-Canonical standard for all three active lanes:
-- epoch `FIVE_MIN_2026_09_21`,
-- mode `ACTIVE_5M`,
-- interval 5 minutes,
-- exactly one watcher per Lane 1/2/3,
-- no cadence transitions.
-
-Lane 1 emitted current-epoch heartbeats through #18 at `19:18:36Z`, then became stale for >30 minutes. Verify the process is dead before restarting exactly one watcher.
-
-Lane 2 and Lane 3 must migrate off DAYWATCH.
-
-Issue #7 automated heartbeat comments stopped after Lane 1's `18:18:14Z` comment even though Lane 1 commits continued. Latest heartbeat and main CI jobs fail before steps (`steps: []`, `runner_id: 0`), so current evidence supports `CI_BLOCKED_ACCOUNT` / runner startup failure rather than heartbeat-code regression. Direct ChatGPT lead comments remain mandatory every lead run.
+The historical V1.4 heartbeat last recorded #18 at 19:18:36Z and is stale. Before a new implementation worker starts, verify the prior watcher/process is dead and start exactly one current watcher on the active work surface.
 
 ## Review rule
 
-READY_FOR_LEAD_REVIEW outranks planning. Worker claims are evidence inputs only. ChatGPT accepts only after inspecting actual diff/tests/CI or explicitly documented independent exact-head validation when CI is unavailable.
+Workers:
+- implement,
+- test,
+- push,
+- hand off `READY_FOR_LEAD_REVIEW`.
 
-## Safety / live gates
-
-No prompt self-authorizes:
-- private candidate/resume use before P0A,
-- live Gmail OAuth/mailbox access,
-- browser application submission,
-- external messaging,
-- calendar mutation,
-- spending,
-- MFA/CAPTCHA handling,
-- fabricated candidate facts.
+ChatGPT:
+- inspects actual code/diff/tests/evidence,
+- accepts or issues one bounded rework,
+- promotes the next artifact/task.

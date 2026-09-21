@@ -1,95 +1,125 @@
 # Current State
 
-Updated: 2026-09-21 15:50 ET
+Updated: 2026-09-21 lead review
 
-## Owner target / operating model
+## Product target
 
-Exactly three implementation lanes are active in parallel:
+Primary near-term goal:
+**V2.3 genuinely working with real-life evidence.**
 
-1. Lane 1 — `worker/v14-real-proof` — P0 V1.4 proof-tool integrity and genuine real proof.
-2. Lane 2 — `worker/v15-assisted-application` — V1.5 assisted-application safety.
-3. Lane 3 — `worker/recruiting-ops` — recruiting/reliability verification and bounded regression repair.
+V3 is architecture-compatible but broad V3 runtime/specialist implementation is deferred until V2.3 works unless ChatGPT explicitly advances a small compatibility artifact.
 
-Old Lane C, Lane D, and Scout are paused/superseded. `worker-pc` is independent bounded support infrastructure, not a fourth implementation lane.
+## Operating model
 
-A short-lived planning/doc update on main introduced "single implementation session" heartbeat wording. That wording conflicts with the explicit owner directive and `AGENTS.md`; the canonical heartbeat/session entry files have been corrected back to the three-lane model.
+- User = product owner/final authority.
+- ChatGPT = engineering/product lead and acceptance gate.
+- One active implementation worker/session at a time.
+- One active five-minute heartbeat watcher.
+- Historical lane branches are sequential work surfaces, not simultaneous workers.
+- Lower-cost subagents may do bounded independent analysis/tests under the parent worker.
 
-## Version truth
+## Fable planning review
 
-| Checkpoint | Engineering | Live evidence | Formal status |
+Planning source:
+- branch `claude/serene-brown-g6uij0`
+- original Fable commit `b84f0c021c8cd3f28949cab0e7c98e601c152feb`
+
+Lead verdict:
+**ACCEPT WITH CORRECTIONS**
+
+Authoritative lead review:
+- `docs/V23_LEAD_REVIEW_20260921.md`
+
+Accepted plan strengths:
+- brownfield-first,
+- 131 small engineering tasks,
+- predominantly SP1/SP2,
+- cost-aware Sonnet/Opus/Haiku routing,
+- deterministic V2.3,
+- V3-compatible typed tool/permission/audit contracts,
+- machine-verifiable engineering + live campaigns.
+
+Lead corrections:
+- one implementation worker, not three lanes,
+- real-life proof mandatory for V1.4/V1.5/V1.6/V1.7/V2.0/V2.3,
+- V1.6 live system submission cannot be bypassed for formal V2.3 completion,
+- user-reported manual application remains `SUBMISSION_UNCONFIRMED` until external confirmation,
+- canonical migrations: 004 V1.6, 005 V2.3, 006 V3,
+- dedicated owner-controlled test identity/mailbox canaries authorized as documented.
+
+## Formal version truth
+
+| Checkpoint | Engineering | Real-life evidence | Formal status |
 |---|---|---|---|
-| V1.4 | packet engineering accepted; P0A verifier remains in rework | no genuine candidate + separately bound verifier PASS receipt | **NOT COMPLETE** |
-| V1.5 | accepted A-R15-01..05 preserved; A-R15-06..09 still require current-main validation | no real visible-browser assisted proof | NOT COMPLETE |
-| V1.6 | scaffold/planning exists; live-submit safety gates remain | no real externally confirmed system submission | NOT COMPLETE |
-| V1.7 | substantial recruiting code merged | no genuine live lifecycle proof | NOT COMPLETE |
+| V1.4 | packet engineering accepted; P0A still needs final accepted verifier repair | missing | NOT COMPLETE |
+| V1.5 | substantial assisted-safety code exists on historical branch | missing | NOT COMPLETE |
+| V1.6 | contracts/scaffolding exist; safe submit engineering incomplete | missing | NOT COMPLETE |
+| V1.7 | substantial CRM/interview/lifecycle code merged | missing | NOT COMPLETE |
+| V2.0 | substantial dashboard/analytics/reliability foundations exist | missing | NOT COMPLETE |
+| V2.3 | detailed lead-reviewed plan exists; some graph source code exists historically | missing | NOT COMPLETE |
 
-Owner rule: no version is COMPLETE until one genuine non-mock production-path example passes its required live gate.
+## Current P0
 
-## P0 — Lane 1 / A-V14-P0A-INTEGRITY
+Artifact:
+`A-V14-P0A-INTEGRITY`
 
-Review source:
-- branch `worker/v14-real-proof`
-- draft PR #8
-- latest substantive implementation still `5e5058461d5371f292c93e0c53cb0b93caba7e44`
-- current branch head `f3a0c414f4da08e7fb92549f64cdff39cccb3186` is heartbeat #18 at `2026-09-21T19:18:36Z`
-- compare from `5e505846...` to current head shows only heartbeat-file changes; no later production repair exists
+Historical active source:
+`worker/v14-real-proof`
 
-Lead verdict remains **REWORK**. Two acceptance-critical gaps are directly verified in current code:
+Current active branch still has two known defects:
+1. DB evidence can be omitted;
+2. source attestation lacks persisted Greenhouse JobSource binding.
 
-1. `verify_database_linkage()` still returns success when no `database_url` / `db_path` is supplied. REAL_PROOF_PASS therefore does not yet require persisted packet/resume/artifact linkage.
-2. The verifier still does not bind source attestation to persisted Greenhouse `JobSource` evidence. A self-consistent local attestation/questions bundle is not independently proven against persisted import evidence.
+Support branch:
+- `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
+- `062ca922c640d964220b550a06f61288b9a040c9`
 
-Do **not** use private candidate/profile/resume inputs until ChatGPT lead-accepts P0A.
+Lead diff review says the support commit directly targets both defects and adds adversarial cases, but it is not accepted until exact behavior/tests/integration are reviewed.
 
-Independent support:
-- reviewed tests-only branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449` / `cffae70577b6719c92e7d7edc3ecd94d00db622d` remains support evidence only,
-- new bounded worker-pc task `jobs-v14-p0a-remaining-fix-20260921-1545` was dispatched to implement only the two remaining verifier defects on an isolated support branch,
-- remote workflow `35647203812` was in progress at this update; no result is accepted until the actual Jobs branch/diff/tests are reviewed.
+Next:
+audit/port support fix → adversarial suite → full exact-head checks → lead review.
 
-## Lane 2
+No private candidate/resume proof before P0A acceptance.
 
-- branch `worker/v15-assisted-application`
-- draft PR #2
-- head `ddb4f848a97dec87033cfdef7ca33642480d99bc`
-- latest comparison observed: 32 commits ahead / at least 151 behind main before the newest coordination commits
-- accepted task scope A-R15-01..05 remains preserved
-- current work: A-R15-06..09 only
-- heartbeat is still obsolete `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last check-in `2026-09-21T17:39:16Z`
+## Live proof sequence
 
-Required next action: stop/verify stopped any old watcher, synchronize with latest main, start exactly one `FIVE_MIN_2026_09_21` Lane 2 watcher, validate A-R15-06..09, and request lead review. No V1.6 work yet.
+Required:
+- V1.4 genuine packet proof,
+- V1.5 real visible-browser assisted proof to review boundary,
+- V1.6 real system submission through a compliant supported transport with independent external confirmation,
+- V1.7 real Gmail/recruiter lifecycle proof,
+- V2.0 real integrated OS campaign,
+- V2.3 real Career Intelligence campaign.
 
-Known V1.4-proof eligibility blocker remains: the prior Lane 2 machine did not have a genuine file mapped to the selected `resume_ai_software_engineer` variant. Never substitute another resume.
+Engineering may move ahead of a blocked user/live gate, but formal completion may not skip it.
 
-## Lane 3
+## Test identity authorization
 
-- branch `worker/recruiting-ops`
-- PR #3 accepted batch is merged to main
-- head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- latest comparison observed: 0 commits ahead / at least 139 behind main before the newest coordination commits
-- accepted behavior includes B-R17-03, B-R20-07, B-R20-08, B-R20-05/J20-14, B-R20-01, and B-R20-02
-- heartbeat is still obsolete `DAYWATCH_2026_09_21`, last check-in `2026-09-21T16:44:37Z`
+Owner authorizes bounded real provider canaries using:
+- an existing owner-controlled identity, or
+- a dedicated account/email via the owner's `unsubscriber` Google Cloud alias if available tooling can actually create/use it.
 
-Required next action: synchronize to latest main, start exactly one current 5-minute watcher, run post-integration verification, and repair only a real evidence-backed regression. No new Lane 3 PR is needed while the branch remains 0 ahead.
+Controlled messages between owner-controlled accounts are allowed for canaries.
 
-## Heartbeat / visible progress
+No third-party outreach, employer submission, calendar mutation, or spending is implied.
 
-Canonical standard for **each** active lane:
-- epoch `FIVE_MIN_2026_09_21`
-- mode `ACTIVE_5M`
-- interval 5 minutes
-- exactly one watcher per Lane 1/2/3
-- no cadence transitions
+## CI / heartbeat
 
-Lane 1 emitted valid current-epoch heartbeats #1-18 from 17:54:00Z through 19:18:36Z, then stopped for more than 30 minutes. Verify the watcher process before restarting; do not create a duplicate.
+GitHub Actions recently failed before executing workflow steps (`runner_id: 0`), so use `CI_BLOCKED_ACCOUNT` unless newer evidence changes that.
 
-Lane 2 and Lane 3 have not migrated from the superseded DAYWATCH epoch.
+Historical V1.4 heartbeat:
+- last #18 at 19:18:36Z,
+- stale now.
 
-Issue #7 automated heartbeat comments stopped after the Lane 1 18:18:14Z comment while Lane 1 commits continued through 19:18:36Z. Latest heartbeat and ordinary main CI jobs fail before any steps start (`steps: []`, `runner_id: 0`). Treat this as `CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure, not a heartbeat-code regression. Direct ChatGPT lead comments to issue #7 remain mandatory each lead run.
-
-## Live proof inventory
-
-`coordination/proofs/` still has no accepted genuine V1.4 runtime candidate + separately bound verifier PASS receipt. V1.4 remains **NOT COMPLETE**.
+Before the next implementation session starts/restarts:
+- verify old watcher is dead,
+- start exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher on the chosen active work surface.
 
 ## Safety
 
-No live Gmail OAuth/mailbox access, private candidate proof execution, browser application submission, external messaging, calendar mutation, spending, MFA/CAPTCHA handling, or fabricated candidate facts without explicit scoped owner authorization.
+- no fabricated candidate facts,
+- no CAPTCHA/MFA/anti-bot/rate-limit bypass,
+- LinkedIn/Indeed auto-submit remain MANUAL_ONLY,
+- external content is untrusted,
+- user attestation alone never becomes confirmed submission truth,
+- external confirmation is required for real submission truth.

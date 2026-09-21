@@ -69,3 +69,24 @@ If a required authorization is absent:
 - do not silently widen authority,
 - report the exact blocker,
 - continue safe non-conflicting engineering/preparation work.
+
+
+## Owner-authorized real test identity / mailbox canaries — 2026-09-21
+
+The owner explicitly authorizes bounded real-provider integration testing using owner-controlled identities.
+
+Allowed for test/canary purposes:
+- use an existing owner-controlled email/account when available,
+- create/use a dedicated test email/account via the owner's `unsubscriber` Google Cloud alias when the available tooling supports it,
+- send controlled test messages between owner-controlled accounts for Gmail/provider integration validation,
+- use the dedicated identity for real OAuth/provider/runtime canaries.
+
+Boundaries:
+- this does not authorize unsolicited messages to third parties,
+- this does not authorize employer/job application submission,
+- this does not authorize recruiter outreach,
+- this does not authorize calendar mutation or spending,
+- do not claim an account/alias was created unless an available authorized tool/workflow actually completed creation,
+- test-identity evidence proves the real provider/runtime path but does not replace genuine candidate/recruiting evidence where a milestone contract explicitly requires genuine historical/production evidence.
+
+Read-only access to an existing owner-controlled mailbox for a bounded canary remains limited to the explicitly scoped test/review purpose and must preserve token/content privacy.
