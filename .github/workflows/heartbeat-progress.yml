@@ -21,12 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find changed active-lane heartbeat
+      - name: Read active-lane heartbeat
         id: hb
         shell: bash
         run: |
           set -euo pipefail
-          file=""
           case "${GITHUB_REF_NAME}" in
             worker/v14-real-proof) file="coordination/heartbeats/LANE_1.md" ;;
             worker/v15-assisted-application) file="coordination/heartbeats/LANE_2.md" ;;
@@ -40,10 +39,13 @@ jobs:
 
           echo "file=$file" >> "$GITHUB_OUTPUT"
           echo "lane=$(get lane)" >> "$GITHUB_OUTPUT"
+          echo "epoch=$(get heartbeat_epoch)" >> "$GITHUB_OUTPUT"
           echo "mode=$(get mode)" >> "$GITHUB_OUTPUT"
           echo "task=$(get current_task)" >> "$GITHUB_OUTPUT"
           echo "note=$(get progress_note)" >> "$GITHUB_OUTPUT"
-          echo "count=$(get heartbeat_count)" >> "$GITHUB_OUTPUT"
+          echo "proving=$(get consecutive_on_time)" >> "$GITHUB_OUTPUT"
+          echo "watch=$(get watch_checkins)" >> "$GITHUB_OUTPUT"
+          echo "misses=$(get missed_intervals)" >> "$GITHUB_OUTPUT"
           echo "time=$(get last_check_in_utc)" >> "$GITHUB_OUTPUT"
           echo "review=$(get review_state)" >> "$GITHUB_OUTPUT"
           echo "action=$(get lead_action_requested)" >> "$GITHUB_OUTPUT"
@@ -53,10 +55,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           LANE: ${{ steps.hb.outputs.lane }}
+          EPOCH: ${{ steps.hb.outputs.epoch }}
           MODE: ${{ steps.hb.outputs.mode }}
           TASK: ${{ steps.hb.outputs.task }}
           NOTE: ${{ steps.hb.outputs.note }}
-          COUNT: ${{ steps.hb.outputs.count }}
+          PROVING: ${{ steps.hb.outputs.proving }}
+          WATCH: ${{ steps.hb.outputs.watch }}
+          MISSES: ${{ steps.hb.outputs.misses }}
           TIME: ${{ steps.hb.outputs.time }}
           REVIEW: ${{ steps.hb.outputs.review }}
           ACTION: ${{ steps.hb.outputs.action }}
@@ -67,7 +72,8 @@ jobs:
 
           - **Task:** ${TASK}
           - **Update:** ${NOTE}
-          - **Heartbeat:** ${MODE} — count ${COUNT} — fixed 5-minute cadence
+          - **Heartbeat:** ${MODE} — proving ${PROVING}/3 — 24h check-ins ${WATCH} — misses ${MISSES}
+          - **Epoch:** \`${EPOCH}\`
           - **State:** ${REVIEW} / lead action ${ACTION}
           - **Branch:** \`${GITHUB_REF_NAME}\` @ \`${short_sha}\`"
 
