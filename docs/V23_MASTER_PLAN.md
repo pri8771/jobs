@@ -220,11 +220,12 @@ Chain today: `001_initial_foundation → 002_resume_variant_attribution → 003_
 
 | Revision | Owner group | Content | Fail-closed default rules |
 |---|---|---|---|
-| `004_v23_intelligence_foundation` | PG4 (V23-F03) | `opportunity_edge`; `message_link.contact_id` (nullable FK + index); `target_company`; `target_company_observation`; `strategy_experiment`; `strategy_experiment_assignment` | `opportunity_edge.status` defaults `REVIEW_REQUIRED`, `inferred` defaults `true`; `target_company.watch_status` defaults `PAUSED`; assignments are insert-only |
-| `005_v16_submission_truth` | PG2 (R16-A01, R16-I02) | generic `scoped_approval` (action_class + typed nullable FKs for the submit case); `submission_attempt` with **partial unique index on `idempotency_key` for active states**; `external_confirmation_evidence` | `scoped_approval.status` and `external_confirmation_evidence.independently_validated` have **no server default** (service must set explicitly); no row may be created `CONFIRMED`/`ACTIVE` by default |
-| `006_existing_fk_indexes` (optional, PG3, J20-18) | PG3 | indexes on every existing FK column | none |
+| `004_v16_submission_truth` | V1.6 (R16-A01, R16-I02) | generic `scoped_approval`; `submission_attempt` with **partial unique index on `idempotency_key` for active states**; `external_confirmation_evidence` | `scoped_approval.status` and `external_confirmation_evidence.independently_validated` have **no server default**; no row becomes `CONFIRMED`/`ACTIVE` by default |
+| `005_v23_intelligence_foundation` | V2.3 (V23-F03) | `opportunity_edge`; `message_link.contact_id`; `target_company`; `target_company_observation`; `strategy_experiment`; `strategy_experiment_assignment` | `opportunity_edge.status` defaults `REVIEW_REQUIRED`, `inferred` defaults `true`; `target_company.watch_status` defaults `PAUSED`; assignments are insert-only |
+| `006_v3_agent_runtime_foundation` | V3 when implementation begins | durable agent task/checkpoint/memory/trace foundations per V3 contracts | no default authority; no external action state inferred |
+| `007_existing_fk_indexes` (optional) | later cleanup only if justified | indexes on existing FK columns | none |
 
-Acceptance for every revision (from `FUTURE_SCHEMA_MIGRATION_PLAN`): model/migration agreement, fresh upgrade, incremental upgrade, downgrade, re-upgrade, constraint tests, JSON defaults safe on SQLite and Postgres, no existing row becomes "confirmed/authorized" via defaults. Column specs are in the task graphs (V23-F03, R16-A01, R16-I02). If PG2 lands before PG4, swap the numeric prefixes; never create a second head.
+Acceptance for every revision (from `FUTURE_SCHEMA_MIGRATION_PLAN`): model/migration agreement, fresh upgrade, incremental upgrade, downgrade, re-upgrade, constraint tests, JSON defaults safe on SQLite and Postgres, and no existing row becomes confirmed/authorized via defaults. The numeric order above is canonical; do not dynamically swap prefixes or create multiple heads.
 
 ---
 
