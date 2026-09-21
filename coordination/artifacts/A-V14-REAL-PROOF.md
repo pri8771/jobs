@@ -38,27 +38,51 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied/example or fake private-profile evidence, extra fields, misleading generation metadata, and broken packet/artifact/database links. Targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Latest lead review — 2026-09-21 14:20 ET
+## Latest lead review — 2026-09-21 16:45 ET
 
-Latest implementation repair reviewed:
-- `3ce19cffedcceba753686dae9c6240eccf6a2263`
+Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
 
-Verdict:
-- **REWORK**
-- P0A is not accepted.
-- V1.4 remains **NOT COMPLETE**.
+Newest independently reviewed support implementation:
+- task `jobs-v14-p0a-remaining-fix-20260921-1545`
+- branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
+- commit `062ca922c640d964220b550a06f61288b9a040c9`
 
-The repair materially improves T1/T2/T5/T6 and canonical packet-hash verification. Remaining blocking proof-integrity gaps are:
+Lead inspected the actual two-file diff. It usefully addresses the two prior remaining verifier gaps:
+1. proof DB evidence is mandatory/fail-closed and the persisted packet/resume/artifact graph is validated,
+2. local Greenhouse source attestation is checked against persisted `JobSource`/`Job` evidence.
 
-1. **RP14-T3 fetch/canonical-source binding remains incomplete.** The verifier does not yet require/validate `fetched_at_utc` and `canonical_apply_url` strongly enough or bind redacted `job_url` to the attested public job identity.
-2. **RP14-T3 still trusts self-consistent local attestation too much.** Description/question hashes must be independently bound to actual runtime `JobModel`/`JobSource` importer evidence or a fresh bounded same-flow public revalidation, not only checked for shape/hash format.
-3. **RP14-T4 actual private-profile binding is incomplete.** Verification must hash the actual `candidate_profile_path` bytes, compare them to the private profile SHA, reject missing/mismatched files, and independently derive/validate private source class.
-4. **RP14-T7 persisted packet-row linkage is incomplete.** Local `job_id` must be mandatory and the verifier must load/verify the persisted `ApplicationPacketModel` row plus its resume/artifact IDs against the manifest/runtime/redacted evidence.
-5. **Exact-head CI is missing for the reviewed repair.** The last verified PR CI success preceded `3ce19cf`; the repair commit itself only had heartbeat workflows attached at review time.
+The support commit is **not accepted or merge-ready** because:
+- no exact-head GitHub CI/check run exists,
+- worker-side pytest/Ruff/mypy were not executed,
+- the new verifier/tests are not compatible with the current production importer contract.
 
-A current verifier test fixture expects a full local verification PASS with a nonexistent candidate-profile path and fabricated-but-well-formed private/source-attestation hashes. That behavior is evidence the remaining binding gap is real and must become a rejection path before P0A can be accepted.
+### Production-path contract mismatch discovered by lead review
 
-Lane 1 is correctly heartbeating under `FIVE_MIN_2026_09_21` / `ACTIVE_5M`. Lane 2 and Lane 3 still need to migrate stale DAYWATCH heartbeat processes to the owner-standard fixed 5-minute watcher after syncing latest main.
+Current `scripts/import_v14_proof_job.py::_source_payload()` persists only:
+- `api_url`,
+- `fetched_at_utc`,
+- `content_sha256`,
+- `screening_question_count`,
+- `source_kind`.
+
+The support verifier/test fixture additionally requires `source_payload_json` fields:
+- `provider`,
+- `public_job_id`,
+- `question_list_sha256`.
+
+Production already stores provider/public source ID in `JobSourceModel.provider` / `source_job_id`, but it does not currently persist a question-list SHA. The support tests construct a stronger hand-authored Greenhouse payload than production writes. Therefore a genuine real importer → runner → verifier execution can fail even when all real inputs are correct.
+
+Before P0A acceptance, Lane 1 must:
+- reconcile verifier expectations with the actual production importer rather than a test-only payload,
+- use persisted `JobSourceModel.provider` / `source_job_id` as authoritative provider/public-ID bindings,
+- persist or equivalently bind a production-derived question-list SHA/count,
+- verify source kind/API URL/fetched time/content hash/canonical URL/linked Job identity from real importer evidence,
+- add an integration/adversarial test that exercises the production importer payload contract,
+- rerun focused + full pytest/Ruff/mypy and exact-head CI when hosted runners execute.
+
+A bounded read-only `worker-pc` audit `jobs-v14-p0a-importer-contract-audit-20260921-1645` was dispatched for independent confirmation. It is support only; Lane 1 must not wait for it.
+
+The Lane 1 heartbeat stream reached current epoch heartbeat #18 at `2026-09-21T19:18:36Z` and then became stale. Before restarting, verify the old watcher is dead and launch exactly one current-epoch Lane 1 watcher.
 
 ## Real-proof execution after P0A acceptance
 
