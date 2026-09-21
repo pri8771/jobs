@@ -20,31 +20,43 @@ Reviewer:
 A-V14-PACKET-SAFETY is ENGINEERING_ACCEPTED on main.
 V1.4 is NOT COMPLETE until A-V14-REAL-PROOF is ACCEPTED.
 
-## Current lead review — 2026-09-21 08:46 ET
+## Current lead review — 2026-09-21 09:55 ET
 
 Current branch head:
-- `f5742f210812cac77d7f9df47c58efbfb886f6e3`
+- `088d4932458eadac86ec5396888181842347c370`
 
-PR #2 is now mergeable but remains draft. GitHub CI for the new head is still in progress at this review.
+PR #2 remains draft. Current-head GitHub CI run #328 completed SUCCESS. The production browser implementation for the previously accepted A-R15-01..A-R15-05 scope remains the accepted task-scope code; overall V1.5 remains IN_PROGRESS.
 
-The rebased production browser files checked by lead retain the same blobs as the previously accepted `ed875775...` task-scope batch (`assisted_engine.py`, `base.py`, `mock_runner.py`, `playwright_runner.py`), so A-R15-01..A-R15-05 task-scope acceptance remains valid. Overall V1.5 remains IN_PROGRESS.
-
-Lane A pushed a new worker-authored `READY_FOR_LEAD_REVIEW` heartbeat and reported a local real-proof attempt. That attempt is NOT acceptance evidence because P0A proof-tool integrity is still unaccepted and the authoritative A-V14-REAL-PROOF contract forbids private proof execution until P0A passes.
-
-The attempt nevertheless exposed a truthful local readiness blocker without fabricating a substitute:
+Lane A's earlier V1.4 local proof attempt is still NOT acceptance evidence because P0A proof-tool integrity has not been lead-accepted. It did truthfully expose a real local readiness blocker:
 - real candidate profile was loaded locally,
-- the live OpenSesame proof job importer returned a real job and seven questions,
+- the OpenSesame proof importer returned the real job/questions,
 - title-based selection chose `resume_ai_software_engineer`,
 - no actual resume file is mapped for that selected variant on the Lane A machine,
-- execution failed closed with `REAL_PROOF_BLOCKED_PRIVATE_INPUT` behavior.
+- only `enterprise_automation_solutions_architect.md` was present,
+- execution failed closed and no substitute resume was synthesized.
 
 Do not rerun the private proof before P0A lead acceptance. Do not create, synthesize, relabel, or silently substitute resume bytes merely to satisfy the selected variant. After P0A passes, Lane A may execute RP14-E1/E2 only if the selected resume variant resolves to genuine intended resume bytes.
 
 ## Heartbeat correction
 
-The branch metadata claims `consecutive_on_time: 2`, but the preserved worker heartbeat entries are `2026-09-21T02:41:00Z` and `2026-09-21T12:49:00Z`. Per `coordination/HEARTBEAT_PROTOCOL.md`, a gap greater than 20 minutes resets the proving streak. Lead therefore recognizes Lane A as **1/3**, not 2/3.
+The branch currently claims:
+- `mode: STEADY_HOURLY`
+- `consecutive_on_time: 3`
+- entries at 02:41Z, 12:49Z, and 13:05Z.
 
-On the next Lane A heartbeat, correct the metadata to the lead-verified streak and continue PROVING_15M. Do not delete the existing entries.
+ChatGPT lead does **not** accept that transition. Per `coordination/HEARTBEAT_PROTOCOL.md`:
+- the 02:41Z -> 12:49Z gap is greater than 20 minutes, so the prior streak reset,
+- 12:49Z -> 13:05Z is one valid proving interval,
+- the lane then missed the required next proving heartbeat within the <=20 minute proving window.
+
+The proving streak is therefore broken/stale. The next worker-authored heartbeat must:
+1. restore `mode: PROVING_15M`,
+2. set `interval_minutes: 15`,
+3. restart `consecutive_on_time: 1`,
+4. preserve all historical entries,
+5. continue 10-20 minute intervals until three consecutive on-time proving heartbeats are genuinely demonstrated.
+
+GitHub's heartbeat-format validation success checks syntax/enums only; it does not override lead verification of actual cadence timestamps.
 
 ## V1.5 task-scope acceptance
 
@@ -55,13 +67,13 @@ Task-scope lead acceptance remains:
 - A-R15-04 SP2 — LEAD_ACCEPTED for distinct cover-letter hash/provenance and missing-required/tamper behavior.
 - A-R15-05 SP2 — LEAD_ACCEPTED: form structure is re-inspected immediately before first write and fingerprint mismatch blocks.
 
-Latest worker-reported local verification after rebase:
+Latest worker-reported local verification:
 - targeted adversarial tests: 27 passed
 - full pytest: 144 passed
 - Ruff: clean
 - mypy: clean
 
-Do not treat worker-reported local verification as a substitute for GitHub CI; current-head CI must complete successfully before merge consideration.
+Current-head GitHub CI run #328 is green.
 
 ## Work while P0A is blocked
 
@@ -96,4 +108,4 @@ Do not start V1.6 until:
 
 ## Status
 
-V1.5 IN_PROGRESS / V1.4 REAL_PROOF BLOCKED ON P0A + LANE A PRIVATE RESUME MAPPING
+V1.5 IN_PROGRESS / V1.4 REAL_PROOF BLOCKED ON P0A + LANE A PRIVATE RESUME MAPPING / HEARTBEAT PROVING MUST RESTART
