@@ -29,21 +29,31 @@ Jobs Automation is a portable personal job-search operating system.
 Core flow:
 job alerts/career discovery -> Gmail ingestion -> normalize/dedupe -> filter/score -> select targeted resume -> prepare packet -> manual/assisted/permitted automated application -> external confirmation -> recruiter/application lifecycle -> interviews/follow-ups/rejections/offers -> analytics.
 
-## Strategic finish line
+## Strategic milestone direction
 
-Near-term scope stops after one genuine, externally confirmed application is submitted through the system for a real job the user actually wants.
+Formal checkpoints are now:
 
-Path:
-- V1.1 stabilization
-- V1.2 real candidate/account/Gmail onboarding
-- V1.3 real job ingestion/selection
-- V1.4 real application packet
-- V1.5 assisted real application
-- V1.6 first genuine system-submitted application
+- V1.7 — integrated recruiting operations
+- V2.0 — Autonomous Personal Job Search OS
+- V2.3 — Career Intelligence & Optimization
+- V3.0 — Autonomous Career Agent Network
 
-After V1.6, stop broad development and reassess.
+V1.5/V1.6 remain required application-execution artifacts but are not separate planning stops.
+Old V1.8/V1.9 requirements are absorbed into V2.0.
 
-V2/V3 remains tentative future direction only. Do not introduce Temporal, LangGraph, Jobs MCP, MinIO, pgvector, or other broad infrastructure unless the current proof path actually requires it.
+Owner target: push to at least V2.0 as quickly as possible, ideally today. Full V2.0 live acceptance still requires user-interactive real Gmail/live-data evidence; independent engineering should proceed around that boundary.
+
+Execution plan:
+- docs/V1_7_TO_V3_ACCELERATION_PLAN.md
+- coordination/TEAM_LANES.md
+- coordination/ARTIFACT_INDEX.md
+- coordination/WORK_QUEUE.md
+
+Two Antigravity sessions run in parallel:
+- Lane A: application execution
+- Lane B: recruiting operations / V2.0 foundations
+
+ChatGPT remains lead, reviewer, decomposer, integration owner, and future-artifact preparer.
 
 ## Current implementation truth
 
@@ -68,7 +78,7 @@ Do not claim V1.2 complete until provenance is checked and the required user-aut
 
 `JobImporter` and `import-jobs` exist. Snorkel AI requisition `6150440004` is a real live posting with $150K-$220K compensation, but it is hybrid NYC/SF. It is a candidate proof job, not an accepted user-selected proof job. Real Gmail/job-alert ingestion has not yet been demonstrated.
 
-### V1.4 — REJECTED PENDING REPAIR
+### V1.4 — MAJOR REPAIR COMPLETE; FOUR BOUNDED RESIDUALS
 
 Lead audit found application-preparation safety/attribution defects:
 - packet builder can silently generate a synthetic resume stub,
@@ -245,3 +255,42 @@ Process:
 
 Detailed contract:
 - docs/ARTIFACT_ORIENTED_PM.md
+
+
+### V1.7/V2.0 brownfield assets
+
+The repo already contains substantial code for later milestones:
+- recruiter CRM
+- lifecycle transitions
+- interview extraction
+- unanswered recruiter/stale application alerts
+- dashboard/control-center scaffolding
+- funnel analytics
+- health checks
+- worker daemon
+- kill switch
+- rate limiter
+- backup/restore scripts
+- CI and parser tests
+
+Treat V1.7/V2.0 as audit/repair/integration work before considering rewrites.
+
+### V1.4 lead re-audit residuals
+
+Commit `10fd61d` materially fixed the original packet-safety findings and CI is green.
+
+Remaining Lane A tasks:
+- R14-01 immutable/content-addressed artifact paths
+- R14-02 correct selected resume-family attribution
+- R14-03 generation-origin/live-readiness gate
+- R14-04 quantitative experience claims require exact canonical evidence
+
+Lane B may proceed independently on V1.7 while Lane A closes these residuals.
+
+### V2.3 / V3.0
+
+V2.3 contract:
+- docs/V2_3_SPEC.md
+
+V3.0 artifact plan:
+- docs/V3_0_ARTIFACT_PLAN.md
