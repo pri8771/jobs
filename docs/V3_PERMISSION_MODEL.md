@@ -61,3 +61,12 @@ No prompt can elevate permission.
 - different packet/job cannot reuse approval.
 - agent handoff cannot expand permission.
 - all permission decisions are audited.
+
+
+## Tool permission matrix
+
+Use:
+- `docs/V3_TOOL_PERMISSION_MATRIX.md`
+- `docs/V3_RUNTIME_DATA_CONTRACTS.md`
+
+The most restrictive permission result wins. No prompt, memory record, agent handoff, or tool output may elevate authority.
