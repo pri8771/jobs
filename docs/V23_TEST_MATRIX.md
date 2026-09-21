@@ -64,7 +64,7 @@ All rows of `docs/V1_6_ADVERSARIAL_TEST_MATRIX.md` are owned as follows: Authori
 | all GET endpoints | 200 JSON | J20-04 | `tests/test_dashboard.py` |
 | POST resolve 404 / 400 / 403 no token / 403 wrong token / 200 | as listed | J20-04 | same |
 | `/api/config` | allowlist keys only; denylist regex clean | J20-02 | same |
-| manual application recorded | rows + real-submission analytics; duplicate refused; no variant guess | J20-15 | `tests/test_manual_application.py`, `tests/test_dashboard.py` |
+| manual application reported | application row + `SUBMISSION_UNCONFIRMED`; duplicate refused; no variant guess; confirmed-submission denominator unchanged until external confirmation | J20-15 | `tests/test_manual_application.py`, `tests/test_dashboard.py` |
 | restore without checksum | exit 2 unless explicit override | J20-06a | `tests/test_scripts.py` |
 | backup without credential | exit 2, no echo | J20-06b | same |
 | gateway factory | null → deterministic; configured w/o litellm → error; mock forbidden in production | J20-17 | `tests/test_deterministic_gateway.py` |
