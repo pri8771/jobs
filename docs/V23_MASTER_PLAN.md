@@ -123,7 +123,7 @@ Acceptance = `ENGINEERING_ACCEPTED` (deterministic fixture campaign, `docs/V2_3_
                  ┌────────────── PG3/PG4 ──────────────┐                              ▼
  V1.7 reconciliation ──► V2.0 engineering gaps ──► golden fixture ──► V2.0 ENGINEERING_READY ──► V2.0 live campaign (C1..C5, manual/assisted application path)
                                                                                      │
- V2.3 engineering (fixtures, parallel from day 1) ───────────────────────────────────┴──► V2.3 acceptance campaign: engineering report → live report → lead review
+ V2.3 engineering (fixtures; schedule ahead when safe / use bounded subagents) ───────────────────────────────────┴──► V2.3 acceptance campaign: engineering report → live report → lead review
                  └────────────── PG2 dependency group (engineering can be scheduled ahead; acceptance cannot skip it) ──────────────┘
  V1.5 clean port ──► A-R15-06..09 ──► [USER_GATE browser] V1.5 live proof ──► V1.6 engineering (scoped_approval, attempts, preflight, confirmation) ──► transport research ──► [deferred] V1.6 live submit
 ```
@@ -161,7 +161,7 @@ Gate labels used everywhere: `USER_GATE` (owner action required), `LEAD_GATE` (a
 | A-V12-GMAIL-CANARY / A-V20-LIVE-INGESTION | PROPOSED / BLOCKED | J20G + `USER_GATE` OAuth | V1.7 live, V2.0 live, V2.3 live | G-01..05 |
 | A-V20-INTEGRATED-OS | BLOCKED | above | V2.3 REAL_PROVEN | C1..C5 |
 | A-V12-CANDIDATE-PROVENANCE | READY | none | story map, allowed-claims | implemented minimally by V23-F05 |
-| A-V23-OPPORTUNITY-GRAPH | READY | migration 004, Lane D port | briefing, tools, watch | V23-OG-01..10 |
+| A-V23-OPPORTUNITY-GRAPH | READY | migration 005, Lane D port | briefing, tools, watch | V23-OG-01..10 |
 | A-V23-STRATEGY-LEARNING | PROPOSED | analytics + 004 | briefing, tools | V23-SL-01..07 |
 | A-V23-TARGET-COMPANY-WATCH | READY | 004, sources | briefing, tools | V23-TW-01..07 |
 | A-V23-INTERVIEW-INTELLIGENCE | PROPOSED | candidate evidence, lifecycle | briefing, tools, V3 Interview Agent | V23-II-01..07 |
