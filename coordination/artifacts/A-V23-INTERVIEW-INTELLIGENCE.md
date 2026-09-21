@@ -3,7 +3,7 @@
 - Type: intelligence / preparation
 - Phase: V2.3
 - Status: PROPOSED
-- Owner: V2.3 implementation surface (lane per lead decision D3)
+- Owner: single active implementation worker when this artifact is active
 - Reviewer: ChatGPT
 - Story points: 10 (V23-II-01..07) + shared V23-F01/F02/F05, J20-20
 - Dependencies: A-V17-INTERVIEW-FOLLOWUP code on main (`lifecycle/interview.py`, CRM timelines, `InterviewModel`), candidate evidence service (A-V12 minimal), `SemanticScorer.extract_requirements`, packet job snapshot (J20-20)
