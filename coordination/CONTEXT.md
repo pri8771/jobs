@@ -8,8 +8,9 @@ Last updated: 2026-09-21
 
 - User: product owner and final authority.
 - ChatGPT: engineering/product lead, architect, reviewer, prioritizer, integration owner, acceptance gate.
-- Antigravity workers: implementation workhorses in dedicated non-overlapping lanes.
-- Scout: independent QA/adversarial reviewer; non-owning by default.
+- Antigravity: primary implementation workhorse, running one active implementation session at a time.
+- Historical lane branches are sequential work surfaces, not simultaneous active sessions.
+- worker-pc may provide bounded independent audit/support; it has no merge or acceptance authority.
 - User instructions override all agent defaults.
 
 ## Canonical coordination
@@ -57,7 +58,7 @@ Formal program milestones:
 
 V1.5/V1.6 remain required application-execution capabilities even though the formal reporting milestones jump from V1.7 to V2.0.
 
-Later engineering may continue in parallel, but official completed-version claims cannot advance past a missing required real proof.
+Downstream planning/preparation may continue while the active implementation session is blocked, but Antigravity implementation is sequential and official completed-version claims cannot advance past a missing required real proof.
 
 ## Current P0 — V1.4 real proof
 
@@ -108,86 +109,69 @@ Remote implementation attempts did not produce a reviewable Jobs branch:
 - first branch task failed repository clone,
 - retry `jobs-v14-proof-hardening-r2` later failed with `Worker branch push failed.`, returning no branch/commit/tests/summary.
 
-Critical-path fallback:
-- Lane C now owns RP14-T1..T7 as its immediate P0 engineering batch after rebasing current main.
-- Lane C must not use private profile/resume inputs or run the real proof during P0A implementation.
-- Scout independently attacks the P0A batch when it lands.
+Current critical-path execution:
+- the single Antigravity session uses `worker/v14-real-proof` for the P0A repair,
+- it must not use private profile/resume inputs or run the real proof during P0A implementation,
+- worker-pc may perform bounded independent audit when useful,
 - ChatGPT alone accepts P0A.
 
-## Four implementation lanes + Scout
+## Single active implementation session
 
-### Lane A — Application execution
+Canonical program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+
+The active Antigravity session moves sequentially across historical work surfaces:
+
+### V1.4 work surface
+Branch: `worker/v14-real-proof`
+
+Current priority:
+- RP14 proof-tool integrity repair,
+- after lead acceptance, genuine V1.4 real packet proof,
+- later candidate provenance/Gmail readiness only when assigned.
+
+### V1.5/V1.6 work surface
 Branch: `worker/v15-assisted-application`
 
-Owns:
-- V1.5 browser/assisted-application engineering
-- V1.6 after V1.5 acceptance
+Current priority after V1.4 gate:
+- preserve accepted A-R15-01..05,
+- finish/verify A-R15-06..09,
+- V1.6 controlled-submission engineering only after V1.5 acceptance or explicit lead authorization.
 
-Reviewed V1.5 rework head:
-- `ed875775122f0d390af6ab15beb378904af2a476`
-
-Task-scope accepted:
-- A-R15-01..A-R15-05
-
-V1.5 overall remains IN_PROGRESS because integration/CI/current-main reconciliation and additional post-proof residuals remain.
-
-After P0A acceptance, Lane A may execute the V1.4 proof immediately if its machine has the real private inputs; do not wait for a Lane C handoff.
-
-### Lane B — Recruiting operations / V2.0 operational foundations
+### V1.7 work surface
 Branch: `worker/recruiting-ops`
 
-Owns:
-- V1.7 CRM/interview/follow-up completion
-- dashboard/reliability/analytics/health/worker glue for V2.0
+Substantial work is already accepted/merged.
+When this becomes active:
+- audit/close real gaps in A-V17-CRM-EVIDENCE,
+- audit/close real gaps in A-V17-INTERVIEW-FOLLOWUP,
+- request ChatGPT milestone review.
 
-Current bounded residual queue is authoritative in `coordination/WORK_QUEUE.md`.
+### ChatGPT lead
+Primary role while Antigravity executes:
+- review/acceptance,
+- architecture/decomposition,
+- adversarial review,
+- downstream V1.6→V3.0 preparation,
+- shared coordination truth.
 
-### Lane C — P0 proof tooling, then live-data/provenance foundations
-Branch: `worker/live-data-foundations`
-
-Immediate:
-- RP14-T1..T7 P0A proof-tool hardening
-
-After P0A acceptance:
-- RP14-C1..C3 real private candidate/resume/job/generation readiness
-- execute RP14-E1/E2 immediately if all real inputs are available
-
-Only after the proof attempt:
-- candidate provenance J12-*
-- Gmail runtime readiness J20G-01..03
-
-No real Gmail OAuth/mailbox access without explicit scoped authorization.
-
-### Lane D — V2.3 foundations
-Branch: `worker/v23-foundations`
-
-Owns non-conflicting foundations only:
-- opportunity graph projection
-- target-company watch local foundations
-- transport-neutral agent tool interfaces
-
-No graph DB, migrations, external actions, or V2.0 duplication unless explicitly reassigned.
-
-### Scout — QA/adversarial review
-Branch: `scout/qa-prep`
-
-Immediate order:
-1. independently audit Lane C RP14-T1..T7 when its branch batch appears,
-2. later execute RP14-S1 against actual real-proof candidate + verifier evidence.
-
-Scout does not self-accept artifacts or merge code.
+Downstream plan:
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
 
 ## Worker heartbeat truth
 
-Heartbeat protocol:
-- PROVING_15M until three consecutive on-time worker heartbeats
-- then STEADY_HOURLY
+Owner directive:
+- one active Antigravity implementation session,
+- exactly one heartbeat watcher for that session,
+- epoch `FIVE_MIN_2026_09_21`,
+- fixed 5-minute cadence while active,
+- no 15-minute/hourly transitions,
+- when the session switches historical work branches, stop the old watcher before starting the one watcher for the new branch.
 
-Current truth:
-- the proving protocol has not been demonstrated across all workers,
-- Lane A has only limited worker-authored heartbeat evidence,
-- B/C/D/Scout main heartbeat files still show no worker-authored heartbeat,
-- do not claim STEADY_HOURLY without evidence.
+Historical lane heartbeat files may remain in Git, but inactive files do not mean another worker session is active.
+
+Canonical protocol:
+- `coordination/HEARTBEAT_PROTOCOL.md`
 
 ## Remote-worker infrastructure
 
@@ -279,4 +263,4 @@ Maintain targeted resume variants; do not collapse to one generic resume.
 
 Critical knowledge must stay in Git.
 
-When immediate work is waiting on a worker/user/CI boundary, ChatGPT should continue with the highest-value safe non-conflicting audit/debug/integration/evaluation work one step ahead, without crossing live authorization boundaries or stealing easy implementation from workers.
+When immediate work is waiting on Antigravity/user/CI, ChatGPT should continue with the highest-value safe downstream planning, audit, contracts, adversarial test design, runbooks, or evaluation preparation one step ahead. ChatGPT should not become a competing second implementation session unless an explicit lead-side patch is necessary.
