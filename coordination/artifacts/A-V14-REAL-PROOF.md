@@ -210,3 +210,13 @@ V1.4 is COMPLETE only when:
 - The OpenSesame AI Automation Engineer posting remains live and exposes the same real application questions, including adversarial prompt-injection text; this recheck performed no form interaction.
 - `worker-pc` remains online/capacity 1, but remote-workers workflow `35566726945` for a non-Jobs SwarmAI task is still in progress, so no Jobs remote task was dispatched.
 - P0A remains **BLOCKED pending Lane C implementation and Scout/lead review**; private proof execution remains forbidden until that gate is accepted.
+
+### Lead recheck — 2026-09-21 04:45 ET
+
+- Jobs `main` is `379660b6a6b4dd93416eae33a637c96656a1fd96` before this coordination update. Standard CI run #304 for that head completed successfully.
+- The scheduled heartbeat monitor run `35576477294` failed because the worker heartbeat freshness check found missing/unproven/stale lanes. This is a truthful liveness signal, not a product-CI regression.
+- Lane heads are unchanged: A `ed875775122f0d390af6ab15beb378904af2a476`, B `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`, C `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`, D `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`, Scout `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
+- Lane C still has no worker-authored heartbeat and no RP14-T1..T7 implementation batch. `coordination/proofs/` still contains only the README and schema; no real-proof candidate or verifier receipt exists.
+- The prior non-Jobs SwarmAI remote-worker workflow `35566726945` was cancelled at 2026-09-21T08:02:31Z, freeing the capacity-1 worker in the remote-workers control plane.
+- ChatGPT dispatched one bounded, read-only, non-conflicting Jobs task: `jobs-v14-p0a-preflight-20260921-0445`. Its purpose is acceptance-preflight mapping/adversarial review of current proof tooling only; it does not implement RP14-T1..T7, touch private candidate/resume inputs, or execute the proof. Remote-workers workflow `35579791471` is currently in progress.
+- Artifact status remains **BLOCKED**. Lane C remains the P0A implementation owner and must not wait for the remote preflight result to begin its own bounded RP14-T1..T7 batch.
