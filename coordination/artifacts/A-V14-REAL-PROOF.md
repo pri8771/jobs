@@ -49,6 +49,12 @@ Current evidence state:
 - no runtime-generated V1.4 proof JSON is committed yet,
 - therefore REAL_PROOF has NOT happened and this artifact remains READY, not ACCEPTED.
 
+Latest lead recheck — 2026-09-20 23:42 ET:
+- OpenSesame job `7967740` is still live on the public Greenhouse board,
+- current main proof-tooling head `9cfd15835f829457f47a19d68caf3043d35fcd21` has successful CI,
+- no new Lane A/C proof execution commit or redacted proof JSON has landed,
+- no Scout proof audit is possible yet because runtime evidence does not exist.
+
 ## Required real inputs
 
 - actual private candidate profile used by the project
