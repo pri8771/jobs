@@ -1,38 +1,55 @@
 # Heartbeat Dashboard
 
-Current exercise:
-- epoch: `DAYWATCH_2026_09_21`
-- stage 1: 5-minute proving, 3 consecutive valid worker-authored check-ins
-- stage 2: 15-minute watch for a clean 24 hours
-- stage 3: hourly after the 24-hour watch passes
+Current operating model:
+- exactly 3 active implementation lanes
+- heartbeat epoch: `DAYWATCH_2026_09_21`
+- human-visible feed: GitHub issue #7 `Jobs Automation — Live Progress`
 
-Previous heartbeat evidence is preserved but does not count toward this new epoch.
+## Required cadence
 
-## Fresh-session status
+Stage 1:
+- PROVING_5M
+- 3 consecutive worker-authored heartbeats
+- valid gap: 4–7 minutes
 
-| Lane | Branch | Latest branch commit checked | 5m proving | 24h watch | Current state |
+Stage 2:
+- WATCH_15M_24H
+- heartbeat every 15 minutes
+- gap >20 minutes counts as a miss and restarts the clean 24-hour window
+
+Stage 3:
+- STEADY_HOURLY after clean 24-hour watch
+
+## Current fresh-session state
+
+| Lane | Branch | Current assignment | 5m proving | 24h watch | State |
 |---|---|---|---:|---:|---|
-| A | worker/v15-assisted-application | 2026-09-21T14:05:01Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| B | worker/recruiting-ops | 2026-09-21T13:26:36Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| C | worker/live-data-foundations | 2026-09-21T10:49:11Z | 0/3 new epoch | not started | P0A WORK PENDING + FRESH SESSION NEEDED |
-| D | worker/v23-foundations | 2026-09-21T02:15:15Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| Scout | scout/qa-prep | 2026-09-21T02:15:17Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+| 1 | worker/v14-real-proof | RP14-T1..T7 real-proof tooling | 0/3 | not started | WAITING FOR FRESH SESSION |
+| 2 | worker/v15-assisted-application | A-R15-06..09 V1.5 safety | 0/3 | not started | WAITING FOR FRESH SESSION |
+| 3 | worker/recruiting-ops | B-R20-05 + B-R20-01/02 | 0/3 | not started | WAITING FOR FRESH SESSION |
 
-Lead verification at 2026-09-21 10:53 ET: all listed branch-head timestamps predate the approximately 14:45Z `DAYWATCH_2026_09_21` reset. No worker self-claim from an earlier epoch/cadence counts toward the new proving sequence.
+Historical A/B/C/D/Scout heartbeats remain available for audit but do not count toward this operating model.
 
-## Watcher command
+## Visible progress
 
-Each fresh session launches:
+Every Lane 1/2/3 heartbeat push should create a comment in GitHub issue #7 via:
+- `.github/workflows/heartbeat-progress.yml`
 
-`python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
+Each comment includes:
+- task,
+- progress note,
+- heartbeat stage,
+- review/blocker state,
+- branch + commit.
 
-The watcher uses a separate local clone and therefore does not interfere with the implementation working tree.
+ChatGPT Jobs Lead Sync also posts one concise lead update hourly.
 
-## Evidence policy
+## Acceptance
 
-- Old PROVING_15M / STEADY_HOURLY claims do not count for this epoch.
-- Lead-seeded commits do not count.
-- Worker self-claims do not override timestamp evidence.
-- 5-minute proving gaps must be 4–7 minutes.
-- Any 24-hour-watch gap >20 minutes is a miss and restarts the clean 24-hour watch window.
-- ChatGPT reviews accumulated Git evidence hourly and on explicit user status requests.
+Heartbeat proves liveness/progress only.
+It never substitutes for:
+- code review,
+- tests,
+- CI,
+- artifact acceptance,
+- real-proof evidence.
