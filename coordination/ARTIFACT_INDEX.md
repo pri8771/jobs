@@ -34,9 +34,21 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + future lane | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
 | A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | future lane | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
 | A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | paused historical Lane D | READY | V2 company/job/contact model | A-V23-CAREER-INTELLIGENCE |
+| A-V23-INTERVIEW-INTELLIGENCE | V2.3 | Source-backed interview preparation intelligence | intelligence/preparation | future work surface | PROPOSED | A-V17-INTERVIEW-FOLLOWUP, A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE, A-V30-INTERVIEW-AGENT |
 | A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | paused historical Lane D | READY | stable V2 service interfaces | V3 agent runtime |
 | A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | future lane | PROPOSED | A-V23-AGENT-TOOLS | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-PERMISSION-MODEL | V3.0 | Agent/action permission and approval model | policy/authorization | future lane | PROPOSED | V2 policy/audit | all V3 agents |
+| A-V30-SHARED-MEMORY | V3.0 | Scoped durable agent memory over canonical truth | memory/continuity | future work surface | PROPOSED | A-V23-AGENT-TOOLS, A-V30-PERMISSION-MODEL | A-V30-AGENT-RUNTIME, specialist agents |
+| A-V30-MARKET-SCOUT | V3.0 | Market/company/opportunity monitoring specialist | specialist agent | future work surface | PROPOSED | A-V23-CAREER-INTELLIGENCE, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-OPPORTUNITY-MATCHER | V3.0 | Opportunity evaluation specialist | specialist agent | future work surface | PROPOSED | A-V23-CAREER-INTELLIGENCE, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-RESUME-STRATEGIST | V3.0 | Resume strategy/experiment specialist | specialist agent | future work surface | PROPOSED | A-V23-STRATEGY-LEARNING, A-V30-AGENT-RUNTIME | A-V30-APPLICATION-OPERATOR, A-V30-CAREER-AGENT-NETWORK |
+| A-V30-APPLICATION-OPERATOR | V3.0 | Governed application-execution specialist | specialist agent | future work surface | PROPOSED | A-V16-SUBMISSION-ENGINE-REPAIR, A-V30-PERMISSION-MODEL, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-RECRUITER-CRM-AGENT | V3.0 | Recruiter CRM/follow-up specialist | specialist agent | future work surface | PROPOSED | A-V17-MILESTONE-GATE, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-INTERVIEW-AGENT | V3.0 | Interview preparation specialist | specialist agent | future work surface | PROPOSED | A-V23-INTERVIEW-INTELLIGENCE, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-NETWORKING-AGENT | V3.0 | Referral/networking specialist | specialist agent | future work surface | PROPOSED | A-V23-OPPORTUNITY-GRAPH, A-V30-PERMISSION-MODEL, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-PORTFOLIO-BRAND-AGENT | V3.0 | Portfolio/public-brand specialist | specialist agent | future work surface | PROPOSED | A-V23-CAREER-INTELLIGENCE, A-V30-PERMISSION-MODEL, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-POLICY-SAFETY-AGENT | V3.0 | Policy/safety audit specialist | specialist agent | future work surface | PROPOSED | A-V30-PERMISSION-MODEL, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-ANALYTICS-AGENT | V3.0 | Outcome/strategy analytics specialist | specialist agent | future work surface | PROPOSED | A-V20-ANALYTICS, A-V23-STRATEGY-LEARNING, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-AGENT-EVALUATION | V3.0 | Agent evaluation + observability | evaluation/observability | future lane | PROPOSED | A-V30-AGENT-RUNTIME | V3 acceptance |
 | A-V30-CAREER-AGENT-NETWORK | V3.0 | Autonomous career agent network | milestone/multi-agent | ChatGPT + future lane | PROPOSED | A-V23-CAREER-INTELLIGENCE | continuous career ops |
 
