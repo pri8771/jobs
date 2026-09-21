@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-21 17:48 ET
+Updated: 2026-09-21 17:58 ET
 
 ## Owner completion rule
 
@@ -23,12 +23,14 @@ Old Lane C/D/Scout are paused/superseded. `worker-pc` is bounded support infrast
 
 ## Lane 1 — P0 critical path
 
-Heartbeat branch evidence:
-- current observed head `df4045883c1fde7b29af92a20028d3b6397e9a93`
+Latest heartbeat branch evidence:
+- head `df4045883c1fde7b29af92a20028d3b6397e9a93`
 - heartbeat #22 at `2026-09-21T21:31:56Z`
 - epoch `FIVE_MIN_2026_09_21`
 - mode `ACTIVE_5M`
 - worker reports `READY_FOR_LEAD_REVIEW`
+
+**Current liveness:** stale. More than three expected 5-minute intervals elapsed after #22 with no newer heartbeat commit. Before Lane 1 resumes implementation, verify the old watcher is dead, pull latest main, and start exactly one current-epoch watcher.
 
 Substantive clean implementation:
 - branch `claude/serene-brown-g6uij0`
@@ -58,7 +60,9 @@ Worker reports exact-head local validation at `3444076...`: 205 pytest passing, 
 - `additionalProperties: true`,
 - `result.const: REAL_PROOF_PASS`.
 
-That conflicts directly with RP14-T1/RP14-T5. The runtime evidence is a `REAL_PROOF_CANDIDATE`, and committed candidate evidence must be closed/allowlisted.
+Repository search found no existing test referencing `v14_real_proof.schema.json`, so the schema drift is not protected by the reviewed test suite.
+
+That conflicts directly with RP14-T1/RP14-T5. Runtime evidence is a `REAL_PROOF_CANDIDATE`, and committed candidate evidence must be closed/allowlisted.
 
 Lane 1 must correct the schema to the actual production candidate shape, add regression tests that reject extra fields and self-declared PASS candidates, rerun focused/full pytest/Ruff/mypy, and push one coherent current-main review batch.
 
@@ -66,9 +70,9 @@ Lane 1 must correct the schema to the actual production candidate shape, add reg
 
 No GitHub check runs exist for substantive commit `3444076...`.
 
-The latest Lane 1 heartbeat head still triggers Actions jobs that fail before executing any steps (`steps: []`, `runner_id: 0`). Treat this as `CI_BLOCKED_ACCOUNT`, not green CI and not a code failure. Automated issue #7 heartbeat comments therefore remain behind the actual Git heartbeat stream.
+The latest Lane 1 heartbeat head still triggers Actions jobs that fail before executing any steps (`steps: []`, `runner_id: 0`). Latest main CI shows the same startup failure. Treat this as `CI_BLOCKED_ACCOUNT`, not green CI and not a code failure. Automated issue #7 heartbeat comments therefore remain behind the actual Git heartbeat stream.
 
-`worker-pc` completed the prior runtime-contract support task at `7e88542...`; Lane 1 incorporated that work into the clean-port. A new bounded schema-only support task `jobs-v14-p0a-schema-gate-20260921-1748` has been dispatched against the clean implementation branch. It is support only; no auto-merge and Lane 1 must not wait for it.
+`worker-pc` completed the prior runtime-contract support task at `7e88542...`; Lane 1 incorporated that work into the clean-port. Bounded schema-only support task `jobs-v14-p0a-schema-gate-20260921-1748` is now executing on actual `worker-pc` from the clean implementation branch. It is support only; no auto-merge and Lane 1 must not wait for it.
 
 ## Lane 2 — V1.5 assisted application
 
@@ -93,7 +97,7 @@ Known V1.4 proof blocker remains the missing genuine selected `resume_ai_softwar
 
 PR #3 is merged and the accepted B repair batch is already integrated to main.
 
-Worker branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` is 0 commits ahead and stale/behind main.
+Worker branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` is 0 commits ahead and stale/behind main. Its historical branch checks were green before merge.
 
 Heartbeat is still obsolete:
 - epoch `DAYWATCH_2026_09_21`
@@ -118,17 +122,18 @@ Canonical Lane 1/2/3 standard:
 - exactly one watcher per active lane
 - no cadence transitions
 
-Lane 1 actual Git heartbeat commits continue, but issue #7 automated comments have not kept pace because the heartbeat workflows are failing at hosted-runner startup. Do not alter the protocol to manufacture UI activity. ChatGPT posts one direct lead update to issue #7 each hourly run.
+Lane 1 Git heartbeat commits reached #22, but that stream is now stale. Issue #7 automated comments have not kept pace because heartbeat workflows fail at hosted-runner startup. Do not alter the protocol to manufacture UI activity. ChatGPT posts one direct lead update to issue #7 each hourly run.
 
 ## Critical path
 
-1. Lane 1 fixes the stale proof schema to match the production candidate contract and adds schema adversarial tests.
-2. Lane 1 reruns focused + full pytest/Ruff/mypy and obtains exact-head branch CI when runners execute.
-3. ChatGPT accepts P0A only from coherent reviewed code/test/CI evidence.
-4. Lane 1 moves immediately to genuine private profile/resume readiness.
-5. First genuinely eligible Lane 1 or Lane 2 machine runs importer → real packet runner → verifier.
-6. ChatGPT audits runtime candidate + separately bound PASS receipt.
-7. Only then mark V1.4 COMPLETE.
+1. Lane 1 restarts one canonical watcher after confirming the stale watcher is dead.
+2. Lane 1 fixes the stale proof schema to match the production candidate contract and adds schema adversarial tests.
+3. Lane 1 reruns focused + full pytest/Ruff/mypy and obtains exact-head branch CI when runners execute.
+4. ChatGPT accepts P0A only from coherent reviewed code/test/CI evidence.
+5. Lane 1 moves immediately to genuine private profile/resume readiness.
+6. First genuinely eligible Lane 1 or Lane 2 machine runs importer → real packet runner → verifier.
+7. ChatGPT audits runtime candidate + separately bound PASS receipt.
+8. Only then mark V1.4 COMPLETE.
 
 ## Future planning
 
