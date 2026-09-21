@@ -51,8 +51,8 @@ Lead audit:
 ## P0 immediately after this rework batch
 
 Before V1.6, execute A-V14-REAL-PROOF tasks:
-- RP14-A1 SP2 — run the production V1.4 packet builder using the real JobModel prepared by Lane C, the real private candidate profile, actual resume bytes, and a non-mock generation path.
-- RP14-A2 SP2 — emit the redacted runtime-derived proof bundle and read-back hashes.
+- RP14-E1 SP2 — if this machine has the actual private candidate profile + real resume mapping, do NOT wait for Lane C: import the live proof job and run the complete real proof now.
+- RP14-E2 SP2 — emit the runner-generated redacted proof bundle + local read-back verification.
 
 Read:
 - docs/V1_4_REAL_PROOF_RUNBOOK.md
