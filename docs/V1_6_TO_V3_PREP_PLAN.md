@@ -254,3 +254,33 @@ A broad user goal such as "Find me a better job" should:
 10. succeed on at least one genuine real-world workflow at the appropriate permission level.
 
 No agent may self-authorize submission, messaging, calendar changes, or spending.
+
+
+## Prepared acceleration assets
+
+Cross-phase:
+- `docs/PHASE_GATE_MATRIX_V14_TO_V30.md`
+- `coordination/PREP_QUEUE_V16_TO_V30.md`
+- `docs/BROWNFIELD_IMPLEMENTATION_MAP_V16_TO_V30.md`
+- `docs/FUTURE_SCHEMA_MIGRATION_PLAN_V16_V23_V30.md`
+
+V1.6:
+- `docs/V1_6_DATA_CONTRACTS.md`
+- `docs/V1_6_ADVERSARIAL_TEST_MATRIX.md`
+
+V2.0:
+- `docs/V2_0_END_TO_END_ACCEPTANCE_MATRIX.md`
+- `docs/V2_0_LIVE_ACCEPTANCE_RUNBOOK.md`
+
+V2.3:
+- `docs/V2_3_ACCEPTANCE_MATRIX.md`
+- `docs/V2_3_INTERVIEW_INTELLIGENCE_CONTRACT.md`
+
+V3.0:
+- `docs/V3_RUNTIME_DATA_CONTRACTS.md`
+- `docs/V3_SHARED_MEMORY_CONTRACT.md`
+- `docs/V3_TOOL_PERMISSION_MATRIX.md`
+- `docs/V3_AGENT_HANDOFF_PROTOCOL.md`
+- `docs/V3_SPECIALIST_AGENT_SPECS.md`
+- `docs/V3_AGENT_EVAL_MATRIX.md`
+- `docs/V3_INTEGRATION_ACCEPTANCE_SCENARIOS.md`
