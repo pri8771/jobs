@@ -23,3 +23,11 @@ A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION.
 ## Status
 
 READY
+
+
+## Lead audit reference
+
+- docs/V1_7_TO_V3_ACCELERATION_PLAN.md
+- coordination/artifacts/A-V14-PACKET-SAFETY.md
+
+Rebase latest main before implementation.
