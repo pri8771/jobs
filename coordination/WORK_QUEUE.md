@@ -44,6 +44,7 @@ Ready tasks:
 - J15-08 SP2 block unresolved/UNKNOWN_REQUIRED before prefill
 - J15-09 SP2 external-evidence-only submitted state
 - J15-10 SP1 mock browser can never create real submitted state
+- J15-11 SP2 external form/page prompt-injection resistance; untrusted page text cannot alter policy, truth, permissions, or answers
 
 Engineering only. No live application/session without user approval.
 
