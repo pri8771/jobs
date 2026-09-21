@@ -31,12 +31,15 @@ Required next batch:
 - add adversarial tests for each gap,
 - run focused proof tests + full pytest/Ruff/mypy + branch CI.
 
+Worker-pc independent read-only audit completed successfully and independently returned REWORK; it corroborated the lead T1/T2/T7 holes and added the material T3/T6 enforcement findings above. The audit could not execute tests; branch CI remains the execution gate.
+
 Do not run private-data proof before P0A acceptance.
 
-Heartbeat while active:
-- `FIVE_MIN_2026_09_21`
-- `ACTIVE_5M`
-- every 5 minutes, no transitions.
+Heartbeat evidence:
+- valid DAYWATCH proving 3/3 at 16:27:55 → 16:32:56 → 16:37:59Z,
+- clean 24h watch started 16:37:59Z,
+- first valid watch heartbeat 16:53:01Z,
+- misses 0.
 
 ## Lane 2 — V1.5 assisted application
 
@@ -55,7 +58,7 @@ Current scope only:
 
 Current evidence:
 - implementation for A-R15-06..09 exists on the branch and has had green CI evidence,
-- worker is synchronizing against newer main; no current-head READY_FOR_LEAD_REVIEW acceptance yet,
+- PR #2 is diverged from current main and not mergeable; no current-head READY_FOR_LEAD_REVIEW acceptance yet,
 - valid DAYWATCH proving 3/3 after restart; clean watch started 16:38:09Z,
 - 16:53:11Z is the verified cadence check-in; too-early 16:39/16:54 writes are not counted as 15-minute cadence evidence and suggest overlapping watchers.
 
@@ -78,6 +81,7 @@ Lead integration completed:
 - PR #3 merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`
 - newly accepted/integrated: B-R20-05/J20-14, B-R20-01, B-R20-02
 - preserved accepted: B-R17-03, B-R20-07, B-R20-08 and earlier accepted Lane 3 residuals
+- A-V20-WORKER-RUN-HISTORY is lead-accepted.
 
 Next bounded assignment:
 1. pull/rebase branch onto latest main,
@@ -93,12 +97,14 @@ Heartbeat note:
 
 ## Heartbeat / visible progress
 
-Canonical owner rule:
-- `FIVE_MIN_2026_09_21`
-- `ACTIVE_5M`
-- every 5 minutes while active
-- one watcher per lane
-- no cadence transitions
+Authoritative owner epoch: `DAYWATCH_2026_09_21`.
+
+Per lane:
+1. `PROVING_5M`: 3 consecutive worker-authored check-ins with 4–7 minute gaps.
+2. `WATCH_15M_24H`: approximately every 15 minutes for a clean 24 hours; any gap >20 minutes increments misses and restarts the clean window.
+3. `STEADY_HOURLY`: only after a clean 24-hour watch.
+
+Workers must stop any superseded `FIVE_MIN_2026_09_21` watcher and keep exactly one DAYWATCH watcher.
 
 Visible progress:
 - GitHub issue #7
