@@ -10,34 +10,33 @@ Exactly three active implementation lanes:
 
 Old Lane C is superseded. Old Lane D and Scout are paused. `worker-pc` is infrastructure/support only.
 
-## P0 — Lane 1 — V1.4 proof-tool integrity
+## P0 — Lane 1 — V1.4 proof-tool integrity rework
 
 Branch / review surface:
 - `worker/v14-real-proof`
 - draft PR #8
 
-Current evidence:
-- implementation commit `8f8c21f88512aa32521c78285b72dc9da298672e`
-- CI #401 green
-- valid DAYWATCH proving 3/3; clean 24h watch started 16:37:59Z; first verified watch heartbeat 16:53:01Z
-- ChatGPT lead reviewed the actual diff and returned P0A for **REWORK**
-- worker-pc independent read-only audit `jobs-v14-p0a-lane1-audit-20260921-1247` is in progress
+Verdict on `8f8c21f...`:
+- **REWORK**
 
-Required repair before P0A acceptance:
-1. RP14-T1 — candidate schema/verifier must accept only `REAL_PROOF_CANDIDATE`; only the separate verifier receipt may say PASS/FAIL.
-2. RP14-T1/T2 — a candidate cannot obtain `REAL_PROOF_PASS` without successful private/local bundle cross-binding.
-3. RP14-T1 — rejected candidates must emit a candidate-bundle-bound `REAL_PROOF_FAIL` receipt even under default invocation.
-4. RP14-T7 — verifier must independently recompute canonical packet hash from manifest job/profile/resume IDs, artifact hashes, answers and provenance, and verify job/resume-variant linkage.
-5. Incorporate any additional valid findings from the independent audit.
+Required next batch:
+- enforce CANDIDATE-only candidate input,
+- require local/private binding for PASS,
+- make candidate-bundle SHA binding mandatory,
+- always emit bound FAIL receipt on rejection,
+- implement full approved Greenhouse source/job/description/question attestation binding,
+- keep copied-example content rejection and make source class runtime-derived,
+- enforce deterministic-generation labeling in verifier,
+- independently recompute canonical packet hash and verify job/resume/artifact linkage,
+- add adversarial tests for each gap,
+- run focused proof tests + full pytest/Ruff/mypy + branch CI.
 
-Exit gate:
-- adversarial tests for every repaired hole,
-- focused proof tests + full pytest/Ruff/mypy,
-- green current-head CI,
-- READY_FOR_LEAD_REVIEW,
-- ChatGPT P0A acceptance.
+Do not run private-data proof before P0A acceptance.
 
-After P0A acceptance, immediately execute RP14-C1..C3 real private-input readiness, then the first genuinely eligible Lane 1 or Lane 2 machine runs the real packet proof. Private contents remain local. No browser application action is authorized.
+Heartbeat while active:
+- `FIVE_MIN_2026_09_21`
+- `ACTIVE_5M`
+- every 5 minutes, no transitions.
 
 ## Lane 2 — V1.5 assisted application
 
@@ -94,19 +93,15 @@ Heartbeat note:
 
 ## Heartbeat / visible progress
 
-Authoritative epoch: `DAYWATCH_2026_09_21`.
+Canonical owner rule:
+- `FIVE_MIN_2026_09_21`
+- `ACTIVE_5M`
+- every 5 minutes while active
+- one watcher per lane
+- no cadence transitions
 
-Per lane:
-1. `PROVING_5M`: 3 consecutive worker-authored check-ins with 4–7 minute gaps.
-2. `WATCH_15M_24H`: approximately every 15 minutes for a clean 24 hours; any gap >20 minutes increments misses and restarts the clean window.
-3. `STEADY_HOURLY` after a clean 24 hours.
-
-Launch:
-- Lane 1: `python scripts/worker_heartbeat_watch.py --lane 1 --epoch DAYWATCH_2026_09_21 --detach`
-- Lane 2: `python scripts/worker_heartbeat_watch.py --lane 2 --epoch DAYWATCH_2026_09_21 --detach`
-- Lane 3: `python scripts/worker_heartbeat_watch.py --lane 3 --epoch DAYWATCH_2026_09_21 --detach`
-
-Every active numeric-lane heartbeat must post to GitHub issue #7. ChatGPT also posts one concise lead update there each hourly run.
+Visible progress:
+- GitHub issue #7
 
 ## Safety
 
