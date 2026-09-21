@@ -98,35 +98,31 @@ Lane status:
 - coordination/lanes/ANTIGRAVITY_C.md
 
 
-## Lane D — V2.0 Platform & Reliability
+## Lane D — V2.3 Foundations
 
 Branch:
-- worker/platform-reliability
+- worker/v23-foundations
 
 Primary machine:
 - Windows
 
 Owns:
-- A-V20-CONTROL-CENTER
-- A-V20-RELIABILITY
-- A-V20-WORKER-RUN-HISTORY
-- A-V20-ANALYTICS
-- V2.0 operational health/recovery surfaces
-- J20G-04 after Lane C provides Gmail readiness interface
+- A-V23-OPPORTUNITY-GRAPH read/projection layer
+- A-V23-TARGET-COMPANY-WATCH local foundations
+- A-V23-AGENT-TOOLS read/local-write service contracts
+- V2.3 implementation that can be built without external actions or shared-schema churn
 
 Primary paths:
-- src/jobs_automation/dashboard/
-- src/jobs_automation/health.py
-- src/jobs_automation/worker.py for platform/reliability semantics only
-- scripts/
-- analytics-related modules
+- new src/jobs_automation/intelligence/
+- new src/jobs_automation/agent_tools/
 - related tests
+- V2.3-specific config/examples when needed
 
 Avoid:
-- lifecycle/ owned by Lane B
-- Gmail/ingestion/docker-compose owned by Lane C
-- application/preparation/browser/automation owned by Lane A
-- shared DB models/migrations until ChatGPT clears a specific task
+- V2.0 lifecycle/dashboard/health/worker code while Lane B is under re-review
+- Gmail/ingestion/provenance code owned by Lane C
+- application/browser/automation owned by Lane A
+- shared DB models/migrations unless ChatGPT explicitly assigns a schema task
 
 Lane status:
 - coordination/lanes/ANTIGRAVITY_D.md
