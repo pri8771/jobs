@@ -20,8 +20,8 @@ import re
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 LANES = {
     "1": ("worker/v14-real-proof", Path("coordination/heartbeats/LANE_1.md")),
@@ -157,7 +157,12 @@ def reset_epoch(text: str, lane: str, branch: str, epoch: str, task: str) -> str
     )
 
 
-def heartbeat_transform(lane: str, branch: str, epoch: str, task: str) -> Callable[[str], tuple[str, bool, int]]:
+def heartbeat_transform(
+    lane: str,
+    branch: str,
+    epoch: str,
+    task: str,
+) -> Callable[[str], tuple[str, bool, int]]:
     def apply(text: str) -> tuple[str, bool, int]:
         now = utc_now()
         if read_metadata(text, "heartbeat_epoch") != epoch:
@@ -179,7 +184,7 @@ def heartbeat_transform(lane: str, branch: str, epoch: str, task: str) -> Callab
             prior = metadata_int(text, "consecutive_on_time", 0)
             if previous is None:
                 streak = 1
-            elif PROVE_MIN_SECONDS <= gap_seconds <= PROVE_MAX_SECONDS:
+            elif gap_seconds is not None and PROVE_MIN_SECONDS <= gap_seconds <= PROVE_MAX_SECONDS:
                 streak = prior + 1
             else:
                 streak = 1
@@ -245,7 +250,11 @@ def heartbeat_transform(lane: str, branch: str, epoch: str, task: str) -> Callab
                 next_sleep = WATCH_INTERVAL_SECONDS
                 next_mode = "WATCH_15M_24H"
 
-            gap_text = "first watch check-in" if gap_seconds is None else f"{gap_seconds / 60:.1f} minutes"
+            gap_text = (
+                "first watch check-in"
+                if gap_seconds is None
+                else f"{gap_seconds / 60:.1f} minutes"
+            )
             text = append_entry(
                 text,
                 f"### {iso_z(now)} — Lane {lane} 15-MINUTE 24H WATCH HEARTBEAT\n\n"
