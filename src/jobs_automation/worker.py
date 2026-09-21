@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from jobs_automation.adapters.base import EmailAdapter
 from jobs_automation.automation.kill_switch import KillSwitchManager
 from jobs_automation.core.config import ConfigLoader
-from jobs_automation.db.models import InboundMessageModel
+from jobs_automation.db.models import AuditLogModel, InboundMessageModel
 from jobs_automation.ingestion.engine import EmailIngestionEngine
 from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.engine import LifecycleEngine
@@ -111,6 +111,7 @@ class WorkerDaemon:
             "stale_alerts": 0,
             "reconciliation_performed": False,
             "errors": [],
+            "warnings": [],
         }
 
         # Check safety kill switch
@@ -171,6 +172,16 @@ class WorkerDaemon:
                 if res:
                     results["lifecycle_transitions"] += 1
 
+            # Record durable worker run history
+            sweep_audit = AuditLogModel(
+                action_type="worker_sweep",
+                entity_type="worker",
+                actor="worker_daemon",
+                result="success" if not results["errors"] else "error",
+                external_reference=now.isoformat(),
+                metadata_json=dict(results),
+            )
+            session.add(sweep_audit)
             session.commit()
 
         logger.info(

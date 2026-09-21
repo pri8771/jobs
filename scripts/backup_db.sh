@@ -15,7 +15,17 @@ DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${DB_PORT:-5433}"
 DB_USER="${DB_USER:-jobs}"
 DB_NAME="${DB_NAME:-jobs}"
-export PGPASSWORD="${DB_PASSWORD:-jobs}"
+
+if [ -z "${DB_PASSWORD:-}" ]; then
+  if [ "${ALLOW_DEFAULT_DEV_CREDENTIALS:-false}" = "true" ]; then
+    export PGPASSWORD="jobs"
+  else
+    echo "Error: DB_PASSWORD must be set in environment (or set ALLOW_DEFAULT_DEV_CREDENTIALS=true for local dev)."
+    exit 1
+  fi
+else
+  export PGPASSWORD="${DB_PASSWORD}"
+fi
 
 echo "=========================================================="
 echo "Jobs Automation OS — Database Backup Utility"

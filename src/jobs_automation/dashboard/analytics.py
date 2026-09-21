@@ -1,4 +1,4 @@
-"""Analytics and metrics service for application funnels and performance."""
+"""Analytics and metrics service for application funnels, sources, roles, and resume performance."""
 
 from __future__ import annotations
 
@@ -10,8 +10,10 @@ from sqlalchemy.orm import Session
 
 from jobs_automation.db.models import (
     ApplicationModel,
+    ApplicationPacketModel,
     JobModel,
     JobSourceModel,
+    ResumeVariantModel,
     TaskModel,
 )
 
@@ -31,7 +33,7 @@ class FunnelAnalyticsResult(BaseModel):
 
 
 class FunnelAnalyticsService:
-    """Computes funnel metrics, conversion rates, and pipeline health."""
+    """Computes funnel metrics, source attribution, resume efficacy, and pipeline velocity."""
 
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -56,10 +58,12 @@ class FunnelAnalyticsService:
                 "SUBMITTED",
                 "CONFIRMED",
                 "SCREENING",
+                "ASSESSMENT",
                 "INTERVIEWING",
                 "OFFER_RECEIVED",
                 "OFFER_ACCEPTED",
                 "OFFER_DECLINED",
+                "ONBOARDING",
                 "REJECTED",
                 "WITHDRAWN",
             ]
@@ -68,10 +72,12 @@ class FunnelAnalyticsService:
             status_map.get(s, 0)
             for s in [
                 "SCREENING",
+                "ASSESSMENT",
                 "INTERVIEWING",
                 "OFFER_RECEIVED",
                 "OFFER_ACCEPTED",
                 "OFFER_DECLINED",
+                "ONBOARDING",
             ]
         )
         interviewing = sum(
@@ -81,6 +87,7 @@ class FunnelAnalyticsService:
                 "OFFER_RECEIVED",
                 "OFFER_ACCEPTED",
                 "OFFER_DECLINED",
+                "ONBOARDING",
             ]
         )
         offers = sum(
@@ -89,6 +96,7 @@ class FunnelAnalyticsService:
                 "OFFER_RECEIVED",
                 "OFFER_ACCEPTED",
                 "OFFER_DECLINED",
+                "ONBOARDING",
             ]
         )
         rejected = status_map.get("REJECTED", 0)
@@ -135,6 +143,236 @@ class FunnelAnalyticsService:
         ).all()
         return {provider: count for provider, count in results}
 
+    def get_source_performance(self) -> list[dict[str, Any]]:
+        """Calculates downstream application funnel conversion grouped by job discovery source."""
+        stmt = (
+            select(
+                JobSourceModel.provider,
+                func.count(JobSourceModel.id).label("jobs_discovered"),
+                func.count(ApplicationModel.id).label("applications_submitted"),
+            )
+            .join(JobModel, JobModel.id == JobSourceModel.job_id)
+            .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
+            .group_by(JobSourceModel.provider)
+        )
+        rows = self.session.execute(stmt).all()
+
+        performance: list[dict[str, Any]] = []
+        for provider, disc, apps in rows:
+            # Query status breakdown for applications from this provider
+            app_stmt = (
+                select(ApplicationModel.status, func.count(ApplicationModel.id))
+                .join(JobModel, JobModel.id == ApplicationModel.job_id)
+                .join(JobSourceModel, JobSourceModel.job_id == JobModel.id)
+                .where(JobSourceModel.provider == provider)
+                .group_by(ApplicationModel.status)
+            )
+            app_status_counts: dict[str, int] = {
+                str(st): int(cnt) for st, cnt in self.session.execute(app_stmt).all()
+            }
+
+            screens = sum(
+                app_status_counts.get(s, 0)
+                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            interviews = sum(
+                app_status_counts.get(s, 0)
+                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            offers = sum(
+                app_status_counts.get(s, 0)
+                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            rejections = app_status_counts.get("REJECTED", 0)
+
+            response_rate = round((screens / apps * 100), 1) if apps else 0.0
+            offer_rate = round((offers / apps * 100), 1) if apps else 0.0
+
+            performance.append(
+                {
+                    "provider": provider,
+                    "jobs_discovered": disc,
+                    "applications_submitted": apps,
+                    "screenings": screens,
+                    "interviews": interviews,
+                    "offers": offers,
+                    "rejections": rejections,
+                    "response_rate_pct": response_rate,
+                    "offer_rate_pct": offer_rate,
+                    "low_sample_size": apps < 5,
+                    "note": "Sample size warning: N < 5" if apps < 5 else "Reliable sample",
+                }
+            )
+        return performance
+
+    def get_role_family_performance(self) -> list[dict[str, Any]]:
+        """Calculates conversion and outcome distribution by target role/title family."""
+        stmt = (
+            select(
+                JobModel.normalized_title,
+                func.count(ApplicationModel.id).label("applications_count"),
+            )
+            .join(ApplicationModel, ApplicationModel.job_id == JobModel.id)
+            .group_by(JobModel.normalized_title)
+            .order_by(func.count(ApplicationModel.id).desc())
+        )
+        rows = self.session.execute(stmt).all()
+
+        results: list[dict[str, Any]] = []
+        for role, apps_count in rows:
+            sub_stmt = (
+                select(ApplicationModel.status, func.count(ApplicationModel.id))
+                .join(JobModel, JobModel.id == ApplicationModel.job_id)
+                .where(JobModel.normalized_title == role)
+                .group_by(ApplicationModel.status)
+            )
+            counts: dict[str, int] = {
+                str(st): int(cnt) for st, cnt in self.session.execute(sub_stmt).all()
+            }
+
+            screens = sum(
+                counts.get(s, 0)
+                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            interviews = sum(
+                counts.get(s, 0)
+                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            offers = sum(
+                counts.get(s, 0)
+                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            rejections = counts.get("REJECTED", 0)
+
+            results.append(
+                {
+                    "role_family": role,
+                    "applications_count": apps_count,
+                    "screenings": screens,
+                    "interviews": interviews,
+                    "offers": offers,
+                    "rejections": rejections,
+                    "interview_rate_pct": round((interviews / apps_count * 100), 1) if apps_count else 0.0,
+                    "offer_rate_pct": round((offers / apps_count * 100), 1) if apps_count else 0.0,
+                    "low_sample_size": apps_count < 5,
+                }
+            )
+        return results
+
+    def get_resume_performance(self) -> list[dict[str, Any]]:
+        """Calculates funnel efficacy grouped by immutable resume variant and resume family."""
+        stmt = (
+            select(
+                ResumeVariantModel.resume_family,
+                ResumeVariantModel.name,
+                ResumeVariantModel.version,
+                func.count(ApplicationModel.id).label("applications_count"),
+            )
+            .join(ApplicationPacketModel, ApplicationPacketModel.resume_variant_id == ResumeVariantModel.id)
+            .join(ApplicationModel, ApplicationModel.packet_id == ApplicationPacketModel.id)
+            .group_by(ResumeVariantModel.resume_family, ResumeVariantModel.name, ResumeVariantModel.version)
+        )
+        rows = self.session.execute(stmt).all()
+
+        results: list[dict[str, Any]] = []
+        for family, name, version, count in rows:
+            app_stmt = (
+                select(ApplicationModel.status, func.count(ApplicationModel.id))
+                .join(ApplicationPacketModel, ApplicationPacketModel.id == ApplicationModel.packet_id)
+                .join(ResumeVariantModel, ResumeVariantModel.id == ApplicationPacketModel.resume_variant_id)
+                .where(
+                    ResumeVariantModel.name == name,
+                    ResumeVariantModel.version == version,
+                )
+                .group_by(ApplicationModel.status)
+            )
+            counts: dict[str, int] = {
+                str(st): int(cnt) for st, cnt in self.session.execute(app_stmt).all()
+            }
+
+            screens = sum(
+                counts.get(s, 0)
+                for s in ["SCREENING", "ASSESSMENT", "INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            interviews = sum(
+                counts.get(s, 0)
+                for s in ["INTERVIEWING", "OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+            offers = sum(
+                counts.get(s, 0)
+                for s in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "ONBOARDING"]
+            )
+
+            results.append(
+                {
+                    "resume_family": family,
+                    "variant_name": name,
+                    "version": version,
+                    "applications_count": count,
+                    "screenings": screens,
+                    "interviews": interviews,
+                    "offers": offers,
+                    "interview_rate_pct": round((interviews / count * 100), 1) if count else 0.0,
+                    "offer_rate_pct": round((offers / count * 100), 1) if count else 0.0,
+                    "low_sample_size": count < 5,
+                    "confidence_label": "Descriptive (N < 5)" if count < 5 else "Statistically robust",
+                }
+            )
+        return results
+
+    def get_time_to_stage(self) -> dict[str, Any]:
+        """Calculates average latency in days from application submission to various lifecycle stages."""
+        apps = self.session.scalars(
+            select(ApplicationModel).where(ApplicationModel.applied_at.is_not(None))
+        ).all()
+
+        time_to_first_response: list[float] = []
+        time_to_interview: list[float] = []
+        time_to_offer: list[float] = []
+        time_to_rejection: list[float] = []
+
+        for app in apps:
+            if not app.applied_at:
+                continue
+
+            events = sorted(app.events, key=lambda e: e.occurred_at)
+            has_first_response = False
+            has_interview = False
+            has_offer = False
+            has_rejection = False
+
+            for ev in events:
+                elapsed_days = max(0.0, (ev.occurred_at - app.applied_at).total_seconds() / 86400.0)
+                if ev.event_type in ("RECRUITER_CONTACTED", "SCREENING_REQUESTED") and not has_first_response:
+                    time_to_first_response.append(elapsed_days)
+                    has_first_response = True
+                elif ev.event_type in ("INTERVIEW_REQUESTED", "INTERVIEW_CONFIRMED") and not has_interview:
+                    time_to_interview.append(elapsed_days)
+                    has_interview = True
+                elif ev.event_type == "OFFER_EXTENDED" and not has_offer:
+                    time_to_offer.append(elapsed_days)
+                    has_offer = True
+                elif ev.event_type == "APPLICATION_REJECTED" and not has_rejection:
+                    time_to_rejection.append(elapsed_days)
+                    has_rejection = True
+
+        def avg_or_none(values: list[float]) -> float | None:
+            return round(sum(values) / len(values), 1) if values else None
+
+        return {
+            "avg_days_to_first_response": avg_or_none(time_to_first_response),
+            "avg_days_to_interview": avg_or_none(time_to_interview),
+            "avg_days_to_offer": avg_or_none(time_to_offer),
+            "avg_days_to_rejection": avg_or_none(time_to_rejection),
+            "sample_sizes": {
+                "first_response": len(time_to_first_response),
+                "interview": len(time_to_interview),
+                "offer": len(time_to_offer),
+                "rejection": len(time_to_rejection),
+            },
+            "interpretation_note": "Averages are descriptive. Standard sample-size warnings apply when N < 5.",
+        }
+
     def get_kanban_board(self) -> dict[str, list[dict[str, Any]]]:
         """Groups applications into Kanban columns for pipeline visualization."""
         applications = self.session.scalars(
@@ -175,11 +413,11 @@ class FunnelAnalyticsService:
                 columns["PREPARED"].append(card_data)
             elif status in ["SUBMITTED", "CONFIRMED"]:
                 columns["SUBMITTED"].append(card_data)
-            elif status == "SCREENING":
+            elif status in ["SCREENING", "ASSESSMENT"]:
                 columns["SCREENING"].append(card_data)
             elif status == "INTERVIEWING":
                 columns["INTERVIEWING"].append(card_data)
-            elif status in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "OFFER_DECLINED"]:
+            elif status in ["OFFER_RECEIVED", "OFFER_ACCEPTED", "OFFER_DECLINED", "ONBOARDING"]:
                 columns["OFFER"].append(card_data)
             elif status in ["REJECTED", "WITHDRAWN"]:
                 columns["CLOSED"].append(card_data)
