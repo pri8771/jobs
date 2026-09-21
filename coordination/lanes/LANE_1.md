@@ -2,80 +2,65 @@
 
 Branch:
 - `worker/v14-real-proof`
+- draft PR #8
 
 Owner:
-- fresh Antigravity session
+- active Lane 1 worker
 
 Reviewer:
 - ChatGPT lead
-- worker-pc may be used for independent bounded review when available
+- worker-pc may provide bounded independent audit support
 
 Priority:
 - P0 / project critical path
 
-## Lead checkpoint — 2026-09-21 15:44Z
+## Current lead review — 2026-09-21 16:52Z
 
-- Branch is identical to main; no worker production commit exists yet.
-- Current-epoch active heartbeat `coordination/heartbeats/LANE_1.md` is still 0/3 with no worker-authored check-in.
-- Start the detached numeric Lane 1 watcher, then execute P0A immediately.
-- Do not wait for worker-pc; its capacity-1 slot is currently occupied by non-Jobs work.
+Worker batch:
+- commit `8f8c21f88512aa32521c78285b72dc9da298672e`
+- CI #401: GREEN
+- RP14-T1..T7 implementation is substantial, but P0A is **REWORK**, not accepted.
 
-## Mission
+Blocking findings from direct diff review:
+1. Candidate/receipt separation is still open: candidate schema/verifier accept `REAL_PROOF_PASS`; candidate bundles must accept only `REAL_PROOF_CANDIDATE`.
+2. A structurally valid hand-authored redacted bundle can still receive `REAL_PROOF_PASS` when `--local-full-bundle` is omitted. PASS must require successful private/local cross-binding; structural-only validation may not produce PASS.
+3. Rejected candidates write `REAL_PROOF_FAIL` receipts only when `--receipt-output` is supplied. Default rejection must also emit a candidate-bundle-bound FAIL receipt.
+4. RP14-T7 does not independently recompute the canonical packet hash from manifest job/profile/resume IDs + artifact hashes + answers/provenance; matching two supplied packet-hash strings is insufficient. Recompute and verify the job/resume-variant linkage.
 
-Make V1.4 genuinely complete under the owner's rule:
-engineering acceptance + one real non-mock production-path example.
+The same findings are posted on PR #8. A worker-pc read-only audit of the same commit is in progress; incorporate any additional valid findings when it returns.
 
-## Immediate scope — P0A
+## Immediate bounded assignment
 
-Implement RP14-T1..T7 from:
-- `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
-- `coordination/WORK_QUEUE.md`
+1. Pull/rebase latest `main` without losing the P0A implementation.
+2. If any `FIVE_MIN_2026_09_21` watcher is running, stop it. The authoritative epoch is `DAYWATCH_2026_09_21`.
+3. Continue the current DAYWATCH heartbeat under `coordination/heartbeats/LANE_1.md`; actual timestamps govern credit.
+4. Repair the four findings above.
+5. Add adversarial tests proving:
+   - a candidate bundle self-labeled PASS is rejected,
+   - a candidate without local/private binding cannot obtain a PASS receipt,
+   - a rejected candidate produces a bound FAIL receipt under default invocation,
+   - a forged manifest/candidate pair with matching invented packet hashes fails canonical re-derivation.
+6. Run focused proof tests plus full `pytest`, `ruff`, `mypy`, and branch CI.
+7. Push one coherent repair commit and set `READY_FOR_LEAD_REVIEW` / `REVIEW`.
 
-Required:
-- runtime candidate bundle does not self-declare PASS,
-- separate verifier receipt bound to bundle SHA,
-- local/private evidence cross-binding,
-- real Greenhouse job/question attestation binding,
-- copied example profile rejection by content,
-- explicit committed-evidence allowlist,
-- truthful deterministic-production labeling,
-- packet/manifest/resume/job/artifact cross-link verification,
-- adversarial tests + full pytest/Ruff/mypy/CI.
+Do **not** use private candidate/resume inputs or execute the real proof until ChatGPT explicitly accepts P0A.
 
-Remote RP14-T5 support commit `1f4a9b9...` is reviewed candidate code only; adopt/cherry-pick/reimplement only if useful after rebasing, then prove it in the coherent batch.
-
-## After P0A lead acceptance
+## After P0A acceptance
 
 Immediately:
-1. validate real private profile + exact resume mapping,
-2. import/revalidate real OpenSesame job/questions,
-3. execute the real V1.4 packet proof,
-4. emit redacted runtime candidate + independent verifier receipt,
-5. stop for lead review.
+1. validate the real private candidate profile + exact selected-resume mapping,
+2. import/revalidate the live OpenSesame job/questions,
+3. run the genuine V1.4 packet proof,
+4. commit only runtime-generated redacted candidate evidence + separate verifier receipt,
+5. stop for lead acceptance.
 
-No browser prefill or application submission is authorized.
+No Gmail OAuth/mailbox access, browser prefill, application submission, external messaging, or fabricated candidate facts are authorized.
 
 ## Heartbeat
 
-Launch:
+Authoritative epoch: `DAYWATCH_2026_09_21`.
+
+Launch only if no correct watcher is already running:
 `python scripts/worker_heartbeat_watch.py --lane 1 --epoch DAYWATCH_2026_09_21 --task "V1.4 real-proof tooling RP14-T1..T7" --detach`
 
-Heartbeat progress is posted to GitHub issue #7.
-
-## Exit
-
-READY_FOR_LEAD_REVIEW only after one coherent tested P0A batch is pushed.
-
-## Heartbeat migration — fixed 5-minute standard
-
-Current canonical heartbeat epoch:
-- `FIVE_MIN_2026_09_21`
-
-If an older DAYWATCH watcher is still running:
-1. stop that old watcher process,
-2. pull latest `main`,
-3. launch exactly one new watcher:
-   `python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --detach`
-4. do not start another watcher after that.
-
-There are no cadence transitions anymore. Heartbeat remains every 5 minutes for the entire active session.
+Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
