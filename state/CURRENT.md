@@ -23,6 +23,10 @@ engineering acceptance is not version completion; every version needs at least o
 
 ### Main
 
+Current lead-reviewed main baseline on this run began at:
+- `f27c27e7a3e9d7b78a8ecb5903af8a1b0ba4bf9a`
+- CI run #374: success
+
 Main contains:
 - accepted V1.4 packet-safety foundation,
 - proof-tooling runbook/scripts/schema,
@@ -44,8 +48,11 @@ Those remain on worker branches pending final coherent review/integration.
 Branch:
 - `worker/v14-real-proof`
 
-Created clean from current main.
-Replaces old `worker/live-data-foundations`, which had no worker production code ahead of main.
+Verified state:
+- branch is identical to main,
+- no worker production commit is ahead of main,
+- no PR is needed yet,
+- active `coordination/heartbeats/LANE_1.md` remains at 0/3 with no worker check-in.
 
 Mission:
 - RP14-T1..T7
@@ -53,65 +60,89 @@ Mission:
 - then candidate provenance/Gmail readiness
 
 Status:
-- ready for fresh worker session
+- waiting for fresh worker execution on the P0 critical path.
 
 ### Lane 2
 
 Branch:
 - `worker/v15-assisted-application`
+- draft PR #2
+- head `552da7919dab95c18a0ec1e943275c3f67d3ba73`
+
+Verified branch state:
+- 6 commits ahead / 5 behind main at lead inspection,
+- PR #2 is draft and currently non-mergeable until rebased,
+- CI run #369 on the current head: success,
+- Worker Heartbeat Validation on the same head: failure.
 
 Current worker code:
-- substantial V1.5 implementation
-- A-R15-01..05 accepted at task scope
-- branch CI green before current main divergence
+- substantial V1.5 implementation,
+- A-R15-01..05 accepted at task scope.
 
 Outstanding:
-- A-R15-06..09
-- rebase latest main
-- final lead integration review
-- V1.5 real proof later
+- rebase latest main,
+- stop writing historical `LANE_A.md`,
+- launch numeric Lane 2 watcher so active `LANE_2.md` begins the current epoch,
+- implement A-R15-06..09,
+- final lead integration review,
+- V1.5 real proof later.
 
 Known V1.4 proof readiness blocker:
-- real profile selected `resume_ai_software_engineer`
-- no genuine mapped file for that selected variant was present on the Lane 2 machine
-- system correctly failed closed
+- real profile selected `resume_ai_software_engineer`,
+- no genuine mapped file for that selected variant was present on the Lane 2 machine,
+- system correctly failed closed.
 
 ### Lane 3
 
 Branch:
 - `worker/recruiting-ops`
+- draft PR #3
+- head `68595d1fe825545b7f1506b7068d1c78376f7953`
+
+Verified branch state:
+- 4 commits ahead / 49 behind main at lead inspection,
+- PR #3 is draft and currently non-mergeable until rebased,
+- CI run #329 on the current head: success,
+- Worker Heartbeat Validation on the same head: failure,
+- branch still uses historical `LANE_B.md`; active `LANE_3.md` is not yet present because the branch has not rebased the three-lane reset.
 
 Current worker code:
-- substantial V1.7 + V2.0 implementation
-- B-R17-03, B-R20-07, B-R20-08 accepted at task scope
-- branch CI green on reviewed head
+- substantial V1.7 + V2.0 implementation,
+- B-R17-03, B-R20-07, B-R20-08 accepted at task scope.
 
 Outstanding:
-- B-R20-05/J20-14 durability rework
-- B-R20-01/B-R20-02 headline analytics semantics
-- rebase latest main
-- coherent final review/integration
+- rebase latest main,
+- launch numeric Lane 3 watcher using active `LANE_3.md`,
+- B-R20-05/J20-14 durability rework,
+- B-R20-01/B-R20-02 headline analytics semantics,
+- coherent final review/integration.
 
-### Old Lane D
+### Paused historical lanes
 
-Paused.
-No production implementation ahead of main; only heartbeat/coordination history.
-V2.3 work is deferred.
+Old Lane D / `worker/v23-foundations`:
+- PAUSED.
 
-### Old Scout
+Old Scout / `scout/qa-prep`:
+- PAUSED.
 
-Paused.
-No production implementation.
-Independent verification responsibility moves to ChatGPT + worker-pc.
+Old Lane C / `worker/live-data-foundations`:
+- SUPERSEDED by Lane 1.
+
+Historical heartbeat files A/B/C/D/Scout remain audit evidence only and do not count for the active epoch.
 
 ### Remote worker
 
 `worker-pc` remains external infrastructure, capacity 1.
 
-Useful evidence:
-- independent P0A audit confirmed forged-bundle / local-binding defects
-- reviewed RP14-T5 support commit exists at `1f4a9b9...`
-- not accepted because it lacked complete test/CI evidence
+Current verified state:
+- worker is online,
+- a non-Jobs SwarmAI dispatch is currently `in_progress`, so Jobs must not consume the capacity-1 slot this run.
+
+Recent Jobs evidence:
+- independent P0A audit confirmed forged-bundle / local-binding defects,
+- reviewed RP14-T5 support commit exists at `1f4a9b9...`,
+- not accepted because it lacked complete test/CI evidence,
+- later RP14-T6 remote attempt produced no usable Jobs branch/result and receives zero credit.
 
 Use worker-pc for bounded independent audits/reviews and isolated support tasks when available.
 Never auto-merge.
@@ -135,15 +166,18 @@ worker-pc:
 Current epoch:
 - `DAYWATCH_2026_09_21`
 
-Fresh sessions start at 0/3 for the new Lane 1/2/3 files.
+Lead-verified active-lane state:
+- Lane 1: 0/3
+- Lane 2: 0/3
+- Lane 3: 0/3
 
 Required:
 - 3 valid ~5-minute heartbeats,
 - then 15-minute cadence for a clean 24 hours,
 - then hourly.
 
-Every heartbeat is posted automatically to GitHub issue #7:
-- `Jobs Automation — Live Progress`
+Every valid active Lane 1/2/3 heartbeat should be posted automatically to GitHub issue #7.
+The progress workflow is functioning; current missing comments are caused by workers not yet using the active numeric heartbeat files, not by a feed outage.
 
 Heartbeat is liveness/progress evidence, not code acceptance.
 
