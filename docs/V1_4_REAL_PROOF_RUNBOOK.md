@@ -80,6 +80,25 @@ It should contain hashes/IDs/provenance sufficient for verification.
 
 ## Phase 5 — independent verification
 
+Required validator:
+
+```bash
+python scripts/verify_v14_real_proof.py coordination/proofs/<proof-file>.json
+```
+
+When the private full evidence bundle is available on the same machine, additionally run:
+
+```bash
+python scripts/verify_v14_real_proof.py coordination/proofs/<proof-file>.json --local-full-bundle .local/proofs/<private-file>.json
+```
+
+The private full bundle remains ignored/uncommitted.
+
+Schema:
+- coordination/proofs/v14_real_proof.schema.json
+
+
+
 Run a proof verifier that:
 - recomputes accessible artifact hashes,
 - verifies packet -> ResumeVariant linkage,
