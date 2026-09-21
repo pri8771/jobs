@@ -10,6 +10,25 @@ Owner directive:
 See:
 - `docs/REAL_PROOF_ACCEPTANCE_POLICY.md`
 
+## P0A proof-tool integrity
+
+Before using private candidate/resume data for the milestone proof, the proof chain itself must be hardened.
+
+Lead audit:
+- docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md
+
+Verified current defect:
+- tests/test_real_proof_verifier.py currently accepts a fully hand-authored structurally valid redacted bundle as REAL_PROOF_VALIDATION_PASS.
+
+Required before private proof execution:
+- runtime candidate bundle must not self-declare PASS,
+- separate verifier receipt bound to bundle SHA,
+- local artifact SHAs cross-match redacted evidence,
+- job/questions bind to actual current public fetch,
+- copied example profile cannot evade filename checks,
+- redacted schema disallows arbitrary extra fields,
+- packet/manifest/runtime cross-links verified.
+
 ## V1.4
 
 Engineering artifact:
