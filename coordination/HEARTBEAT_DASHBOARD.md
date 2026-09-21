@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 14:53 ET
+Updated: 2026-09-21 14:59 ET
 
 ## Canonical standard
 
@@ -27,12 +27,14 @@ Verified current-epoch timestamps from actual branch commits:
 - 18:33:19Z
 - 18:38:21Z
 - 18:43:24Z
+- 18:48:25Z
+- 18:53:27Z
 
 Latest observed branch head:
-- `9badcd32cdc848baa3f0c657ddb45c9858d8c977`
-- heartbeat #11
+- `bac19e5dd12a93644320ff9274ed562f1e347f20`
+- heartbeat #13
 
-Worker file says `READY_FOR_LEAD_REVIEW`, but the latest substantive implementation remains `5e5058461d5371f292c93e0c53cb0b93caba7e44`; the later commits are heartbeat-only. Lead verdict remains **REWORK** because mandatory DB linkage can still be bypassed by omitting the DB target and source attestation is not independently bound to persisted Greenhouse `JobSource` evidence.
+Worker file says `READY_FOR_LEAD_REVIEW`, but the latest substantive implementation remains `5e5058461d5371f292c93e0c53cb0b93caba7e44`; later commits are heartbeat-only. Lead verdict remains **REWORK** because mandatory DB linkage can still be bypassed by omitting the DB target and source attestation is not independently bound to persisted Greenhouse `JobSource` evidence.
 
 ## Lane 2 — `worker/v15-assisted-application`
 
@@ -60,7 +62,7 @@ Actual latest branch heartbeat evidence:
 - mode `PROVING_5M`
 - last check-in `2026-09-21T16:44:37Z`
 - branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- branch is 0 commits ahead / 128 behind main; accepted PR #3 batch is already merged
+- branch was 0 commits ahead / 128 behind main at lead review; accepted PR #3 batch is already merged
 
 Required migration:
 1. stop any old Lane 3 watcher once,
@@ -71,12 +73,11 @@ Required migration:
 
 ## Issue #7 / workflow health
 
-Automated heartbeat comments were confirmed through Lane 1 heartbeat 18:18:14Z. Issue #7 then stopped receiving bot heartbeat comments while Lane 1 heartbeat commits continued through 18:43:24Z.
+Automated heartbeat comments were confirmed through Lane 1 heartbeat 18:18:14Z. Issue #7 then stopped receiving bot heartbeat comments while Lane 1 heartbeat commits continued through 18:53:27Z.
 
 This is currently diagnosed as **`CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure**, not a heartbeat workflow-code regression:
-- Lane 1 `validate-heartbeat` at head `9badcd32...` failed before any workflow steps were available,
-- Lane 1 `post-progress` at the same head failed before any workflow steps were available,
-- the latest ordinary main CI job also failed within seconds before any workflow steps were available,
+- Lane 1 `validate-heartbeat` / `post-progress` jobs on newer heartbeat commits fail before any workflow steps are available,
+- current ordinary main CI jobs also fail within seconds before any workflow steps are available,
 - Lane 2 heartbeat validation/post-progress had succeeded earlier at 17:39Z before the current runner blockage.
 
 Do not change heartbeat workflow semantics merely to manufacture activity. Re-check on the next lead run. Direct ChatGPT lead updates to issue #7 remain mandatory and continue even while Actions posting is blocked.
