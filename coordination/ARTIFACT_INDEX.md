@@ -13,7 +13,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
 | A-V16-SUBMISSION-ENGINE-REPAIR | V1.6 | Submission truth/idempotency/authorization repair | implementation/safety | Antigravity Lane A | BLOCKED | A-V15-ASSISTED-APPLICATION | A-V16-FIRST-REAL-SUBMISSION |
 | A-V16-FIRST-REAL-SUBMISSION | V1.6 | First system-submitted externally confirmed application | live-evidence | Antigravity + User | PROPOSED | A-V15-ASSISTED-APPLICATION, A-PROOF-JOB-SELECTION, A-V16-SUBMISSION-CONTRACT | strategy review |
-| A-V12-CANDIDATE-PROVENANCE | V1.2 | Private-safe candidate fact provenance contract | data/evidence | Antigravity | PROPOSED | none | safe packet answers |
+| A-V12-CANDIDATE-PROVENANCE | V1.2 | Private-safe candidate fact provenance contract | data/evidence | Antigravity Lane C | READY | none | safe packet answers |
 | A-V12-GMAIL-CANARY | V1.2 | Read-only Gmail OAuth + ingestion canary | integration/evidence | Antigravity + User | PROPOSED | user OAuth | V1.3 live discovery |
 | A-PROOF-JOB-SELECTION | V1.3/V1.5 | User-approved proof-job selection record | decision/evidence | ChatGPT + User | PROPOSED | real jobs | A-V15, A-V16 |
 | A-RESUME-OUTCOME-METRICS | post-first-app | Resume/application outcome analytics | analytics/spec | Antigravity | PROPOSED | immutable resume attribution + lifecycle events | learning loop |
@@ -25,9 +25,9 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Antigravity Lane B | READY | existing CI/health/backup | A-V20-INTEGRATED-OS |
 | A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Antigravity Lane B | READY | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
 | A-V20-ANALYTICS | V2.0 | Funnel/resume/source analytics | analytics | Antigravity Lane B | READY | resume attribution | A-V20-INTEGRATED-OS |
-| A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Antigravity Lane B | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
+| A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Antigravity Lane C + Lane B glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
 | A-V20-LIVE-INGESTION | V2.0 | Real Gmail/live-data ingestion proof | live integration | Antigravity + User | BLOCKED | A-V20-GMAIL-RUNTIME-READINESS + user OAuth | A-V20-INTEGRATED-OS |
-| A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Antigravity + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
+| A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Antigravity Lane C + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + Antigravity | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
 | A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | Antigravity | PROPOSED | A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE |
 | A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + Antigravity | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
