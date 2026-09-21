@@ -196,7 +196,9 @@ def test_worker_daemon_run_sweep(
         def get_thread(self, thread_id: str) -> list[Any]:
             return []
 
-    clean_daemon = WorkerDaemon(db_session_factory, poll_interval_seconds=60, email_adapter=CleanAdapter())
+    clean_daemon = WorkerDaemon(
+        db_session_factory, poll_interval_seconds=60, email_adapter=CleanAdapter()
+    )
     clean_results = clean_daemon.run_sweep()
     assert clean_results["errors"] == []
 
@@ -329,7 +331,10 @@ def test_worker_health_shows_unfinished_running_attempt(
             result="RUNNING",
             external_reference=active_run_id,
             occurred_at=now - datetime.timedelta(minutes=5),
-            metadata_json={"run_id": active_run_id, "started_at": (now - datetime.timedelta(minutes=5)).isoformat()},
+            metadata_json={
+                "run_id": active_run_id,
+                "started_at": (now - datetime.timedelta(minutes=5)).isoformat(),
+            },
         )
         session.add(begin_rec)
         session.commit()
@@ -379,5 +384,3 @@ def test_worker_health_reports_reconciliation_and_error_fields(
     assert health.details["last_error_category"] == "GMAIL_AUTH_ERROR"
     assert health.details["last_reconciliation_at"] is not None
     assert health.status == "DEGRADED"
-
-

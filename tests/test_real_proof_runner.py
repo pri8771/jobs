@@ -16,12 +16,17 @@ from scripts.run_v14_real_proof import RealProofError, validate_job, validate_pr
 def test_validate_profile_path_rejects_example_filename(tmp_path: Path) -> None:
     example_path = tmp_path / "candidate_profile.example.yaml"
     example_path.write_text("name: Test", encoding="utf-8")
-    with pytest.raises(RealProofError, match="matches repository example file|Example candidate profile is forbidden"):
+    with pytest.raises(
+        RealProofError,
+        match="matches repository example file|Example candidate profile is forbidden",
+    ):
         validate_profile_path(example_path)
 
 
 def test_validate_profile_path_rejects_example_content_even_when_renamed(tmp_path: Path) -> None:
-    repo_example = Path(__file__).resolve().parent.parent / "config" / "candidate_profile.example.yaml"
+    repo_example = (
+        Path(__file__).resolve().parent.parent / "config" / "candidate_profile.example.yaml"
+    )
     if not repo_example.exists():
         pytest.skip("Repository candidate_profile.example.yaml not found")
 
@@ -85,7 +90,9 @@ def test_validate_job_requires_greenhouse_source_binding() -> None:
         validate_job(job, questions=questions)
 
     # Mismatched description hash
-    gh_source.source_payload_json["api_url"] = "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740"
+    gh_source.source_payload_json["api_url"] = (
+        "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740"
+    )
     gh_source.source_payload_json["content_sha256"] = "0" * 64
     with pytest.raises(RealProofError, match="Greenhouse description hash mismatch"):
         validate_job(job, questions=questions)

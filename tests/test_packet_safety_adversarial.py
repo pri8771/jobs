@@ -136,9 +136,10 @@ def test_deterministic_work_auth_provenance(profile: CandidateProfileConfig) -> 
         "work_authorization.authorized_to_work_in_us"
     ]
     assert answers["Will you now or in the future require visa sponsorship?"] == "No"
-    assert "work_authorization.requires_sponsorship_now" in provenance[
-        "Will you now or in the future require visa sponsorship?"
-    ]["sources"]
+    assert (
+        "work_authorization.requires_sponsorship_now"
+        in provenance["Will you now or in the future require visa sponsorship?"]["sources"]
+    )
 
 
 def test_selected_family_cannot_silently_load_unmapped_source(
@@ -170,7 +171,9 @@ def test_selected_family_cannot_silently_load_unmapped_source(
     builder = ApplicationPacketBuilder(db_session, profile, gateway, artifact_store=store)
 
     # Must fail closed with FileNotFoundError instead of silently using SAP resume
-    with pytest.raises(FileNotFoundError, match="Selected resume variant 'resume_mobile_ios' cannot be resolved"):
+    with pytest.raises(
+        FileNotFoundError, match="Selected resume variant 'resume_mobile_ios' cannot be resolved"
+    ):
         builder.build_packet(job_ios)
 
 
@@ -222,13 +225,33 @@ def test_two_packet_builds_preserve_historical_artifacts(
     assert result_1.cover_letter_artifact_uri != result_2.cover_letter_artifact_uri
 
     # Historical bytes from Build 1 must still exist on disk and be fully verifiable
-    assert store.verify(result_1.manifest_artifact_uri, hashlib.sha256(store.read(result_1.manifest_artifact_uri)).hexdigest()) is True
-    assert store.verify(result_2.manifest_artifact_uri, hashlib.sha256(store.read(result_2.manifest_artifact_uri)).hexdigest()) is True
-    assert store.verify(result_1.cover_letter_artifact_uri, result_1.cover_letter_artifact_sha256) is True
-    assert store.verify(result_2.cover_letter_artifact_uri, result_2.cover_letter_artifact_sha256) is True
+    assert (
+        store.verify(
+            result_1.manifest_artifact_uri,
+            hashlib.sha256(store.read(result_1.manifest_artifact_uri)).hexdigest(),
+        )
+        is True
+    )
+    assert (
+        store.verify(
+            result_2.manifest_artifact_uri,
+            hashlib.sha256(store.read(result_2.manifest_artifact_uri)).hexdigest(),
+        )
+        is True
+    )
+    assert (
+        store.verify(result_1.cover_letter_artifact_uri, result_1.cover_letter_artifact_sha256)
+        is True
+    )
+    assert (
+        store.verify(result_2.cover_letter_artifact_uri, result_2.cover_letter_artifact_sha256)
+        is True
+    )
 
     # Bytes must be different and intact
-    assert store.read(result_1.cover_letter_artifact_uri) != store.read(result_2.cover_letter_artifact_uri)
+    assert store.read(result_1.cover_letter_artifact_uri) != store.read(
+        result_2.cover_letter_artifact_uri
+    )
 
 
 def test_resume_variant_family_attribution_all_variants(profile: CandidateProfileConfig) -> None:
@@ -372,6 +395,10 @@ def test_quantitative_experience_claims_require_exact_canonical_evidence(
     )
     assert len(unresolved2) == 0
     assert answers2["How many years of Python experience do you have?"] == "8 years"
-    assert provenance2["How many years of Python experience do you have?"]["method"] == "deterministic"
-    assert "application_answers.custom_answers" in provenance2["How many years of Python experience do you have?"]["sources"][0]
-
+    assert (
+        provenance2["How many years of Python experience do you have?"]["method"] == "deterministic"
+    )
+    assert (
+        "application_answers.custom_answers"
+        in provenance2["How many years of Python experience do you have?"]["sources"][0]
+    )

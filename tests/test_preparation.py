@@ -102,7 +102,10 @@ def test_screening_question_resolution_and_unresolved_flags(
     # Salary resolved from profile min target
     assert "What is your required salary?" in answers
     assert "$150,000 USD" in answers["What is your required salary?"]
-    assert "target.target_compensation_usd_min" in provenance["What is your required salary?"]["sources"]
+    assert (
+        "target.target_compensation_usd_min"
+        in provenance["What is your required salary?"]["sources"]
+    )
 
     # Demographic & Relocation MUST be unresolved
     assert len(unresolved) == 2

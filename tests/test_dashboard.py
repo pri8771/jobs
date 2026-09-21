@@ -306,7 +306,9 @@ def test_dashboard_server_endpoints() -> None:
     assert isinstance(an_res_data, list)
 
     # 13. GET /api/analytics/time-to-stage
-    h_an_tts = DummyRequestHandler("GET", "/api/analytics/time-to-stage", session_factory=session_factory)
+    h_an_tts = DummyRequestHandler(
+        "GET", "/api/analytics/time-to-stage", session_factory=session_factory
+    )
     h_an_tts.do_GET()
     assert h_an_tts.status_code == 200
     tts_data = json.loads(h_an_tts.mock_wfile.getvalue().decode("utf-8"))
@@ -320,7 +322,9 @@ def test_dashboard_server_endpoints() -> None:
     assert isinstance(timeline_data, list)
 
     # 15. GET /api/offers-rejections
-    h_off_rej = DummyRequestHandler("GET", "/api/offers-rejections", session_factory=session_factory)
+    h_off_rej = DummyRequestHandler(
+        "GET", "/api/offers-rejections", session_factory=session_factory
+    )
     h_off_rej.do_GET()
     assert h_off_rej.status_code == 200
     off_rej_data = json.loads(h_off_rej.mock_wfile.getvalue().decode("utf-8"))
@@ -636,11 +640,19 @@ def test_historical_outcomes_and_real_submission_denominator(db_session: Session
         application_mode="simulation",
     )
 
-    db_session.add_all([
-        app_a, app_b, app_c, app_d,
-        ev_a_screen, ev_a_interview, ev_a_reject,
-        ev_b_offer, ev_b_withdraw,
-    ])
+    db_session.add_all(
+        [
+            app_a,
+            app_b,
+            app_c,
+            app_d,
+            ev_a_screen,
+            ev_a_interview,
+            ev_a_reject,
+            ev_b_offer,
+            ev_b_withdraw,
+        ]
+    )
     db_session.commit()
 
     analytics = FunnelAnalyticsService(db_session)
@@ -1153,8 +1165,3 @@ def test_funnel_summary_excludes_simulation_and_unsubmitted(
     assert summary["total_jobs_discovered"] == 4
     # Only app_real is a real submission
     assert summary["total_submitted"] == 1
-
-
-
-
-

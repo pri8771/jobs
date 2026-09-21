@@ -393,11 +393,7 @@ def test_process_message_idempotency_repeated_sweep(db_session: Session) -> None
         .filter(ApplicationEventModel.application_id == app.id)
         .all()
     )
-    audits = (
-        db_session.query(AuditLogModel)
-        .filter(AuditLogModel.entity_id == app.id)
-        .all()
-    )
+    audits = db_session.query(AuditLogModel).filter(AuditLogModel.entity_id == app.id).all()
     assert len(events) == 1
     assert len(audits) == 1
 
@@ -410,11 +406,7 @@ def test_process_message_idempotency_repeated_sweep(db_session: Session) -> None
         .filter(ApplicationEventModel.application_id == app.id)
         .all()
     )
-    audits_sweep2 = (
-        db_session.query(AuditLogModel)
-        .filter(AuditLogModel.entity_id == app.id)
-        .all()
-    )
+    audits_sweep2 = db_session.query(AuditLogModel).filter(AuditLogModel.entity_id == app.id).all()
     assert len(events_sweep2) == 1  # No duplicate event
     assert len(audits_sweep2) == 1  # No duplicate audit
 
@@ -470,9 +462,7 @@ def test_interview_no_fabricated_date(db_session: Session) -> None:
 
     # Zero InterviewModel records with fake date
     interviews = (
-        db_session.query(InterviewModel)
-        .filter(InterviewModel.application_id == app.id)
-        .all()
+        db_session.query(InterviewModel).filter(InterviewModel.application_id == app.id).all()
     )
     assert len(interviews) == 0
 
@@ -580,9 +570,7 @@ def test_interview_reschedule_reconciliation(db_session: Session) -> None:
 
     # Reconciled in place: still exactly 1 interview, NOT 2!
     all_interviews = (
-        db_session.query(InterviewModel)
-        .filter(InterviewModel.application_id == app.id)
-        .all()
+        db_session.query(InterviewModel).filter(InterviewModel.application_id == app.id).all()
     )
     assert len(all_interviews) == 1
 
@@ -935,9 +923,7 @@ def test_alerts_duplicate_sweeps_do_not_duplicate_tasks(db_session: Session) -> 
     assert len(tasks2) == 0
 
     all_tasks = (
-        db_session.query(TaskModel)
-        .filter(TaskModel.task_type == "UNANSWERED_RECRUITER")
-        .all()
+        db_session.query(TaskModel).filter(TaskModel.task_type == "UNANSWERED_RECRUITER").all()
     )
     assert len(all_tasks) == 1
 
@@ -1205,19 +1191,36 @@ def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> 
             body_text=body,
         )
 
-    c_bg = classifier.classify(make_email("Background Check Form", "Please fill out the background verification form."))
+    c_bg = classifier.classify(
+        make_email("Background Check Form", "Please fill out the background verification form.")
+    )
     assert c_bg.classification == EmailClassification.BACKGROUND_CHECK
     assert c_bg.confidence >= 0.85
 
-    c_onboard = classifier.classify(make_email("Welcome to the team!", "Here is your employee onboarding paperwork and first day instructions."))
+    c_onboard = classifier.classify(
+        make_email(
+            "Welcome to the team!",
+            "Here is your employee onboarding paperwork and first day instructions.",
+        )
+    )
     assert c_onboard.classification == EmailClassification.ONBOARDING
     assert c_onboard.confidence >= 0.85
 
-    c_withdraw = classifier.classify(make_email("Application Withdrawn", "We have processed your withdrawal request and confirmed your application has been withdrawn."))
+    c_withdraw = classifier.classify(
+        make_email(
+            "Application Withdrawn",
+            "We have processed your withdrawal request and confirmed your application has been withdrawn.",
+        )
+    )
     assert c_withdraw.classification == EmailClassification.WITHDRAWAL
     assert c_withdraw.confidence >= 0.85
 
-    c_followup = classifier.classify(make_email("Following up on your application", "Following up on our conversation regarding the Research Scientist role."))
+    c_followup = classifier.classify(
+        make_email(
+            "Following up on your application",
+            "Following up on our conversation regarding the Research Scientist role.",
+        )
+    )
     assert c_followup.classification == EmailClassification.RECRUITER_FOLLOW_UP
     assert c_followup.confidence >= 0.80
 
@@ -1250,7 +1253,11 @@ def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> 
     )
     db_session.add(msg_bg)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_bg.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_bg.id, application_id=app.id, confidence=0.95, method="match"
+        )
+    )
     db_session.commit()
 
     res_bg = engine.process_message(msg_bg)
@@ -1271,7 +1278,11 @@ def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> 
     )
     db_session.add(msg_ob)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_ob.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_ob.id, application_id=app.id, confidence=0.95, method="match"
+        )
+    )
     db_session.commit()
 
     res_ob = engine.process_message(msg_ob)
@@ -1292,7 +1303,11 @@ def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> 
     )
     db_session.add(msg_fu)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_fu.id, application_id=app.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_fu.id, application_id=app.id, confidence=0.95, method="match"
+        )
+    )
     db_session.commit()
 
     res_fu = engine.process_message(msg_fu)
@@ -1317,7 +1332,11 @@ def test_classifier_to_lifecycle_end_to_end_new_classes(db_session: Session) -> 
     )
     db_session.add(msg_wd)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_wd.id, application_id=app2.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_wd.id, application_id=app2.id, confidence=0.95, method="match"
+        )
+    )
     db_session.commit()
 
     res_wd = engine.process_message(msg_wd)
@@ -1359,7 +1378,14 @@ def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) ->
     )
     db_session.add(msg_rej_accepted)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_accepted.id, application_id=app_accepted.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_rej_accepted.id,
+            application_id=app_accepted.id,
+            confidence=0.95,
+            method="match",
+        )
+    )
     db_session.commit()
 
     res1 = engine.process_message(msg_rej_accepted)
@@ -1395,7 +1421,14 @@ def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) ->
     )
     db_session.add(msg_rej_onboard)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_onboard.id, application_id=app_onboarding.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_rej_onboard.id,
+            application_id=app_onboarding.id,
+            confidence=0.95,
+            method="match",
+        )
+    )
     db_session.commit()
 
     res2 = engine.process_message(msg_rej_onboard)
@@ -1406,7 +1439,9 @@ def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) ->
 
     task2 = (
         db_session.query(TaskModel)
-        .filter(TaskModel.application_id == app_onboarding.id, TaskModel.task_type == "NEEDS_REVIEW")
+        .filter(
+            TaskModel.application_id == app_onboarding.id, TaskModel.task_type == "NEEDS_REVIEW"
+        )
         .first()
     )
     assert task2 is not None
@@ -1429,7 +1464,14 @@ def test_rejection_protection_on_accepted_and_onboarding(db_session: Session) ->
     )
     db_session.add(msg_rej_interview)
     db_session.flush()
-    db_session.add(MessageLinkModel(inbound_message_id=msg_rej_interview.id, application_id=app_interview.id, confidence=0.95, method="match"))
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=msg_rej_interview.id,
+            application_id=app_interview.id,
+            confidence=0.95,
+            method="match",
+        )
+    )
     db_session.commit()
 
     res3 = engine.process_message(msg_rej_interview)
@@ -1503,7 +1545,9 @@ def test_background_check_does_not_fabricate_offer_interviewing(db_session: Sess
     assert event is not None
 
 
-def test_background_check_does_not_fabricate_offer_when_already_offered(db_session: Session) -> None:
+def test_background_check_does_not_fabricate_offer_when_already_offered(
+    db_session: Session,
+) -> None:
     """B-R17-03: BACKGROUND_CHECK on OFFER_RECEIVED stage preserves that status (no double-count)."""
     engine = LifecycleEngine(db_session)
 
@@ -1549,6 +1593,3 @@ def test_background_check_does_not_fabricate_offer_when_already_offered(db_sessi
     assert result.new_status == "OFFER_RECEIVED"
     assert result.previous_status == "OFFER_RECEIVED"
     assert app.status == "OFFER_RECEIVED"
-
-
-

@@ -6,10 +6,24 @@ import hashlib
 import json
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
-from jobs_automation.preparation.packet_builder import compute_canonical_packet_hash
+from jobs_automation.db.base import Base
+from jobs_automation.db.models import (
+    ApplicationPacketModel,
+    ArtifactModel,
+    CompanyModel,
+    JobModel,
+    JobSourceModel,
+    ResumeVariantModel,
+)
+from jobs_automation.db.session import get_engine, get_sessionmaker
+from jobs_automation.preparation.packet_builder import (
+    compute_canonical_packet_hash,
+    compute_questions_sha256,
+)
 
 
 def _valid_bundle() -> dict[str, Any]:
@@ -72,7 +86,9 @@ def _run_verifier(
     )
 
 
-def test_real_proof_verifier_omitting_local_bundle_fails_closed_without_pass(tmp_path: Path) -> None:
+def test_real_proof_verifier_omitting_local_bundle_fails_closed_without_pass(
+    tmp_path: Path,
+) -> None:
     receipt = tmp_path / "receipt.json"
     result = _run_verifier(tmp_path, _valid_bundle(), receipt_path=receipt)
     assert result.returncode == 1
@@ -170,9 +186,20 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
     cover_file.write_text("Real cover letter text", encoding="utf-8")
     cover_sha = hashlib.sha256(cover_file.read_bytes()).hexdigest()
 
+    cand_profile_file = tmp_path / "candidate_private_profile.yaml"
+    cand_profile_file.write_text("name: Private Candidate\n", encoding="utf-8")
+    cand_profile_sha = hashlib.sha256(cand_profile_file.read_bytes()).hexdigest()
+
+    questions = ["Question 1", "Question 2", "Question 3"]
+    questions_file = tmp_path / "job_questions.json"
+    questions_file.write_text(json.dumps(questions), encoding="utf-8")
+    questions_sha = compute_questions_sha256(questions)
+
     packet_id = "22222222-2222-2222-2222-222222222222"
     job_id = "33333333-3333-3333-3333-333333333333"
     resume_variant_id = "44444444-4444-4444-4444-444444444444"
+    resume_artifact_id = "55555555-5555-5555-5555-555555555555"
+    cover_letter_artifact_id = "66666666-6666-6666-6666-666666666666"
     profile_version = 1
     answers = {"screening_q1": "Authorized"}
     answer_provenance = {"screening_q1": {"source": "profile"}}
@@ -208,6 +235,7 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
 
     bundle = _valid_bundle()
     bundle["proof_run_id"] = "proof-run-local-1"
+    bundle["job_url"] = "https://job-boards.greenhouse.io/opensesame/jobs/7967740"
     bundle["packet_id"] = packet_id
     bundle["packet_hash"] = canonical_hash
     bundle["resume_source_sha256"] = resume_sha
@@ -217,6 +245,7 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
     bundle["candidate_profile_version"] = profile_version
     bundle["resume_variant"] = "resume_enterprise_automation"
     bundle["resume_family"] = "Enterprise Automation & Solutions Architect"
+    bundle["questions_count"] = len(questions)
 
     candidate_content = json.dumps(bundle, indent=2) + "\n"
     candidate_sha = hashlib.sha256(candidate_content.encode("utf-8")).hexdigest()
@@ -224,12 +253,16 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
     local_bundle_data = {
         "proof_run_id": "proof-run-local-1",
         "job_id": job_id,
+        "packet_id": packet_id,
+        "resume_variant_id": resume_variant_id,
+        "resume_artifact_id": resume_artifact_id,
+        "cover_letter_artifact_id": cover_letter_artifact_id,
         "candidate_bundle_sha256": candidate_sha,
-        "candidate_profile_sha256": "f" * 64,
-        "candidate_profile_path": "/path/to/profile.yaml",
+        "candidate_profile_sha256": cand_profile_sha,
+        "candidate_profile_path": str(cand_profile_file),
         "candidate_profile_source_class": "PRIVATE_LOCAL",
         "resume_source_path": str(resume_file),
-        "questions_json_path": "/path/to/questions.json",
+        "questions_json_path": str(questions_file),
         "source_attestation": {
             "provider": "GREENHOUSE",
             "source_kind": "greenhouse_public_job_board_api",
@@ -237,7 +270,7 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
             "api_url": "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740?questions=true",
             "fetched_at_utc": "2026-09-21T02:45:00Z",
             "description_sha256": "e" * 64,
-            "question_list_sha256": "d" * 64,
+            "question_list_sha256": questions_sha,
             "canonical_apply_url": "https://job-boards.greenhouse.io/opensesame/jobs/7967740",
         },
         "local_artifacts": [
@@ -250,7 +283,9 @@ def _setup_valid_full_run(tmp_path: Path) -> tuple[dict[str, Any], dict[str, Any
     return bundle, local_bundle_data
 
 
-def test_real_proof_verifier_validates_complete_local_bundle_and_cross_binding(tmp_path: Path) -> None:
+def test_real_proof_verifier_validates_complete_local_bundle_and_cross_binding(
+    tmp_path: Path,
+) -> None:
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
     local_bundle_file = tmp_path / "private_bundle.json"
     local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
@@ -269,7 +304,9 @@ def test_real_proof_verifier_validates_complete_local_bundle_and_cross_binding(t
     assert receipt_data["local_full_bundle_verified"] is True
 
 
-def test_real_proof_verifier_rejects_missing_candidate_bundle_sha_in_local_bundle(tmp_path: Path) -> None:
+def test_real_proof_verifier_rejects_missing_candidate_bundle_sha_in_local_bundle(
+    tmp_path: Path,
+) -> None:
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
     del local_bundle_data["candidate_bundle_sha256"]
     local_bundle_file = tmp_path / "private_bundle.json"
@@ -280,7 +317,9 @@ def test_real_proof_verifier_rejects_missing_candidate_bundle_sha_in_local_bundl
     assert "missing mandatory candidate_bundle_sha256" in result.stderr
 
 
-def test_real_proof_verifier_rejects_mismatched_candidate_bundle_sha_in_local_bundle(tmp_path: Path) -> None:
+def test_real_proof_verifier_rejects_mismatched_candidate_bundle_sha_in_local_bundle(
+    tmp_path: Path,
+) -> None:
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
     local_bundle_data["candidate_bundle_sha256"] = "0" * 64
     local_bundle_file = tmp_path / "private_bundle.json"
@@ -292,22 +331,31 @@ def test_real_proof_verifier_rejects_mismatched_candidate_bundle_sha_in_local_bu
 
 
 def test_real_proof_verifier_rejects_example_profile_sha_in_local_bundle(tmp_path: Path) -> None:
-    repo_example = Path(__file__).resolve().parent.parent / "config" / "candidate_profile.example.yaml"
+    repo_example = (
+        Path(__file__).resolve().parent.parent / "config" / "candidate_profile.example.yaml"
+    )
     if not repo_example.exists():
         return
     example_sha = hashlib.sha256(repo_example.read_bytes()).hexdigest()
 
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    # Set the candidate profile path to the example file
+    local_bundle_data["candidate_profile_path"] = str(repo_example)
     local_bundle_data["candidate_profile_sha256"] = example_sha
     local_bundle_file = tmp_path / "private_bundle.json"
     local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
 
     result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
     assert result.returncode == 1
-    assert "matches repository example file" in result.stderr
+    assert (
+        "matches repository example file" in result.stderr
+        or "candidate profile file name indicates test/example fixture" in result.stderr
+    )
 
 
-def test_real_proof_verifier_rejects_missing_or_invalid_greenhouse_source_attestation(tmp_path: Path) -> None:
+def test_real_proof_verifier_rejects_missing_or_invalid_greenhouse_source_attestation(
+    tmp_path: Path,
+) -> None:
     # 1. Missing source attestation
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
     del local_bundle_data["source_attestation"]
@@ -333,24 +381,114 @@ def test_real_proof_verifier_rejects_missing_or_invalid_greenhouse_source_attest
     assert result.returncode == 1
     assert "has invalid api_url" in result.stderr
 
+    # 4. Invalid or missing fetched_at_utc
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    local_bundle_data["source_attestation"]["fetched_at_utc"] = "not-a-timestamp"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "fetched_at_utc" in result.stderr
+
+    # 5. Mismatched canonical_apply_url vs redacted.job_url
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    local_bundle_data["source_attestation"]["canonical_apply_url"] = (
+        "https://job-boards.greenhouse.io/other/jobs/7967740"
+    )
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "does not match source_attestation canonical_apply_url" in result.stderr
+
+
+def test_real_proof_verifier_rejects_tampered_or_missing_questions_json(tmp_path: Path) -> None:
+    # 1. Missing questions file
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    local_bundle_data["questions_json_path"] = str(tmp_path / "non_existent_questions.json")
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "questions_json_path file not found on disk" in result.stderr
+
+    # 2. Tampered questions content (hash mismatch)
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    q_file = Path(local_bundle_data["questions_json_path"])
+    q_file.write_text(json.dumps(["Tampered Q1", "Tampered Q2", "Tampered Q3"]), encoding="utf-8")
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "questions JSON on disk hash mismatch" in result.stderr
+
+    # 3. Question count mismatch
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    q_file = Path(local_bundle_data["questions_json_path"])
+    four_questions = ["Q1", "Q2", "Q3", "Q4"]
+    q_file.write_text(json.dumps(four_questions), encoding="utf-8")
+    local_bundle_data["source_attestation"]["question_list_sha256"] = compute_questions_sha256(
+        four_questions
+    )
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert (
+        "questions count in questions JSON" in result.stderr
+        and "does not match redacted evidence" in result.stderr
+    )
+
+
+def test_real_proof_verifier_rejects_missing_or_tampered_candidate_profile(tmp_path: Path) -> None:
+    # 1. Missing profile file
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    local_bundle_data["candidate_profile_path"] = str(tmp_path / "non_existent_profile.yaml")
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "candidate_profile_path file not found on disk" in result.stderr
+
+    # 2. Tampered profile content (hash mismatch)
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    prof_file = Path(local_bundle_data["candidate_profile_path"])
+    prof_file.write_text("name: Tampered Profile\n", encoding="utf-8")
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 1
+    assert "candidate profile file on disk hash mismatch" in result.stderr
+
+
+def test_real_proof_verifier_rejects_missing_or_invalid_local_uuids(tmp_path: Path) -> None:
+    for field in (
+        "job_id",
+        "packet_id",
+        "resume_variant_id",
+        "resume_artifact_id",
+        "cover_letter_artifact_id",
+    ):
+        bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+        del local_bundle_data[field]
+        local_bundle_file = tmp_path / "private_bundle.json"
+        local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+        result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+        assert result.returncode == 1
+        assert f"missing mandatory valid UUID {field}" in result.stderr
+
 
 def test_real_proof_verifier_rejects_forged_canonical_packet_hash(tmp_path: Path) -> None:
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
-    # Manifest has forged packet_hash
-    manifest_path = Path(local_bundle_data["local_artifacts"][3]["path"])  # manifest is index 3
+    manifest_path = Path(local_bundle_data["local_artifacts"][3]["path"])
     manifest_json = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest_json["packet_hash"] = "9" * 64
     manifest_path.write_text(json.dumps(manifest_json), encoding="utf-8")
 
-    # Update manifest hash in artifacts and bundle to pass artifact SHA check
     new_manifest_sha = hashlib.sha256(manifest_path.read_bytes()).hexdigest()
     local_bundle_data["local_artifacts"][3]["sha256"] = new_manifest_sha
     bundle["manifest_sha256"] = new_manifest_sha
     bundle["packet_hash"] = "9" * 64
 
-    # Update candidate SHA
     candidate_content = json.dumps(bundle, indent=2) + "\n"
-    local_bundle_data["candidate_bundle_sha256"] = hashlib.sha256(candidate_content.encode("utf-8")).hexdigest()
+    local_bundle_data["candidate_bundle_sha256"] = hashlib.sha256(
+        candidate_content.encode("utf-8")
+    ).hexdigest()
 
     local_bundle_file = tmp_path / "private_bundle.json"
     local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
@@ -365,8 +503,7 @@ def test_real_proof_verifier_rejects_forged_canonical_packet_hash(tmp_path: Path
 
 def test_real_proof_verifier_rejects_mismatched_manifest_linkage(tmp_path: Path) -> None:
     bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
-    # Manifest has different job_id than local bundle
-    local_bundle_data["job_id"] = "different-job-id-9999"
+    local_bundle_data["job_id"] = "99999999-9999-9999-9999-999999999999"
 
     local_bundle_file = tmp_path / "private_bundle.json"
     local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
@@ -374,3 +511,92 @@ def test_real_proof_verifier_rejects_mismatched_manifest_linkage(tmp_path: Path)
     result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
     assert result.returncode == 1
     assert "manifest job_id" in result.stderr and "does not match local job_id" in result.stderr
+
+
+def test_real_proof_verifier_validates_database_records_when_database_url_provided(
+    tmp_path: Path,
+) -> None:
+    db_file = tmp_path / "proof_test.db"
+    db_url = f"sqlite:///{db_file}"
+    engine = get_engine(db_url)
+    Base.metadata.create_all(bind=engine)
+    session_factory = get_sessionmaker(engine)
+
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    job_uuid = uuid.UUID(local_bundle_data["job_id"])
+    packet_uuid = uuid.UUID(local_bundle_data["packet_id"])
+    variant_uuid = uuid.UUID(local_bundle_data["resume_variant_id"])
+    resume_art_uuid = uuid.UUID(local_bundle_data["resume_artifact_id"])
+    cl_art_uuid = uuid.UUID(local_bundle_data["cover_letter_artifact_id"])
+
+    with session_factory() as session:
+        company = CompanyModel(normalized_name="OpenSesame")
+        session.add(company)
+        session.flush()
+
+        job = JobModel(
+            id=job_uuid,
+            company_id=company.id,
+            normalized_title="AI Automation Engineer",
+            description_text="Real description",
+        )
+        session.add(job)
+
+        source = JobSourceModel(
+            job_id=job_uuid,
+            provider="GREENHOUSE",
+            source_job_id="7967740",
+            source_url=bundle["job_url"],
+            canonical_apply_url=bundle["job_url"],
+            source_payload_json={
+                "source_kind": "greenhouse_public_job_board_api",
+                "api_url": "https://boards-api.greenhouse.io/v1/boards/opensesame/jobs/7967740?questions=true",
+                "fetched_at_utc": "2026-09-21T02:45:00Z",
+            },
+        )
+        session.add(source)
+
+        variant = ResumeVariantModel(
+            id=variant_uuid,
+            resume_family="Enterprise Automation & Solutions Architect",
+            name="resume_enterprise_automation",
+            version=1,
+            content_hash="a" * 64,
+        )
+        session.add(variant)
+
+        resume_art = ArtifactModel(
+            id=resume_art_uuid,
+            type="resume",
+            storage_uri=f"file://{local_bundle_data['local_artifacts'][1]['path']}",
+            sha256=bundle["resume_artifact_sha256"],
+        )
+        cl_art = ArtifactModel(
+            id=cl_art_uuid,
+            type="cover_letter",
+            storage_uri=f"file://{local_bundle_data['local_artifacts'][2]['path']}",
+            sha256=bundle["cover_letter_artifact_sha256"],
+        )
+        session.add_all([resume_art, cl_art])
+
+        packet = ApplicationPacketModel(
+            id=packet_uuid,
+            job_id=job_uuid,
+            candidate_profile_version=1,
+            resume_variant_id=variant_uuid,
+            resume_artifact_id=resume_art_uuid,
+            cover_letter_artifact_id=cl_art_uuid,
+            packet_hash=bundle["packet_hash"],
+            generation_metadata_json={"origin": "deterministic"},
+            is_live_ready=False,
+        )
+        session.add(packet)
+        session.commit()
+
+    local_bundle_data["database_url"] = db_url
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 0
+    assert "REAL_PROOF_VALIDATION_PASS" in result.stdout

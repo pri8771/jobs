@@ -82,7 +82,9 @@ def validate_profile_path(path: Path) -> None:
 
     # Content-level check: compare sha256 against known example candidate profiles (RP14-T4)
     repo_root = Path(__file__).resolve().parent.parent
-    example_files = list(repo_root.glob("config/*example*")) + list(repo_root.glob("tests/fixtures/*example*"))
+    example_files = list(repo_root.glob("config/*example*")) + list(
+        repo_root.glob("tests/fixtures/*example*")
+    )
     target_sha = sha256_file(path)
     for eg in example_files:
         if eg.is_file() and sha256_file(eg) == target_sha:
@@ -99,7 +101,11 @@ def validate_profile_path(path: Path) -> None:
 
 
 def validate_job(job: JobModel, questions: list[str] | None = None) -> None:
-    if not job.company or not job.company.normalized_name or job.company.normalized_name == "Unknown":
+    if (
+        not job.company
+        or not job.company.normalized_name
+        or job.company.normalized_name == "Unknown"
+    ):
         raise RealProofError("Job must have a real company")
     if not job.normalized_title:
         raise RealProofError("Job must have a real title")
@@ -118,7 +124,7 @@ def validate_job(job: JobModel, questions: list[str] | None = None) -> None:
     greenhouse_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
     if not greenhouse_sources:
         raise RealProofError("Job does not have an imported GREENHOUSE source record")
-    
+
     gh_source = greenhouse_sources[0]
     payload = gh_source.source_payload_json or {}
     if payload.get("source_kind") != "greenhouse_public_job_board_api":
@@ -223,7 +229,9 @@ def main() -> int:
         loader = ConfigLoader("config")
         profile, loaded_profile_path = loader.load_candidate_profile(args.candidate_profile)
         if loaded_profile_path.resolve() != args.candidate_profile.resolve():
-            raise RealProofError("Loaded candidate profile path does not match requested private path")
+            raise RealProofError(
+                "Loaded candidate profile path does not match requested private path"
+            )
 
         session_factory = get_sessionmaker()
         with session_factory() as session:
@@ -341,13 +349,25 @@ def main() -> int:
             gh_source = gh_sources[0] if gh_sources else None
             gh_payload = (gh_source.source_payload_json or {}) if gh_source else {}
 
+            bind = session.get_bind()
+            db_url = (
+                str(bind.engine.url)
+                if hasattr(bind, "engine")
+                else (str(bind.url) if hasattr(bind, "url") else None)
+            )
+
             private_bundle = {
                 "proof_run_id": proof_run_id,
                 "candidate_bundle_sha256": candidate_bundle_sha,
                 "candidate_profile_sha256": sha256_file(args.candidate_profile),
                 "candidate_profile_path": str(args.candidate_profile.resolve()),
                 "candidate_profile_source_class": "PRIVATE_LOCAL",
+                "database_url": db_url,
                 "job_id": str(job.id),
+                "packet_id": str(packet.id),
+                "resume_variant_id": str(packet.resume_variant_id),
+                "resume_artifact_id": str(packet.resume_artifact_id),
+                "cover_letter_artifact_id": str(packet.cover_letter_artifact_id),
                 "resume_source_path": str(source_path),
                 "questions_json_path": str(args.questions_json.resolve()),
                 "source_attestation": {
@@ -361,7 +381,9 @@ def main() -> int:
                         sha256_bytes((job.description_text or "").encode("utf-8")),
                     ),
                     "question_list_sha256": gh_payload.get("question_list_sha256", ""),
-                    "canonical_apply_url": gh_source.canonical_apply_url if gh_source else job.apply_url,
+                    "canonical_apply_url": gh_source.canonical_apply_url
+                    if gh_source
+                    else job.apply_url,
                 },
                 "local_artifacts": [
                     {

@@ -61,10 +61,14 @@ def test_artifact_store_overwrite_different_bytes_fails_closed(tmp_path: Path) -
     store = ArtifactStore(base_dir=tmp_path)
 
     content_v1 = "Historical immutable document content"
-    uri_v1, sha_v1, _ = store.store(content_v1, "packets", "exact_doc.json", content_addressed=False)
+    uri_v1, sha_v1, _ = store.store(
+        content_v1, "packets", "exact_doc.json", content_addressed=False
+    )
 
     # Calling again with exact same content succeeds idempotently
-    uri_v1_repeat, _, _ = store.store(content_v1, "packets", "exact_doc.json", content_addressed=False)
+    uri_v1_repeat, _, _ = store.store(
+        content_v1, "packets", "exact_doc.json", content_addressed=False
+    )
     assert uri_v1_repeat == uri_v1
 
     # Calling with different content to exact same target path raises FileExistsError
@@ -74,4 +78,3 @@ def test_artifact_store_overwrite_different_bytes_fails_closed(tmp_path: Path) -
 
     # Original bytes remain completely unchanged
     assert store.read(uri_v1).decode("utf-8") == content_v1
-

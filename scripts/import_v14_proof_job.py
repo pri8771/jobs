@@ -29,9 +29,7 @@ from jobs_automation.preparation.packet_builder import compute_questions_sha256
 
 DEFAULT_BOARD_TOKEN = "opensesame"
 DEFAULT_JOB_ID = "7967740"
-DEFAULT_JOB_URL = (
-    "https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740"
-)
+DEFAULT_JOB_URL = "https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740"
 
 STANDARD_LABEL_PREFIXES = (
     "first name",
@@ -120,7 +118,6 @@ def _extract_screening_questions(payload: dict[str, Any]) -> list[str]:
     return labels
 
 
-
 def _source_payload(job_payload: dict[str, Any], api_url: str) -> dict[str, Any]:
     content_text = _html_to_text(job_payload.get("content"))
     questions = _extract_screening_questions(job_payload)
@@ -187,9 +184,7 @@ def main() -> int:
         session_factory = get_sessionmaker()
         with session_factory() as session:
             company = session.scalar(
-                select(CompanyModel).where(
-                    CompanyModel.normalized_name == "OpenSesame"
-                )
+                select(CompanyModel).where(CompanyModel.normalized_name == "OpenSesame")
             )
             if company is None:
                 company = CompanyModel(
@@ -211,9 +206,7 @@ def main() -> int:
             if existing_source is not None:
                 job = existing_source.job
                 if job is None:
-                    raise ProofJobImportError(
-                        "Existing Greenhouse source has no linked JobModel"
-                    )
+                    raise ProofJobImportError("Existing Greenhouse source has no linked JobModel")
                 job.company_id = company.id
                 job.normalized_title = title
                 job.location_text = location or job.location_text

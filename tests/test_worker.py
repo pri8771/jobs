@@ -257,6 +257,7 @@ def test_worker_begin_persistence_failure_fails_closed(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Worker fails closed and does not execute pipeline if begin record cannot be persisted."""
+
     class FailingSessionFactory:
         def __init__(self, real_factory: sessionmaker[Session]) -> None:
             self.real_factory = real_factory
@@ -319,6 +320,7 @@ def test_worker_pipeline_rollback_preserves_run_evidence(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Pipeline exception and rollback cannot erase operational begin and finish audit evidence."""
+
     class CrashingEmailAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -365,6 +367,7 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Raw secrets, OAuth tokens, and passwords are sanitized in finalize records."""
+
     class SecretLeakingAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -405,4 +408,3 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
         assert "Bearer my-secret-jwt-token" not in sample_errors_str
         assert "[REDACTED_SECRET]" in sample_errors_str
         assert "GMAIL_AUTH_ERROR" in meta.get("error_categories", [])
-

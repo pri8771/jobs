@@ -169,9 +169,7 @@ def validate_redacted_bundle(data: dict[str, Any]) -> None:
 
     result = str(_require(data, "result"))
     if result != "REAL_PROOF_CANDIDATE":
-        raise ProofValidationError(
-            f"result must be REAL_PROOF_CANDIDATE, got {result!r}"
-        )
+        raise ProofValidationError(f"result must be REAL_PROOF_CANDIDATE, got {result!r}")
 
     if _require(data, "mock_or_fixture_inputs_present") is not False:
         raise ProofValidationError("mock_or_fixture_inputs_present must be false")
@@ -243,6 +241,23 @@ def validate_redacted_bundle(data: dict[str, Any]) -> None:
     _assert_no_fixture_markers(data)
 
 
+def compute_questions_sha256(questions: list[str]) -> str:
+    """Compute canonical SHA-256 hash of application questions list."""
+    serialized = json.dumps(questions, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+
+
+def parse_utc(value: str | None) -> datetime.datetime | None:
+    if not value or value.strip().lower() == "null":
+        return None
+    try:
+        return datetime.datetime.fromisoformat(value.strip().replace("Z", "+00:00")).astimezone(
+            datetime.UTC
+        )
+    except ValueError:
+        return None
+
+
 def verify_local_artifact(path: Path, expected_sha: str) -> None:
     if not path.exists() or not path.is_file():
         raise ProofValidationError(f"local artifact missing: {path}")
@@ -270,23 +285,62 @@ def validate_local_bundle(
     # RP14-T2: Mandatory candidate-bundle SHA binding
     if "candidate_bundle_sha256" not in local_data:
         raise ProofValidationError("local bundle missing mandatory candidate_bundle_sha256")
-    if candidate_bundle_sha and local_data["candidate_bundle_sha256"].lower() != candidate_bundle_sha.lower():
+    if (
+        candidate_bundle_sha
+        and local_data["candidate_bundle_sha256"].lower() != candidate_bundle_sha.lower()
+    ):
         raise ProofValidationError(
             f"candidate_bundle_sha256 in local bundle does not match computed candidate SHA: "
             f"{local_data['candidate_bundle_sha256']} != {candidate_bundle_sha}"
         )
 
-    # RP14-T4: Candidate profile SHA check & example file rejection
+    # RP14-T4: Candidate profile path on disk, SHA check & example file rejection
     _require_sha(local_data, "candidate_profile_sha256")
-    cand_prof_sha = str(local_data["candidate_profile_sha256"]).lower()
+    cand_profile_path_raw = local_data.get("candidate_profile_path")
+    if not cand_profile_path_raw:
+        raise ProofValidationError("local bundle missing mandatory candidate_profile_path")
+    cand_profile_path = Path(str(cand_profile_path_raw)).expanduser()
+    if not cand_profile_path.exists() or not cand_profile_path.is_file():
+        raise ProofValidationError(
+            f"candidate_profile_path file not found on disk: {cand_profile_path}"
+        )
+
+    actual_profile_sha = sha256_file(cand_profile_path).lower()
+    expected_profile_sha = str(local_data["candidate_profile_sha256"]).lower()
+    if actual_profile_sha != expected_profile_sha:
+        raise ProofValidationError(
+            f"candidate profile file on disk hash mismatch: {actual_profile_sha} != {expected_profile_sha}"
+        )
+
+    cand_lower = str(cand_profile_path.name).lower()
+    if (
+        "example" in cand_lower
+        or cand_lower.endswith(".example.yaml")
+        or cand_lower == "candidate_profile.example.yaml"
+    ):
+        raise ProofValidationError(
+            f"candidate profile file name indicates test/example fixture: {cand_profile_path.name}"
+        )
+
     repo_root = Path(__file__).resolve().parent.parent
-    example_files = list(repo_root.glob("config/*example*")) + list(repo_root.glob("tests/fixtures/*example*"))
+    example_files = list(repo_root.glob("config/*example*")) + list(
+        repo_root.glob("tests/fixtures/*example*")
+    )
     for eg in example_files:
-        if eg.is_file() and sha256_file(eg).lower() == cand_prof_sha:
+        if eg.is_file() and sha256_file(eg).lower() == actual_profile_sha:
             raise ProofValidationError(
                 f"candidate_profile_sha256 matches repository example file ({eg.name}); "
                 "real private profile is required for REAL_PROOF"
             )
+
+    if local_data.get("candidate_profile_source_class") != "PRIVATE_LOCAL":
+        raise ProofValidationError(
+            f"candidate_profile_source_class in local bundle must be 'PRIVATE_LOCAL', got {local_data.get('candidate_profile_source_class')!r}"
+        )
+    if redacted_data.get("candidate_profile_source_class") != "PRIVATE_LOCAL":
+        raise ProofValidationError(
+            f"candidate_profile_source_class in redacted bundle must be 'PRIVATE_LOCAL', got {redacted_data.get('candidate_profile_source_class')!r}"
+        )
 
     # RP14-T3: Source attestation validation
     source_attestation = local_data.get("source_attestation")
@@ -301,12 +355,69 @@ def validate_local_bundle(
     public_job_id = str(source_attestation.get("public_job_id", "")).strip()
     if not public_job_id:
         raise ProofValidationError("source_attestation missing public_job_id")
+
+    fetched_at_raw = source_attestation.get("fetched_at_utc")
+    if not fetched_at_raw or parse_utc(str(fetched_at_raw)) is None:
+        raise ProofValidationError(
+            "source_attestation has missing or invalid fetched_at_utc ISO timestamp"
+        )
+
     api_url = str(source_attestation.get("api_url", "")).strip()
     if not api_url.startswith("https://boards-api.greenhouse.io/"):
         raise ProofValidationError(f"source_attestation has invalid api_url: {api_url}")
+    if public_job_id not in api_url:
+        raise ProofValidationError(
+            f"source_attestation public_job_id {public_job_id} not found in api_url: {api_url}"
+        )
+
+    canonical_url = str(source_attestation.get("canonical_apply_url", "")).strip()
+    if not canonical_url.startswith(("https://", "http://")):
+        raise ProofValidationError(
+            f"source_attestation has invalid canonical_apply_url: {canonical_url}"
+        )
+    if public_job_id not in canonical_url:
+        raise ProofValidationError(
+            f"source_attestation public_job_id {public_job_id} not found in canonical_apply_url: {canonical_url}"
+        )
+
+    redacted_job_url = str(redacted_data.get("job_url", "")).strip()
+    if redacted_job_url != canonical_url:
+        raise ProofValidationError(
+            f"redacted job_url ({redacted_job_url}) does not match source_attestation canonical_apply_url ({canonical_url})"
+        )
+
     _require_sha(source_attestation, "description_sha256")
     _require_sha(source_attestation, "question_list_sha256")
 
+    # Independent question list verification from questions_json_path file on disk
+    questions_path_raw = local_data.get("questions_json_path")
+    if not questions_path_raw:
+        raise ProofValidationError("local bundle missing mandatory questions_json_path")
+    questions_path = Path(str(questions_path_raw)).expanduser()
+    if not questions_path.exists() or not questions_path.is_file():
+        raise ProofValidationError(f"questions_json_path file not found on disk: {questions_path}")
+    try:
+        questions_data = json.loads(questions_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProofValidationError(
+            f"could not parse questions JSON from {questions_path}: {exc}"
+        ) from exc
+    if not isinstance(questions_data, list) or not all(isinstance(q, str) for q in questions_data):
+        raise ProofValidationError(f"questions JSON in {questions_path} must be a list of strings")
+
+    recomputed_questions_sha = compute_questions_sha256(questions_data)
+    if recomputed_questions_sha.lower() != str(source_attestation["question_list_sha256"]).lower():
+        raise ProofValidationError(
+            f"questions JSON on disk hash mismatch against source attestation: "
+            f"{recomputed_questions_sha} != {source_attestation['question_list_sha256']}"
+        )
+    if len(questions_data) != int(redacted_data.get("questions_count", 0)):
+        raise ProofValidationError(
+            f"questions count in questions JSON ({len(questions_data)}) "
+            f"does not match redacted evidence questions_count ({redacted_data.get('questions_count')})"
+        )
+
+    # Artifact map verification
     artifacts = local_data.get("local_artifacts")
     if not isinstance(artifacts, list) or not artifacts:
         raise ProofValidationError("local full bundle requires non-empty local_artifacts")
@@ -332,7 +443,9 @@ def validate_local_bundle(
     }
     for art_type, redacted_key in expected_bindings.items():
         if art_type not in artifact_map:
-            raise ProofValidationError(f"local full bundle is missing required artifact: {art_type}")
+            raise ProofValidationError(
+                f"local full bundle is missing required artifact: {art_type}"
+            )
         local_sha = artifact_map[art_type]["sha256"]
         redacted_sha = str(redacted_data.get(redacted_key, "")).lower()
         if local_sha != redacted_sha:
@@ -342,7 +455,10 @@ def validate_local_bundle(
             )
 
     # In deterministic V1.4 packet builder, resume_source is copied directly to resume_artifact
-    if redacted_data["resume_source_sha256"].lower() != redacted_data["resume_artifact_sha256"].lower():
+    if (
+        redacted_data["resume_source_sha256"].lower()
+        != redacted_data["resume_artifact_sha256"].lower()
+    ):
         raise ProofValidationError(
             "resume_source_sha256 does not match resume_artifact_sha256 for copied deterministic packet"
         )
@@ -358,26 +474,73 @@ def validate_local_bundle(
     except (OSError, json.JSONDecodeError) as exc:
         raise ProofValidationError(f"could not read manifest JSON: {exc}") from exc
 
-    if str(manifest_json.get("packet_id")) != str(redacted_data.get("packet_id")):
-        raise ProofValidationError("manifest packet_id does not match redacted packet_id")
-
-    # Verify manifest job_id maps to local JobModel
+    # Mandatory job_id
     local_job_id = str(local_data.get("job_id", "")).strip()
-    if local_job_id and str(manifest_json.get("job_id")) != local_job_id:
+    if not local_job_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_job_id):
+        raise ProofValidationError("local bundle missing mandatory valid UUID job_id")
+    if str(manifest_json.get("job_id")) != local_job_id:
         raise ProofValidationError(
             f"manifest job_id ({manifest_json.get('job_id')}) does not match local job_id ({local_job_id})"
+        )
+
+    # Mandatory packet_id, resume_variant_id, and artifact IDs
+    local_packet_id = str(local_data.get("packet_id", "")).strip()
+    if not local_packet_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_packet_id):
+        raise ProofValidationError("local bundle missing mandatory valid UUID packet_id")
+    if local_packet_id != str(redacted_data.get("packet_id")) or local_packet_id != str(
+        manifest_json.get("packet_id")
+    ):
+        raise ProofValidationError(
+            "packet_id mismatch across local bundle, redacted bundle, and manifest"
+        )
+
+    local_resume_variant_id = str(local_data.get("resume_variant_id", "")).strip()
+    if not local_resume_variant_id or not re.fullmatch(
+        r"^[0-9a-fA-F-]{36}$", local_resume_variant_id
+    ):
+        raise ProofValidationError("local bundle missing mandatory valid UUID resume_variant_id")
+    if local_resume_variant_id != str(manifest_json.get("resume_variant_id")):
+        raise ProofValidationError("resume_variant_id mismatch between local bundle and manifest")
+
+    local_resume_artifact_id = str(local_data.get("resume_artifact_id", "")).strip()
+    if not local_resume_artifact_id or not re.fullmatch(
+        r"^[0-9a-fA-F-]{36}$", local_resume_artifact_id
+    ):
+        raise ProofValidationError("local bundle missing mandatory valid UUID resume_artifact_id")
+
+    local_cl_artifact_id = str(local_data.get("cover_letter_artifact_id", "")).strip()
+    if not local_cl_artifact_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_cl_artifact_id):
+        raise ProofValidationError(
+            "local bundle missing mandatory valid UUID cover_letter_artifact_id"
         )
 
     if str(manifest_json.get("resume_family")) != str(redacted_data.get("resume_family")):
         raise ProofValidationError("manifest resume_family does not match redacted resume_family")
     if str(manifest_json.get("resume_variant_name")) != str(redacted_data.get("resume_variant")):
-        raise ProofValidationError("manifest resume_variant_name does not match redacted resume_variant")
-    if str(manifest_json.get("resume_artifact_sha256")).lower() != str(redacted_data.get("resume_artifact_sha256")).lower():
-        raise ProofValidationError("manifest resume_artifact_sha256 does not match redacted resume_artifact_sha256")
-    if str(manifest_json.get("cover_letter_artifact_sha256")).lower() != str(redacted_data.get("cover_letter_artifact_sha256")).lower():
-        raise ProofValidationError("manifest cover_letter_artifact_sha256 does not match redacted cover_letter_artifact_sha256")
-    if str(manifest_json.get("generation_origin")).lower() != str(redacted_data.get("generation_origin")).lower():
-        raise ProofValidationError("manifest generation_origin does not match redacted generation_origin")
+        raise ProofValidationError(
+            "manifest resume_variant_name does not match redacted resume_variant"
+        )
+    if (
+        str(manifest_json.get("resume_artifact_sha256")).lower()
+        != str(redacted_data.get("resume_artifact_sha256")).lower()
+    ):
+        raise ProofValidationError(
+            "manifest resume_artifact_sha256 does not match redacted resume_artifact_sha256"
+        )
+    if (
+        str(manifest_json.get("cover_letter_artifact_sha256")).lower()
+        != str(redacted_data.get("cover_letter_artifact_sha256")).lower()
+    ):
+        raise ProofValidationError(
+            "manifest cover_letter_artifact_sha256 does not match redacted cover_letter_artifact_sha256"
+        )
+    if (
+        str(manifest_json.get("generation_origin")).lower()
+        != str(redacted_data.get("generation_origin")).lower()
+    ):
+        raise ProofValidationError(
+            "manifest generation_origin does not match redacted generation_origin"
+        )
     if manifest_json.get("is_live_ready") != redacted_data.get("is_live_ready"):
         raise ProofValidationError("manifest is_live_ready does not match redacted is_live_ready")
 
@@ -405,6 +568,122 @@ def validate_local_bundle(
             f"manifest packet_hash does not match recomputed canonical hash: "
             f"{manifest_json.get('packet_hash')} != {recomputed_packet_hash}"
         )
+
+    # Persisted DB row and artifact linkage verification if database is provided
+    verify_database_linkage(local_data, redacted_data)
+
+
+def verify_database_linkage(
+    local_data: dict[str, Any],
+    redacted_data: dict[str, Any],
+    db_target: str | Path | None = None,
+) -> None:
+    """RP14-T7: Verify persisted DB records against local bundle and redacted proof."""
+    if db_target is None:
+        db_target = local_data.get("database_url") or local_data.get("db_path")
+    if not db_target:
+        return
+
+    import uuid
+
+    from jobs_automation.db.models import (
+        ApplicationPacketModel,
+        ArtifactModel,
+        JobModel,
+        ResumeVariantModel,
+    )
+    from jobs_automation.db.session import get_engine, get_sessionmaker
+
+    db_str = str(db_target)
+    if not db_str.startswith(("sqlite://", "postgresql://", "postgres://")):
+        db_path = Path(db_str).expanduser().resolve()
+        if not db_path.exists():
+            raise ProofValidationError(f"database file not found on disk: {db_path}")
+        db_url = f"sqlite:///{db_path}"
+    else:
+        db_url = db_str
+
+    engine = get_engine(db_url)
+    session_factory = get_sessionmaker(engine)
+    with session_factory() as session:
+        job_id = uuid.UUID(str(local_data["job_id"]))
+        packet_id = uuid.UUID(str(local_data["packet_id"]))
+        resume_variant_id = uuid.UUID(str(local_data["resume_variant_id"]))
+        resume_artifact_id = uuid.UUID(str(local_data["resume_artifact_id"]))
+        cl_artifact_id = uuid.UUID(str(local_data["cover_letter_artifact_id"]))
+
+        job = session.get(JobModel, job_id)
+        if job is None:
+            raise ProofValidationError(f"JobModel not found in DB with id {job_id}")
+        if job.apply_url != redacted_data.get("job_url"):
+            raise ProofValidationError(
+                f"DB JobModel apply_url ({job.apply_url}) mismatch vs redacted job_url ({redacted_data.get('job_url')})"
+            )
+
+        packet = session.get(ApplicationPacketModel, packet_id)
+        if packet is None:
+            raise ProofValidationError(
+                f"ApplicationPacketModel not found in DB with id {packet_id}"
+            )
+        if packet.job_id != job_id:
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel job_id ({packet.job_id}) does not match {job_id}"
+            )
+        if packet.resume_variant_id != resume_variant_id:
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel resume_variant_id ({packet.resume_variant_id}) does not match {resume_variant_id}"
+            )
+        if packet.resume_artifact_id != resume_artifact_id:
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel resume_artifact_id mismatch: {packet.resume_artifact_id} != {resume_artifact_id}"
+            )
+        if packet.cover_letter_artifact_id != cl_artifact_id:
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel cover_letter_artifact_id mismatch: {packet.cover_letter_artifact_id} != {cl_artifact_id}"
+            )
+        if packet.packet_hash.lower() != str(redacted_data.get("packet_hash")).lower():
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel packet_hash mismatch: {packet.packet_hash} != {redacted_data.get('packet_hash')}"
+            )
+        packet_origin = packet.generation_metadata_json.get("origin", "")
+        if str(packet_origin).lower() != "deterministic":
+            raise ProofValidationError(
+                f"DB ApplicationPacketModel generation origin in metadata must be deterministic, got {packet_origin!r}"
+            )
+
+        resume_variant = session.get(ResumeVariantModel, resume_variant_id)
+        if resume_variant is None:
+            raise ProofValidationError(
+                f"ResumeVariantModel not found in DB with id {resume_variant_id}"
+            )
+        if resume_variant.resume_family != redacted_data.get("resume_family"):
+            raise ProofValidationError(
+                f"DB ResumeVariantModel resume_family mismatch: {resume_variant.resume_family} != {redacted_data.get('resume_family')}"
+            )
+        if resume_variant.name != redacted_data.get("resume_variant"):
+            raise ProofValidationError(
+                f"DB ResumeVariantModel name mismatch: {resume_variant.name} != {redacted_data.get('resume_variant')}"
+            )
+
+        resume_art = session.get(ArtifactModel, resume_artifact_id)
+        if resume_art is None:
+            raise ProofValidationError(
+                f"ArtifactModel row for resume_artifact_id {resume_artifact_id} not found in DB"
+            )
+        if resume_art.sha256.lower() != str(redacted_data.get("resume_artifact_sha256")).lower():
+            raise ProofValidationError(
+                f"DB resume ArtifactModel sha256 mismatch: {resume_art.sha256} != {redacted_data.get('resume_artifact_sha256')}"
+            )
+
+        cl_art = session.get(ArtifactModel, cl_artifact_id)
+        if cl_art is None:
+            raise ProofValidationError(
+                f"ArtifactModel row for cover_letter_artifact_id {cl_artifact_id} not found in DB"
+            )
+        if cl_art.sha256.lower() != str(redacted_data.get("cover_letter_artifact_sha256")).lower():
+            raise ProofValidationError(
+                f"DB cover letter ArtifactModel sha256 mismatch: {cl_art.sha256} != {redacted_data.get('cover_letter_artifact_sha256')}"
+            )
 
 
 def generate_receipt(
@@ -480,7 +759,10 @@ def main() -> int:
                 json.dumps(receipt, indent=2, sort_keys=True) + "\n",
                 encoding="utf-8",
             )
-            print("REAL_PROOF_VALIDATION_STRUCTURAL_ONLY: PASS requires --local-full-bundle", file=sys.stderr)
+            print(
+                "REAL_PROOF_VALIDATION_STRUCTURAL_ONLY: PASS requires --local-full-bundle",
+                file=sys.stderr,
+            )
             print(f"receipt_output={receipt_path}")
             print(f"candidate_bundle_sha256={candidate_bundle_sha}")
             print("local_full_bundle_verified=False")
@@ -505,7 +787,9 @@ def main() -> int:
 
         receipt_path = args.receipt_output
         if receipt_path is None:
-            receipt_path = args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
+            receipt_path = (
+                args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
+            )
 
         receipt_path.parent.mkdir(parents=True, exist_ok=True)
         receipt_path.write_text(
