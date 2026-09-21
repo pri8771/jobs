@@ -1,6 +1,6 @@
 # V2.3 Master Plan — Critical Path, Artifact Graph, V3 Compatibility
 
-- Status: **PROPOSED — awaiting ChatGPT lead review** (planning worker output; nothing here is self-accepted)
+- Status: **LEAD_ACCEPTED WITH CORRECTIONS** — authoritative corrections: `docs/V23_LEAD_REVIEW_20260921.md`
 - Planning pass: `docs/FABLE_V23_MASTER_PLANNING_BRIEF.md`
 - Audited main: `e84da8d` (2026-09-21, 59 commits, orphan root `4c4e22f`)
 - Companion documents (one canonical set, no duplicate roadmaps):
@@ -11,7 +11,7 @@
   - `docs/V2_3_ACCEPTANCE_CAMPAIGN.md` — end-to-end V2.3 scenario, machine-verifiable outputs, live overlay
   - `coordination/V23_WORKER_QUEUE.md` — proposed canonical worker queue (lead promotes into `WORK_QUEUE.md`)
 
-Operating rules this plan obeys: it does **not** change the three-lane implementation model, lead-owned coordination truth, phase gates, or any live/user gate. It proposes; ChatGPT decides. Every task is SP1/SP2. Every consequential external action stays `USER_GATE`.
+Operating rules: ChatGPT remains lead/acceptance authority. There is **one active implementation worker/session and one active five-minute heartbeat watcher**. PG1–PG4 below are dependency/parallelizability groups, not simultaneous implementation lanes. Lower-cost subagents may do bounded independent analysis/tests under the parent worker. Every consequential external action stays `USER_GATE`. Lead corrections in `docs/V23_LEAD_REVIEW_20260921.md` override any stale wording below.
 
 ---
 
@@ -19,8 +19,8 @@ Operating rules this plan obeys: it does **not** change the three-lane implement
 
 1. **Brownfield is stronger than the coordination truth implies.** Main already holds a working discovery → dedupe → evaluate → packet → assisted/auto routing → lifecycle → CRM → interview → alerts → dashboard/analytics → worker/health system (12.5k LOC, 151 tests, ruff/mypy-strict clean under an independent Python 3.12 run). Nineteen relational tables already model company, job, job_source, application, application_event, contact, message, message_link, interview, task, resume_variant, application_packet, artifact, policy_registry and audit_log. V2.3 needs **five additive tables and one additive column**, not a new platform.
 2. **Three finished-but-unintegrated bodies of work exist on branches and overlay cleanly onto main** (verified by scratch dry runs, §2.4): Lane 2's V1.5 browser safety (+38 tests), Lane 1's P0A proof tooling (+17 tests), and Lane D's opportunity-graph projection (933 LOC, reuse-with-repair). Integration is mechanical SP1 work, not re-implementation.
-3. **The shortest safe path to a genuinely working V2.3 is to decouple V2.3 engineering from the V1.6 live-submission proof.** V2.3 explicitly works without automated submission: real applications enter the system via assisted prefill and a new, tiny `record-manual-application` path (user attestation). What V2.3 truly depends on is **real data**: the V1.4 real resume identity (private-input gate) and real Gmail ingestion (OAuth gate). Both gates already sit on the owner's critical path.
-4. **V2.3 engineering can start now on fixtures, in parallel with P0A/V1.5/V1.7 work**, because it touches new modules (`intelligence/`, `tools/`, `ingestion/sources/`) and one additive migration. It becomes REAL_PROVEN only after the two user gates open.
+3. **The shortest engineering path to V2.3 may proceed ahead of blocked live gates, but the acceptance path remains sequential.** V2.3 engineering does not need automated submission to be developed, but V2.3 cannot be called `REAL_PROVEN`/`COMPLETE` until V1.4, V1.5, V1.6, V1.7, and V2.0 have each passed their required real-life checkpoint. Manual/user-reported applications remain `SUBMISSION_UNCONFIRMED` until accepted external confirmation exists.
+4. **V2.3 engineering can be prepared and implemented ahead of live gates when write surfaces/dependencies allow**, because it largely touches new modules (`intelligence/`, `tools/`, `ingestion/sources/`). With the owner's one-worker rule, this means sequential artifact batches by the single implementation worker, optionally assisted by lower-cost subagents for bounded non-conflicting analysis. It becomes `REAL_PROVEN` only after all prior required live checkpoints and the V2.3 live campaign pass.
 5. **V3 compatibility is designed now as five small interfaces inside V2.3 (§11)** — permission classes and a deterministic gate, a generic scoped-approval table shared with V1.6, a tool request/result envelope, a derived-artifact envelope, and audit rows that carry request/trace identity. No agent runtime, memory, or specialist code is on the V2.3 path.
 6. Totals: **131 engineering tasks, 166 SP, 100% SP1/SP2** (plus gated LIVE items), four parallel groups, ~85% Sonnet-class, ~10% Opus-class, ~5% Haiku/lead review. First five executable tasks are in §13.
 
@@ -124,13 +124,13 @@ Acceptance = `ENGINEERING_ACCEPTED` (deterministic fixture campaign, `docs/V2_3_
  V1.7 reconciliation ──► V2.0 engineering gaps ──► golden fixture ──► V2.0 ENGINEERING_READY ──► V2.0 live campaign (C1..C5, manual/assisted application path)
                                                                                      │
  V2.3 engineering (fixtures, parallel from day 1) ───────────────────────────────────┴──► V2.3 acceptance campaign: engineering report → live report → lead review
-                 └────────────── PG2 Lane 2 (parallel, not on the V2.3 critical path) ──────────────┘
+                 └────────────── PG2 dependency group (engineering can be scheduled ahead; acceptance cannot skip it) ──────────────┘
  V1.5 clean port ──► A-R15-06..09 ──► [USER_GATE browser] V1.5 live proof ──► V1.6 engineering (scoped_approval, attempts, preflight, confirmation) ──► transport research ──► [deferred] V1.6 live submit
 ```
 
 Rate-limiting items, in order: (1) P0A rework (Lane 1, 4 × SP1, machine-checkable DoD); (2) the two user gates (private inputs, Gmail OAuth) — engineering cannot shorten them, only be ready before they open; (3) V2.3 engineering volume (78 SP, parallelizable into two sub-groups); (4) real outcome accumulation (calendar time; guardrails make low-N outputs honest rather than blocking).
 
-What is explicitly **off** the V2.3 critical path (§12): V1.6 live submission and transport implementation, LinkedIn network growth, MCP wrapper, LLM prose generation, pgvector, V3 runtime/memory/specialists/evaluation.
+What is explicitly **off the V2.3 engineering critical path** (§12): LinkedIn network growth, MCP wrapper, optional LLM prose generation, pgvector, and V3 runtime/memory/specialists/evaluation. **V1.5 and V1.6 live proofs are not optional for formal V2.3 completion** even when their implementation/live gate is scheduled independently.
 
 Gate labels used everywhere: `USER_GATE` (owner action required), `LEAD_GATE` (acceptance decision), `CI_BLOCKED_ACCOUNT` (runner outage; independent validation substitutes as evidence input only).
 
@@ -147,10 +147,10 @@ Gate labels used everywhere: `USER_GATE` (owner action required), `LEAD_GATE` (a
 | A-V14-REAL-PROOF | BLOCKED | clean port + `USER_GATE` private inputs | V1.4 COMPLETE, real resume identity for V2.3 | R14-L (Lane 1 or eligible machine) |
 | A-V15-CLEAN-INTEGRATION | BLOCKED | none technically (dry run green); lead decision D2 | A-V15-* residuals | R15-I (Lane 2) |
 | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | IN_PROGRESS | clean port | V1.5 engineering acceptance, V1.6, `open_assisted_application` tool | A-R15-06..09, R15-V01 (Lane 2) |
-| A-V15-LIVE-ASSISTED-PROOF | BLOCKED | V1.5 accepted + `USER_GATE` browser | V1.5 COMPLETE | R15-L (optional for V2.3) |
+| A-V15-LIVE-ASSISTED-PROOF | BLOCKED | V1.5 accepted + `USER_GATE` browser | V1.5 COMPLETE; required before formal V2.3 completion | R15-L |
 | A-V16-AUTHORIZATION / IDEMPOTENCY / PREFLIGHT / CONFIRMATION / HYGIENE | BLOCKED | V1.5 engineering accepted (lead may advance) | P3 tools, V1.6 proof | R16-* (Lane 2) |
 | A-V16-TRANSPORT | READY | none for research | A-V16-FIRST-REAL-SUBMISSION | R16-T01/T02 (research only now) |
-| A-V16-FIRST-REAL-SUBMISSION | PROPOSED | all V1.6 + `USER_GATE` | V1.6 COMPLETE | **deferred after V2.3** (D1) |
+| A-V16-FIRST-REAL-SUBMISSION | PROPOSED | all V1.6 + eligible transport + exact per-application `USER_GATE` | V1.6 COMPLETE; required before V2.0 LIVE_ACCEPTED / V2.3 REAL_PROVEN | schedule when ready; do not bypass |
 | A-V17-ENGINEERING-RECONCILIATION | READY | code on main | A-V17-MILESTONE-GATE | R17-E (Lane 3) |
 | A-V17-LIVE-LIFECYCLE-PROOF | BLOCKED | `USER_GATE` Gmail + J20G | A-V17-MILESTONE-GATE, V2.0 live | R17-L |
 | A-V20-GMAIL-RUNTIME-READINESS | READY | none | canary, health truth | J20G-01..04 (Lane 1 after V1.4 proof, or reassigned) |
@@ -248,10 +248,10 @@ Allocation summary (engineering SP): recovery 56 SP / 51 tasks; V2.0 32 SP / 25 
 | Version | Production path proven | Real inputs | Gate(s) | Evidence bundle | Needed for V2.3 working? |
 |---|---|---|---|---|---|
 | V1.4 | import live job → private profile → exact resume bytes → packet builder (deterministic gateway, labeled) → artifacts → runtime candidate → separate verifier receipt | private profile, selected resume file, live Greenhouse job | P0A `LEAD_GATE`; private inputs `USER_GATE` | redacted candidate + `REAL_PROOF_PASS` receipt in `coordination/proofs/` | **Yes** (real resume identity) |
-| V1.5 | accepted packet → visible browser inspect → classify → safe prefill → exact uploads → review boundary; no submit | real application page | V1.5 engineering `LEAD_GATE`; browser `USER_GATE` | field classifications, manifest, hashes, session mode | Optional (assisted path is one of two manual-application routes) |
-| V1.6 | scoped approval → preflight/idempotency → one system submit → external confirmation → truthful event | desired job, eligible `AUTO_ALLOWED` transport | V1.6 engineering; transport eligibility; per-application `USER_GATE` | approval/attempt/confirmation refs | **No — deferred (D1)** |
+| V1.5 | accepted packet → visible browser inspect → classify → safe prefill → exact uploads → review boundary; no submit | real application page | V1.5 engineering `LEAD_GATE`; browser `USER_GATE` | field classifications, manifest, hashes, session mode | **Yes** — required live checkpoint |
+| V1.6 | scoped approval → preflight/idempotency → one system submit → external confirmation → truthful event | desired job, eligible `AUTO_ALLOWED` transport | V1.6 engineering; transport eligibility; per-application `USER_GATE` | approval/attempt/confirmation refs | **Yes** — required live checkpoint; if no eligible transport exists, completion remains truthfully blocked |
 | V1.7 | real Gmail read-only canary over bounded historical recruiting threads → link → lifecycle/interview/follow-up → idempotent replay | OAuth, historical threads | J20G engineering; OAuth `USER_GATE` | hashed message refs, entity IDs, timeline digest, replay result | **Yes** (real contacts/messages/outcomes) |
-| V2.0 | Campaigns 1–5 (`V2_0_LIVE_ACCEPTANCE_RUNBOOK`): canary, real opportunity, real application lifecycle **via assisted or user-attested manual application**, operator/reliability, analytics | as above + user records manual applications | OAuth + private inputs `USER_GATE`; backup drill | live campaign report | **Yes** (minus system submission) |
+| V2.0 | Campaigns 1–5 (`V2_0_LIVE_ACCEPTANCE_RUNBOOK`): canary, real opportunity, real externally-confirmed application lifecycle, operator/reliability, analytics | as above + real application evidence | OAuth + private inputs + applicable browser/submission `USER_GATE`; backup drill | live campaign report | **Yes**; requires prior live checkpoints including V1.6 |
 | V2.3 | `briefing` over real data: real opportunities with reasons, real relationships, resume recommendation with N, next actions, interviews/follow-ups, ≥1 real target company watched via public API, interview brief for a real application (or truthful "no interview evidence") | all above + target-company list from owner | same gates + owner supplies targets | `v23_live_campaign_report.json` verified by `scripts/verify_v23_campaign.py` | **Yes — defines V2.3 REAL_PROVEN** |
 
 Blocked-state vocabulary stays `LIVE_PROOF_BLOCKED_USER_AUTH | _PRIVATE_INPUT | _PROVIDER | _POLICY | _NO_ELIGIBLE_TRANSPORT | _OTHER`; never converted to PASS.
@@ -276,21 +276,21 @@ Conclusion: V2.3 can support V3 without redesign. The only V3 items requiring ne
 
 ### Proposed decisions for lead ratification (append to `state/DECISIONS.md` only if accepted)
 
-- **D1** Decouple V1.6 live submission from the V2.3 critical path; V2.3 real proof uses assisted and user-attested manual applications. Official "completed version number" labeling remains governed by `REAL_PROOF_ACCEPTANCE_POLICY`; V2.3 may be `ENGINEERING_ACCEPTED`/`REAL_PROVEN` while V1.6 stays incomplete.
+- **D1 (MODIFIED/ACCEPTED)** Decouple V1.6 from the **engineering scheduling** critical path only. V2.3 engineering may proceed while V1.6 live proof is gated, but V2.3 may not be `REAL_PROVEN`/`COMPLETE` while V1.6 remains incomplete. A-V16-FIRST-REAL-SUBMISSION remains mandatory.
 - **D2** Lane 2 stops rebasing PR #2 and ports the 8 browser files onto a fresh branch from main (`A-V15-CLEAN-INTEGRATION`); PR #2 becomes history.
-- **D3** V2.3 implementation ownership: Lane 3 second wave (PG3 then PG4), or a reopened fourth lane only with owner authorization.
-- **D4** Migration ownership/order: 004 V2.3 foundation (PG4), 005 V1.6 submission truth (PG2); one generic `scoped_approval` table instead of a submission-only table.
-- **D5** `record-manual-application`: user attestation creates `application_mode="manual"`, `status="SUBMITTED"`, event `APPLICATION_SUBMITTED_USER_ATTESTED` (source `user_attestation`); analytics counts it as real; confirmation email may later move it to `CONFIRMED`. System submissions keep the external-confirmation rule.
+- **D3 (MODIFIED/ACCEPTED)** One active implementation worker/session owns execution. PG1–PG4 are dependency groups/work surfaces, not concurrent workers. Lower-cost subagents may perform bounded independent analysis/tests under the parent worker when write surfaces do not conflict.
+- **D4 (MODIFIED/ACCEPTED)** Migration order: `004_v16_submission_truth` first (generic `scoped_approval`, submission attempt, confirmation evidence), then `005_v23_intelligence_foundation`; V3 runtime foundation begins at 006. This preserves version/truth dependencies while reusing the generic approval model.
+- **D5 (MODIFIED/ACCEPTED)** `record-manual-application`: user attestation creates `application_mode="manual"`, truth-preserving `status="SUBMISSION_UNCONFIRMED"`, event `APPLICATION_SUBMISSION_REPORTED_BY_USER` (source `user_attestation`) with exact resume/packet attribution. It is reported-attempt evidence, not confirmed-submission evidence. Only accepted external confirmation may advance submission truth and confirmed-submission analytics.
 - **D6** `INDEPENDENT_SANDBOX_VALIDATION` (exact-head `ruff`/`mypy`/`pytest` in a clean 3.12 environment via `scripts/local_ci.sh`) is an accepted evidence class while `CI_BLOCKED_ACCOUNT` persists; it never replaces lead review and is never called "CI green".
 - **D7** V2.3 is deterministic-first; any LLM use goes through `build_model_gateway()` with fail-closed behavior and explicit origin labeling; no LLM output is required for V2.3 acceptance.
 - **D8** Lane D's opportunity graph is adopted as the base (`REUSE_WITH_REPAIR`), not rewritten.
-- **D9** Gate G23 wording: V2.3 engineering may proceed and be accepted on fixtures before V2.0 `LIVE_ACCEPTED`; V2.3 `REAL_PROVEN` requires V2.0 live campaigns 1, 2, 4, 5 and campaign 3 via the assisted/manual path.
+- **D9 (MODIFIED/ACCEPTED)** V2.3 engineering may proceed and be `ENGINEERING_ACCEPTED` on fixtures before V2.0 `LIVE_ACCEPTED`. V2.3 `REAL_PROVEN`/`COMPLETE` requires V2.0 `LIVE_ACCEPTED`, all required earlier live checkpoints, and the V2.3 live campaign. Any application asserted submitted in live acceptance must have accepted external confirmation.
 
 ---
 
 ## 12. Explicitly deferred until after V2.3
 
-- A-V16-FIRST-REAL-SUBMISSION and R16-T03..T05 transport implementation (research R16-T01/T02 proceeds; result may be `LIVE_PROOF_BLOCKED_NO_ELIGIBLE_TRANSPORT`).
+- Broad optimization of V1.6 transport beyond the first compliant supported transport. **A-V16-FIRST-REAL-SUBMISSION itself is not deferred past V2.3 acceptance**; it remains a mandatory earlier-version live checkpoint.
 - A-LINKEDIN-NETWORK-GROWTH, external messaging, calendar mutation, spending — all remain `USER_GATE` and unimplemented.
 - MCP/HTTP wrapper over the tool layer (V23-TL04 in the old prep queue).
 - LLM-generated prose in briefs/follow-ups (optional enhancement behind J20-17).
@@ -307,10 +307,10 @@ Open decisions: D1–D9 above, plus: proof-job approval (A-PROOF-JOB-SELECTION),
 
 First five executable tasks after lead review (details in the task graphs and `coordination/V23_WORKER_QUEUE.md`):
 1. **R14-P01 + R14-P02** (Lane 1, SP1+SP1, Sonnet high) — close the two P0A defects; DoD = the 16 xfail tests in the worker-pc suite pass with xfail markers removed.
-2. **R15-I01..I04** (Lane 2, 4 × SP1, Sonnet medium) — clean port of the 8 browser files onto a fresh branch from main (dry run: 189 tests green), pending D2.
-3. **R17-E01..E05** (Lane 3, 5 × SP1, Sonnet/Haiku) — V1.7 reconciliation with `INDEPENDENT_SANDBOX_VALIDATION` evidence, pending D6.
-4. **J20-12 + J20-15** (Lane 3, SP1 + SP2, Sonnet) — `scripts/local_ci.sh` and `record-manual-application`, pending D5/D6.
-5. **V23-F01 + V23-OG-01** (PG4, SP1 + SP1, Sonnet) — derived-artifact envelope and verbatim port of the Lane D graph module onto the V2.3 branch, pending D3/D8.
+2. **R14-P03** (same active worker, SP1) — run the complete adversarial proof-integrity set with all former xfails converted to required passes.
+3. **R14-P04** (same active worker, SP1) — exact-head local/independent validation; record `CI_BLOCKED_ACCOUNT` if hosted runner remains unavailable.
+4. **R14-I01..I05** (same active worker on a clean V1.4 integration branch) — port only accepted proof tooling to current main and request lead review.
+5. **Next unblocked artifact after the V1.4 lead gate** — normally V1.4 real-proof readiness/live proof if the private-input gate is open; otherwise advance one safe non-conflicting SP1/SP2 artifact such as V1.5 clean integration while keeping formal acceptance gates intact.
 
 ---
 
