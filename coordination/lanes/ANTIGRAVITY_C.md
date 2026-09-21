@@ -34,9 +34,19 @@ Scope: proof scripts, proof schema, proof-tooling tests, minimal directly relate
 
 Push one coherent batch with a worker-authored heartbeat marked `READY_FOR_LEAD_REVIEW`, then stop for Scout/ChatGPT review. Do not self-accept.
 
+## Current lead review — 2026-09-21 08:46 ET
+
+Lane C is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. Rebase latest main before work.
+
+Lane A attempted the V1.4 packet proof before P0A acceptance and failed closed because its selected real resume variant `resume_ai_software_engineer` has no actual mapped file on that machine. That attempt is not valid proof evidence and does not change the P0A gate. It does mean Lane A is currently known to be `REAL_PROOF_BLOCKED_PRIVATE_INPUT` unless a genuine intended resume mapping exists later.
+
+Therefore Lane C remains especially important to the critical path: finish RP14-T1..T7 first. After lead acceptance, execute RP14-C1..C3 immediately and determine whether this machine has the complete genuine profile/resume mapping. Do not wait for Lane A if Lane C has all real inputs.
+
+`worker-pc` remote capacity is currently occupied by a non-Jobs SwarmAI workflow, so there is no parallel remote Jobs implementation to wait for. The previous Jobs tests-only remote attempt failed on target branch push and produced no reviewable code.
+
 ## Branch maintenance performed by lead
 
-At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main and contained only two unique lead-seeded heartbeat commits (`4122f9bd...` and `2ce7674f...`). ChatGPT inspected both commits and confirmed they contained no worker implementation or worker-authored heartbeat. The branch was therefore force-aligned to green Jobs main so this lane now sees the current P0A contract and validation workflows.
+At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main and contained only two unique lead-seeded heartbeat commits (`4122f9bd...` and `2ce7674f...`). ChatGPT inspected both commits and confirmed they contained no worker implementation or worker-authored heartbeat. The branch was therefore force-aligned to green Jobs main so this lane saw the then-current P0A contract and validation workflows.
 
 This alignment is maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
 
@@ -94,4 +104,4 @@ Do not perform real OAuth consent, access a live mailbox, open/prefill/submit a 
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
 Heartbeat proving: 0/3 worker-authored check-ins.
-Latest lead review: 2026-09-21 07:43 ET.
+Latest lead review: 2026-09-21 08:46 ET.
