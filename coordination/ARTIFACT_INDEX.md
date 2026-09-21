@@ -29,7 +29,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Lane 1 + Lane 3 J20G-04 glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
 | A-V20-LIVE-INGESTION | V2.0 | Real Gmail/live-data ingestion proof | live integration | Lane 1 + User | BLOCKED | A-V20-GMAIL-RUNTIME-READINESS + user OAuth | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Lane 1 + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
-| A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + active lanes | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
+| A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + sequential work surfaces | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
 | A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | paused historical Lane D | READY | V2 relational model | A-V23-CAREER-INTELLIGENCE |
 | A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + future lane | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
 | A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | future lane | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
@@ -51,13 +51,26 @@ Lane 1 P0A proof-tool integrity acceptance
 → A-V23-CAREER-INTELLIGENCE
 → A-V30-CAREER-AGENT-NETWORK
 
-## Exactly three active implementation lanes
+## Single active implementation session
 
-- Lane 1 / `worker/v14-real-proof`: P0A rework for RP14-T1..T7; after lead acceptance, genuine private input readiness + V1.4 real proof; then candidate provenance/Gmail readiness.
-- Lane 2 / `worker/v15-assisted-application`: preserve accepted A-R15-01..05 and complete/integrate A-R15-06..09; no V1.6 until gates pass.
-- Lane 3 / `worker/recruiting-ops`: B-R20-05/J20-14 + B-R20-01/B-R20-02 are accepted and integrated; run bounded post-integration verification, then wait on blocked J20G-04 dependency rather than inventing filler work.
+Owner-directed execution mode:
+- one Antigravity implementation session is active at a time,
+- historical Lane 1/Lane 2/Lane 3 branches remain sequential work surfaces,
+- exactly one heartbeat watcher runs for the active session,
+- ChatGPT performs lead review/acceptance and prepares downstream work.
 
-Old Lane C is superseded by Lane 1. Old Lane D and Scout are paused and must not be treated as active workers. `worker-pc` is infrastructure/support only, not an implementation lane.
+Sequential work surfaces:
+- Lane 1 / `worker/v14-real-proof`: P0A repair → V1.4 real proof → later provenance/Gmail-readiness work when assigned.
+- Lane 2 / `worker/v15-assisted-application`: preserve accepted A-R15-01..05, finish A-R15-06..09, then V1.6 only after the gate opens.
+- Lane 3 / `worker/recruiting-ops`: audit/finish V1.7 evidence artifacts, then later V2.0 recruiting/reliability support.
+
+Old Lane C is superseded. Old Lane D and Scout are paused as active sessions. `worker-pc` is independent support/audit infrastructure only.
+
+Canonical execution program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+
+Future preparation:
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
 
 ## Supporting path
 
