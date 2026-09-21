@@ -179,3 +179,42 @@ Contract:
 - Mock/simulation never equals real preparation/submission.
 - External confirmation required for real submitted state.
 - Consequential live actions require the defined user approval boundary.
+
+
+## Canonical unique future task IDs
+
+This section resolves task-ID collisions created while lead automation and manual lead prep ran concurrently. These IDs are authoritative for the artifacts below.
+
+### A-V20-INTEGRATION-FIXTURE
+- J20I-01 SP3 implement deterministic golden integration fixture
+- J20I-02 SP2 emit machine-readable integration report
+- J20I-03 SP2 add duplicate/out-of-order replay cases
+Contract: docs/V2_0_INTEGRATION_FIXTURE.md
+
+### A-V20-GMAIL-RUNTIME-READINESS
+Do not interrupt the current V1.7 batch.
+- J20G-01 SP2 fail closed if a listed Gmail message cannot be fetched; preserve checkpoint for retry
+- J20G-02 SP2 wire ignored runtime OAuth token/client configuration safely into worker runtime/container
+- J20G-03 SP2 add safe REAL-Gmail diagnostic command/service
+- J20G-04 SP2 integrate Gmail readiness/last-success/error into health + worker-run evidence
+Coordinate J20G-04 with existing J20-13 rather than duplicating health work.
+Contract: docs/V2_0_GMAIL_RUNTIME_READINESS.md
+
+### A-V16-SUBMISSION-ENGINE-REPAIR
+Blocked until Lane A reaches V1.6 engineering.
+- J16-01 SP2 persist exact job/packet/method-specific user authorization
+- J16-02 SP2 stable idempotency key + duplicate guard across requisition/status
+- J16-03 SP3 explicit PREPARED/AUTHORIZED/SUBMITTING/UNCONFIRMED/SUBMITTED/FAILED state model
+- J16-04 SP3 ambiguous-submit recovery; no blind retry
+- J16-05 SP2 external-confirmation gate
+- J16-06 SP2 exact preflight/audit manifest
+- J16-07 SP1 complete only submission-satisfied tasks; never blanket-complete all pending job tasks
+- J16-08 SP2 exact packet-job binding + packet/artifact integrity preflight
+- J16-09 SP1 separate request-attempt pacing telemetry from successful submission metrics
+Contracts:
+- docs/V1_6_SUBMISSION_CONTRACT.md
+- docs/V1_6_LEAD_AUDIT.md
+
+### Worker-run history task authority
+- J20-14 SP3 is the canonical implementation task for A-V20-WORKER-RUN-HISTORY.
+- Earlier J20-07 references should be treated as the audit/planning precursor, not a second implementation.
