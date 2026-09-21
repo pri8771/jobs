@@ -10,6 +10,22 @@ Owner directive:
 See:
 - `docs/REAL_PROOF_ACCEPTANCE_POLICY.md`
 
+## Remote worker execution
+
+External control plane:
+- `pri8771/remote-workers`
+
+Verified project use:
+- worker: `worker-pc`
+- read-only task `jobs-v14-real-proof-audit-retry-20260920` completed successfully
+- independent verdict: CHANGES_REQUIRED
+- confirmed highest-severity proof-integrity gaps: forged structurally valid bundles can pass; local evidence is not bound to the redacted bundle
+- branch task `jobs-v14-proof-hardening-r2` dispatched for RP14-T1..T7
+- branch-mode task status at last lead check: IN_PROGRESS
+- no worker result is accepted until ChatGPT reviews the actual returned branch/diff/tests
+
+The remote-worker control plane remains infrastructure only; Jobs planning/acceptance remains authoritative here.
+
 ## P0A proof-tool integrity
 
 Before using private candidate/resume data for the milestone proof, the proof chain itself must be hardened.
