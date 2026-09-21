@@ -95,4 +95,4 @@ Repeated processing prevention belongs to source-evidence/application-event idem
 
 ## Worker task
 
-J20-07 owns implementation after Lane B reaches A-V20-RELIABILITY.
+J20-14 owns implementation after Lane B reaches A-V20-RELIABILITY.
