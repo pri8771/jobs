@@ -10,6 +10,9 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+from jobs_automation.core.config import AppSettings
 from jobs_automation.db.base import Base
 from jobs_automation.db.models import (
     ApplicationPacketModel,
@@ -24,6 +27,7 @@ from jobs_automation.preparation.packet_builder import (
     compute_canonical_packet_hash,
     compute_questions_sha256,
 )
+from scripts.verify_v14_real_proof import ProofValidationError, resolve_proof_db_url
 
 
 def _valid_bundle() -> dict[str, Any]:
@@ -190,6 +194,22 @@ PROOF_DESCRIPTION_TEXT = (
 )
 
 
+def _production_generation_metadata(origin: str = "deterministic") -> dict[str, Any]:
+    """Mirror of the generation_metadata_json the production packet builder persists.
+
+    See ``PacketBuilder.build_packet`` in src/jobs_automation/preparation/packet_builder.py:
+    the persisted keys are ``generation_origin``, ``cover_letter_origin`` and
+    ``cover_letter_model``. The verifier must validate that production origin key, so
+    proof evidence in these tests must use the real shape and never a test-only
+    ``{"origin": ...}`` stand-in.
+    """
+    return {
+        "generation_origin": origin,
+        "cover_letter_origin": origin,
+        "cover_letter_model": "DeterministicModelGateway",
+    }
+
+
 def _greenhouse_source_payload(questions: list[str], description_sha: str) -> dict[str, Any]:
     """Mirror of the payload scripts/import_v14_proof_job.py persists on JobSource."""
     return {
@@ -293,7 +313,7 @@ def _build_proof_database(
                     resume_artifact_id=resume_art_uuid,
                     cover_letter_artifact_id=cl_art_uuid,
                     packet_hash=bundle["packet_hash"],
-                    generation_metadata_json={"origin": "deterministic"},
+                    generation_metadata_json=_production_generation_metadata(),
                     is_live_ready=bundle["is_live_ready"],
                 )
             )
@@ -1097,3 +1117,198 @@ def test_real_proof_verifier_rejects_persisted_canonical_apply_url_divergence(
         "DB JobModel apply_url" in result.stderr
         or "canonical_apply_url" in result.stderr
     )
+
+
+# ---------------------------------------------------------------------------
+# Defect 3: the verifier must validate the production generation-origin metadata key.
+# ---------------------------------------------------------------------------
+
+
+def _persist_generation_metadata(local_bundle_data: dict[str, Any], metadata: Any) -> None:
+    """Overwrite the persisted packet's generation_metadata_json with arbitrary evidence."""
+    packet_uuid = uuid.UUID(local_bundle_data["packet_id"])
+
+    def _replace(session: Any) -> None:
+        packet = session.get(ApplicationPacketModel, packet_uuid)
+        packet.generation_metadata_json = metadata
+
+    _mutate_proof_database(local_bundle_data["database_url"], _replace)
+
+
+def test_real_proof_verifier_accepts_production_generation_metadata_shape(
+    tmp_path: Path,
+) -> None:
+    """Evidence persisted in the real production metadata shape must validate."""
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+
+    engine = get_engine(local_bundle_data["database_url"])
+    try:
+        with get_sessionmaker(engine)() as session:
+            packet = session.get(
+                ApplicationPacketModel, uuid.UUID(local_bundle_data["packet_id"])
+            )
+            assert packet is not None
+            assert packet.generation_metadata_json == _production_generation_metadata()
+            # The production builder never writes a bare "origin" key.
+            assert "origin" not in packet.generation_metadata_json
+    finally:
+        engine.dispose()
+
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+    result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+    assert result.returncode == 0, result.stderr
+    assert "REAL_PROOF_VALIDATION_PASS" in result.stdout
+
+
+def test_real_proof_verifier_rejects_generation_metadata_without_production_key(
+    tmp_path: Path,
+) -> None:
+    """Metadata lacking the production generation_origin key must not reach PASS."""
+    for metadata in (
+        {"origin": "deterministic"},
+        {},
+        {"cover_letter_origin": "deterministic", "cover_letter_model": "x"},
+    ):
+        bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+        _persist_generation_metadata(local_bundle_data, metadata)
+
+        local_bundle_file = tmp_path / "private_bundle.json"
+        local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+        result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+        assert result.returncode == 1, f"{metadata!r} was accepted as proof evidence"
+        assert "missing the production generation_origin key" in result.stderr
+
+
+def test_real_proof_verifier_rejects_wrong_persisted_generation_origin(
+    tmp_path: Path,
+) -> None:
+    """Adversarial non-deterministic persisted origins must still fail closed."""
+    for origin in ("mock", "real", "test", "adversarial_mock", ""):
+        bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+        _persist_generation_metadata(local_bundle_data, _production_generation_metadata(origin))
+
+        local_bundle_file = tmp_path / "private_bundle.json"
+        local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+        result = _run_verifier(tmp_path, bundle, local_bundle_path=local_bundle_file)
+        assert result.returncode == 1, f"origin {origin!r} was accepted as proof evidence"
+        assert "generation origin in metadata must be deterministic" in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# Defect 4: resolve_proof_db_url must accept the application's real SQLAlchemy URLs
+# while still failing closed on unsupported or unusable DB targets.
+# ---------------------------------------------------------------------------
+
+APP_SETTINGS_DEFAULT_DB_URL = str(AppSettings.model_fields["database_url"].default)
+
+
+def _sqlite_shaped_file(tmp_path: Path, name: str = "resolve_probe.db") -> Path:
+    path = tmp_path / name
+    path.write_bytes(b"SQLite format 3\x00" + bytes(64))
+    return path
+
+
+def test_resolve_proof_db_url_accepts_application_postgres_url_forms() -> None:
+    """The real AppSettings PostgreSQL URL form must be a usable proof DB target."""
+    assert APP_SETTINGS_DEFAULT_DB_URL.startswith("postgresql+psycopg://")
+    assert resolve_proof_db_url(APP_SETTINGS_DEFAULT_DB_URL) == APP_SETTINGS_DEFAULT_DB_URL
+
+    for url in (
+        "postgresql+psycopg://jobs:jobs@localhost:5432/jobs",
+        "postgresql+psycopg2://jobs:jobs@db.internal:5432/jobs_proof",
+        "postgresql://jobs@localhost:5432/jobs",
+        "postgresql+psycopg:///jobs",
+    ):
+        assert resolve_proof_db_url(url) == url
+
+    # SQLAlchemy 2.x dropped the legacy "postgres" alias, so it is normalized.
+    assert (
+        resolve_proof_db_url("postgres://jobs:jobs@localhost:5432/jobs")
+        == "postgresql://jobs:jobs@localhost:5432/jobs"
+    )
+
+
+def test_resolve_proof_db_url_retains_sqlite_persistence_checks(tmp_path: Path) -> None:
+    sqlite_file = _sqlite_shaped_file(tmp_path)
+    url = f"sqlite:///{sqlite_file}"
+    assert resolve_proof_db_url(url) == url
+    assert resolve_proof_db_url(f"{url}?check_same_thread=False") == (
+        f"{url}?check_same_thread=False"
+    )
+    # A bare on-disk path is normalized to a SQLite URL after the file is checked.
+    assert resolve_proof_db_url(str(sqlite_file)) == f"sqlite:///{sqlite_file.resolve()}"
+
+    corrupt = tmp_path / "corrupt_probe.db"
+    corrupt.write_bytes(b"not a database at all")
+    with pytest.raises(ProofValidationError, match="is not an openable SQLite database"):
+        resolve_proof_db_url(f"sqlite:///{corrupt}")
+
+
+def test_resolve_proof_db_url_fails_closed_on_unsupported_or_unusable_targets(
+    tmp_path: Path,
+) -> None:
+    cases = [
+        ("", "proof database target is empty"),
+        ("   ", "proof database target is empty"),
+        # Async drivers cannot be read by this synchronous verifier.
+        ("postgresql+asyncpg://jobs:jobs@localhost:5432/jobs", "unsupported PostgreSQL driver"),
+        ("sqlite+aiosqlite:///proof_evidence.db", "unsupported SQLite driver"),
+        # A PostgreSQL target that names no database cannot hold identified proof rows.
+        ("postgresql+psycopg://jobs:jobs@localhost:5432", "must name the database"),
+        ("postgresql+psycopg://", "must name the database"),
+        # Other backends are not verifiable proof evidence.
+        ("mysql+pymysql://jobs:jobs@localhost:3306/jobs", "unsupported proof database backend"),
+        ("sqlite://", "unsupported SQLite proof database URL"),
+        ("sqlite:///:memory:", "in-memory SQLite is not acceptable"),
+        (str(tmp_path / "definitely_absent.db"), "proof database file not found on disk"),
+    ]
+    for target, expected in cases:
+        with pytest.raises(ProofValidationError) as excinfo:
+            resolve_proof_db_url(target)
+        assert expected in str(excinfo.value), f"{target!r}: {excinfo.value}"
+
+
+def test_resolve_proof_db_url_rejection_does_not_leak_db_credentials() -> None:
+    secret = "synthetic-not-a-real-password"
+    with pytest.raises(ProofValidationError) as excinfo:
+        resolve_proof_db_url(f"postgresql+asyncpg://jobs:{secret}@localhost:5432/jobs")
+    message = str(excinfo.value)
+    assert secret not in message
+    assert "***@localhost:5432/jobs" in message
+
+
+def test_real_proof_verifier_postgres_target_fails_closed_at_read_time(
+    tmp_path: Path,
+) -> None:
+    """A PostgreSQL proof target is resolved, then rejected because it cannot be read.
+
+    The URL must not be misclassified as a missing SQLite file, and the failure
+    message must not echo the database password into the receipt.
+    """
+    bundle, local_bundle_data = _setup_valid_full_run(tmp_path)
+    secret = "synthetic-pg-proof-password"
+    local_bundle_data["database_url"] = (
+        f"postgresql+psycopg://jobs:{secret}@127.0.0.1:59999/jobs_proof_absent"
+    )
+    local_bundle_file = tmp_path / "private_bundle.json"
+    local_bundle_file.write_text(json.dumps(local_bundle_data), encoding="utf-8")
+
+    receipt_file = tmp_path / "receipt.json"
+    result = _run_verifier(
+        tmp_path,
+        bundle,
+        local_bundle_path=local_bundle_file,
+        receipt_path=receipt_file,
+    )
+    assert result.returncode == 1
+    assert "proof database file not found on disk" not in result.stderr
+    assert "unsupported proof database backend" not in result.stderr
+    assert "unsupported PostgreSQL driver" not in result.stderr
+    assert (
+        "proof database evidence could not be read" in result.stderr
+        or "could not be opened as a SQLAlchemy engine" in result.stderr
+    )
+    receipt_data = json.loads(receipt_file.read_text(encoding="utf-8"))
+    assert receipt_data["result"] == "REAL_PROOF_FAIL"
+    assert secret not in json.dumps(receipt_data)

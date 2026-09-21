@@ -581,6 +581,25 @@ def validate_local_bundle(
 
 SQLITE_FILE_MAGIC = b"SQLite format 3\x00"
 
+# Leading scheme of a SQLAlchemy URL, e.g. "sqlite", "postgresql+psycopg".
+DB_URL_SCHEME = re.compile(
+    r"^(?P<backend>[A-Za-z][A-Za-z0-9]*)(?:\+(?P<driver>[A-Za-z0-9_]+))?://"
+)
+POSTGRES_BACKENDS = frozenset({"postgresql", "postgres"})
+# Synchronous DBAPI drivers the verifier can actually open a blocking session with.
+# psycopg is the driver AppSettings uses by default (postgresql+psycopg://).
+SUPPORTED_POSTGRES_DRIVERS = frozenset({"", "psycopg", "psycopg2", "psycopg2cffi", "pg8000"})
+SUPPORTED_SQLITE_DRIVERS = frozenset({"", "pysqlite"})
+
+
+def _redact_db_url(db_url: str) -> str:
+    """Strip any embedded credentials before a DB target reaches logs or receipts."""
+    scheme, separator, remainder = db_url.partition("://")
+    if not separator or "@" not in remainder:
+        return db_url
+    _, _, host_part = remainder.rpartition("@")
+    return f"{scheme}://***@{host_part}"
+
 
 def _require_readable_sqlite_file(db_path: Path) -> None:
     """Reject absent, non-file, or non-openable SQLite proof-database evidence."""
@@ -599,30 +618,86 @@ def _require_readable_sqlite_file(db_path: Path) -> None:
         )
 
 
+def _split_db_url_scheme(db_str: str) -> tuple[str, str] | None:
+    """Return ``(backend, driver)`` for a SQLAlchemy URL, or None for a bare filesystem path."""
+    match = DB_URL_SCHEME.match(db_str)
+    if match is None:
+        return None
+    return str(match.group("backend")).lower(), str(match.group("driver") or "").lower()
+
+
+def _require_usable_postgres_target(db_str: str, driver: str) -> None:
+    """Reject PostgreSQL targets this verifier cannot read persisted proof rows from."""
+    safe = _redact_db_url(db_str)
+    if driver not in SUPPORTED_POSTGRES_DRIVERS:
+        raise ProofValidationError(
+            f"unsupported PostgreSQL driver {driver!r} for synchronous proof verification: {safe}"
+        )
+    remainder = db_str.split("://", 1)[1]
+    _, separator, database = remainder.partition("/")
+    database = database.split("?", 1)[0].strip()
+    if not separator or not database:
+        raise ProofValidationError(
+            f"PostgreSQL proof database URL must name the database holding the proof rows: {safe}"
+        )
+
+
+def _require_persisted_sqlite_target(db_str: str, driver: str) -> None:
+    """Reject SQLite targets that are not a readable on-disk proof database."""
+    if driver not in SUPPORTED_SQLITE_DRIVERS:
+        raise ProofValidationError(
+            f"unsupported SQLite driver {driver!r} for synchronous proof verification: {db_str}"
+        )
+    _, separator, tail = db_str.partition(":///")
+    if not separator:
+        raise ProofValidationError(f"unsupported SQLite proof database URL: {db_str}")
+    raw_path = tail.split("?", 1)[0]
+    if not raw_path or raw_path == ":memory:":
+        raise ProofValidationError("in-memory SQLite is not acceptable persisted proof evidence")
+    _require_readable_sqlite_file(Path(raw_path).expanduser())
+
+
 def resolve_proof_db_url(db_target: str | Path) -> str:
-    """Normalize a declared proof-database target, failing closed on unusable evidence."""
+    """Normalize a declared proof-database target, failing closed on unusable evidence.
+
+    Accepts the SQLAlchemy URL forms the application itself produces, including the
+    driver-qualified ``postgresql+psycopg://`` URL that ``AppSettings.database_url``
+    defaults to and that ``scripts/run_v14_real_proof.py`` records as ``database_url``.
+    Also accepts a persisted SQLite URL or a bare SQLite file path.
+
+    Everything else is a rejection, never a silent pass: async drivers the verifier
+    cannot open a blocking session with, non-PostgreSQL/non-SQLite backends,
+    PostgreSQL URLs that name no database, in-memory SQLite, and SQLite files that
+    are absent, unreadable, or not real SQLite databases.
+    """
     db_str = str(db_target).strip()
     if not db_str:
         raise ProofValidationError("proof database target is empty")
 
-    if db_str.startswith(("postgresql://", "postgres://")):
+    scheme = _split_db_url_scheme(db_str)
+    if scheme is None:
+        # No URL scheme at all: the target is a SQLite proof database path on disk.
+        db_path = Path(db_str).expanduser().resolve()
+        _require_readable_sqlite_file(db_path)
+        return f"sqlite:///{db_path}"
+
+    backend, driver = scheme
+    if backend in POSTGRES_BACKENDS:
+        _require_usable_postgres_target(db_str, driver)
+        if backend == "postgres":
+            # SQLAlchemy 2.x dropped the legacy "postgres" dialect alias.
+            suffix = db_str.split("://", 1)[1]
+            return f"postgresql+{driver}://{suffix}" if driver else f"postgresql://{suffix}"
         return db_str
 
-    if db_str.startswith("sqlite"):
-        _, separator, tail = db_str.partition(":///")
-        if not separator:
-            raise ProofValidationError(f"unsupported SQLite proof database URL: {db_str}")
-        raw_path = tail.split("?", 1)[0]
-        if not raw_path or raw_path == ":memory:":
-            raise ProofValidationError(
-                "in-memory SQLite is not acceptable persisted proof evidence"
-            )
-        _require_readable_sqlite_file(Path(raw_path).expanduser())
+    if backend == "sqlite":
+        _require_persisted_sqlite_target(db_str, driver)
         return db_str
 
-    db_path = Path(db_str).expanduser().resolve()
-    _require_readable_sqlite_file(db_path)
-    return f"sqlite:///{db_path}"
+    raise ProofValidationError(
+        f"unsupported proof database backend {backend!r}: only PostgreSQL and persisted "
+        f"SQLite proof databases can be verified ({_redact_db_url(db_str)})"
+    )
 
 
 def verify_source_attestation_against_db(
@@ -849,8 +924,15 @@ def verify_database_linkage(
         ) from exc
 
     db_url = resolve_proof_db_url(db_target)
+    safe_db_url = _redact_db_url(db_url)
 
-    engine = get_engine(db_url)
+    try:
+        engine = get_engine(db_url)
+    except (SQLAlchemyError, ImportError) as exc:
+        raise ProofValidationError(
+            f"proof database target could not be opened as a SQLAlchemy engine "
+            f"({safe_db_url}): {exc}"
+        ) from exc
     session_factory = get_sessionmaker(engine)
     try:
         with session_factory() as session:
@@ -913,7 +995,17 @@ def verify_database_linkage(
                 raise ProofValidationError(
                     "DB ApplicationPacketModel generation_metadata_json is missing or not an object"
                 )
-            packet_origin = generation_metadata.get("origin", "")
+            # The production packet builder persists the origin under the
+            # "generation_origin" key (src/jobs_automation/preparation/packet_builder.py).
+            # No production writer has ever emitted a bare "origin" key, so accepting
+            # one would only add an unverified acceptance route for the proof gate.
+            if "generation_origin" not in generation_metadata:
+                raise ProofValidationError(
+                    "DB ApplicationPacketModel generation_metadata_json is missing the "
+                    "production generation_origin key; got keys "
+                    f"{sorted(str(key) for key in generation_metadata)}"
+                )
+            packet_origin = generation_metadata["generation_origin"]
             if str(packet_origin).lower() != "deterministic":
                 raise ProofValidationError(
                     f"DB ApplicationPacketModel generation origin in metadata must be deterministic, got {packet_origin!r}"
@@ -1012,7 +1104,7 @@ def verify_database_linkage(
             )
     except SQLAlchemyError as exc:
         raise ProofValidationError(
-            f"proof database evidence could not be read from {db_url}: {exc}"
+            f"proof database evidence could not be read from {safe_db_url}: {exc}"
         ) from exc
     finally:
         engine.dispose()
