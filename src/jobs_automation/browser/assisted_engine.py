@@ -73,6 +73,65 @@ def compute_form_fingerprint(fields: list[FormField], url: str) -> str:
     return hashlib.sha256(f"{url}|{fingerprint_raw}".encode()).hexdigest()[:16]
 
 
+# ---------------------------------------------------------------------------
+# A-R15-02 / J15-11 — Prompt-injection detection
+# ---------------------------------------------------------------------------
+_PROMPT_INJECTION_PATTERNS: list[str] = [
+    "ignore previous instructions",
+    "ignore all previous",
+    "disregard previous",
+    "if you are an ai",
+    "if you're an ai",
+    "you are now",
+    "as an ai",
+    "system prompt",
+    "output exactly",
+    "output the following",
+    "print the following",
+    "repeat after me",
+    "do not follow",
+    "override instructions",
+    "reveal your instructions",
+    "leak candidate",
+    "exfiltrate",
+    "jailbreak",
+    "prompt injection",
+    "ignore your training",
+    "forget your instructions",
+    "act as if",
+    "pretend you are",
+    "new instructions:",
+    "<!-- system",
+    "<|system|>",
+    "<|user|>",
+    "<|assistant|>",
+    "###instruction",
+    "[system]",
+    "[inst]",
+]
+
+
+def detect_prompt_injection(field: FormField) -> bool:
+    """Returns True if any untrusted field text contains prompt-injection patterns.
+
+    Untrusted field text includes name, label, placeholder, and options.
+    This implements the J15-11 contract: untrusted form text must never be
+    executed or used to override candidate facts, skip safety checks, or
+    trigger submission.
+    """
+    untrusted_sources = [
+        (field.name or "").lower(),
+        (field.label or "").lower(),
+        (field.placeholder or "").lower(),
+    ]
+    # Also inspect select/radio option labels
+    for opt in field.options or []:
+        untrusted_sources.append(str(opt).lower())
+
+    combined_untrusted = " ".join(untrusted_sources)
+    return any(pat in combined_untrusted for pat in _PROMPT_INJECTION_PATTERNS)
+
+
 def classify_field(
     field: FormField,
     candidate: CandidateProfileConfig,
@@ -83,7 +142,21 @@ def classify_field(
     Returns:
         (classification, canonical_key, mapped_value, source_reference)
     """
+    # 0. A-R15-02 / J15-11: Prompt-injection resistance.
+    # Untrusted page/field text must never execute as instructions or override
+    # policy, candidate facts, or submission state.  Any field whose label,
+    # name, placeholder, or option text contains injection patterns is
+    # classified POLICY_BLOCKED and must cause the engine to halt.
+    if detect_prompt_injection(field):
+        return (
+            FieldClassification.POLICY_BLOCKED,
+            None,
+            None,
+            "security:prompt_injection_detected",
+        )
+
     name_lower = (field.name or "").lower().strip()
+
     label_lower = (field.label or "").lower().strip()
     placeholder_lower = (field.placeholder or "").lower().strip()
     selector_lower = field.selector.lower()
@@ -284,18 +357,33 @@ def compute_barriers(
             barriers.append(f"unknown_required_field:{f.name}")
         elif f.classification == FieldClassification.CONSENT_MANUAL:
             barriers.append(f"consent_manual:{f.name}")
+        elif f.classification == FieldClassification.POLICY_BLOCKED:
+            barriers.append(f"policy_blocked:{f.name}")
     return barriers
 
 
 def is_valid_external_confirmation(
     session_res: BrowserSessionResult,
-    auto_confirm: bool,
+    auto_confirm: bool,  # noqa: ARG001  # present for call-site compatibility; is NOT evidence
     receipt_text: str | None,
     allow_simulation: bool = False,
 ) -> tuple[bool, str, dict[str, Any]]:
-    """Strictly evaluates whether external confirmation evidence exists.
+    """Strictly evaluates whether runner-observed external confirmation evidence exists.
 
-    Generic local receipt strings and simulated receipts cannot satisfy live confirmation.
+    A-R15-01 contract:
+    - ``auto_confirm=True`` means only "the candidate says they attempted";
+      it is NOT independent evidence and can never produce SUBMITTED alone.
+    - ``receipt_text`` supplied by a caller is NOT independent external evidence.
+      It may be stored as a note/annotation alongside already-confirmed evidence,
+      but it cannot by itself satisfy the confirmation gate.
+    - Valid evidence must be OBSERVED by the browser runner:
+        1. ``session_res.external_confirmation_evidence`` — structured evidence
+           captured from the employer/ATS side (e.g. confirmation page data,
+           ATS receipt object).  Must not carry ``simulated=True`` in live mode.
+        2. ``session_res.confirmation_url`` — a non-mock confirmation page URL
+           observed by the runner after submission.
+    - Any other combination yields SUBMISSION_UNCONFIRMED so the record can be
+      upgraded later when real external evidence arrives (e.g. email ingestion).
     """
     if session_res.is_mock and not allow_simulation:
         return (
@@ -304,44 +392,27 @@ def is_valid_external_confirmation(
             {},
         )
 
-    # Reject generic local placeholder strings
-    generic_disallowed = {
-        "application submitted via assisted browser",
-        "confirmed manual submission via native portal",
-        "manual native submission confirmed",
-        "application prefilled",
-        "prefilled successfully",
-    }
-    cleaned_receipt = (receipt_text or "").strip().lower()
-    if cleaned_receipt in generic_disallowed:
-        receipt_text = None
-
-    # 1. Structured external confirmation evidence
+    # 1. Structured external confirmation evidence observed by the runner
     if session_res.external_confirmation_evidence:
         ev = session_res.external_confirmation_evidence
         if not allow_simulation and ev.get("simulated"):
             return False, "Simulated confirmation rejected in live mode.", {}
-        receipt = receipt_text or str(ev.get("receipt_id") or "external_confirmed")
-        return True, receipt, ev
+        # receipt_text may annotate the event but is NOT the source of truth
+        annotation = receipt_text or str(ev.get("receipt_id") or "external_confirmed")
+        return True, annotation, ev
 
-    # 2. Confirmed external URL
+    # 2. Confirmation URL observed by the runner (browser-navigated confirmation page)
     if session_res.confirmation_url:
         conf_url = session_res.confirmation_url
         if not allow_simulation and ("mock" in conf_url.lower() or "test" in conf_url.lower()):
             return False, "Mock confirmation URL rejected in live mode.", {}
         ev = {"type": "confirmation_page", "url": conf_url}
-        receipt = receipt_text or f"Confirmed via external page: {conf_url}"
-        return True, receipt, ev
+        annotation = receipt_text or f"Confirmed via external page: {conf_url}"
+        return True, annotation, ev
 
-    # 3. External verifiable receipt text
-    if receipt_text:
-        rec_lower = receipt_text.lower()
-        if not allow_simulation and "mock" in rec_lower:
-            return False, "Mock receipt text rejected in live mode.", {}
-        if any(token in rec_lower for token in ["confirmation", "received", "application id", "ref", "receipt"]):
-            ev = {"type": "external_receipt", "text": receipt_text}
-            return True, receipt_text, ev
-
+    # All other paths — including caller-provided receipt_text strings such as
+    # "application received ref 123" — do NOT satisfy the external evidence gate.
+    # The application is recorded as SUBMISSION_UNCONFIRMED for later upgrade.
     return (
         False,
         "No verifiable external receipt, confirmation URL, or confirmation email captured.",
@@ -890,13 +961,30 @@ class AssistedApplicationEngine:
                         ),
                     )
             elif classification == FieldClassification.FILE_ARTIFACT:
+                # A-R15-04: Cover-letter fields must use their own distinct artifact hash.
+                # Resume and cover letter must never share provenance hashes.
+                if canonical_key == "cover_letter":
+                    if cover_letter_sha is not None:
+                        file_value_hash = cover_letter_sha
+                        file_source_ref = source_ref or "packet.cover_letter_artifact"
+                    else:
+                        # Required cover-letter field but no artifact in packet — block.
+                        if field.required:
+                            unfilled_field_names.append(field.name)
+                            continue
+                        # Optional — skip silently
+                        continue
+                else:
+                    file_value_hash = resume_sha
+                    file_source_ref = source_ref or "packet.resume_artifact"
+
                 prov_dict[field.name] = FieldFillProvenance(
                     field_name=field.name,
                     target_selector=field.selector,
                     classification=classification,
                     canonical_key=canonical_key,
-                    source_reference=source_ref or "artifact",
-                    value_hash=resume_sha,
+                    source_reference=file_source_ref,
+                    value_hash=file_value_hash,
                     confidence=1.0,
                     mapping_method="file_artifact_match",
                 )
@@ -910,13 +998,18 @@ class AssistedApplicationEngine:
             policy_decision=plan.policy.decision,
         )
 
-        # 7. Stop Conditions Before Prefill (J15-08)
+        # 7. Stop Conditions Before Prefill (J15-08, A-R15-03, A-R15-02)
+        # consent_manual: is a blocking barrier — no automated prefill of any
+        # consent/attestation/legal acknowledgement field (A-R15-03).
+        # policy_blocked: fires when prompt injection was detected (A-R15-02).
         blocking_barriers = [
             b
             for b in barriers
             if b.startswith("auth_barrier:")
             or b.startswith("unknown_required_field:")
             or b.startswith("unresolved_questions_")
+            or b.startswith("consent_manual:")
+            or b.startswith("policy_blocked:")
         ]
         if blocking_barriers:
             review_task = TaskModel(
@@ -1006,7 +1099,40 @@ class AssistedApplicationEngine:
         self.session.add(manifest_artifact)
         self.session.flush()
 
-        # 10. Execute Prefill on Browser Form
+        # 10. A-R15-05: Revalidate form fingerprint immediately before write.
+        # Re-inspect the form to confirm its structure has not changed since the
+        # initial classification pass (e.g. due to dynamic field injection).
+        # If the fingerprint differs, halt rather than writing against stale selectors.
+        pre_write_inspection = self.browser_runner.inspect_form(plan.apply_url)
+        pre_write_fingerprint = compute_form_fingerprint(pre_write_inspection.fields, plan.apply_url)
+        if pre_write_fingerprint != form_fingerprint:
+            self._log_audit(
+                action_type="assisted_prefill_halted_fingerprint_mismatch",
+                entity_type="job",
+                entity_id=job_id,
+                result="blocked",
+                metadata={
+                    "inspected_fingerprint": form_fingerprint,
+                    "pre_write_fingerprint": pre_write_fingerprint,
+                    "url": plan.apply_url,
+                },
+            )
+            self.session.commit()
+            return AssistedApplicationResult(
+                job_id=str(job_id),
+                status="BLOCKED",
+                policy_decision=plan.policy.decision.value,
+                destination_domain=plan.destination_domain,
+                form_fingerprint=form_fingerprint,
+                barriers=barriers,
+                message=(
+                    f"FORM_FINGERPRINT_MISMATCH: Form structure changed between inspection and prefill. "
+                    f"Inspected: {form_fingerprint}, Pre-write: {pre_write_fingerprint}. "
+                    "Halting to prevent writing against stale selectors."
+                ),
+            )
+
+        # 11. Execute Prefill on Browser Form
         prefill_res = self.browser_runner.prefill_form(
             url=plan.apply_url,
             field_values=prefill_candidates,

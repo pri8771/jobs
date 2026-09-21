@@ -178,28 +178,20 @@ def test_assisted_application_manual_only(
     # Verify browser runner was NOT called to prefill form
     assert len(runner.prefilled_calls) == 0
 
-    # Step 2: With user confirmation that native submission succeeded
+    # Step 2: A-R15-01 — auto_confirm=True with receipt_text only (no runner evidence)
+    # must yield SUBMISSION_UNCONFIRMED, not SUBMITTED/MANUAL_RECORDED.
     res_confirmed = engine.execute(
         job_id=job.id,
         auto_confirm=True,
         receipt_text="LinkedIn confirmation email received",
     )
-    assert res_confirmed.status == "MANUAL_RECORDED"
+    # Contract: caller-supplied receipt text is NOT external evidence.
+    assert res_confirmed.status == "SUBMISSION_UNCONFIRMED"
 
     app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).first()
     assert app is not None
-    assert app.status == "SUBMITTED"
+    assert app.status == "SUBMISSION_UNCONFIRMED"
     assert app.application_mode == "manual"
-    assert app.applied_at is not None
-
-    event = (
-        db_session.query(ApplicationEventModel)
-        .filter(ApplicationEventModel.application_id == app.id)
-        .first()
-    )
-    assert event is not None
-    assert event.event_type == "APPLICATION_SUBMITTED"
-    assert event.source == "manual_native"
 
 
 def test_assisted_application_prefill_and_confirm(

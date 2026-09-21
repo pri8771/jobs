@@ -21,18 +21,26 @@ class MockBrowserRunner(BrowserRunner):
         detected_ats: str | None = "greenhouse",
         custom_fields: list[FormField] | None = None,
         custom_inspection: FormInspectionResult | None = None,
+        changed_inspection: FormInspectionResult | None = None,
     ) -> None:
         self.interactive_submitted = interactive_submitted
         self.receipt_text = receipt_text
         self.detected_ats = detected_ats
         self.custom_fields = custom_fields
         self.custom_inspection = custom_inspection
+        self.changed_inspection = changed_inspection  # A-R15-05: returned on 2nd+ inspect call
         self.inspected_urls: list[str] = []
         self.prefilled_calls: list[tuple[str, dict[str, str]]] = []
         self.sessions_opened: list[tuple[str, dict[str, str]]] = []
 
     def inspect_form(self, url: str) -> FormInspectionResult:
         self.inspected_urls.append(url)
+
+        # A-R15-05: If changed_inspection is set, return it on the 2nd+ call to
+        # simulate a form that changed between initial inspection and pre-write validation.
+        if self.changed_inspection is not None and len(self.inspected_urls) >= 2:
+            return self.changed_inspection
+
         if self.custom_inspection is not None:
             return self.custom_inspection
 
