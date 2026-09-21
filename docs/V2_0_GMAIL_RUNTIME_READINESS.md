@@ -45,7 +45,7 @@ Current health/status can say database/adapters/policy are healthy but does not 
 
 ## Required fixes
 
-### J20-15 SP2 — fail closed on partial Gmail fetch
+### J20G-01 SP2 — fail closed on partial Gmail fetch
 
 For a production Gmail poll:
 - if Gmail lists a message and its full fetch fails, the poll/sweep must surface an error,
@@ -58,7 +58,7 @@ Add tests:
 - list returns 3 IDs; second get fails -> sweep errors + no checkpoint advance + no partial committed rows.
 - next successful run ingests all 3 once.
 
-### J20-16 SP2 — runtime OAuth/container wiring
+### J20G-02 SP2 — runtime OAuth/container wiring
 
 Provide documented configurable runtime paths without committing secrets.
 
@@ -71,7 +71,7 @@ Do not mount OAuth material into dashboard unless required.
 
 Token file must remain ignored by Git.
 
-### J20-17 SP2 — Gmail diagnostic command/service
+### J20G-03 SP2 — Gmail diagnostic command/service
 
 Add a harmless read-only diagnostic that reports:
 - configured: yes/no
@@ -84,7 +84,7 @@ Add a harmless read-only diagnostic that reports:
 
 It must not print client secret, access token, refresh token, or email bodies.
 
-### J20-18 SP2 — health + worker evidence
+### J20G-04 SP2 — health + worker evidence
 
 Integrate Gmail readiness with:
 - health service,
