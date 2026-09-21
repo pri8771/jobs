@@ -6,7 +6,7 @@
 - Owner: V2.3 implementation surface + eligible machine for the live overlay + ChatGPT
 - Reviewer: ChatGPT (worker-pc may independently re-run the verifier)
 - Story points: 5 engineering (V23-AC-01..03) + 1 LIVE (V23-AC-04)
-- Dependencies: A-V20-INTEGRATION-FIXTURE (golden scenario), A-V23-CAREER-BRIEFING, all A-V23 services; live overlay additionally depends on A-V14-REAL-PROOF, A-V20-LIVE-INGESTION, ≥1 real application record, owner-supplied target list
+- Dependencies: A-V20-INTEGRATION-FIXTURE (golden scenario), A-V23-CAREER-BRIEFING, all A-V23 services; live overlay additionally depends on accepted V1.4, V1.5, V1.6, V1.7 and V2.0 live checkpoints, A-V20-LIVE-INGESTION, ≥1 externally-confirmed real application, owner-supplied target list
 - Downstream: A-V23-CAREER-INTELLIGENCE `ENGINEERING_ACCEPTED` / `REAL_PROVEN`
 
 ## Purpose
@@ -15,7 +15,7 @@ Make V2.3 acceptance machine-verifiable: one deterministic engineering campaign 
 
 ## Inputs
 
-Fixture: the V2.0 golden scenario extended with V2.3 steps 18–30. Live: real Gmail ingestion, real resume identity, real applications (assisted or user-attested manual), real target companies fetched from approved public JSON APIs.
+Fixture: the V2.0 golden scenario extended with V2.3 steps 18–30. Live: real Gmail ingestion, real resume identity, real applications with accepted external confirmation (origin may be assisted/manual/system-submit), real target companies fetched from approved public JSON APIs.
 
 ## Outputs
 
