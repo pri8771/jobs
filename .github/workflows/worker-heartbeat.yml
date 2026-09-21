@@ -37,7 +37,7 @@ jobs:
           for file in "${files[@]}"; do
             echo "Validating $file"
 
-            for key in lane branch heartbeat_epoch mode interval_minutes consecutive_on_time last_check_in_utc watch_started_utc watch_until_utc watch_checkins missed_intervals watch_completed_utc review_state lead_action_requested; do
+            for key in lane branch heartbeat_epoch mode interval_minutes consecutive_on_time last_check_in_utc watch_started_utc watch_until_utc watch_checkins missed_intervals watch_completed_utc review_state lead_action_requested current_task progress_note; do
               if ! grep -Eq "^$key:[[:space:]]*" "$file"; then
                 echo "ERROR: $file missing required metadata key: $key" >&2
                 exit 1
