@@ -40,10 +40,10 @@ Engineering report schema (JSON): `trace_id, mode:"engineering", simulated:true,
 ### Preconditions (all must hold; each is a separate gate)
 1. V1.4 `A-V14-REAL-PROOF` accepted (real resume identity in `resume_variant`) — `USER_GATE` private inputs.
 2. Gmail read-only OAuth completed by the owner; `gmail-diagnose` reports `mode=REAL`, canary ok — `USER_GATE`.
-3. At least one bounded persisted Gmail canary and idempotent rerun accepted (A-V20-LIVE-INGESTION).
-4. At least one real application recorded through the assisted path or `record-manual-application` with a real resume variant.
+3. At least one bounded persisted Gmail canary and idempotent rerun accepted (A-V20-LIVE-INGESTION), plus V1.7 real lifecycle proof accepted.
+4. At least one real application with accepted **external confirmation evidence**. The record may originate from an assisted/manual or system-submit flow, but user attestation alone is not sufficient to claim submitted/confirmed truth.
 5. Owner supplies a target-company list (≥1 ACTIVE target with a public ATS token) — `USER_GATE` input, no outreach implied.
-6. V2.3 engineering artifacts accepted on the engineering campaign.
+6. V1.4, V1.5, V1.6, V1.7 and V2.0 required live checkpoints accepted; V2.3 engineering artifacts accepted on the engineering campaign.
 
 ### Commands (from a machine holding the private profile, resume bytes, Gmail token; no secrets committed)
 ```
@@ -80,7 +80,7 @@ Allowed: code SHA, run ids, public job URLs, entity UUIDs, provider names, count
 - a relationship shown as `ASSERTED` without a `USER_CONFIRMATION` or FK/message evidence row;
 - a recommendation with `confidence != LOW` at `n < min_n`;
 - a brief claim not traceable to a candidate profile field;
-- any external side effect (message, submission, calendar) performed by the campaign;
+- any unauthorized external side effect (message, submission, calendar) performed by the campaign; the campaign may read already-confirmed application state but does not create a new external submission itself;
 - unresolvable entity ids in the report.
 
 ## 5. Acceptance ownership
