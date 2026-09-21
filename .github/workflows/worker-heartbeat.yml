@@ -3,106 +3,51 @@ name: Worker Heartbeat Validation
 on:
   push:
     branches:
-      - 'worker/**'
-      - 'scout/**'
+      - 'worker/v14-real-proof'
+      - 'worker/v15-assisted-application'
+      - 'worker/recruiting-ops'
     paths:
-      - 'coordination/heartbeats/**'
+      - 'coordination/heartbeats/LANE_1.md'
+      - 'coordination/heartbeats/LANE_2.md'
+      - 'coordination/heartbeats/LANE_3.md'
   workflow_dispatch:
 
 jobs:
   validate-heartbeat:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Validate changed heartbeat files
+      - uses: actions/checkout@v4
+      - name: Validate active 5-minute heartbeat
         shell: bash
         run: |
           set -euo pipefail
+          case "${GITHUB_REF_NAME}" in
+            worker/v14-real-proof) file="coordination/heartbeats/LANE_1.md" ;;
+            worker/v15-assisted-application) file="coordination/heartbeats/LANE_2.md" ;;
+            worker/recruiting-ops) file="coordination/heartbeats/LANE_3.md" ;;
+            *) exit 0 ;;
+          esac
 
-          if git rev-parse HEAD^ >/dev/null 2>&1; then
-            mapfile -t files < <(git diff --name-only HEAD^ HEAD -- 'coordination/heartbeats/*.md')
-          else
-            mapfile -t files < <(git ls-files 'coordination/heartbeats/*.md')
-          fi
-
-          if [ "${#files[@]}" -eq 0 ]; then
-            echo "No heartbeat file changed."
-            exit 0
-          fi
-
-          for file in "${files[@]}"; do
-            echo "Validating $file"
-
-            for key in lane branch heartbeat_epoch mode interval_minutes consecutive_on_time last_check_in_utc watch_started_utc watch_until_utc watch_checkins missed_intervals watch_completed_utc review_state lead_action_requested current_task progress_note; do
-              if ! grep -Eq "^$key:[[:space:]]*" "$file"; then
-                echo "ERROR: $file missing required metadata key: $key" >&2
-                exit 1
-              fi
-            done
-
-            epoch="$(sed -n 's/^heartbeat_epoch:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            mode="$(sed -n 's/^mode:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            interval="$(sed -n 's/^interval_minutes:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            streak="$(sed -n 's/^consecutive_on_time:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            watch_checkins="$(sed -n 's/^watch_checkins:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            missed="$(sed -n 's/^missed_intervals:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            review="$(sed -n 's/^review_state:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-            action="$(sed -n 's/^lead_action_requested:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
-
-            [ "$epoch" = "DAYWATCH_2026_09_21" ] || {
-              echo "ERROR: unexpected heartbeat epoch: $epoch" >&2
+          for key in lane branch heartbeat_epoch mode interval_minutes heartbeat_count last_check_in_utc current_task progress_note review_state lead_action_requested; do
+            grep -Eq "^$key:[[:space:]]*" "$file" || {
+              echo "ERROR: missing $key" >&2
               exit 1
             }
-
-            case "$mode" in
-              PROVING_5M)
-                [ "$interval" = "5" ] || {
-                  echo "ERROR: PROVING_5M requires interval_minutes: 5" >&2
-                  exit 1
-                }
-                ;;
-              WATCH_15M_24H)
-                [ "$interval" = "15" ] || {
-                  echo "ERROR: WATCH_15M_24H requires interval_minutes: 15" >&2
-                  exit 1
-                }
-                [ "$streak" -ge 3 ] || {
-                  echo "ERROR: WATCH_15M_24H requires consecutive_on_time >= 3" >&2
-                  exit 1
-                }
-                ;;
-              STEADY_HOURLY)
-                [ "$interval" = "60" ] || {
-                  echo "ERROR: STEADY_HOURLY requires interval_minutes: 60" >&2
-                  exit 1
-                }
-                ;;
-              *)
-                echo "ERROR: invalid mode: $mode" >&2
-                exit 1
-                ;;
-            esac
-
-            for value in "$streak" "$watch_checkins" "$missed"; do
-              [[ "$value" =~ ^[0-9]+$ ]] || {
-                echo "ERROR: heartbeat numeric metadata must be integers" >&2
-                exit 1
-              }
-            done
-
-            case "$review" in
-              WORKING|READY_FOR_LEAD_REVIEW|BLOCKED) ;;
-              *) echo "ERROR: invalid review_state: $review" >&2; exit 1 ;;
-            esac
-
-            case "$action" in
-              NONE|REVIEW|DECOMPOSE|ARCHITECTURE_DECISION|USER_ACTION) ;;
-              *) echo "ERROR: invalid lead_action_requested: $action" >&2; exit 1 ;;
-            esac
-
-            echo "$file: metadata valid for $mode"
           done
+
+          epoch="$(sed -n 's/^heartbeat_epoch:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+          mode="$(sed -n 's/^mode:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+          interval="$(sed -n 's/^interval_minutes:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+          count="$(sed -n 's/^heartbeat_count:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+          review="$(sed -n 's/^review_state:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+          action="$(sed -n 's/^lead_action_requested:[[:space:]]*//p' "$file" | head -n1 | tr -d '\r')"
+
+          [ "$epoch" = "FIVE_MIN_2026_09_21" ] || { echo "ERROR: wrong epoch $epoch" >&2; exit 1; }
+          [ "$mode" = "ACTIVE_5M" ] || { echo "ERROR: mode must be ACTIVE_5M" >&2; exit 1; }
+          [ "$interval" = "5" ] || { echo "ERROR: interval must be 5" >&2; exit 1; }
+          [[ "$count" =~ ^[0-9]+$ ]] || { echo "ERROR: heartbeat_count must be integer" >&2; exit 1; }
+
+          case "$review" in WORKING|READY_FOR_LEAD_REVIEW|BLOCKED) ;; *) exit 1 ;; esac
+          case "$action" in NONE|REVIEW|DECOMPOSE|ARCHITECTURE_DECISION|USER_ACTION) ;; *) exit 1 ;; esac
+
+          echo "$file: valid ACTIVE_5M heartbeat"
