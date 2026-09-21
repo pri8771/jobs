@@ -30,25 +30,15 @@ Reviewed implementation:
 - `8f8c21f88512aa32521c78285b72dc9da298672e`
 - CI #401: SUCCESS
 
-Lead result:
+Lead + independent result:
 - **REWORK**. P0A is not accepted.
+- ChatGPT lead found four blocking proof-integrity defects.
+- worker-pc independent audit also returned **REWORK**.
+- additional material gaps include mandatory candidate/local bundle SHA binding, full approved Greenhouse source attestation, verifier enforcement of deterministic labels, and fuller RP14-T7 linkage.
 
-Blocking proof-integrity findings:
-1. candidate schema/verifier still accept candidate `result: REAL_PROOF_PASS`; candidate must be CANDIDATE-only,
-2. verifier can emit PASS without `--local-full-bundle`, leaving the structurally-valid hand-authored bundle hole open,
-3. rejected candidates emit a FAIL receipt only when `--receipt-output` is explicitly supplied,
-4. verifier compares supplied packet hashes but does not independently recompute canonical packet hash + job/resume-variant linkage from manifest evidence.
-
-These findings were posted on PR #8. `worker-pc` is independently auditing the same commit in read-only mode.
-
-Heartbeat:
-- `DAYWATCH_2026_09_21`
-- valid 3/3 proving: 16:27:55 → 16:32:56 → 16:37:59 UTC
-- watch started 16:37:59 UTC
-- valid first watch check-in 16:53:01 UTC, 15.0-minute gap
-- misses: 0
-
-No private proof execution until P0A is accepted.
+Current action:
+- one bounded Lane 1 rework batch incorporating all lead + worker-pc findings
+- no private-data proof until P0A is explicitly accepted
 
 ## Lane 2 — V1.5 application safety
 
@@ -106,17 +96,17 @@ Heartbeat:
 
 ## Heartbeat standard
 
-Authoritative epoch: `DAYWATCH_2026_09_21`.
+Latest owner directive is authoritative:
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- every 5 minutes while active
+- one watcher per active lane
+- no proving/watch/hourly transitions
 
-1. `PROVING_5M`: 3 consecutive worker-authored heartbeats at 4–7 minute gaps.
-2. `WATCH_15M_24H`: ~15-minute cadence for a clean 24h; gap >20m increments misses and restarts the clean window.
-3. `STEADY_HOURLY` only after a clean 24h.
-
-A conflicting `FIVE_MIN_2026_09_21` fixed-5m protocol appeared on main during this run. The lead restored the owner-authoritative DAYWATCH protocol, watcher, issue-feed parser, dashboard, queue and lane contracts. Workers must stop any superseded FIVE_MIN watcher before launching/continuing DAYWATCH.
+Any DAYWATCH instructions are superseded and retained only as historical evidence.
 
 Visible progress:
-- GitHub issue #7 is the human-readable progress surface.
-- heartbeat comments are independently verified against branch/file timestamps.
+- GitHub issue #7
 
 ## Remote worker
 
