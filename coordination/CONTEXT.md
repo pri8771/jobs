@@ -2,7 +2,7 @@
 
 Purpose: compact durable memory for ChatGPT and Antigravity. Keep execution truth in Git, not chat history.
 
-Last updated: 2026-09-20 17:44 ET
+Last updated: 2026-09-20 20:47 ET
 
 ## Ownership model
 
@@ -49,9 +49,10 @@ Execution plan:
 - coordination/ARTIFACT_INDEX.md
 - coordination/WORK_QUEUE.md
 
-Two Antigravity sessions run in parallel:
+Three Antigravity sessions may run in parallel:
 - Lane A: application execution
 - Lane B: recruiting operations / V2.0 foundations
+- Lane C: live data / candidate provenance / Gmail runtime foundations
 
 ChatGPT remains lead, reviewer, decomposer, integration owner, and future-artifact preparer.
 
@@ -202,7 +203,6 @@ Guardrails:
 
 Critical project knowledge remains in Git. IDE-specific files should be thin adapters to canonical project rules and coordination files.
 
-
 ## No-idle lead behavior
 
 The user explicitly wants ChatGPT to keep helping when the immediate task is waiting on Antigravity or another dependency.
@@ -213,7 +213,6 @@ Standing behavior:
 - work ahead on audits, tests, schemas, runbooks, acceptance contracts, benchmarks, research, and future milestone preparation,
 - commit useful outputs to Git so Antigravity can consume them,
 - do not cross live account/OAuth/application/message/user-consent boundaries just to stay busy.
-
 
 ## Lead/worker delegation and measurement
 
@@ -233,7 +232,6 @@ Default:
 - ChatGPT should keep adding bounded tasks to WORK_QUEUE rather than taking easy implementation itself.
 - Worker performance by SP bucket is recorded in coordination/WORKER_PERFORMANCE.md.
 - See docs/WORKER_STORY_POINTS.md.
-
 
 ## Artifact-oriented management
 
@@ -255,7 +253,6 @@ Process:
 
 Detailed contract:
 - docs/ARTIFACT_ORIENTED_PM.md
-
 
 ### V1.7/V2.0 brownfield assets
 
@@ -286,6 +283,11 @@ Remaining Lane A tasks:
 - R14-04 quantitative experience claims require exact canonical evidence
 
 Lane B may proceed independently on V1.7 while Lane A closes these residuals.
+Lane C may proceed independently on candidate provenance and Gmail runtime readiness without crossing OAuth/live-mail boundaries.
+
+### V2.0 Gmail cross-lane boundary
+
+Lane C owns Gmail adapter/runtime readiness and must expose a typed, secret-free readiness report. Lane B owns health/worker-run integration and consumes that report without duplicating OAuth logic or receiving token/client-secret material. Interactive OAuth remains user-controlled.
 
 ### V2.3 / V3.0
 
