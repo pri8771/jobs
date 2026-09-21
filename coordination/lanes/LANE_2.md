@@ -9,6 +9,14 @@ Owner:
 Reviewer:
 - ChatGPT lead
 
+## Lead checkpoint — 2026-09-21 15:44Z
+
+- Draft PR #2 head is `552da7919dab95c18a0ec1e943275c3f67d3ba73`.
+- Current-head CI is green, but the branch is diverged from main and must be rebased before new work.
+- Historical `LANE_A.md` commits do not count for `DAYWATCH_2026_09_21`.
+- Active `coordination/heartbeats/LANE_2.md` is still 0/3; launch the numeric Lane 2 watcher after rebasing.
+- Preserve accepted A-R15-01..05 exactly; do not expand into V1.6.
+
 ## Existing accepted scope
 
 A-R15-01..A-R15-05 are lead-accepted at task scope.
