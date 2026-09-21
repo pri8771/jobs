@@ -8,7 +8,7 @@ interval_minutes: 5
 heartbeat_count: 21
 last_check_in_utc: 2026-09-21T21:26:53Z
 current_task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
-progress_note: Fable worker session started; prior watcher confirmed stale (last #18 19:18:36Z, no process in this environment); auditing support commit 062ca92; no private inputs used
+progress_note: P0A batch implemented on claude/serene-brown-g6uij0 (clean port + support 062ca92/7e88542 adapted + job-identity binding); full checks green locally; pushing for lead review
 review_state: WORKING
 lead_action_requested: NONE
 
