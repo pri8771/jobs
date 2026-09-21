@@ -1,6 +1,6 @@
 # V2.3 Master Worker Queue — PROPOSED
 
-Status: **PROPOSED by the Fable planning pass; not active until ChatGPT promotes rows into `coordination/WORK_QUEUE.md`.**
+Status: **PLANNING PACKAGE LEAD-ACCEPTED WITH CORRECTIONS**. Rows remain inactive until ChatGPT promotes a bounded task/artifact into `coordination/WORK_QUEUE.md`. Read `docs/V23_LEAD_REVIEW_20260921.md` first.
 This file is subordinate to `docs/V23_LEAD_REVIEW_20260921.md`, `AGENTS.md`, and the active `WORK_QUEUE.md`. There is one active implementation worker/session and one five-minute heartbeat watcher. The lane/group names below identify historical work surfaces and dependency groups, not simultaneous implementation workers.
 
 Source of task detail (every ID below is fully specified there):
