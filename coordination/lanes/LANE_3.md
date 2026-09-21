@@ -26,29 +26,11 @@ Previously accepted and preserved:
 
 Current-head branch CI was green before integration. Main CI after the merge/lead coordination updates is the next integration gate.
 
-## Heartbeat truth
-
-Authoritative epoch is `DAYWATCH_2026_09_21`.
-
-The worker heartbeat metadata self-reported a proving streak that does not match actual timestamps: 16:18Z → 16:34Z → 16:44Z are not 4–7 minute proving gaps. Those timestamps do not establish 3/3.
-
-If a `FIVE_MIN_2026_09_21` watcher is running, stop it. Pull latest main and run only the DAYWATCH watcher. The next worker check-in starts/restarts the proving sequence according to actual timestamps.
-
-## Next bounded assignment — post-integration verification only
-
-1. Pull/rebase `worker/recruiting-ops` onto latest `main` after PR #3 merge.
-2. Confirm the merged source for the accepted Lane 3 files matches the reviewed implementation.
-3. Run the targeted worker/health/dashboard tests plus full pytest/Ruff/mypy against the integrated baseline.
-4. If a regression exists, push only the minimal regression repair and request lead review.
-5. If integration is green with no regression, record `BLOCKED` / `NONE` with progress note `waiting for J20G-04 dependency` and stop implementation work.
-
-Do not invent new work merely to keep the lane busy. `J20G-04` remains blocked until Lane 1 later produces the authorized Gmail-readiness dependency. Do not access Gmail/OAuth while blocked.
-
 ## Heartbeat
 
-Launch only if no correct watcher is already running:
-`python scripts/worker_heartbeat_watch.py --lane 3 --epoch DAYWATCH_2026_09_21 --task "V1.7/V2.0 post-integration verification" --detach`
+Canonical owner directive:
+`python scripts/worker_heartbeat_watch.py --lane 3 --epoch FIVE_MIN_2026_09_21 --task "V1.7/V2.0 post-integration verification" --detach`
 
-Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
+Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
 
 No live Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.
