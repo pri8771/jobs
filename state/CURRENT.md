@@ -1,80 +1,72 @@
 # Current State
 
-Updated: 2026-09-20 22:05 ET
+Updated: 2026-09-20
 
-## Milestones
+## Completion policy
 
-V1.7 -> V2.0 -> V2.3 -> V3.0
+Owner directive:
+**No version is COMPLETE until at least one real non-mock example succeeds through the actual production path.**
 
-## Accepted foundation
+See:
+- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
 
-A-V14-PACKET-SAFETY is ACCEPTED on main.
-Merge: 8a0cdb4.
-CI: PASS.
+## V1.4
 
-## Lane A
+Engineering:
+- ENGINEERING_ACCEPTED
+- merge 8a0cdb4
+- main CI passed
 
-Branch: worker/v15-assisted-application
-Draft PR: #2
-Initial V1.5 implementation: 3d17fa8
+Version completion:
+- NOT COMPLETE
+- blocked on A-V14-REAL-PROOF
 
-Substantial implementation exists.
-Lead found five bounded residuals in docs/LANE_A_REAUDIT.md.
-A-V15 remains IN_PROGRESS.
+P0 real-proof target:
+- OpenSesame — AI Automation Engineer
+- real live public job
+- actual private candidate profile
+- actual resume source bytes
+- production packet builder
+- non-mock generation
+- redacted evidence bundle
+- no application submission required
 
-## Lane B
+## Lane priorities
 
-Branch: worker/recruiting-ops
-Draft PR: #3
-Latest repair: 33d18b4
+Lane C:
+1. RP14-C1..C3 real input/generation readiness
+2. candidate provenance
+3. Gmail readiness
 
-V1.7 and V2.0 implementation is substantial.
-Most first re-audit issues are repaired.
-Final bounded residuals are in docs/LANE_B_REAUDIT_2.md.
-Worker-run history is not accepted until crash-durable begin/finalize semantics exist.
+Lane A:
+1. finish current coherent V1.5 rework
+2. RP14-A1/A2 real V1.4 packet proof
+3. only then V1.6
 
-## Lane C
+Lane B:
+- continue final V1.7/V2.0 repairs independently
 
-No reviewed implementation batch yet.
-Ready for candidate provenance + Gmail runtime safety J12-* / J20G-01..03.
+Lane D:
+- continue non-conflicting V2.3 foundations
 
-## Lane D
+Scout:
+- RP14-S1 becomes top priority as soon as proof evidence appears
 
-No reviewed implementation batch yet.
-Ready for V2.3 opportunity graph / target-company / agent-tool foundations.
+## Current official version
 
-## Scout
+V1.4 is NOT COMPLETE until REAL_PROOF_PASS.
 
-No reviewed audit batch yet.
-Uses scout/qa-prep and per-lane review priorities.
+Later engineering continues in parallel, but later version-complete claims are gated by the same real-proof standard.
 
-## Lead/integration work completed
+## Live/user boundaries
 
-- migration-chain PostgreSQL CI gate
-- cross-lane integration matrix
-- worker-run repair guide
-- proof-job shortlist
-- prompt-injection browser contract
-- self-service SESSION_START
-- per-lane HEARTBEAT protocol/files
+V1.4 proof:
+- no submission
+- no Gmail OAuth required
+- may require local access to the real private candidate profile/resume and a real non-mock model provider
 
-## Remaining V2.0 engineering gates
-
-- accept Lane A V1.5
-- accept Lane B final rework
-- Lane C Gmail/provenance
-- J20G-04 integration
-- crash-durable worker-run evidence
-- A-V20 integration fixture
-- engineering acceptance campaign
-
-## Live/user gates
-
-- actual Gmail OAuth
-- live bounded Gmail canary
-- proof-job explicit user selection
-- exact packet approval
-- live login/MFA/CAPTCHA/manual barriers as encountered
-- any consequential external application action
-
-No live gate is satisfied by test/mock evidence.
+Future live gates remain:
+- Gmail OAuth/canary
+- exact proof application approval
+- login/MFA/CAPTCHA/manual barriers
+- consequential external submission authorization
