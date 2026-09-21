@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-21 14:52 ET
+Updated: 2026-09-21 14:59 ET
 
 ## Owner target
 
@@ -33,14 +33,18 @@ Review source:
 - branch `worker/v14-real-proof`
 - draft PR #8
 - latest substantive repair reviewed: `5e5058461d5371f292c93e0c53cb0b93caba7e44`
-- later Lane 1 commits through `9badcd32cdc848baa3f0c657ddb45c9858d8c977` are heartbeat-only
+- current Lane 1 head `bac19e5dd12a93644320ff9274ed562f1e347f20` is heartbeat #13; later commits after `5e505846...` remain heartbeat-only
 
 Lead verdict remains **REWORK**. Two acceptance-critical gaps remain:
 
 1. REAL_PROOF_PASS must require a configured proof DB target and successful persisted `ApplicationPacketModel` / `ResumeVariantModel` / artifact linkage validation. Omitting the DB target must fail closed.
 2. `source_attestation` must be independently bound to persisted Greenhouse `JobSource`/`Job` import evidence, including provider, source kind, public job ID, API URL, fetched timestamp, description/content SHA, question-list SHA, and canonical apply URL. A self-consistent forged local attestation/questions file must not pass.
 
-The independent `worker-pc` post-repair audit completed successfully as a read-only audit and independently confirmed the remaining source-attestation defect. A new bounded tests-only worker-pc task is running to add adversarial tests for the two remaining gaps; it has no acceptance authority.
+Independent support evidence:
+- worker-pc read-only post-repair audit independently confirmed the source-attestation defect,
+- follow-up tests-only task returned branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449` at `cffae70577b6719c92e7d7edc3ecd94d00db622d`,
+- ChatGPT inspected the actual commit: exactly `tests/test_real_proof_verifier.py` changed, +420 lines, no production files,
+- the worker could not run pytest/Ruff/Python in its sandbox and the commit has no GitHub CI, so it is review input only, not acceptance evidence.
 
 Do **not** use private profile/resume inputs until ChatGPT lead-accepts P0A.
 
@@ -49,7 +53,7 @@ Do **not** use private profile/resume inputs until ChatGPT lead-accepts P0A.
 - branch `worker/v15-assisted-application`
 - draft PR #2
 - current branch head observed: `ddb4f848a97dec87033cfdef7ca33642480d99bc`
-- comparison to current main: 32 commits ahead / 140 behind
+- comparison to main at lead review: 32 commits ahead / 140 behind
 - accepted task scope A-R15-01..05 remains preserved
 - current work: A-R15-06..09 only
 - heartbeat remains on superseded `DAYWATCH_2026_09_21` / `WATCH_15M_24H` with last check-in 17:39:16Z
@@ -63,7 +67,7 @@ Known real-proof eligibility blocker remains: the prior Lane 2 machine did not h
 - branch `worker/recruiting-ops`
 - PR #3 accepted batch is already merged to main
 - current branch head observed: `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- comparison to current main: 0 commits ahead / 128 behind
+- comparison to main at lead review: 0 commits ahead / 128 behind
 - accepted behavior includes B-R17-03, B-R20-07, B-R20-08, B-R20-05/J20-14, B-R20-01, and B-R20-02
 - heartbeat remains on superseded `DAYWATCH_2026_09_21` with last check-in 16:44:37Z
 
@@ -78,10 +82,10 @@ Canonical heartbeat standard for all three lanes:
 - exactly one watcher per active lane
 - no cadence transitions
 
-Lane 1 is correctly emitting current-epoch heartbeats through 18:43:24Z (#11).
+Lane 1 is correctly emitting current-epoch heartbeats through 18:53:27Z (#13).
 Lane 2 and Lane 3 have not migrated from the superseded DAYWATCH epoch.
 
-GitHub issue #7 heartbeat comments stopped after 18:18Z while Lane 1 heartbeat commits continued. The current Lane 1 heartbeat validation/post-progress runs and the latest main CI run are failing before workflow steps start. Treat this as `CI_BLOCKED_ACCOUNT` / Actions runner startup failure rather than evidence of a heartbeat-code regression. Direct ChatGPT lead comments to issue #7 continue each hourly run.
+GitHub issue #7 heartbeat comments stopped after 18:18Z while Lane 1 heartbeat commits continued. The current Lane 1 heartbeat validation/post-progress runs and current main CI runs are failing before workflow steps start. Treat this as `CI_BLOCKED_ACCOUNT` / Actions runner startup failure rather than evidence of a heartbeat-code regression. Direct ChatGPT lead comments to issue #7 continue each hourly run.
 
 ## Live proof inventory
 
