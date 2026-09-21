@@ -46,7 +46,12 @@ Verified history:
 - read-only P0A preflight completed successfully and reinforced T1..T7 but implemented nothing;
 - tests-only task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` failed on target Jobs branch push and returned no branch/commit/tests/summary.
 
-Current capacity: `worker-pc` is online but its capacity-1 slot is occupied by a non-Jobs SwarmAI workflow. Do not wait for remote-worker support and do not duplicate Lane C merely to create activity.
+New bounded support task:
+- `jobs-v14-p0a-t5-schema-20260921-0946` — RP14-T5 only; schema + adversarial tests, no private inputs/Gmail/browser/application code.
+- The task was dispatched after the prior non-Jobs worker run appeared finished, but a new SwarmAI workflow started moments before the Jobs dispatch became visible. Because `worker-pc` capacity is 1, the Jobs workflow is pending behind that run rather than executing concurrently.
+- Do not treat the queued task as progress or acceptance. If it eventually returns a Jobs branch/commit, ChatGPT must inspect the actual diff/tests before Lane C adopts it. No automatic merge.
+
+Lane C must not wait for remote-worker support.
 
 ## P0 — V1.4 real proof after P0A
 
@@ -63,7 +68,7 @@ No runtime proof candidate or verifier receipt exists in `coordination/proofs/`.
 - RP14-C3 SP1 — confirm non-mock production generation route; fail closed if unavailable.
 
 ### Lane A readiness evidence
-Lane A's 2026-09-21 12:49Z heartbeat reports an early local proof attempt before P0A acceptance. It cannot count as proof evidence, but it truthfully exposed a local readiness blocker:
+Lane A's early local proof attempt before P0A acceptance cannot count as proof evidence, but it truthfully exposed a local readiness blocker:
 - the real profile selected `resume_ai_software_engineer`,
 - no actual file was mapped for that selected variant on Lane A,
 - only `enterprise_automation_solutions_architect.md` was present,
@@ -85,11 +90,11 @@ Whichever Lane A or Lane C machine first has the complete genuine private profil
 ## Lane A — V1.5 assisted application
 
 Branch: `worker/v15-assisted-application`
-Current head: `f5742f210812cac77d7f9df47c58efbfb886f6e3`
-PR #2: draft, mergeable.
-Current-head GitHub CI run #321: SUCCESS.
+Current head: `088d4932458eadac86ec5396888181842347c370`
+PR #2: draft.
+Current-head GitHub CI run #328: SUCCESS.
 
-Task-scope accepted: A-R15-01..A-R15-05. Current production browser blobs for that accepted scope are unchanged after rebase, so task-scope acceptance persists. V1.5 overall remains IN_PROGRESS.
+Task-scope accepted: A-R15-01..A-R15-05. Current production browser implementation for that accepted scope remains the previously accepted code. V1.5 overall remains IN_PROGRESS.
 
 While P0A is blocked, Lane A may continue these already-authorized non-conflicting residuals in one coherent batch:
 - A-R15-06 SP2 page-level prompt-injection signal/warning semantics
@@ -99,18 +104,32 @@ While P0A is blocked, Lane A may continue these already-authorized non-conflicti
 
 No V1.6. No real application/browser action. After P0A, switch immediately to V1.4 proof if the actual selected resume mapping is genuinely available.
 
-Heartbeat correction: Lane A has two preserved worker-authored heartbeat entries, but the gap from 02:41Z to 12:49Z is >20 minutes, so the proving streak resets. Lead-recognized Lane A streak is 1/3, not the branch metadata's 2/3 claim.
+Heartbeat correction: branch metadata claims `STEADY_HOURLY` / 3-of-3 from 02:41Z, 12:49Z, 13:05Z. Lead does not accept that transition. The 02:41Z -> 12:49Z gap reset the streak, 12:49Z -> 13:05Z was one valid proving interval, and the lane then missed the next <=20-minute proving check-in. The proving streak is now broken/stale; the next worker heartbeat must restart at 1/3 in `PROVING_15M`. Do not delete history.
 
 ## Lane B — V1.7 / V2.0 recruiting operations
 
 Branch: `worker/recruiting-ops`
-Current head: `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`
+Current head: `68595d1fe825545b7f1506b7068d1c78376f7953`
+PR #3: draft.
+Current-head CI run #329: SUCCESS.
+Worker Heartbeat Validation for this head: FAILURE because the heartbeat file does not follow required top-level metadata/action format.
 
-Continue only non-conflicting residuals:
-- B-R17-03 SP2 background check must not fabricate offer state
-- B-R20-07 SP1 simulation never counts as real submission
-- B-R20-08 SP2 final-interview + acceptance-evidence metrics
-- B-R20-05 / J20-14 SP3 crash-durable worker-run evidence
+Lead review of the new residual batch:
+- B-R17-03 SP2 — LEAD_ACCEPTED at task scope. `BACKGROUND_CHECK` records `BACKGROUND_CHECK_INITIATED` while preserving the existing application stage; it no longer fabricates offer state.
+- B-R20-07 SP1 — LEAD_ACCEPTED at task scope. `SIMULATED`, `simulation`, `auto_simulated`, `mock`, and `test` are excluded by `_is_real_submission`, with focused tests.
+- B-R20-08 SP2 — LEAD_ACCEPTED at task scope. Final-interview outcomes require explicit final/panel/onsite evidence and accepted counts/rates are exposed.
+- B-R20-05 / J20-14 SP3 — REWORK. The implementation is directionally correct but does not yet satisfy `docs/WORKER_RUN_HISTORY_REPAIR_GUIDE.md`.
+
+B-R20-05 bounded rework:
+1. If durable `worker_run` begin persistence fails, do not continue an untracked production sweep; fail closed or otherwise guarantee no pipeline work proceeds without the durable attempt record.
+2. Do not persist raw `str(exc)` / upstream error text as `sample_errors`; store bounded safe categories/codes so tokens, email bodies, or other sensitive payloads cannot leak into operational metadata.
+3. `check_worker()` must report the true newest attempt even when the newest attempt is an unfinished RUNNING begin; expose required `last_reconciliation_at` and `last_error_at/category` fields.
+4. Add the repair-guide acceptance cases that are still missing: caught exception after begin -> FAILED, pipeline rollback cannot erase run evidence, two runs get distinct run_ids, and adversarial secret/error sanitization. Preserve existing success/kill/stale tests.
+5. Fix `coordination/heartbeats/LANE_B.md` to the exact protocol header (`lane`, `branch`, `mode`, `interval_minutes`, `consecutive_on_time`, `last_check_in_utc`, `review_state`, `lead_action_requested`) and use a valid lead action such as `REVIEW`, not `AUDIT`.
+
+Prior analytics residuals remain open and must not be silently dropped:
+- B-R20-01 SP3 — headline funnel/history metrics still use current status rather than event-history outcomes.
+- B-R20-02 SP2 — headline funnel/submission semantics still do not use the same real-submission denominator; the new `_is_real_submission()` hardening fixes dimensional analytics but is not wired into `get_funnel_summary()`.
 
 J20G-04 waits for Lane C J20G-03 after the V1.4 proof sequence.
 
@@ -147,12 +166,10 @@ Priority:
 1. review Lane C RP14-T1..T7 as soon as it lands,
 2. execute RP14-S1 as soon as genuine proof candidate + verifier receipt exist.
 
-The failed remote test-only attempt produced no reviewable Jobs branch, so Scout has nothing to audit from that task.
-
 ## Heartbeat truth
 
-- Lane A: 1/3 (two entries exist, but >20m gap reset streak)
-- Lane B: 0/3
+- Lane A: proving streak BROKEN/STALE; next worker heartbeat restarts 1/3 in PROVING_15M. Branch STEADY_HOURLY claim is rejected.
+- Lane B: 0/3 protocol-valid heartbeats; first worker heartbeat exists but its file failed the heartbeat validator and the proving window has elapsed.
 - Lane C: 0/3
 - Lane D: 0/3
 - Scout: 0/3
