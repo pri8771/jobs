@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
-"""Detached heartbeat watcher for the DAYWATCH_2026_09_21 liveness exercise.
+"""Detached heartbeat watcher for the Jobs Automation single active worker session.
 
-Cadence:
-1. PROVING_5M — three consecutive worker-authored heartbeats 4–7 minutes apart.
-2. WATCH_15M_24H — ~15 minute heartbeats for a clean 24 hours; >20 minute gap
-   increments misses and restarts the clean 24-hour window.
-3. STEADY_HOURLY — after a clean 24-hour watch.
+Default Epoch: FIVE_MIN_2026_09_21
+Mode: ACTIVE_5M (fixed 5-minute cadence while active).
 
 A separate lightweight clone is used so heartbeat commits never dirty the
 implementation worker's working tree.
@@ -35,16 +32,10 @@ DEFAULT_TASKS = {
     "3": "V1.7/V2.0 post-integration verification",
 }
 
-DEFAULT_EPOCH = "DAYWATCH_2026_09_21"
-PROVE_INTERVAL_SECONDS = 300
-PROVE_MIN_SECONDS = 240
-PROVE_MAX_SECONDS = 420
-WATCH_INTERVAL_SECONDS = 900
-WATCH_MIN_SECONDS = 720
-WATCH_MAX_SECONDS = 1200
-WATCH_DURATION_SECONDS = 24 * 60 * 60
-HOURLY_INTERVAL_SECONDS = 3600
-HOURLY_MIN_SECONDS = 3000
+DEFAULT_EPOCH = "FIVE_MIN_2026_09_21"
+INTERVAL_SECONDS = 300
+MIN_INTERVAL_SECONDS = 240
+MAX_INTERVAL_SECONDS = 420
 
 
 def run(*args: str, cwd: Path | None = None, capture: bool = False) -> str:
@@ -132,17 +123,12 @@ def reset_epoch(text: str, lane: str, branch: str, epoch: str, task: str) -> str
         "lane": lane,
         "branch": branch,
         "heartbeat_epoch": epoch,
-        "mode": "PROVING_5M",
+        "mode": "ACTIVE_5M",
         "interval_minutes": "5",
-        "consecutive_on_time": "0",
+        "heartbeat_count": "0",
         "last_check_in_utc": "null",
-        "watch_started_utc": "null",
-        "watch_until_utc": "null",
-        "watch_checkins": "0",
-        "missed_intervals": "0",
-        "watch_completed_utc": "null",
         "current_task": task,
-        "progress_note": "still working on assigned task",
+        "progress_note": "active 5-minute heartbeat watcher started",
         "review_state": "WORKING",
         "lead_action_requested": "NONE",
     }
@@ -150,9 +136,9 @@ def reset_epoch(text: str, lane: str, branch: str, epoch: str, task: str) -> str
         text = replace_metadata(text, key, value)
     return append_entry(
         text,
-        f"### {iso_z(now)} — Lane {lane} DAYWATCH EPOCH RESET\n\n"
+        f"### {iso_z(now)} — Lane {lane} 5-MINUTE HEARTBEAT RESET\n\n"
         f"Epoch: {epoch}\n\n"
-        "Superseded heartbeat epochs do not count. Starting fresh 5-minute proving.\n\n"
+        "Mode: ACTIVE_5M (fixed 5-minute interval while active).\n\n"
         "Review state:\n- WORKING",
     )
 
@@ -168,114 +154,40 @@ def heartbeat_transform(
         if read_metadata(text, "heartbeat_epoch") != epoch:
             text = reset_epoch(text, lane, branch, epoch, task)
 
-        mode = read_metadata(text, "mode") or "PROVING_5M"
         previous = parse_utc(read_metadata(text, "last_check_in_utc"))
         gap_seconds = None if previous is None else (now - previous).total_seconds()
 
-        if mode == "PROVING_5M" and gap_seconds is not None and gap_seconds < PROVE_MIN_SECONDS:
+        if gap_seconds is not None and gap_seconds < MIN_INTERVAL_SECONDS:
             return text, False, 30
-        if mode == "WATCH_15M_24H" and gap_seconds is not None and gap_seconds < WATCH_MIN_SECONDS:
-            return text, False, 30
-        if mode == "STEADY_HOURLY" and gap_seconds is not None and gap_seconds < HOURLY_MIN_SECONDS:
-            return text, False, 60
 
-        if mode == "PROVING_5M":
-            prior = metadata_int(text, "consecutive_on_time", 0)
-            if previous is None:
-                streak = 1
-            elif gap_seconds is not None and PROVE_MIN_SECONDS <= gap_seconds <= PROVE_MAX_SECONDS:
-                streak = prior + 1
-            else:
-                streak = 1
+        count = metadata_int(text, "heartbeat_count", 0) + 1
+        current_task = read_metadata(text, "current_task") or task
+        progress_note = read_metadata(text, "progress_note") or "still working on assigned task"
+        review_state = read_metadata(text, "review_state") or "WORKING"
+        lead_action = read_metadata(text, "lead_action_requested") or "NONE"
 
-            text = replace_metadata(text, "consecutive_on_time", str(streak))
-            text = replace_metadata(text, "last_check_in_utc", iso_z(now))
-            text = replace_metadata(text, "interval_minutes", "5")
-
-            if streak >= 3:
-                watch_until = now + dt.timedelta(seconds=WATCH_DURATION_SECONDS)
-                text = replace_metadata(text, "mode", "WATCH_15M_24H")
-                text = replace_metadata(text, "interval_minutes", "15")
-                text = replace_metadata(text, "watch_started_utc", iso_z(now))
-                text = replace_metadata(text, "watch_until_utc", iso_z(watch_until))
-                text = replace_metadata(text, "watch_checkins", "0")
-                next_sleep = WATCH_INTERVAL_SECONDS
-                next_mode = "WATCH_15M_24H"
-            else:
-                next_sleep = PROVE_INTERVAL_SECONDS
-                next_mode = "PROVING_5M"
-
-            gap_text = "first check-in" if gap_seconds is None else f"{gap_seconds / 60:.1f} minutes"
-            text = append_entry(
-                text,
-                f"### {iso_z(now)} — Lane {lane} 5-MINUTE PROVING HEARTBEAT\n\n"
-                f"Cadence gap: {gap_text}\n\n"
-                f"Proving streak: {streak}/3\n\n"
-                f"Mode after check-in: {next_mode}\n\n"
-                f"Update: {read_metadata(text, 'progress_note') or 'still working on assigned task'}",
-            )
-            return text, True, next_sleep
-
-        if mode == "WATCH_15M_24H":
-            started = parse_utc(read_metadata(text, "watch_started_utc")) or now
-            until = parse_utc(read_metadata(text, "watch_until_utc")) or (
-                started + dt.timedelta(seconds=WATCH_DURATION_SECONDS)
-            )
-            checkins = metadata_int(text, "watch_checkins", 0)
-            misses = metadata_int(text, "missed_intervals", 0)
-            missed_now = bool(previous and gap_seconds is not None and gap_seconds > WATCH_MAX_SECONDS)
-            if missed_now:
-                misses += 1
-                started = now
-                until = now + dt.timedelta(seconds=WATCH_DURATION_SECONDS)
-                checkins = 0
-
-            checkins += 1
-            text = replace_metadata(text, "last_check_in_utc", iso_z(now))
-            text = replace_metadata(text, "watch_started_utc", iso_z(started))
-            text = replace_metadata(text, "watch_until_utc", iso_z(until))
-            text = replace_metadata(text, "watch_checkins", str(checkins))
-            text = replace_metadata(text, "missed_intervals", str(misses))
-
-            if now >= until:
-                text = replace_metadata(text, "mode", "STEADY_HOURLY")
-                text = replace_metadata(text, "interval_minutes", "60")
-                text = replace_metadata(text, "watch_completed_utc", iso_z(now))
-                next_sleep = HOURLY_INTERVAL_SECONDS
-                next_mode = "STEADY_HOURLY"
-            else:
-                text = replace_metadata(text, "mode", "WATCH_15M_24H")
-                text = replace_metadata(text, "interval_minutes", "15")
-                next_sleep = WATCH_INTERVAL_SECONDS
-                next_mode = "WATCH_15M_24H"
-
-            gap_text = (
-                "first watch check-in"
-                if gap_seconds is None
-                else f"{gap_seconds / 60:.1f} minutes"
-            )
-            text = append_entry(
-                text,
-                f"### {iso_z(now)} — Lane {lane} 15-MINUTE 24H WATCH HEARTBEAT\n\n"
-                f"Gap: {gap_text}\n\n"
-                f"Missed this interval: {'yes' if missed_now else 'no'}\n\n"
-                f"Cumulative misses: {misses}\n\n"
-                f"Current clean window started: {iso_z(started)}\n\n"
-                f"Current clean window ends: {iso_z(until)}\n\n"
-                f"Mode after check-in: {next_mode}\n\n"
-                f"Update: {read_metadata(text, 'progress_note') or 'still working on assigned task'}",
-            )
-            return text, True, next_sleep
-
-        text = replace_metadata(text, "mode", "STEADY_HOURLY")
-        text = replace_metadata(text, "interval_minutes", "60")
+        text = replace_metadata(text, "heartbeat_epoch", epoch)
+        text = replace_metadata(text, "mode", "ACTIVE_5M")
+        text = replace_metadata(text, "interval_minutes", "5")
+        text = replace_metadata(text, "heartbeat_count", str(count))
         text = replace_metadata(text, "last_check_in_utc", iso_z(now))
+        text = replace_metadata(text, "current_task", current_task)
+        text = replace_metadata(text, "progress_note", progress_note)
+        text = replace_metadata(text, "review_state", review_state)
+        text = replace_metadata(text, "lead_action_requested", lead_action)
+
+        gap_text = "first check-in" if gap_seconds is None else f"{gap_seconds / 60:.1f} minutes"
         text = append_entry(
             text,
-            f"### {iso_z(now)} — Lane {lane} HOURLY HEARTBEAT\n\n"
-            f"Update: {read_metadata(text, 'progress_note') or 'still working on assigned task'}",
+            f"### {iso_z(now)} — Lane {lane} ACTIVE 5-MINUTE HEARTBEAT #{count}\n\n"
+            f"Cadence gap: {gap_text}\n\n"
+            f"Mode: ACTIVE_5M\n\n"
+            f"Task: {current_task}\n\n"
+            f"Update: {progress_note}\n\n"
+            f"Review state: {review_state}\n\n"
+            f"Lead action requested: {lead_action}",
         )
-        return text, True, HOURLY_INTERVAL_SECONDS
+        return text, True, INTERVAL_SECONDS
 
     return apply
 
@@ -310,7 +222,8 @@ def write_heartbeat(
             return False, next_sleep
 
         try:
-            run("git", "commit", "-m", f"heartbeat({lane}): DAYWATCH update", cwd=clone_root)
+            count_str = read_metadata(updated, "heartbeat_count") or "1"
+            run("git", "commit", "-m", f"heartbeat({lane}): active 5m #{count_str}", cwd=clone_root)
             run("git", "push", "origin", f"HEAD:{branch}", cwd=clone_root)
             return True, next_sleep
         except subprocess.CalledProcessError:
