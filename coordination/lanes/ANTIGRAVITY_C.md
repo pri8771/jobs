@@ -34,38 +34,41 @@ Scope: proof scripts, proof schema, proof-tooling tests, minimal directly relate
 
 Push one coherent batch with a worker-authored heartbeat marked `READY_FOR_LEAD_REVIEW`, then stop for Scout/ChatGPT review. Do not self-accept.
 
-## Current lead review — 2026-09-21 09:55 ET
+## Current lead review — 2026-09-21 10:53 ET
 
-Lane C is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. Rebase latest main before work. This remains the project critical path.
+Lane C is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored current-epoch heartbeat and no RP14-T1..T7 implementation. Rebase latest main before work. This remains the project critical path.
+
+Current heartbeat epoch is `DAYWATCH_2026_09_21`; Lane C's latest branch commit is 10:49Z, before the 14:45Z epoch reset, so its verified proving state is 0/3. A fresh session must launch:
+
+`python scripts/worker_heartbeat_watch.py --lane C --epoch DAYWATCH_2026_09_21 --detach`
 
 Lane A is still not an eligible real-proof executor because its selected real resume variant `resume_ai_software_engineer` has no actual mapped file on that machine. Its early proof attempt was before P0A acceptance and cannot count. Do not wait for Lane A after P0A if Lane C has the complete genuine inputs.
 
-A bounded remote support task has been queued for **RP14-T5 only**:
-- task: `jobs-v14-p0a-t5-schema-20260921-0946`
-- scope: proof evidence schema + adversarial extra-field tests only
-- no private candidate/resume data, Gmail, browser/application behavior, or acceptance-state writes
-- no automatic merge
+## Reviewed RP14-T5 remote support
 
-A non-Jobs SwarmAI task started moments before that Jobs dispatch became visible, so the capacity-1 worker has the Jobs task pending behind it. This is support only. **Do not wait for the remote task and do not assume RP14-T5 is done.** If the remote task eventually returns a Jobs branch/commit, ChatGPT will inspect it before Lane C adopts any change.
+Remote task `jobs-v14-p0a-t5-schema-20260921-0946` completed and returned a real Jobs branch:
+- branch: `worker/jobs-v14-p0a-t5-schema-20260921-0946`
+- commit: `1f4a9b9bd21ed402afaef211ac3cab852a293a22`
+- base: `79ae33852bb742a6714836b824d666a636bfc333`
+
+ChatGPT inspected the actual commit/diff. It is bounded to exactly three files:
+- `coordination/proofs/v14_real_proof.schema.json`
+- `scripts/verify_v14_real_proof.py`
+- `tests/test_real_proof_verifier.py`
+
+The support change closes top-level and nested evidence allowlists, explicitly admits the legitimate runtime fields `candidate_unresolved_fact_categories` and `questions_count`, rejects unexpected top-level/nested fields and non-count/private-shaped nested values, and adds focused RP14-T5 adversarial tests.
+
+**Do not treat RP14-T5 as accepted yet.** The remote free-text report says pytest/Ruff/mypy execution was blocked by its command permission layer, and GitHub has no Jobs CI workflow run for commit `1f4a9b9...`. The outer worker did commit/push the branch, but its generic result `tests` array is not test evidence. The branch is also behind current main.
+
+Lane C may cherry-pick `1f4a9b9...` after rebasing current main, resolve any conflict, and include the code in its coherent RP14-T1..T7 batch. Lane C remains responsible for running the focused verifier/schema tests plus full pytest/Ruff/mypy/CI. Reimplementation is also acceptable if cleaner. No automatic merge.
+
+A separate remote RP14-T6-only support dispatch `jobs-v14-p0a-t6-origin-20260921-1047` failed almost immediately at workflow `35615000944`; no sanitized result or Jobs branch was available at review time. Do not wait for it and do not credit T6 progress.
 
 ## Branch maintenance performed by lead
 
-At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main and contained only two unique lead-seeded heartbeat commits (`4122f9bd...` and `2ce7674f...`). ChatGPT inspected both commits and confirmed they contained no worker implementation or worker-authored heartbeat. The branch was therefore force-aligned to green Jobs main so this lane saw the then-current P0A contract and validation workflows.
+At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main and contained only two unique lead-seeded heartbeat commits. ChatGPT inspected both and confirmed they contained no worker implementation or worker-authored heartbeat. The branch was force-aligned to green Jobs main at that time.
 
-This alignment is maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
-
-## Prior remote-worker support — unavailable as reviewable code
-
-The bounded TESTS-ONLY support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure at the target Jobs branch-push step.
-
-Result:
-- no Jobs branch returned,
-- no commit returned,
-- no tests or summary returned,
-- no corresponding Jobs worker branch exists,
-- remote-workers successfully published only the sanitized failure result afterward.
-
-Do not depend on that attempt. It completed no RP14 work.
+That alignment was maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
 
 ## After P0A lead acceptance — real proof readiness
 
@@ -107,5 +110,5 @@ Do not perform real OAuth consent, access a live mailbox, open/prefill/submit a 
 ## Status
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
-Heartbeat proving: 0/3 worker-authored check-ins.
-Latest lead review: 2026-09-21 09:55 ET.
+Heartbeat epoch: `DAYWATCH_2026_09_21`, verified 0/3 current-epoch worker-authored check-ins.
+Latest lead review: 2026-09-21 10:53 ET.
