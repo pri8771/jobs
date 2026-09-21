@@ -2,7 +2,7 @@
 
 - Type: implementation / evidence
 - Phase: V1.7
-- Status: READY
+- Status: LEAD_REVIEW
 - Owner: Antigravity Lane B
 - Reviewer: ChatGPT
 - Dependencies: none for code audit/repair
@@ -38,3 +38,16 @@ Operate the post-application recruiting lifecycle with evidence-backed interview
 - J17-06 SP3 — repair reschedule/cancel/timezone/idempotency gaps
 - J17-07 SP2 — harden follow-up dedupe and answered-thread detection
 - J17-08 SP2 — add lifecycle classes for offer/rejection/background/onboarding gaps
+
+## Lead evidence state
+
+Reviewed worker commits:
+- `21f2be9` initial V1.7 implementation
+- `33d18b4` lead-repair batch
+
+Lead re-review accepted the missing lifecycle-class coverage and post-acceptance rejection contradiction protection under B-R17-01 and B-R17-02. Existing V1.7 tests cover interview scheduling/timezone/reschedule/cancel, repeated-sweep idempotency and follow-up dedupe/reply resolution.
+
+The card remains LEAD_REVIEW rather than ACCEPTED because the repair branch was behind current main and the repair commit had no GitHub CI/check result. Required final evidence:
+- rebase/integration with current main,
+- full tests/Ruff/mypy,
+- green integrated GitHub CI.
