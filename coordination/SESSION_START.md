@@ -20,6 +20,7 @@ Read in order:
 7. your lane status file
 8. any re-audit/contract explicitly referenced by your lane status
 9. coordination/HEARTBEAT_PROTOCOL.md
+10. coordination/HEARTBEAT_DASHBOARD.md
 
 ## Assigned branches / lane files
 
@@ -44,3 +45,14 @@ Read in order:
 A task/status from an old prompt is superseded when the current repo says otherwise.
 
 Do not self-accept milestone artifacts. ChatGPT lead accepts/rejects after code/evidence review.
+
+
+## Heartbeat proving mode
+
+Every active worker session begins or resumes in `PROVING_15M` unless its branch heartbeat already contains verified `STEADY_HOURLY` status.
+
+Follow `coordination/HEARTBEAT_PROTOCOL.md`.
+
+Do not count ChatGPT-seeded heartbeat files as worker check-ins.
+
+After three consecutive worker-authored on-time 15-minute heartbeats, update your own heartbeat mode to `STEADY_HOURLY` and continue hourly while active.
