@@ -1,20 +1,20 @@
 # A-V14-PACKET-SAFETY
 
-- Type: implementation / acceptance
+- Type: implementation / engineering acceptance
 - Phase: V1.4
-- Status: IN_PROGRESS
+- Status: ACCEPTED
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V1.1 accepted
-- Downstream: A-V15-ASSISTED-APPLICATION
+- Downstream: A-V14-REAL-PROOF, A-V15-ASSISTED-APPLICATION
 
 ## Purpose
 
-Produce a truthful, immutable, independently inspectable application packet pipeline safe enough for real use.
+Produce a truthful, immutable, independently inspectable application packet pipeline safe enough for real-data proof.
 
 ## Scope
 
-Includes J14-01..J14-11 from WORK_QUEUE.
+Includes J14-01..J14-11 plus bounded residuals R14-01..R14-04.
 
 ## Non-goals
 
@@ -23,6 +23,7 @@ Includes J14-01..J14-11 from WORK_QUEUE.
 - Gmail OAuth
 - new ATS adapters
 - V2/V3 infrastructure
+- satisfying the separate owner-required REAL_PROOF completion gate
 
 ## Acceptance criteria
 
@@ -38,65 +39,37 @@ Includes J14-01..J14-11 from WORK_QUEUE.
 10. inspectable packet manifest
 11. pytest/ruff/mypy/CI green
 
-## Evidence provided for review
+## Engineering evidence
 
-- Migration: `migrations/versions/002_resume_variant_attribution.py` (applied and verified)
-- Tests: 99 unit tests passing (`tests/test_artifact_store.py`, `tests/test_preparation.py`, `tests/test_packet_safety_adversarial.py`)
-- Linter / Types: `ruff check .` clean, `mypy src tests` clean across 90 source files
-- Artifact Storage & Read-Back: `ArtifactStore` atomic write with mandatory read-back SHA-256 verification
-- Fail-Closed: Missing resume source raises `FileNotFoundError`; wrong variant cannot load unmapped variant source
-- Model Gateway: `LiteLLMModelGateway(fallback_mock=False)` fails closed; `MockModelGateway` generic synthetic only
-- Screening Provenance: Every resolved answer cites exact field paths in `answer_provenance_json`; unsupported model claims rejected
-- EEO / Demographic: All 4 EEO self-identification questions strictly route to unresolved
-- Sample Proof Packet Manifest: `artifacts/packets/manifest_3395ca7b-fc9b-4207-b08f-8f98459f8347.json` (hash `c6e352aa...`)
+Initial implementation/review established the packet-safety mechanics and bounded four residual defects.
 
-## Source paths
+Final residual batch:
+- R14-01 — immutable/content-addressed historical artifact storage
+- R14-02 — exact selected resume-family attribution
+- R14-03 — mock/test generation origin cannot be live-ready
+- R14-04 — unsupported quantitative claims fail closed without exact canonical evidence
 
-- src/jobs_automation/core/candidate_profile.py
-- src/jobs_automation/storage/artifact_store.py
-- src/jobs_automation/preparation/packet_builder.py
-- src/jobs_automation/preparation/tailoring.py
-- src/jobs_automation/adapters/models.py
-- src/jobs_automation/db/models.py
-- migrations/versions/002_resume_variant_attribution.py
-- tests/test_preparation.py
-- tests/test_artifact_store.py
-- tests/test_packet_safety_adversarial.py
-- docs/V1_4_REPAIR_GUIDE.md
+Engineering acceptance:
+- Lane A repair commit `1410bf7`
+- merged by PR #1
+- main merge `8a0cdb4`
+- green main CI
 
-## Current notes
+This artifact is therefore **ACCEPTED as the V1.4 engineering artifact**.
 
-Repair J14-01 through J14-11 complete and verified (99 unit tests passing, SHA-256 read-back verified, migration 002 applied). Ready for ChatGPT lead re-audit.
+## Version-completion distinction
 
-User requested immediate STOP at 2026-09-20 20:11 ET; execution paused before proceeding to V1.5.
+ACCEPTED here does **not** mean V1.4 is COMPLETE.
 
+Owner directive:
+A version is COMPLETE only after at least one real non-mock production-path example passes.
 
-## Lead re-audit — residual rework
+V1.4 therefore remains incomplete until:
+- `A-V14-REAL-PROOF` is ACCEPTED.
 
-Lead reviewed commit `10fd61d` and current CI.
+The separate real-proof artifact must use the actual private candidate profile, actual resume bytes, a real live job, production packet-builder code, and non-mock generation; test/fixture evidence cannot satisfy it.
 
-Most original J14 repairs are materially correct and retained.
-
-Four bounded residual tasks remain:
-
-- R14-01 SP2 — ArtifactStore currently overwrites the same target path via os.replace; make historical artifact bytes immutable/content-addressed and add a two-build regression test.
-- R14-02 SP2 — ResumeVariant.resume_family currently uses target.primary_headline rather than the actual selected resume family; add explicit family mapping and tests.
-- R14-03 SP2 — packet readiness does not yet enforce generation origin; explicit MockModelGateway/test content must never be considered live-ready.
-- R14-04 SP2 — model-assisted quantitative claims (for example years of Python) need exact canonical evidence; skill presence alone is insufficient.
-
-After these pass with green CI, A-V14 can be accepted immediately.
-
-
-## Engineering acceptance
-
-The code/engineering portion was accepted after re-audit of Lane A commit `1410bf7`, merge PR #1, and green main CI on merge commit `8a0cdb4`.
-
-This is now labeled **ENGINEERING_ACCEPTED**, not version complete.
-
-Owner directive added 2026-09-20:
-V1.4 is not complete until A-V14-REAL-PROOF passes once with real candidate/profile/resume/job inputs and zero mock/fixture data.
-
-Real-proof contract:
-- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
-- coordination/artifacts/A-V14-REAL-PROOF.md
-- docs/V1_4_REAL_PROOF_RUNBOOK.md
+See:
+- `docs/REAL_PROOF_ACCEPTANCE_POLICY.md`
+- `coordination/artifacts/A-V14-REAL-PROOF.md`
+- `docs/V1_4_REAL_PROOF_RUNBOOK.md`
