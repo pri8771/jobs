@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-21 17:00 ET
+Updated: 2026-09-21 17:48 ET
 
 ## Owner completion rule
 
@@ -21,57 +21,71 @@ Exactly three active implementation lanes:
 
 Old Lane C/D/Scout are paused/superseded. `worker-pc` is bounded support infrastructure only, not a fourth implementation lane.
 
-A conflicting planning commit briefly rewrote canonical files to a one-worker/sequential-surface model. That contradicts the owner's explicit three-lane directive and is superseded. Canonical operating files have been restored to exactly three active lanes. V2.3 planning remains future inventory only.
-
 ## Lane 1 — P0 critical path
 
-Observed branch state:
-- head `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
-- latest heartbeat #18 at `2026-09-21T19:18:36Z`
-- current-epoch heartbeat stream is stale
-- PR #8 is draft/non-mergeable and materially diverged from current main
-- latest substantive implementation remains `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+Heartbeat branch evidence:
+- current observed head `df4045883c1fde7b29af92a20028d3b6397e9a93`
+- heartbeat #22 at `2026-09-21T21:31:56Z`
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- worker reports `READY_FOR_LEAD_REVIEW`
+
+Substantive clean implementation:
+- branch `claude/serene-brown-g6uij0`
+- commit `3444076de27573ec57d9c8ae60876aece8e646d9`
+- direct parent `927b33c0f523950ca206ead1cc2912e19a018184` (reviewed main at implementation start)
 
 Lead verdict: **REWORK** / P0A not accepted.
 
-### worker-pc support evidence
+### What the clean-port materially fixes
 
-Task `jobs-v14-p0a-remaining-fix-20260921-1545` returned support branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545` at `062ca922c640d964220b550a06f61288b9a040c9`.
+Lead inspection confirms the clean-port now implements the intended fail-closed proof chain across the runner/verifier path:
+- runtime candidate vs independent PASS/FAIL receipt separation,
+- candidate-SHA and proof-run binding,
+- local artifact/hash cross-binding,
+- mandatory persisted DB linkage,
+- persisted Greenhouse JobSource/Job/question corroboration,
+- copied example-profile content rejection,
+- canonical production `generation_origin` validation,
+- `postgresql+psycopg://` support,
+- re-derived packet/manifest/resume/artifact/database links.
 
-Lead-inspected diff is limited to `scripts/verify_v14_real_proof.py` and `tests/test_real_proof_verifier.py` and materially addresses:
-- fail-closed mandatory proof DB validation,
-- persisted packet/resume/artifact linkage,
-- Greenhouse `JobSource`/`Job` source-attestation binding.
+Worker reports exact-head local validation at `3444076...`: 205 pytest passing, Ruff clean, mypy `src tests` clean, plus 16 formerly-xfail adversarial probes passing. These are useful claims but are not lead acceptance by themselves.
 
-It is **not accepted or merge-ready** because no exact-head GitHub CI exists and worker-side pytest/Ruff/mypy were sandbox-blocked.
+### Remaining P0A blocker — schema contract
 
-### Corrected production-path audit
+`coordination/proofs/v14_real_proof.schema.json` was not included in the clean-port and remains stale at `3444076...`:
+- `additionalProperties: true`,
+- `result.const: REAL_PROOF_PASS`.
 
-An interim lead note incorrectly compared the support verifier to the older importer on main. Direct inspection of the support/Lane 1 importer plus independent worker-pc audit corrected that finding.
+That conflicts directly with RP14-T1/RP14-T5. The runtime evidence is a `REAL_PROOF_CANDIDATE`, and committed candidate evidence must be closed/allowlisted.
 
-At `062ca922...`, `_source_payload()` already persists `provider`, `public_job_id`, `question_list_sha256`, `api_url`, `fetched_at_utc`, `content_sha256`, `screening_question_count`, and `source_kind`. The importer payload is not the current blocker.
+Lane 1 must correct the schema to the actual production candidate shape, add regression tests that reject extra fields and self-declared PASS candidates, rerun focused/full pytest/Ruff/mypy, and push one coherent current-main review batch.
 
-Two real production-path blockers remain:
+### CI state
 
-1. **Generation metadata key mismatch.** Production packet builder writes `generation_metadata_json["generation_origin"]`; support verifier reads `generation_metadata["origin"]`. A genuine production packet therefore fails even when generation metadata is correct, and the verifier tests currently use the non-production shape.
-2. **Driver-qualified PostgreSQL URL mismatch.** Support `resolve_proof_db_url()` accepts `postgresql://` / `postgres://`, while application `AppSettings.database_url` defaults to `postgresql+psycopg://...`. A normal application DB URL can therefore be misinterpreted as a SQLite path and fail before persisted proof validation.
+No GitHub check runs exist for substantive commit `3444076...`.
 
-A bounded worker-pc support task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched to fix only those two issues on top of the existing support branch. Lane 1 must not wait for it and no support branch may auto-merge.
+The latest Lane 1 heartbeat head still triggers Actions jobs that fail before executing any steps (`steps: []`, `runner_id: 0`). Treat this as `CI_BLOCKED_ACCOUNT`, not green CI and not a code failure. Automated issue #7 heartbeat comments therefore remain behind the actual Git heartbeat stream.
+
+`worker-pc` completed the prior runtime-contract support task at `7e88542...`; Lane 1 incorporated that work into the clean-port. A new bounded schema-only support task `jobs-v14-p0a-schema-gate-20260921-1748` has been dispatched against the clean implementation branch. It is support only; no auto-merge and Lane 1 must not wait for it.
 
 ## Lane 2 — V1.5 assisted application
 
 Branch head `ddb4f848a97dec87033cfdef7ca33642480d99bc`; PR #2 remains draft/non-mergeable and diverged from current main.
 
-Heartbeat remains obsolete:
+Heartbeat is still obsolete:
 - epoch `DAYWATCH_2026_09_21`
 - mode `WATCH_15M_24H`
 - last check-in `2026-09-21T17:39:16Z`
 
 Immediate action:
-- stop/verify stopped old watcher once,
+- stop/verify stopped the old watcher once,
 - sync latest main,
 - start exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
 - complete A-R15-06..09 validation and request lead review.
+
+Historical head checks only cover heartbeat validation/progress posting. They do not substitute for current-main implementation CI.
 
 Known V1.4 proof blocker remains the missing genuine selected `resume_ai_software_engineer` mapping on that machine. Do not substitute another resume.
 
@@ -81,7 +95,7 @@ PR #3 is merged and the accepted B repair batch is already integrated to main.
 
 Worker branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` is 0 commits ahead and stale/behind main.
 
-Heartbeat remains obsolete:
+Heartbeat is still obsolete:
 - epoch `DAYWATCH_2026_09_21`
 - mode `PROVING_5M`
 - last check-in `2026-09-21T16:44:37Z`
@@ -93,6 +107,8 @@ Immediate action:
 - run post-integration verification,
 - repair only a real evidenced regression.
 
+No draft PR is needed until Lane 3 has new worker commits ahead of main.
+
 ## Heartbeat / visible progress
 
 Canonical Lane 1/2/3 standard:
@@ -102,13 +118,13 @@ Canonical Lane 1/2/3 standard:
 - exactly one watcher per active lane
 - no cadence transitions
 
-Issue #7 automated heartbeat comments stopped after Lane 1 heartbeat `2026-09-21T18:18:14Z` although commits continued through `19:18:36Z`. Fresh Actions jobs still fail before steps start with `steps: []`, `runner_id: 0`, so classification remains `CI_BLOCKED_ACCOUNT`, not a heartbeat-workflow semantic regression. ChatGPT posts a direct lead update to issue #7 each run.
+Lane 1 actual Git heartbeat commits continue, but issue #7 automated comments have not kept pace because the heartbeat workflows are failing at hosted-runner startup. Do not alter the protocol to manufacture UI activity. ChatGPT posts one direct lead update to issue #7 each hourly run.
 
 ## Critical path
 
-1. Lane 1 ports the reviewed DB/source-binding support and fixes production `generation_origin` + driver-qualified PostgreSQL URL handling.
-2. Lane 1 runs focused importer/runner/verifier adversarial tests plus full pytest/Ruff/mypy and exact-head CI when runners execute.
-3. ChatGPT accepts P0A only from coherent reviewed code/test evidence.
+1. Lane 1 fixes the stale proof schema to match the production candidate contract and adds schema adversarial tests.
+2. Lane 1 reruns focused + full pytest/Ruff/mypy and obtains exact-head branch CI when runners execute.
+3. ChatGPT accepts P0A only from coherent reviewed code/test/CI evidence.
 4. Lane 1 moves immediately to genuine private profile/resume readiness.
 5. First genuinely eligible Lane 1 or Lane 2 machine runs importer → real packet runner → verifier.
 6. ChatGPT audits runtime candidate + separately bound PASS receipt.
@@ -116,7 +132,7 @@ Issue #7 automated heartbeat comments stopped after Lane 1 heartbeat `2026-09-21
 
 ## Future planning
 
-V2.3 planning material is future planning inventory only. Do not reopen V2.3/Scout implementation lanes, collapse the owner-authorized three-lane model, or start V1.6 merely because planning artifacts exist.
+V2.3 planning material remains future inventory only. Do not reopen V2.3/Scout implementation lanes, collapse the owner-authorized three-lane model, or start V1.6 merely because planning artifacts exist.
 
 ## Safety boundary
 
