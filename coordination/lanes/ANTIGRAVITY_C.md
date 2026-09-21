@@ -126,6 +126,8 @@ At the 2026-09-21 02:48 ET lead review, `worker-pc` was online but occupied by a
 
 At the 2026-09-21 03:46 ET lead review, the same SwarmAI workflow `35566726945` was still in progress. Lane C itself remained at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02` with no worker-authored heartbeat or P0A implementation batch. Do not wait on remote-worker capacity: rebase current main and execute RP14-T1..T7 on this lane.
 
+At the 2026-09-21 04:45 ET lead review, the SwarmAI workflow had been cancelled, freeing `worker-pc`. ChatGPT dispatched `jobs-v14-p0a-preflight-20260921-0445` as a **read-only, non-conflicting acceptance-preflight audit**. It may provide adversarial review/mapping evidence, but it does not implement or complete RP14-T1..T7. Lane C must not wait for it: rebase latest main and execute the existing P0A implementation batch now.
+
 ## External boundary
 
 Do not:
@@ -147,4 +149,4 @@ Do not:
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
 
-Latest lead review: 2026-09-21 03:46 ET — no worker-authored heartbeat or implementation commit has landed; branch head remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. Jobs main CI for pre-refresh head `6fcb70d95e04e6aac3042eb3e25d586bc575d8ef` is green.
+Latest lead review: 2026-09-21 04:45 ET — no worker-authored heartbeat or implementation commit has landed; branch head remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. Standard Jobs main CI run #304 is green; heartbeat monitor failure is a liveness signal. Remote read-only preflight workflow `35579791471` is in progress and is advisory only.
