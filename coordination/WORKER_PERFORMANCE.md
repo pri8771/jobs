@@ -1,56 +1,57 @@
 # Worker Performance Ledger
 
-This ledger tracks Antigravity task performance by story-point complexity.
-
 Story-point rubric:
 - docs/WORKER_STORY_POINTS.md
 
-## Rules
-
-- Antigravity may append worker-reported completion evidence.
-- ChatGPT owns lead acceptance/rework judgments.
-- Do not retroactively invent precise scores for old broad batches when the original scope was not cleanly bounded.
-- Start rigorous task-level tracking with the V1.4 repair sprint.
+Story points measure complexity/uncertainty, not time.
 
 ## Summary
 
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 0 | 0 | 0 | 0 | 0 |
-| 2 | 0 | 0 | 0 | 0 | 0 |
-| 3 | 0 | 0 | 0 | 0 | 0 |
+| 1 | 2 | 1 | 1 | 1 | 1 |
+| 2 | 5 | 4 | 4 | 1 | 8 |
+| 3 | 4 | 0 | 0 | 4 | 0 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
 
-Update this summary only from accepted task records below.
+## V1.4 first-pass task audit — commit 10fd61d
 
-## Task ledger
+| Task ID | SP | Status | Worker commit | CI first push | Rework cycles | Lead notes |
+|---|---:|---|---|---|---:|---|
+| J14-01 | 2 | LEAD_ACCEPTED | 10fd61d | yes | 0 | Missing resume fails closed |
+| J14-02 | 2 | LEAD_ACCEPTED | 10fd61d | yes | 0 | Exact variant source resolution works |
+| J14-03 | 3 | REWORK | 10fd61d | yes | 1 | ResumeVariant exists, but resume_family identity is semantically wrong |
+| J14-04 | 2 | LEAD_ACCEPTED | 10fd61d | yes | 0 | Packet -> ResumeVariant linkage implemented |
+| J14-05 | 3 | REWORK | 10fd61d | yes | 1 | Storage writes/read-back verify, but same target path may overwrite historical bytes |
+| J14-06 | 2 | LEAD_ACCEPTED | 10fd61d | yes | 0 | Candidate-specific runtime literals removed from drafter/mock content |
+| J14-07 | 2 | REWORK | 10fd61d | yes | 1 | Gateway fails closed by default, but packet live-readiness does not reject explicit mock/test origin |
+| J14-08 | 3 | REWORK | 10fd61d | yes | 1 | Provenance added, but quantitative years/duration can still be model-asserted without exact evidence |
+| J14-09 | 1 | LEAD_ACCEPTED | 10fd61d | yes | 0 | EEO/self-ID always unresolved/manual |
+| J14-10 | 3 | REWORK | 10fd61d | yes | 1 | Manifest exists, but inherits family/origin/immutability gaps |
+| J14-11 | 1 | REWORK | 10fd61d | yes | 1 | 99 tests/CI green, but missing adversarial coverage for residual defects |
 
-| Task ID | SP | Title | Owner | Dependencies | Status | Worker commit | CI first push | Lead rework cycles | Lead notes |
-|---|---:|---|---|---|---|---|---|---:|---|
-| J14-01 | 2 | Fail closed on missing selected resume | Antigravity | none | READY | — | — | 0 | V1.4 repair |
-| J14-02 | 2 | Exact resume variant -> source mapping | Antigravity | none | READY | — | — | 0 | V1.4 repair |
-| J14-03 | 3 | ResumeVariant DB model + migration | Antigravity | none | READY | — | — | 0 | Architecture already specified |
-| J14-04 | 2 | Link packet to immutable ResumeVariant | Antigravity | J14-03 | READY | — | — | 0 | Permanent attribution |
-| J14-05 | 3 | Materialize artifacts + hash read-back | Antigravity | none | READY | — | — | 0 | Prefer small ArtifactStore |
-| J14-06 | 2 | Remove runtime hard-coded candidate claims | Antigravity | none | READY | — | — | 0 | Test fixtures may be synthetic |
-| J14-07 | 2 | Fail closed on model routing/provider errors | Antigravity | none | READY | — | — | 0 | Explicit mock only |
-| J14-08 | 3 | Screening-answer provenance + hallucination guard | Antigravity | none | READY | — | — | 0 | Consequential answers need evidence |
-| J14-09 | 1 | Force EEO/self-ID questions manual | Antigravity | none | READY | — | — | 0 | Always unresolved |
-| J14-10 | 3 | Rebuild inspectable packet manifest | Antigravity | J14-01..J14-09 | READY | — | — | 0 | Use verified bytes/evidence |
-| J14-11 | 1 | Full V1.4 verification evidence bundle | Antigravity | J14-10 | READY | — | — | 0 | pytest/ruff/mypy/CI + evidence |
+## V1.4 bounded residual tasks
 
-## Historical notes
+| Task ID | SP | Status | Owner | Artifact | Lead notes |
+|---|---:|---|---|---|---|
+| R14-01 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Make artifact paths immutable/content-addressed |
+| R14-02 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Correct selected resume-family attribution |
+| R14-03 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Mock/test generation cannot be live-ready |
+| R14-04 | 2 | READY | Antigravity Lane A | A-V14-PACKET-SAFETY | Quantitative experience claims require exact evidence |
 
-- V1.1 stabilization was delivered as a broad unscored batch before this ledger existed; lead found one reconciliation defect requiring repair.
-- The V1.2-V1.4 bundle in commit 3735f13 was also too broad to score meaningfully as one story. Its failure to pass lead review is one reason the SP1-SP5 decomposition policy now exists.
+## Interpretation so far
 
-## How ChatGPT should use this ledger
+Initial evidence suggests:
+- SP1-SP2 bounded work is relatively strong when acceptance criteria are explicit.
+- Cross-cutting SP3 tasks need tighter semantic contracts and adversarial acceptance tests.
+- Do not infer long-term rates from this small sample.
+- Continue delegating the bulk of SP1-SP2 work.
+- For SP3+, ChatGPT should provide stronger artifact contracts and split tasks further when semantics span persistence + policy + provenance.
 
-After each worker push:
-1. match commits to task IDs,
-2. audit acceptance criteria,
-3. mark each task LEAD_ACCEPTED or REWORK,
-4. increment rework cycles when applicable,
-5. update summary counts,
-6. use observed performance to decide whether future SP4-SP5 work should be split further.
+## Rules
+
+- Antigravity reports completion; ChatGPT owns LEAD_ACCEPTED/REWORK.
+- CI success is necessary but not sufficient.
+- A real blocker reported promptly is not counted as task failure.
+- >SP5 must be decomposed before assignment.
