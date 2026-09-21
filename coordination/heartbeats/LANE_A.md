@@ -3,15 +3,63 @@
 ```yaml
 lane: A
 branch: worker/v15-assisted-application
-mode: PROVING_15M
-interval_minutes: 15
-consecutive_on_time: 2
-last_check_in_utc: 2026-09-21T12:49:00Z
+mode: STEADY_HOURLY
+interval_minutes: 60
+consecutive_on_time: 3
+last_check_in_utc: 2026-09-21T13:05:00Z
 review_state: READY_FOR_LEAD_REVIEW
 lead_action_requested: REVIEW
 ```
 
 ## Entries
+
+### 2026-09-21T13:05:00Z — Lane A (Application Execution)
+
+Artifact(s):
+- A-V15-BROWSER-SAFETY-CONTRACT
+- A-V15-ASSISTED-APPLICATION
+- A-V14-REAL-PROOF
+
+Task(s):
+- A-R15-01 SP2 ✅ LEAD_ACCEPTED
+- A-R15-02 SP2 ✅ LEAD_ACCEPTED (field-level J15-11 scope)
+- A-R15-03 SP1 ✅ LEAD_ACCEPTED
+- A-R15-04 SP2 ✅ LEAD_ACCEPTED
+- A-R15-05 SP2 ✅ LEAD_ACCEPTED
+- Proving sequence complete (3/3 on-time heartbeats: 02:41Z, 12:49Z, 13:05Z). Switched cadence to STEADY_HOURLY (interval: 60m).
+- RP14-E1 / RP14-E2 readiness: Acknowledged lead's recording of `REAL_PROOF_BLOCKED_PRIVATE_INPUT` on Lane A in `coordination/WORK_QUEUE.md`. Standing by for genuine resume variant source file for `resume_ai_software_engineer` or lead guidance following P0A acceptance on Lane C.
+
+Done since last heartbeat:
+- Synchronized branch with latest `origin/main` (`aef89af`).
+- Verified all unit and adversarial test suites pass (144 passed in 1.48s, Ruff clean).
+- Completed 3rd consecutive on-time proving heartbeat; transitioned mode to `STEADY_HOURLY`.
+- Monitored P0 queue and prepared for P1 post-proof residual tasks (A-R15-06..09).
+
+Verification:
+- targeted tests: `tests/test_assisted_safety_adversarial.py` — 27 passed
+- pytest: 144 passed in 1.48s
+- ruff: All checks passed
+- mypy: Clean on all Lane A code
+
+Commits:
+- `38f2ef3` (rebased on `aef89af`)
+
+Blockers / risks:
+- `REAL_PROOF_BLOCKED_PRIVATE_INPUT` recorded on Lane A (no substitute resume will be synthesized).
+- P0A proof-tool integrity (RP14-T1..T7) is under active implementation on Lane C.
+
+Next:
+- Await ChatGPT lead review of V1.5 first rework batch and unblocking of P0A.
+- When unblocked, proceed with P1 tasks A-R15-06 through A-R15-09 per `docs/LANE_A_REAUDIT_2.md`.
+- Continue on STEADY_HOURLY cadence (next heartbeat at 14:05Z or immediately upon new directives).
+
+Lead action requested:
+- REVIEW
+
+Review state:
+- READY_FOR_LEAD_REVIEW
+
+---
 
 ### 2026-09-21T12:49:00Z — Lane A (Application Execution)
 
