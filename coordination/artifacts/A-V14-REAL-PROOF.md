@@ -38,53 +38,67 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied/example or fake private-profile evidence, extra fields, misleading generation metadata, and broken packet/artifact/database links. Targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Latest lead review — 2026-09-21 17:00 ET
+## Latest lead review — 2026-09-21 17:48 ET
 
 Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
 
-Reviewed support implementation:
-- task `jobs-v14-p0a-remaining-fix-20260921-1545`
-- branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
-- commit `062ca922c640d964220b550a06f61288b9a040c9`
+### Reviewed clean-port batch
 
-Lead inspected the actual two-file diff. It usefully addresses:
-1. mandatory/fail-closed proof DB evidence and persisted packet/resume/artifact graph validation,
-2. local Greenhouse source attestation binding to persisted `JobSource`/`Job` evidence.
+Worker implementation:
+- clean implementation branch: `claude/serene-brown-g6uij0`
+- substantive commit: `3444076de27573ec57d9c8ae60876aece8e646d9`
+- parent: current reviewed `main` `927b33c0f523950ca206ead1cc2912e19a018184`
+- Lane 1 heartbeat reports `READY_FOR_LEAD_REVIEW`; current Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`.
 
-The support commit is **not accepted or merge-ready** because no exact-head CI exists and worker-side pytest/Ruff/mypy were sandbox-blocked.
+Lead inspected the actual clean-port diff rather than the worker claim. The implementation materially closes the previously identified runtime-contract gaps:
+- runner emits `REAL_PROOF_CANDIDATE`, not PASS,
+- verifier emits a separately candidate-SHA-bound PASS/FAIL receipt and emits FAIL receipts on rejected candidates,
+- local/private artifact hashes and proof-run identity are cross-bound to the redacted candidate,
+- persisted DB evidence is mandatory/fail-closed,
+- Greenhouse source/question/job identity is corroborated against persisted `JobSource`/`Job` data,
+- copied repository example-profile bytes are rejected by content hash,
+- verifier uses the production `generation_origin` metadata key,
+- driver-qualified `postgresql+psycopg://` proof DB URLs are handled as PostgreSQL rather than misread as SQLite paths,
+- packet/manifest/resume/artifact/database links and canonical packet hash are re-derived.
 
-### Corrected production-path findings
+Worker-reported exact-head local validation for `3444076...`:
+- Python 3.12.3,
+- pytest: 205 passed,
+- Ruff check: clean,
+- mypy `src tests`: clean,
+- lead-reviewed adversarial probe set: 16 formerly-xfail defect cases reported passing.
 
-An interim lead note compared the support verifier to the older importer on main and incorrectly concluded the importer omitted `provider`, `public_job_id`, and `question_list_sha256`. Direct inspection of the support/Lane 1 importer plus an independent worker-pc audit corrected that finding.
+Those local claims are useful but do not establish lead acceptance by themselves.
 
-At `062ca922...`, `scripts/import_v14_proof_job.py::_source_payload()` already persists:
-- `api_url`,
-- `fetched_at_utc`,
-- `content_sha256`,
-- `screening_question_count`,
-- `question_list_sha256`,
-- `source_kind`,
-- `provider`,
-- `public_job_id`.
+### Remaining blocking defect — RP14-T1/T5 schema contract
 
-The importer payload is therefore not the current blocker.
+The clean-port did **not** update `coordination/proofs/v14_real_proof.schema.json`.
 
-Two actual production-path blockers remain:
+Lead inspection at `3444076...` found the schema still declares:
+- `"additionalProperties": true`, and
+- `result.const = "REAL_PROOF_PASS"`.
 
-1. **Generation metadata key mismatch:** production `packet_builder.py` writes `generation_metadata_json["generation_origin"]`, while support verifier reads `generation_metadata["origin"]`. A genuine packet fails even when correct, and verifier tests currently use the non-production metadata shape.
-2. **PostgreSQL URL mismatch:** support `resolve_proof_db_url()` accepts `postgresql://` and `postgres://`, while normal `AppSettings.database_url` defaults to `postgresql+psycopg://...`. A genuine run using the application DB URL can fail before persisted proof validation.
+That directly conflicts with the accepted P0A contract:
+- runtime evidence must be a `REAL_PROOF_CANDIDATE`, and
+- committed candidate evidence must be closed/allowlisted (`additionalProperties: false`).
 
-Before P0A acceptance, Lane 1 must:
-- adapt the useful DB/source-binding support onto current main,
-- verify canonical `generation_origin` using the real packet-builder metadata shape,
-- accept the actual SQLAlchemy driver-qualified PostgreSQL URL form while retaining fail-closed behavior,
-- keep source/question/content/canonical-URL binding against real importer + persisted DB evidence,
-- add focused production-shape and adversarial regression tests,
-- run focused + full pytest/Ruff/mypy and exact-head CI when hosted runners execute.
+The verifier has an explicit Python allowlist, but the committed schema is itself part of the proof contract and must agree with the production candidate shape. P0A therefore remains **REWORK** until the schema is corrected and regression-tested against the actual runner output.
 
-A bounded worker-pc support task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched for only the two runtime-contract defects. It is support only; Lane 1 must not wait for it and it may not auto-merge.
+Required correction:
+1. set schema `additionalProperties: false`,
+2. make `result` require `REAL_PROOF_CANDIDATE`,
+3. include every legitimate production candidate field emitted by `scripts/run_v14_real_proof.py` and permitted by the verifier (including the current generation/candidate/question fields),
+4. add focused schema tests that accept a production-shape candidate and reject both arbitrary extra fields and a candidate self-declaring `REAL_PROOF_PASS`.
 
-The Lane 1 heartbeat stream reached current epoch heartbeat #18 at `2026-09-21T19:18:36Z` and then became stale. Before restarting, verify the old watcher is dead and launch exactly one current-epoch Lane 1 watcher.
+A bounded `worker-pc` support task `jobs-v14-p0a-schema-gate-20260921-1748` was dispatched from the clean implementation branch for this schema-only gap. It is support only; Lane 1 must not wait for it or auto-merge it.
+
+### CI gate still unresolved
+
+GitHub has no check runs for substantive clean-port commit `3444076...`.
+
+The current Lane 1 heartbeat head continues to trigger Actions jobs that fail before any workflow step executes (`steps: []`, `runner_id: 0`), consistent with the existing account/hosted-runner startup block. Do not call this green CI and do not rewrite proof behavior to work around an infrastructure outage.
+
+Before P0A acceptance, Lane 1 must land the schema correction on a clean current-main integration, rerun focused + full pytest/Ruff/mypy, and obtain exact-head branch CI when hosted runners execute. If Actions still fail before steps begin, record `CI_BLOCKED_ACCOUNT`; private proof execution remains forbidden until the lead resolves the acceptance gate.
 
 ## Real-proof execution after P0A acceptance
 
