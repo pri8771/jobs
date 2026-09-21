@@ -345,3 +345,49 @@ Historical Lane 1/2/3 branches are sequential work surfaces. Only the single cur
 
 Reason:
 Matches the owner's latest operating directive and avoids duplicate heartbeat noise/actions.
+
+
+## 2026-09-21 - Fable V2.3 master plan accepted with lead corrections
+
+Decision:
+Accept the Fable V2.3 master planning package as the implementation planning baseline, subject to `docs/V23_LEAD_REVIEW_20260921.md`.
+
+Key corrections:
+- one active implementation worker/session and one heartbeat watcher,
+- formal real-proof acceptance remains sequential through V2.3,
+- V1.5 real assisted proof and V1.6 real system-submission proof are mandatory,
+- later engineering may advance behind a blocked live gate but may not skip formal completion,
+- V2.3 stays deterministic-first and broad V3 implementation remains off the near-term critical path.
+
+Reason:
+The plan provides strong brownfield reuse and SP1/SP2 decomposition, but the owner's real-life proof standard and singular worker model must remain authoritative.
+
+## 2026-09-21 - Manual application reports remain unconfirmed until external evidence
+
+Decision:
+A user report that they manually submitted an application is persisted as `SUBMISSION_UNCONFIRMED` with event `APPLICATION_SUBMISSION_REPORTED_BY_USER` and exact packet/resume attribution. It does not emit `APPLICATION_SUBMITTED` or increment confirmed-submission analytics until accepted external confirmation exists.
+
+Reason:
+User attestation is useful operational evidence but is not independent external confirmation.
+
+## 2026-09-21 - Canonical schema order is V1.6 before V2.3 before V3
+
+Decision:
+Use:
+- `004_v16_submission_truth`
+- `005_v23_intelligence_foundation`
+- `006_v3_agent_runtime_foundation`
+with optional later cleanup revisions after those.
+
+Reason:
+Permission/attempt/confirmation truth is a V1.6 foundation and is reused by V2.3 P3 tools and later V3 agents.
+
+## 2026-09-21 - Owner-controlled real test identities are authorized for bounded canaries
+
+Decision:
+For bounded provider integration testing, workers may use an existing owner-controlled identity or a dedicated test identity/email via the owner's `unsubscriber` Google Cloud alias when available tooling supports it. Controlled messages between owner-controlled accounts are allowed.
+
+This does not authorize unsolicited third-party messaging, employer submission, calendar mutation, or spending. Dedicated test identity evidence proves provider/runtime integration but does not substitute for genuine candidate/recruiting evidence when a milestone explicitly requires it.
+
+Reason:
+The owner wants real-life tests, not mock-only completion, while preserving consequential-action boundaries.
