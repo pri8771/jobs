@@ -1,5 +1,7 @@
 # Lead Future Work Backlog
 
+> Current owner mode: Antigravity is the single active implementation session. ChatGPT uses this backlog for downstream preparation/review, not as a second implementation lane. Detailed V1.6→V3.0 plan: `docs/V1_6_TO_V3_PREP_PLAN.md`.
+
 Purpose: give ChatGPT useful, safe work to pull forward whenever the active milestone is blocked by Antigravity, CI, or a user-interactive boundary.
 
 This is a preparation/review backlog, not permission to cross live-action boundaries.
