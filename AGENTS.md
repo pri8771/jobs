@@ -59,11 +59,11 @@ explicit user instruction > AGENTS.md > coordination/WORK_QUEUE.md > docs/PROJEC
 
 ## Inter-agent coordination
 
-Use coordination/AI_SYNC.md as the primary ChatGPT <-> Antigravity message channel.
+Use lane-specific heartbeat files under coordination/heartbeats/ as the primary worker -> ChatGPT coordination channel. ChatGPT may summarize accepted/rework/cross-lane decisions into coordination/AI_SYNC.md.
 
 While actively working on this project:
-- check the sync channel at the beginning of work,
-- post at least one check-in per hour,
+- read coordination/SESSION_START.md and your lane heartbeat at the beginning of work,
+- update/push your dedicated heartbeat at least once per hour,
 - post immediately on milestone completion, meaningful blocker, architecture/policy question, or test failure requiring the other agent,
 - every check-in must state Done, Next, Blockers/risks, Commits, and Message to other agent.
 
