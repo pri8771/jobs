@@ -1,4 +1,5 @@
 # Lane 2 Heartbeat
+watcher_started_utc: 2026-09-21T15:58:56Z
 
 lane: 2
 branch: worker/v15-assisted-application
@@ -15,8 +16,17 @@ watch_completed_utc: null
 review_state: WORKING
 lead_action_requested: NONE
 current_task: V1.5 assisted-application safety A-R15-06..09
-progress_note: waiting for fresh Lane 2 session
+progress_note: still working on assigned task
 
 ## Entries
+
+### 2026-09-21T15:58:56Z — 2 HEARTBEAT EPOCH RESET
+
+Epoch: DAYWATCH_2026_09_21
+
+Fresh liveness exercise started. Historical heartbeat entries are preserved but do not count toward this epoch.
+
+Review state:
+- WORKING
 
 No Lane 2 worker heartbeat yet.
