@@ -67,3 +67,12 @@ Do not optimize agents directly for applications/messages sent; quality and outc
 - model swaps can be compared on same eval set.
 - unsafe behavior is measurable as a regression.
 - no hidden success claim without artifact/evidence.
+
+
+## Integration acceptance scenarios
+
+Use:
+- `docs/V3_INTEGRATION_ACCEPTANCE_SCENARIOS.md`
+- `docs/V3_SPECIALIST_AGENT_SPECS.md`
+
+Evaluation must include multi-agent handoffs, interruption/restart, prompt injection, permission escalation attempts, duplicate application races, missing facts, and provider failure.
