@@ -78,12 +78,19 @@ Produce a redacted provenance/input-readiness report.
 ### RP14-C2 — SP2 — Lane C
 Create/import a real JobModel from the verified OpenSesame posting (or another lead-approved live posting if it closes) using real public source data, not a fixture.
 
-### RP14-A1 — SP2 — Lane A
-After current V1.5 rework coherent batch, execute the production V1.4 packet path using the real JobModel + private real profile/resume + non-mock generation.
+### RP14-E1 — SP2 — First eligible Lane A or Lane C worker
+The first worker machine that has access to the actual private candidate profile + real resume mapping should execute the proof end-to-end using the production runner.
+
+Use:
+- `python scripts/import_v14_proof_job.py`
+- `python scripts/run_v14_real_proof.py ...`
+- `python scripts/verify_v14_real_proof.py ...`
+
+Do not wait for a cross-lane handoff if the same worker already has all real inputs.
 No browser/submission required.
 
-### RP14-A2 — SP2 — Lane A
-Emit a redacted machine-readable proof bundle and local artifact hashes/read-back results.
+### RP14-E2 — SP2 — Executing worker
+Emit the redacted machine-readable proof bundle and local artifact hashes/read-back results produced by the proof runner.
 The evidence generator must derive values from runtime state, not hard-code them.
 
 ### RP14-S1 — SP2 — Scout
