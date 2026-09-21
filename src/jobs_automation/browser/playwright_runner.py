@@ -144,6 +144,21 @@ class PlaywrightBrowserRunner(BrowserRunner):
         )
         form_fingerprint = hashlib.sha256(fingerprint_raw.encode("utf-8")).hexdigest()[:16]
 
+        # A-R15-06: Page-level prompt injection inspection outside form fields
+        page_security_warnings: list[str] = []
+        page_text_injection = False
+        try:
+            body_text = page.inner_text("body")
+            from jobs_automation.browser.assisted_engine import detect_prompt_injection_text
+
+            if detect_prompt_injection_text(body_text):
+                page_text_injection = True
+                page_security_warnings.append(
+                    "security_warning:page_level_prompt_injection_detected"
+                )
+        except Exception as exc:
+            logger.debug(f"Could not inspect page text for prompt injection: {exc}")
+
         return FormInspectionResult(
             url=url,
             title=title,
@@ -152,6 +167,8 @@ class PlaywrightBrowserRunner(BrowserRunner):
             detected_ats=detected_ats,
             form_found=len(fields) > 0,
             form_fingerprint=form_fingerprint,
+            page_security_warnings=page_security_warnings,
+            page_text_injection_detected=page_text_injection,
         )
 
     def prefill_form(
@@ -179,13 +196,32 @@ class PlaywrightBrowserRunner(BrowserRunner):
             if not matched:
                 unmatched.append(key)
 
+        # A-R15-07 / A-R15-09: Exact field-specific upload mapping; remove generic input[type='file'] fallback
         if file_uploads:
             for key, file_path in file_uploads.items():
-                for selector in [
-                    f"#{key}",
-                    f"input[name='{key}'][type='file']",
-                    "input[type='file']",
-                ]:
+                if key == "resume":
+                    selectors = [
+                        f"#{key}",
+                        f"input[name='{key}'][type='file']",
+                        "input[type='file'][name*='resume' i]",
+                        "input[type='file'][id*='resume' i]",
+                        "input[type='file'][aria-label*='resume' i]",
+                    ]
+                elif key == "cover_letter":
+                    selectors = [
+                        f"#{key}",
+                        f"input[name='{key}'][type='file']",
+                        "input[type='file'][name*='cover' i]",
+                        "input[type='file'][id*='cover' i]",
+                        "input[type='file'][aria-label*='cover' i]",
+                    ]
+                else:
+                    selectors = [
+                        f"#{key}",
+                        f"input[name='{key}'][type='file']",
+                    ]
+
+                for selector in selectors:
                     if page.query_selector(selector):
                         try:
                             page.set_input_files(selector, file_path)

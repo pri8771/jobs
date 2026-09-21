@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +26,30 @@ from jobs_automation.preparation.tailoring import (
     ScreeningQuestionAnsweringService,
 )
 from jobs_automation.storage.artifact_store import ArtifactStore
+
+
+def compute_canonical_packet_hash(
+    job_id: str | uuid.UUID,
+    profile_version: int,
+    resume_variant_id: str | uuid.UUID | None,
+    resume_sha: str,
+    cover_letter_sha: str | None,
+    answers: dict[str, Any],
+    answer_provenance: dict[str, Any],
+) -> str:
+    """Computes the deterministic canonical packet hash for an application packet."""
+    packet_payload = {
+        "job_id": str(job_id),
+        "profile_version": profile_version,
+        "resume_variant_id": str(resume_variant_id) if resume_variant_id else "",
+        "resume_sha": resume_sha,
+        "cover_letter_sha": cover_letter_sha,
+        "answers": answers or {},
+        "answer_provenance": answer_provenance or {},
+    }
+    return hashlib.sha256(
+        json.dumps(packet_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
 
 
 class PacketBuildResult(BaseModel):
@@ -193,18 +218,15 @@ class ApplicationPacketBuilder:
         )
 
         # 7. Deterministic Packet Hash
-        packet_payload = {
-            "job_id": str(job.id),
-            "profile_version": self.profile.version,
-            "resume_variant_id": str(resume_variant.id),
-            "resume_sha": resume_sha,
-            "cover_letter_sha": cl_sha,
-            "answers": answers,
-            "answer_provenance": answer_provenance,
-        }
-        packet_hash = hashlib.sha256(
-            json.dumps(packet_payload, sort_keys=True).encode("utf-8")
-        ).hexdigest()
+        packet_hash = compute_canonical_packet_hash(
+            job_id=job.id,
+            profile_version=self.profile.version,
+            resume_variant_id=resume_variant.id,
+            resume_sha=resume_sha,
+            cover_letter_sha=cl_sha,
+            answers=answers,
+            answer_provenance=answer_provenance,
+        )
 
         # 8. Persist ApplicationPacketModel with ResumeVariant Linkage and Readiness
         packet = ApplicationPacketModel(

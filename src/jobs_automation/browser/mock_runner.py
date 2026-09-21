@@ -22,6 +22,9 @@ class MockBrowserRunner(BrowserRunner):
         custom_fields: list[FormField] | None = None,
         custom_inspection: FormInspectionResult | None = None,
         changed_inspection: FormInspectionResult | None = None,
+        page_text: str | None = None,
+        page_text_injection_detected: bool = False,
+        page_security_warnings: list[str] | None = None,
     ) -> None:
         self.interactive_submitted = interactive_submitted
         self.receipt_text = receipt_text
@@ -29,9 +32,13 @@ class MockBrowserRunner(BrowserRunner):
         self.custom_fields = custom_fields
         self.custom_inspection = custom_inspection
         self.changed_inspection = changed_inspection  # A-R15-05: returned on 2nd+ inspect call
+        self.page_text = page_text
+        self.page_text_injection_detected = page_text_injection_detected
+        self.page_security_warnings = page_security_warnings or []
         self.inspected_urls: list[str] = []
         self.prefilled_calls: list[tuple[str, dict[str, str]]] = []
         self.sessions_opened: list[tuple[str, dict[str, str]]] = []
+        self.open_sessions: list[tuple[str, dict[str, str], dict[str, str]]] = []
 
     def inspect_form(self, url: str) -> FormInspectionResult:
         self.inspected_urls.append(url)
@@ -43,6 +50,17 @@ class MockBrowserRunner(BrowserRunner):
 
         if self.custom_inspection is not None:
             return self.custom_inspection
+
+        # A-R15-06: Page-level injection detection
+        page_injection = self.page_text_injection_detected
+        warnings = list(self.page_security_warnings)
+        if self.page_text:
+            from jobs_automation.browser.assisted_engine import detect_prompt_injection_text
+
+            if detect_prompt_injection_text(self.page_text):
+                page_injection = True
+                if "security_warning:page_level_prompt_injection_detected" not in warnings:
+                    warnings.append("security_warning:page_level_prompt_injection_detected")
 
         fields = self.custom_fields if self.custom_fields is not None else [
             FormField(
@@ -84,6 +102,8 @@ class MockBrowserRunner(BrowserRunner):
             form_found=True,
             form_fingerprint=f"mock_fingerprint_{len(fields)}",
             metadata={"mock": True},
+            page_security_warnings=warnings,
+            page_text_injection_detected=page_injection,
             is_mock=True,
         )
 
@@ -111,6 +131,7 @@ class MockBrowserRunner(BrowserRunner):
         file_uploads: dict[str, str] | None = None,
     ) -> BrowserSessionResult:
         self.sessions_opened.append((url, prefilled_fields))
+        self.open_sessions.append((url, prefilled_fields, dict(file_uploads or {})))
         return BrowserSessionResult(
             url=url,
             submitted=self.interactive_submitted,

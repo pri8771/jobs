@@ -70,6 +70,8 @@ class FormInspectionResult(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
     form_fingerprint: str = ""
     barriers: list[str] = Field(default_factory=list)
+    page_security_warnings: list[str] = Field(default_factory=list)
+    page_text_injection_detected: bool = False
     is_mock: bool = False
 
 
@@ -116,6 +118,7 @@ class PreSubmitReviewManifest(BaseModel):
     provenance_records: dict[str, FieldFillProvenance] = Field(default_factory=dict)
     unfilled_fields: list[str] = Field(default_factory=list)
     barriers: list[str] = Field(default_factory=list)
+    security_warnings: list[str] = Field(default_factory=list)
     form_fingerprint: str
     can_proceed_to_review: bool = True
     blocking_reasons: list[str] = Field(default_factory=list)

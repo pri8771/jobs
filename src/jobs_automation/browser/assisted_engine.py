@@ -32,6 +32,7 @@ from jobs_automation.db.models import (
     ArtifactModel,
     AuditLogModel,
     JobModel,
+    ResumeVariantModel,
     TaskModel,
 )
 from jobs_automation.policy.evaluator import PolicyEvaluationResult, PolicyEvaluator
@@ -101,6 +102,10 @@ _PROMPT_INJECTION_PATTERNS: list[str] = [
     "act as if",
     "pretend you are",
     "new instructions:",
+    "system_instruction",
+    "system instruction",
+    "system override",
+    "admin override",
     "<!-- system",
     "<|system|>",
     "<|user|>",
@@ -109,6 +114,14 @@ _PROMPT_INJECTION_PATTERNS: list[str] = [
     "[system]",
     "[inst]",
 ]
+
+
+def detect_prompt_injection_text(text: str) -> bool:
+    """Returns True if untrusted text contains known prompt-injection patterns (A-R15-06)."""
+    if not text:
+        return False
+    lower = text.lower()
+    return any(pat in lower for pat in _PROMPT_INJECTION_PATTERNS)
 
 
 def detect_prompt_injection(field: FormField) -> bool:
@@ -129,7 +142,7 @@ def detect_prompt_injection(field: FormField) -> bool:
         untrusted_sources.append(str(opt).lower())
 
     combined_untrusted = " ".join(untrusted_sources)
-    return any(pat in combined_untrusted for pat in _PROMPT_INJECTION_PATTERNS)
+    return detect_prompt_injection_text(combined_untrusted)
 
 
 def classify_field(
@@ -227,17 +240,50 @@ def classify_field(
     if any(kw in combined for kw in consent_keywords):
         return FieldClassification.CONSENT_MANUAL, None, None, "legal_consent_manual_only"
 
-    # 4. File uploads (Resume / Cover letter)
-    file_keywords = ["resume", "cv", "curriculum vitae", "cover letter", "cover_letter"]
-    if field.field_type == "file" or any(kw in combined for kw in file_keywords):
-        if "cover" in combined:
+    # 4. File uploads (Resume / Cover letter / Unknown)
+    # A-R15-09: Only positively identified resume/CV and cover-letter fields are FILE_ARTIFACT.
+    # Unknown file inputs must fail to UNKNOWN_REQUIRED (if required) or UNKNOWN_OPTIONAL (if optional).
+    # They must NEVER default to resume.
+    if field.field_type == "file":
+        resume_keywords = ["resume", "cv", "curriculum vitae", "curriculum_vitae", "lebenslauf"]
+        cover_keywords = [
+            "cover letter",
+            "cover_letter",
+            "coverletter",
+            "cover note",
+            "cover_note",
+            "letter of intent",
+            "motivation letter",
+            "motivational letter",
+        ]
+        if any(kw in combined for kw in cover_keywords):
             return (
                 FieldClassification.FILE_ARTIFACT,
                 "cover_letter",
                 None,
                 "packet.cover_letter_artifact",
             )
-        return FieldClassification.FILE_ARTIFACT, "resume", None, "packet.resume_artifact"
+        elif any(kw in combined for kw in resume_keywords):
+            return (
+                FieldClassification.FILE_ARTIFACT,
+                "resume",
+                None,
+                "packet.resume_artifact",
+            )
+        else:
+            if field.required:
+                return (
+                    FieldClassification.UNKNOWN_REQUIRED,
+                    None,
+                    None,
+                    "unmapped_required_file_field",
+                )
+            return (
+                FieldClassification.UNKNOWN_OPTIONAL,
+                None,
+                None,
+                "unmapped_optional_file_field",
+            )
 
     # 5. Packet screening question answers
     if packet and packet.answers_json:
@@ -459,6 +505,7 @@ class AssistedApplicationResult(BaseModel):
     external_confirmation_evidence: dict[str, Any] | None = None
     form_fingerprint: str | None = None
     barriers: list[str] = Field(default_factory=list)
+    security_warnings: list[str] = Field(default_factory=list)
     review_manifest: PreSubmitReviewManifest | None = None
     message: str
 
@@ -485,6 +532,62 @@ class AssistedApplicationEngine:
     def _extract_domain(self, url: str) -> str:
         parsed = urlparse(url)
         return parsed.netloc.lower()
+
+    def _verify_packet_integrity(
+        self,
+        packet: ApplicationPacketModel,
+        resume_sha: str,
+        cl_sha: str | None,
+    ) -> tuple[bool, str]:
+        """Revalidates packet hash, answers provenance, and variant linkage before browser use (A-R15-08)."""
+        # 1. Check resume variant linkage
+        if packet.resume_variant_id:
+            variant = self.session.scalar(
+                select(ResumeVariantModel).where(ResumeVariantModel.id == packet.resume_variant_id)
+            )
+            if not variant:
+                return False, f"Resume variant {packet.resume_variant_id} not found."
+            if variant.content_hash != resume_sha:
+                return (
+                    False,
+                    f"PACKET_VARIANT_MISMATCH: Resume variant content hash ({variant.content_hash}) != resume artifact SHA ({resume_sha})",
+                )
+
+        # 2. Check answers and provenance consistency
+        answers = packet.answers_json or {}
+        provenance = packet.answer_provenance_json or {}
+        for ans_key in answers:
+            if ans_key not in provenance:
+                return (
+                    False,
+                    f"PACKET_PROVENANCE_MISMATCH: Answer for '{ans_key}' has no provenance record.",
+                )
+        for prov_key in provenance:
+            if prov_key not in answers:
+                return (
+                    False,
+                    f"PACKET_PROVENANCE_MISMATCH: Provenance key '{prov_key}' has no matching answer.",
+                )
+
+        # 3. Recompute canonical packet hash and compare
+        from jobs_automation.preparation.packet_builder import compute_canonical_packet_hash
+
+        computed_hash = compute_canonical_packet_hash(
+            job_id=packet.job_id,
+            profile_version=packet.candidate_profile_version,
+            resume_variant_id=packet.resume_variant_id,
+            resume_sha=resume_sha,
+            cover_letter_sha=cl_sha,
+            answers=answers,
+            answer_provenance=provenance,
+        )
+        if computed_hash != packet.packet_hash:
+            return (
+                False,
+                f"PACKET_HASH_MISMATCH: Recomputed packet hash ({computed_hash}) does not match persisted packet hash ({packet.packet_hash}).",
+            )
+
+        return True, ""
 
     def build_plan(
         self,
@@ -528,6 +631,16 @@ class AssistedApplicationEngine:
                 )
                 if resume_art:
                     file_uploads["resume"] = resume_art.storage_uri
+
+            # A-R15-07: Resolve cover letter artifact file storage path
+            if packet.cover_letter_artifact_id:
+                cl_art = self.session.scalar(
+                    select(ArtifactModel).where(
+                        ArtifactModel.id == packet.cover_letter_artifact_id
+                    )
+                )
+                if cl_art:
+                    file_uploads["cover_letter"] = cl_art.storage_uri
 
             # Map pre-computed screening answers
             for q_key, answer_val in packet.answers_json.items():
@@ -894,15 +1007,19 @@ class AssistedApplicationEngine:
                     )
                 cover_letter_sha = cl_sha if valid_cl else cl_art.sha256
 
-        # 5. Form Inspection Gate (Inspect Before Write - J15-01)
-        inspection_res = self.browser_runner.inspect_form(plan.apply_url)
-        if not inspection_res.form_found or len(inspection_res.fields) == 0:
+        # Verify packet integrity, provenance bijection, and variant linkage (A-R15-08)
+        valid_packet, packet_err = self._verify_packet_integrity(
+            packet=packet,
+            resume_sha=resume_sha,
+            cl_sha=cover_letter_sha,
+        )
+        if not valid_packet and not sim_allowed:
             self._log_audit(
-                action_type="assisted_inspection_failed",
-                entity_type="job",
-                entity_id=job_id,
+                action_type="assisted_prefill_rejected",
+                entity_type="application_packet",
+                entity_id=packet.id,
                 result="blocked",
-                metadata={"url": plan.apply_url},
+                metadata={"reason": packet_err},
             )
             self.session.commit()
             return AssistedApplicationResult(
@@ -910,6 +1027,27 @@ class AssistedApplicationEngine:
                 status="BLOCKED",
                 policy_decision=plan.policy.decision.value,
                 destination_domain=plan.destination_domain,
+                message=f"Packet integrity check failed: {packet_err}",
+            )
+
+        # 5. Form Inspection Gate (Inspect Before Write - J15-01)
+        inspection_res = self.browser_runner.inspect_form(plan.apply_url)
+        page_security_warnings: list[str] = list(inspection_res.page_security_warnings or [])
+        if not inspection_res.form_found or len(inspection_res.fields) == 0:
+            self._log_audit(
+                action_type="assisted_inspection_failed",
+                entity_type="job",
+                entity_id=job_id,
+                result="blocked",
+                metadata={"url": plan.apply_url, "security_warnings": page_security_warnings},
+            )
+            self.session.commit()
+            return AssistedApplicationResult(
+                job_id=str(job_id),
+                status="BLOCKED",
+                policy_decision=plan.policy.decision.value,
+                destination_domain=plan.destination_domain,
+                security_warnings=page_security_warnings,
                 message=f"Form inspection failed: no form found at destination URL {plan.apply_url}.",
             )
 
@@ -961,18 +1099,19 @@ class AssistedApplicationEngine:
                         ),
                     )
             elif classification == FieldClassification.FILE_ARTIFACT:
-                # A-R15-04: Cover-letter fields must use their own distinct artifact hash.
+                # A-R15-04 & A-R15-07: Cover-letter fields must use their own distinct artifact hash.
                 # Resume and cover letter must never share provenance hashes.
                 if canonical_key == "cover_letter":
                     if cover_letter_sha is not None:
                         file_value_hash = cover_letter_sha
                         file_source_ref = source_ref or "packet.cover_letter_artifact"
                     else:
-                        # Required cover-letter field but no artifact in packet — block.
+                        # Required cover-letter field but no artifact in packet — record barrier and block.
                         if field.required:
                             unfilled_field_names.append(field.name)
                             continue
                         # Optional — skip silently
+                        unfilled_field_names.append(field.name)
                         continue
                 else:
                     file_value_hash = resume_sha
@@ -998,10 +1137,21 @@ class AssistedApplicationEngine:
             policy_decision=plan.policy.decision,
         )
 
-        # 7. Stop Conditions Before Prefill (J15-08, A-R15-03, A-R15-02)
+        # Check for missing required cover letter barrier (A-R15-07)
+        for f in classified_fields:
+            if (
+                f.classification == FieldClassification.FILE_ARTIFACT
+                and f.required
+                and ("cover" in (f.name or "").lower() or "cover" in (f.label or "").lower())
+                and cover_letter_sha is None
+            ):
+                barriers.append(f"missing_required_cover_letter:{f.name}")
+
+        # 7. Stop Conditions Before Prefill (J15-08, A-R15-03, A-R15-02, A-R15-07)
         # consent_manual: is a blocking barrier — no automated prefill of any
         # consent/attestation/legal acknowledgement field (A-R15-03).
-        # policy_blocked: fires when prompt injection was detected (A-R15-02).
+        # policy_blocked: fires when prompt injection was detected in field (A-R15-02).
+        # missing_required_cover_letter: fires when required cover letter is missing (A-R15-07).
         blocking_barriers = [
             b
             for b in barriers
@@ -1010,6 +1160,7 @@ class AssistedApplicationEngine:
             or b.startswith("unresolved_questions_")
             or b.startswith("consent_manual:")
             or b.startswith("policy_blocked:")
+            or b.startswith("missing_required_cover_letter:")
         ]
         if blocking_barriers:
             review_task = TaskModel(
@@ -1020,6 +1171,7 @@ class AssistedApplicationEngine:
                     "barriers": blocking_barriers,
                     "all_barriers": barriers,
                     "url": plan.apply_url,
+                    "security_warnings": page_security_warnings,
                 },
             )
             self.session.add(review_task)
@@ -1028,7 +1180,7 @@ class AssistedApplicationEngine:
                 entity_type="job",
                 entity_id=job_id,
                 result="review_required",
-                metadata={"blocking_barriers": blocking_barriers},
+                metadata={"blocking_barriers": blocking_barriers, "security_warnings": page_security_warnings},
             )
             self.session.commit()
             return AssistedApplicationResult(
@@ -1037,11 +1189,12 @@ class AssistedApplicationEngine:
                 policy_decision=plan.policy.decision.value,
                 destination_domain=plan.destination_domain,
                 barriers=barriers,
+                security_warnings=page_security_warnings,
                 form_fingerprint=form_fingerprint,
                 message=f"Prefill halted due to manual barriers requiring candidate action: {blocking_barriers}",
             )
 
-        # 8. Re-verify artifact bytes immediately before upload (J15-04)
+        # 8. Re-verify artifact bytes immediately before upload (J15-04 & A-R15-07)
         verified_uploads: dict[str, str] = {}
         if "resume" in plan.file_uploads:
             res_path = resolve_artifact_path(plan.file_uploads["resume"])
@@ -1054,11 +1207,35 @@ class AssistedApplicationEngine:
                         status="BLOCKED",
                         policy_decision=plan.policy.decision.value,
                         destination_domain=plan.destination_domain,
+                        security_warnings=page_security_warnings,
                         message="Resume artifact bytes changed immediately before upload.",
                     )
             verified_uploads["resume"] = str(res_path)
 
-        # 9. Pre-Submit Review Manifest (J15-03)
+        if "cover_letter" in plan.file_uploads:
+            cl_path = resolve_artifact_path(plan.file_uploads["cover_letter"])
+            if cl_path.exists() and cover_letter_sha:
+                computed_cl_pre_upload = hashlib.sha256(cl_path.read_bytes()).hexdigest()
+                if computed_cl_pre_upload != cover_letter_sha:
+                    self._log_audit(
+                        action_type="assisted_prefill_rejected",
+                        entity_type="job",
+                        entity_id=job_id,
+                        result="blocked",
+                        metadata={"reason": "cover_letter_bytes_mismatch_pre_upload"},
+                    )
+                    self.session.commit()
+                    return AssistedApplicationResult(
+                        job_id=str(job_id),
+                        status="BLOCKED",
+                        policy_decision=plan.policy.decision.value,
+                        destination_domain=plan.destination_domain,
+                        security_warnings=page_security_warnings,
+                        message="Cover letter artifact bytes changed immediately before upload.",
+                    )
+            verified_uploads["cover_letter"] = str(cl_path)
+
+        # 9. Pre-Submit Review Manifest (J15-03 & A-R15-06)
         run_id = str(uuid.uuid4())
         manifest = PreSubmitReviewManifest(
             run_id=run_id,
@@ -1085,6 +1262,7 @@ class AssistedApplicationEngine:
             provenance_records=prov_dict,
             unfilled_fields=unfilled_field_names,
             barriers=barriers,
+            security_warnings=page_security_warnings,
             form_fingerprint=form_fingerprint,
             can_proceed_to_review=True,
             blocking_reasons=[],
@@ -1125,6 +1303,7 @@ class AssistedApplicationEngine:
                 destination_domain=plan.destination_domain,
                 form_fingerprint=form_fingerprint,
                 barriers=barriers,
+                security_warnings=page_security_warnings,
                 message=(
                     f"FORM_FINGERPRINT_MISMATCH: Form structure changed between inspection and prefill. "
                     f"Inspected: {form_fingerprint}, Pre-write: {pre_write_fingerprint}. "
@@ -1139,7 +1318,7 @@ class AssistedApplicationEngine:
             file_uploads=verified_uploads,
         )
 
-        # 11. Open Interactive Review Session (Halts before submission)
+        # 12. Open Interactive Review Session (Halts before submission)
         session_res = self.browser_runner.open_interactive_session(
             url=plan.apply_url,
             prefilled_fields=prefill_res.prefilled_fields,
@@ -1158,7 +1337,7 @@ class AssistedApplicationEngine:
             self.session.add(app)
             self.session.flush()
 
-        # 12. Human Review Checkpoint & External Evidence Gate (J15-09 & J15-10)
+        # 13. Human Review Checkpoint & External Evidence Gate (J15-09 & J15-10)
         is_user_submit = auto_confirm or session_res.submitted
         if is_user_submit:
             valid_conf, conf_receipt, conf_evidence = is_valid_external_confirmation(
@@ -1197,6 +1376,7 @@ class AssistedApplicationEngine:
                     review_manifest=manifest,
                     form_fingerprint=form_fingerprint,
                     barriers=barriers,
+                    security_warnings=page_security_warnings,
                     message=f"Application for {plan.job_title} at {plan.company_name} confirmed submitted with external evidence.",
                 )
             else:
@@ -1220,6 +1400,7 @@ class AssistedApplicationEngine:
                     review_manifest=manifest,
                     form_fingerprint=form_fingerprint,
                     barriers=barriers,
+                    security_warnings=page_security_warnings,
                     message=f"Interactive session ended or submit requested, but external confirmation evidence was missing: {conf_receipt}",
                 )
         else:
@@ -1234,6 +1415,7 @@ class AssistedApplicationEngine:
                 review_manifest=manifest,
                 form_fingerprint=form_fingerprint,
                 barriers=barriers,
+                security_warnings=page_security_warnings,
                 message="Form inspected and prefilled with safe fields. Persistent visible browser session open for candidate review.",
             )
 

@@ -50,6 +50,15 @@ Launch:
 
 Heartbeat progress is posted to GitHub issue #7.
 
+## Implementation Status
+
+- **A-R15-06 SP2**: COMPLETE. Added page-level prompt injection inspection across accessible body text outside form fields, reporting bounded security warnings without executing instructions or blocking safe unrelated prefill.
+- **A-R15-07 SP2**: COMPLETE. Populated cover letter file upload in `build_plan()`, field-aware upload mapping, cover letter byte re-verification immediately before upload, and `missing_required_cover_letter` barrier halts.
+- **A-R15-08 SP2**: COMPLETE. Defined `compute_canonical_packet_hash()` exported from `packet_builder.py`, verified in `_verify_packet_integrity()` before browser use checking resume variant content hash, answers/provenance bijection, and immutable canonical packet hash.
+- **A-R15-09 SP1**: COMPLETE. Updated `classify_field()` so unknown file inputs classify as `UNKNOWN_REQUIRED` (if required) or `UNKNOWN_OPTIONAL` (if optional) and never default to resume.
+- **Verification**: 155/155 pytest tests passing, Ruff clean (0 lints), Mypy clean (0 errors in 68 source files).
+
 ## Exit
 
-Push one coherent A-R15-06..09 batch and set READY_FOR_LEAD_REVIEW.
+Status: READY_FOR_LEAD_REVIEW
+Pushed coherent A-R15-06..09 batch to `worker/v15-assisted-application`.
