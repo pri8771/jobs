@@ -31,6 +31,14 @@ Acceptance:
 - fake JobModel/questions cannot satisfy the approved live-source binding,
 - targeted proof-integrity tests + full pytest/Ruff/mypy/CI pass.
 
+Remote-worker execution:
+- `worker-pc` capacity is 1.
+- independent read-only audit `jobs-v14-real-proof-audit-retry-20260920` completed with CHANGES_REQUIRED and confirmed the two highest-severity integrity defects.
+- branch task `jobs-v14-proof-hardening-r2` is currently IN_PROGRESS on `worker-pc` for RP14-T1..T7.
+- no result JSON, Jobs worker branch, or commit from that task had been published at the current lead check.
+- do not dispatch a second remote Jobs task while capacity is occupied.
+- when the result lands, inspect the returned Jobs branch/diff/tests and project CI before accepting anything.
+
 Do not run the private-data proof until P0A is lead-accepted.
 
 ## P0 — V1.4 real proof
@@ -38,15 +46,17 @@ Do not run the private-data proof until P0A is lead-accepted.
 Artifact:
 - A-V14-REAL-PROOF
 
-V1.4 engineering code is accepted, but V1.4 is NOT COMPLETE until this proof passes.
+Current artifact state:
+- **BLOCKED on P0A proof-tool integrity acceptance**
+- V1.4 engineering code is accepted, but V1.4 is NOT COMPLETE until this proof passes.
 
 Default proof job:
 - OpenSesame — AI Automation Engineer
 - https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740
-- currently live public Greenhouse job
+- reverified live by ChatGPT on 2026-09-21
 - no browser prefill/application submission is authorized by this proof
 
-Available main tooling:
+Available main tooling, pending P0A repair acceptance:
 - `scripts/import_v14_proof_job.py` — read-only import of current Greenhouse job/questions into the local Jobs DB/private proof input
 - `scripts/run_v14_real_proof.py` — normal production packet-builder path using private real profile/resume + deterministic non-mock gateway
 - `scripts/verify_v14_real_proof.py` — redacted evidence validation + optional local artifact re-hash
@@ -57,31 +67,34 @@ Runbook/policy:
 - docs/REAL_PROOF_ACCEPTANCE_POLICY.md
 
 ### P0 input readiness — Lane C
+After P0A acceptance:
 - RP14-C1 SP2 locate/validate the real private candidate profile + actual resume mappings locally; no example profile; emit redacted readiness evidence
 - RP14-C2 SP2 import/validate the real live OpenSesame JobModel/source/questions; no fixture/synthetic data
 - RP14-C3 SP1 confirm a non-mock production generation route; deterministic production gateway is acceptable; never fall back to mock
 
-Lane C must do RP14-C1..C3 before Gmail work.
+Lane C must do RP14-C1..C3 before Gmail work, but must not execute the private-data proof path until P0A is accepted.
 
 ### P0 execution race — Lane A or Lane C
+After P0A acceptance:
 - RP14-E1 SP2: whichever lane first has the real private profile + real mapped resume bytes runs the complete proof immediately
 - run `scripts/import_v14_proof_job.py` if the real job is not already imported
 - run `scripts/run_v14_real_proof.py`
 - run `scripts/verify_v14_real_proof.py` with the private full bundle locally
-- RP14-E2 SP2: push only the runtime-generated redacted evidence JSON under `coordination/proofs/`
+- RP14-E2 SP2: push only the runtime-generated redacted candidate evidence plus verifier receipt under `coordination/proofs/`
 - if private inputs are absent, report `REAL_PROOF_BLOCKED_PRIVATE_INPUT`; do not synthesize substitutes
 - do not wait for a C→A handoff if one machine already has all required inputs
 
 ### Scout
-- RP14-S1 SP2 independently audit any proof bundle for mock/fixture contamination, real job evidence, internal hash/link consistency, non-mock generation origin, runtime derivation, and privacy leakage
+- RP14-S1 SP2 independently audit any proof candidate + verifier receipt for mock/fixture contamination, current real job evidence, bundle-receipt binding, internal hash/link consistency, non-mock generation origin, runtime derivation, and privacy leakage
 
 ### Lead
 - RP14-L1 independently review proof + Scout findings
 - only genuine REAL_PROOF_PASS completes V1.4
 
 Current proof evidence status:
-- no runtime proof JSON is committed yet
-- therefore A-V14-REAL-PROOF remains READY, not ACCEPTED
+- no runtime proof candidate JSON is committed yet
+- no verifier receipt is committed yet
+- therefore A-V14-REAL-PROOF remains BLOCKED on P0A and is not ACCEPTED
 
 ## Lane A — V1.5
 
@@ -101,7 +114,9 @@ Task-scope LEAD_ACCEPTED from this batch:
 Overall V1.5 is still IN_PROGRESS because PR #2 is stale/non-mergeable against newer main, has no branch CI/check result, and additional trust-boundary residuals remain.
 
 Immediate Lane A next task:
-- pull/rebase latest main and attempt RP14-E1/RP14-E2 before implementing more V1.5 work
+- do not execute private A-V14-REAL-PROOF until P0A is accepted
+- pull/rebase latest main between coherent batches so the lane has the repaired proof tooling when accepted
+- after P0A acceptance, attempt RP14-E1/RP14-E2 before implementing more V1.5 work if this machine has the real private inputs
 
 P1 only after V1.4 REAL_PROOF:
 - A-R15-06 SP2 page-level prompt-injection security signal/warning semantics
@@ -127,13 +142,16 @@ Continue independently:
 
 J20G-04 waits for Lane C after real-proof P0 + J20G-03.
 
-No new worker-authored heartbeat/batch was present at the latest lead check.
+No new worker-authored heartbeat/batch was present at the current lead check; the branch head still carries only previously reviewed work/seeded heartbeat state.
 
-## Lane C — after P0 real-proof readiness
+## Lane C — after P0A, then P0 real-proof readiness
 
 Branch: worker/live-data-foundations
 
-After RP14-C1..C3 / proof execution attempt:
+Immediate priority after P0A acceptance:
+- RP14-C1..C3 / proof execution attempt before Gmail work
+
+After the proof attempt:
 - J12-01 SP2 provenance records
 - J12-02 SP2 application-use gating
 - J12-03 SP1 provenance report CLI
@@ -141,7 +159,7 @@ After RP14-C1..C3 / proof execution attempt:
 - J20G-02 SP2 OAuth runtime wiring
 - J20G-03 SP2 typed real-Gmail readiness
 
-No new worker-authored heartbeat/batch was present at the latest lead check. Lane C should pull/rebase main because its branch status still predates the P0 real-proof instructions.
+No new worker-authored heartbeat/batch was present at the current lead check. Lane C should pull/rebase current main before new proof work because its branch predates P0/P0A instructions.
 
 ## Lane D — V2.3 Foundations
 
@@ -152,20 +170,21 @@ Continue non-conflicting:
 - J23T-01..03 target-company foundations
 - J23A-01..03 transport-neutral agent tools
 
-No new worker-authored heartbeat/batch was present at the latest lead check.
+No new worker-authored heartbeat/batch was present at the current lead check.
 
 ## Scout
 
 Branch: scout/qa-prep
 
-Top priority when proof bundle appears:
+Top priority when proof evidence appears:
 - RP14-S1 real-proof audit
 
 Until then:
-- independently inspect branch changes/adversarial risks
+- independently inspect proof-tool integrity changes when a coherent worker branch lands
+- independently inspect other branch changes/adversarial risks
 - do not self-accept artifacts
 
-No worker-authored Scout heartbeat was present at the latest lead check.
+No worker-authored Scout heartbeat was present at the current lead check.
 
 ## Definition of version completion
 
