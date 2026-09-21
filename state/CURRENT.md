@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-21 07:43 ET
+Updated: 2026-09-21 08:46 ET
 
 ## Completion policy
 
@@ -18,7 +18,8 @@ Engineering:
 Completion blockers:
 1. P0A proof-tool integrity is not yet accepted.
 2. `A-V14-REAL-PROOF` has no genuine runtime candidate + separately bound verifier receipt.
-3. ChatGPT lead has therefore not marked V1.4 REAL_PROVEN/COMPLETE.
+3. Lane A is currently known to lack the actual mapped file for the selected real resume variant on its machine.
+4. ChatGPT lead has therefore not marked V1.4 REAL_PROVEN/COMPLETE.
 
 Later engineering may continue in parallel, but no completed-version claim may advance past this missing real proof.
 
@@ -37,29 +38,7 @@ Open bounded repairs:
 
 Status: NOT ACCEPTED.
 
-Lane C remains production implementation owner. Its branch is still at the prior lead-aligned head `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` and has produced no worker implementation or worker-authored heartbeat since alignment. RP14-T1..T7 are all still open.
-
-## Remote worker
-
-Infrastructure: `pri8771/remote-workers`
-Worker: `worker-pc`, online, capacity 1.
-
-Relevant Jobs history:
-- prior audit confirmed forged-bundle acceptance and missing local/redacted binding;
-- prior implementation attempts failed before producing a reviewable Jobs batch;
-- Jobs branch-push probe succeeded but is diagnostic-only;
-- read-only P0A preflight completed successfully but implemented nothing.
-
-New this review:
-- bounded TESTS-ONLY task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure;
-- sanitized result: `Worker branch push failed.`;
-- returned Jobs branch: none;
-- returned commit: none;
-- returned tests/summary: none;
-- no corresponding Jobs branch exists;
-- the remote-workers workflow did successfully publish the sanitized failure result after the target branch push failed.
-
-Workflow logs show the task reached the branch-push stage, but the executor suppresses the target-repository push stderr and reports only the generic failure. Therefore no code or tests from this attempt are reviewable or acceptable, and an identical branch-mode retry would be low-value until the infrastructure path has better diagnostics/recovery. Remote-workers remains infrastructure only; Jobs remains authoritative.
+Lane C remains production implementation owner. Its branch is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` and has produced no worker implementation or worker-authored heartbeat since lead alignment. RP14-T1..T7 are all still open.
 
 ## V1.4 real proof
 
@@ -68,19 +47,36 @@ Artifact: `A-V14-REAL-PROOF` — BLOCKED on P0A.
 Default target: OpenSesame — AI Automation Engineer.
 Packet-preparation proof only; no browser prefill/application submission authorized.
 
-After P0A acceptance, required real inputs are the actual private candidate profile, actual mapped resume bytes, current real job/questions, production `ApplicationPacketBuilder`, and a non-mock generation route. Required committed evidence is a runtime-generated redacted candidate bundle plus a separately generated verifier receipt bound to candidate SHA.
-
 Current proof directory contains only `README.md` and `v14_real_proof.schema.json`; no runtime proof candidate or verifier receipt exists.
+
+### Lane A readiness attempt
+
+Lane A head `f5742f210812cac77d7f9df47c58efbfb886f6e3` reported a local proof attempt before P0A acceptance. That attempt is not valid RP14 acceptance evidence because private proof execution is forbidden until P0A lead acceptance.
+
+Useful readiness evidence from the failure:
+- real private candidate profile was available locally,
+- the OpenSesame importer reported a real job plus seven current questions,
+- resume selection chose `resume_ai_software_engineer`,
+- no actual file was mapped for that selected variant on the Lane A machine,
+- only `enterprise_automation_solutions_architect.md` was present,
+- the runner failed closed and no synthetic substitute was created.
+
+Current Lane A proof readiness: `REAL_PROOF_BLOCKED_PRIVATE_INPUT` unless a genuine intended selected-variant mapping is available after P0A. Do not synthesize, relabel, copy, or silently substitute another resume merely to make the proof pass.
+
+After P0A acceptance, whichever Lane A or Lane C machine first has the actual profile + selected real mapped resume bytes should execute the importer -> runner -> verifier sequence immediately. Do not wait for a cross-lane handoff.
 
 ## Lane states
 
 ### Lane A
 - branch: `worker/v15-assisted-application`
-- head: `ed875775122f0d390af6ab15beb378904af2a476`
+- head: `f5742f210812cac77d7f9df47c58efbfb886f6e3`
 - task-scope accepted: A-R15-01..A-R15-05
+- rebase preserved the accepted production browser blobs
+- PR #2: draft, mergeable
+- current-head CI run #321: SUCCESS
 - V1.5 overall: IN_PROGRESS
-- after P0A acceptance, may run V1.4 real proof immediately if its machine has the genuine private profile/resume mapping
-- P1 after V1.4 proof: A-R15-06..A-R15-09
+- proof readiness: currently blocked on genuine selected resume mapping, and proof execution itself remains gated on P0A
+- while P0A is blocked, may continue A-R15-06..A-R15-09 in parallel; no V1.6 and no live browser/application action
 
 ### Lane B
 - branch: `worker/recruiting-ops`
@@ -92,8 +88,9 @@ Current proof directory contains only `README.md` and `v14_real_proof.schema.jso
 - branch: `worker/live-data-foundations`
 - head: `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`
 - worker-authored heartbeat streak: 0/3
-- immediate work: RP14-T1..T7 production proof-tool hardening; do not use private inputs or execute the proof yet
+- immediate work: rebase latest main and implement RP14-T1..T7 production proof-tool hardening; do not use private inputs or execute the proof yet
 - after lead P0A acceptance: RP14-C1..C3, then execute RP14-E1/E2 directly if genuine local inputs are present
+- because Lane A currently lacks its selected resume mapping, Lane C is especially important to the first eligible proof path
 - only after the proof attempt: candidate provenance then Gmail readiness
 
 ### Lane D
@@ -107,11 +104,10 @@ Current proof directory contains only `README.md` and `v14_real_proof.schema.jso
 - head: `d221eecbe21aa33051c888b9e42f10a307ed9ecd`
 - no new worker-authored heartbeat/audit
 - next priority: Lane C P0A batch, then RP14-S1 when genuine proof evidence appears
-- failed remote test-only task produced no reviewable branch, so there is nothing from it for Scout to audit
 
 ## Heartbeat truth
 
-- Lane A: 1/3
+- Lane A: 1/3 lead-verified proving streak. Two entries exist, but the 02:41Z -> 12:49Z gap is >20 minutes and therefore reset the streak; branch metadata claiming 2/3 is not accepted.
 - Lane B: 0/3
 - Lane C: 0/3
 - Lane D: 0/3
@@ -119,19 +115,39 @@ Current proof directory contains only `README.md` and `v14_real_proof.schema.jso
 
 Lead-seeded heartbeat commits and lead branch maintenance do not count. PROVING_15M remains required until three consecutive on-time worker-authored heartbeats, then STEADY_HOURLY.
 
+## Remote worker
+
+Infrastructure: `pri8771/remote-workers`
+Worker: `worker-pc`, online, capacity 1.
+
+Relevant Jobs history:
+- prior audit confirmed forged-bundle acceptance and missing local/redacted binding;
+- prior implementation attempts failed before producing a reviewable Jobs batch;
+- Jobs branch-push probe succeeded but is diagnostic-only;
+- read-only P0A preflight completed successfully but implemented nothing;
+- tests-only task `jobs-v14-p0a-adversarial-tests-20260921-0642` failed at target Jobs branch push with no returned branch/commit/tests/summary.
+
+Current capacity:
+- the worker's single slot is occupied by non-Jobs SwarmAI workflow `35596577823`, currently in progress at this review.
+- no Jobs remote task was dispatched; do not create duplicate activity while Lane C owns P0A production implementation.
+
+Remote-workers remains infrastructure only; Jobs remains authoritative.
+
 ## CI / review evidence
 
-- Jobs main `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` passed CI run #315 before this coordination update.
-- No implementation/scout branch produced a READY_FOR_LEAD_REVIEW batch in this review.
-- Remote workflow `35590523591` failed at the target Jobs branch-push stage and returned no reviewable Jobs branch/commit.
-- No `WORKER_PERFORMANCE` update is due because no worker implementation batch was audited/accepted/rejected this cycle.
+- Lane A `READY_FOR_LEAD_REVIEW` heartbeat was reviewed together with the branch diff and PR.
+- Current Lane A production browser blobs for A-R15-01..A-R15-05 match the previously accepted task-scope code.
+- PR #2 is now mergeable but remains draft.
+- Lane A current-head CI run #321 completed SUCCESS.
+- No Lane C/Scout implementation or audit batch is READY_FOR_LEAD_REVIEW.
+- No new worker implementation batch was accepted or rejected this cycle, so no `WORKER_PERFORMANCE` update is due.
 
 ## Critical path
 
 Lane C RP14-T1..T7
 -> Scout + ChatGPT P0A review
 -> Lane C RP14-C1..C3
--> first eligible Lane A/C machine runs genuine proof
+-> first genuinely eligible Lane A/C machine with complete real selected-resume mapping runs proof
 -> Scout RP14-S1
 -> ChatGPT RP14-L1
 -> only then V1.4 COMPLETE
