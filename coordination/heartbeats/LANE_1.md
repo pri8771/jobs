@@ -5,14 +5,28 @@ branch: worker/v14-real-proof
 heartbeat_epoch: FIVE_MIN_2026_09_21
 mode: ACTIVE_5M
 interval_minutes: 5
-heartbeat_count: 21
-last_check_in_utc: 2026-09-21T21:26:53Z
+heartbeat_count: 22
+last_check_in_utc: 2026-09-21T21:31:56Z
 current_task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
 progress_note: P0A + clean port READY_FOR_LEAD_REVIEW at claude/serene-brown-g6uij0 3444076de27573ec57d9c8ae60876aece8e646d9; 205 tests, ruff, mypy green locally; CI_BLOCKED_ACCOUNT; no private inputs used; awaiting ChatGPT review before any proof run
 review_state: READY_FOR_LEAD_REVIEW
 lead_action_requested: REVIEW
 
 ## Entries
+
+### 2026-09-21T21:31:56Z — Lane 1 ACTIVE 5-MINUTE HEARTBEAT #22
+
+Cadence gap: 5.0 minutes
+
+Mode: ACTIVE_5M
+
+Task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
+
+Update: P0A + clean port READY_FOR_LEAD_REVIEW at claude/serene-brown-g6uij0 3444076de27573ec57d9c8ae60876aece8e646d9; 205 tests, ruff, mypy green locally; CI_BLOCKED_ACCOUNT; no private inputs used; awaiting ChatGPT review before any proof run
+
+Review state: READY_FOR_LEAD_REVIEW
+
+Lead action requested: REVIEW
 
 ### 2026-09-21T21:26:53Z — Lane 1 ACTIVE 5-MINUTE HEARTBEAT #21
 
