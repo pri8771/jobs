@@ -47,23 +47,19 @@ A task/status from an old prompt is superseded when the current repo says otherw
 Do not self-accept milestone artifacts. ChatGPT lead accepts/rejects after code/evidence review.
 
 
-## Heartbeat liveness exercise
+## Heartbeat
 
-For the current epoch `DAYWATCH_2026_09_21`:
+All active lanes use one fixed cadence: **every 5 minutes while active**.
 
-1. Pull/rebase latest main before implementation work.
-2. Launch the detached watcher for your lane:
-   `python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch DAYWATCH_2026_09_21 --detach`
-3. Confirm the command prints `HEARTBEAT_WATCH_STARTED`.
-4. Continue normal lane work immediately.
-5. The watcher performs:
-   - 5-minute heartbeat × 3 consecutive valid check-ins,
-   - then 15-minute heartbeats for a clean 24-hour window,
-   - then hourly heartbeat.
-6. Do not manually fabricate timestamps or cadence state.
-7. Preserve historical heartbeat entries; only the current epoch counts for this exercise.
+Launch exactly one detached watcher:
 
-Read `coordination/HEARTBEAT_PROTOCOL.md` for exact timing and metadata rules.
+`python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch FIVE_MIN_2026_09_21 --detach`
+
+Do not transition to 15-minute/hourly modes and do not restart the watcher unnecessarily.
+
+Every heartbeat is mirrored to GitHub issue #7 and may simply say the lane is still working on its current task.
+
+Read `coordination/HEARTBEAT_PROTOCOL.md` for exact metadata and event rules.
 
 
 ## Visible progress
