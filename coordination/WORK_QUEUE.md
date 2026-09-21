@@ -16,6 +16,9 @@ Before using private profile/resume data for the milestone-completing proof, rep
 
 - docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md
 
+Artifact:
+- A-V14-REAL-PROOF
+
 Required bounded tasks:
 - RP14-T1 SP2 runtime emits REAL_PROOF_CANDIDATE; verifier emits separate bundle-bound PASS/FAIL receipt
 - RP14-T2 SP2 local private bundle SHAs must cross-match redacted evidence fields and proof_run_id
@@ -31,13 +34,21 @@ Acceptance:
 - fake JobModel/questions cannot satisfy the approved live-source binding,
 - targeted proof-integrity tests + full pytest/Ruff/mypy/CI pass.
 
-Remote-worker execution:
-- `worker-pc` capacity is 1.
+Remote-worker evidence:
+- `worker-pc` is infrastructure only; Jobs remains authoritative.
 - independent read-only audit `jobs-v14-real-proof-audit-retry-20260920` completed with CHANGES_REQUIRED and confirmed the two highest-severity integrity defects.
-- branch task `jobs-v14-proof-hardening-r2` is currently IN_PROGRESS on `worker-pc` for RP14-T1..T7.
-- no result JSON, Jobs worker branch, or commit from that task had been published at the current lead check.
-- do not dispatch a second remote Jobs task while capacity is occupied.
-- when the result lands, inspect the returned Jobs branch/diff/tests and project CI before accepting anything.
+- first branch task `jobs-v14-proof-hardening-20260920` failed at repository clone before implementation.
+- retry `jobs-v14-proof-hardening-r2` reached branch mode but finished `failed` with `Worker branch push failed.` after approximately 40 minutes.
+- sanitized retry result returned no branch, no commit, no tests, and no summary; no matching worker branch exists in `pri8771/jobs`.
+- therefore no remote-worker implementation claim exists to review or accept.
+- do not burn another long branch-mode worker-pc run until its Jobs branch-push path is diagnosed/repaired.
+
+Critical-path fallback assignment:
+- Lane C now owns RP14-T1..T7 as its immediate P0 engineering batch on `worker/live-data-foundations` after rebasing current main.
+- Keep the tasks separate at their existing SP1-SP3 sizes; do not collapse them into one >SP5 task.
+- Scope only proof tooling/schema/tests/minimal docs; do not touch private candidate/resume inputs and do not run the actual proof.
+- Push one coherent branch batch, update the Lane C heartbeat/status, and stop for ChatGPT review.
+- Scout should adversarially review the returned P0A batch; ChatGPT alone accepts the gate.
 
 Do not run the private-data proof until P0A is lead-accepted.
 
@@ -144,12 +155,21 @@ J20G-04 waits for Lane C after real-proof P0 + J20G-03.
 
 No new worker-authored heartbeat/batch was present at the current lead check; the branch head still carries only previously reviewed work/seeded heartbeat state.
 
-## Lane C — after P0A, then P0 real-proof readiness
+## Lane C — P0A, then P0 real-proof readiness
 
 Branch: worker/live-data-foundations
 
-Immediate priority after P0A acceptance:
-- RP14-C1..C3 / proof execution attempt before Gmail work
+Immediate P0 engineering batch:
+1. rebase current main
+2. implement RP14-T1..T7 against A-V14-REAL-PROOF / `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
+3. add forged-bundle, unrelated-local-file, fake-job/questions, example-profile-copy, schema-extra-field, deterministic-label, and cross-link adversarial tests
+4. run targeted proof tests + full pytest/Ruff/mypy
+5. push branch + heartbeat/status as READY_FOR_LEAD_REVIEW
+6. stop; do not run the private proof until ChatGPT accepts P0A
+
+After P0A acceptance:
+- RP14-C1..C3 real private input/job/generation readiness
+- if this machine has all required real inputs, execute RP14-E1/E2 immediately
 
 After the proof attempt:
 - J12-01 SP2 provenance records
@@ -159,7 +179,7 @@ After the proof attempt:
 - J20G-02 SP2 OAuth runtime wiring
 - J20G-03 SP2 typed real-Gmail readiness
 
-No new worker-authored heartbeat/batch was present at the current lead check. Lane C should pull/rebase current main before new proof work because its branch predates P0/P0A instructions.
+No new worker-authored heartbeat/batch was present at the current lead check. Lane C's existing status file still predates the P0/P0A instructions, so current WORK_QUEUE is authoritative until the worker updates its own lane file.
 
 ## Lane D — V2.3 Foundations
 
@@ -176,11 +196,13 @@ No new worker-authored heartbeat/batch was present at the current lead check.
 
 Branch: scout/qa-prep
 
-Top priority when proof evidence appears:
+Immediate priority when Lane C P0A batch appears:
+- independently audit RP14-T1..T7 implementation and adversarial evidence; do not self-accept
+
+Top priority when proof evidence later appears:
 - RP14-S1 real-proof audit
 
 Until then:
-- independently inspect proof-tool integrity changes when a coherent worker branch lands
 - independently inspect other branch changes/adversarial risks
 - do not self-accept artifacts
 
