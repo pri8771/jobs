@@ -9,9 +9,9 @@ Story points measure complexity/uncertainty, not time.
 
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
-| 1 | 2 | 1 | 1 | 1 | 1 |
-| 2 | 9 | 8 | 4 | 5 | 16 |
-| 3 | 4 | 0 | 0 | 4 | 0 |
+| 1 | 3 | 2 | 2 | 1 | 2 |
+| 2 | 15 | 11 | 7 | 8 | 22 |
+| 3 | 6 | 2 | 2 | 4 | 6 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
 
@@ -40,18 +40,56 @@ Story points measure complexity/uncertainty, not time.
 | R14-03 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; mock/test packets not live-ready |
 | R14-04 | 2 | LEAD_ACCEPTED | Antigravity Lane A | A-V14-PACKET-SAFETY | Accepted in 1410bf7 / merged 8a0cdb4; unsupported quantitative claims fail closed |
 
+## V1.5 first-pass task audit — commit 3d17fa8
+
+Worker-reported local verification:
+- targeted assisted tests: 17/17 passed
+- full pytest: 118/118 passed
+- Ruff: clean
+- mypy: clean
+
+GitHub evidence at lead review:
+- commit had no GitHub status/check result of its own,
+- branch was 1 commit ahead / 11 commits behind current main,
+- final acceptance therefore requires rebase/repair and green integrated CI.
+
+| Task ID | SP | Status | Worker commit | CI first push | Rework cycles | Lead notes |
+|---|---:|---|---|---|---:|---|
+| J15-00 | 2 | REWORK | 3d17fa8 | no branch CI | 1 | Explicit ID/job/live-ready checks exist, but exact accepted packet hash/provenance is not revalidated before browser use |
+| J15-01 | 2 | REWORK | 3d17fa8 | no branch CI | 1 | Inspect/classification exists, but packet-answer provenance integrity and pre-write form-change enforcement are incomplete |
+| J15-02 | 2 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Auth/EEO/consent/unknown field classification implemented; overall artifact still gated by residuals |
+| J15-03 | 3 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Machine-readable pre-submit review manifest and persisted audit metadata implemented |
+| J15-04 | 2 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Resume bytes/hash are rechecked immediately before upload |
+| J15-07 | 3 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Playwright page/context is reused across inspect, prefill and review; integration remains subject to repaired batch CI |
+| J15-08 | 2 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Unresolved packet questions and unknown-required/auth barriers stop before prefill |
+| J15-09 | 2 | REWORK | 3d17fa8 | no branch CI | 1 | Arbitrary local receipt text containing confirmation-like tokens can still satisfy external-confirmation validator |
+| J15-10 | 1 | LEAD_ACCEPTED | 3d17fa8 | no branch CI | 0 | Mock runner evidence is explicitly rejected for real submission truth |
+| J15-11 | 2 | NOT_ATTEMPTED | — | — | 0 | Added on main after worker branch base; external-form prompt-injection resistance must be implemented after rebase |
+
+## V1.5 bounded residual tasks
+
+| Task ID | SP | Status | Owner | Artifact | Lead notes |
+|---|---:|---|---|---|---|
+| A-R15-01 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | Revalidate exact packet hash + answer provenance before browser use |
+| A-R15-02 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Recheck form fingerprint immediately before first write |
+| A-R15-03 | 2 | READY | Antigravity Lane A | A-V15-ASSISTED-APPLICATION | Free-form/local receipt text alone cannot prove SUBMITTED |
+| A-R15-04 | 1 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Unknown file inputs must not default to resume |
+| A-R15-05 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Rebase + implement J15-11 prompt-injection resistance |
+
 ## Interpretation so far
 
 Latest accepted evidence:
 - V1.4 residual batch R14-01..R14-04: 4/4 SP2 rework tasks lead-accepted after one bounded repair cycle.
 - Main CI passed after merge 8a0cdb4.
+- V1.5 first pass shows good results on bounded SP1-SP3 mechanics, but cross-cutting trust-boundary semantics still require lead adversarial review: packet immutability/provenance and external evidence were the main misses.
 
-Initial evidence suggests:
+Current evidence suggests:
 - SP1-SP2 bounded work is relatively strong when acceptance criteria are explicit.
-- Cross-cutting SP3 tasks need tighter semantic contracts and adversarial acceptance tests.
-- Do not infer long-term rates from this small sample.
-- Continue delegating the bulk of SP1-SP2 work.
-- For SP3+, ChatGPT should provide stronger artifact contracts and split tasks further when semantics span persistence + policy + provenance.
+- SP3 work improves when the contract is narrow and testable; J15-03/J15-07 were accepted first pass.
+- Semantic security/evidence boundaries deserve dedicated adversarial cases even when the broader test suite is green.
+- Do not infer long-term productivity rates from this small sample.
+- Continue delegating the bulk of SP1-SP2 work and most well-specified SP3 work.
+- For cross-cutting semantics, ChatGPT should continue supplying exact failure examples and acceptance tests rather than broad prose.
 
 ## Rules
 
