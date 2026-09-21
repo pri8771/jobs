@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 17:00 ET
+Updated: 2026-09-21 17:48 ET
 
 ## Canonical standard
 
@@ -13,39 +13,26 @@ Updated: 2026-09-21 17:00 ET
 
 ## Lane 1 — `worker/v14-real-proof`
 
-Status: current-epoch stream was active but is stale.
+Status: **canonical current-epoch stream active in Git; worker READY_FOR_LEAD_REVIEW; lead verdict REWORK**.
 
-Verified current-epoch timestamps from actual branch commits:
-- 17:54:00Z
-- 17:58:06Z
-- 18:03:08Z
-- 18:08:10Z
-- 18:13:12Z
-- 18:18:14Z
-- 18:23:15Z
-- 18:28:17Z
-- 18:33:19Z
-- 18:38:21Z
-- 18:43:24Z
-- 18:48:25Z
-- 18:53:27Z
-- 18:58:29Z
-- 19:03:31Z
-- 19:08:33Z
-- 19:13:34Z
-- 19:18:36Z
+Latest verified heartbeat file:
+- branch head observed `df4045883c1fde7b29af92a20028d3b6397e9a93`
+- heartbeat #22
+- last check-in `2026-09-21T21:31:56Z`
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
 
-Latest observed branch head:
-- `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
-- heartbeat #18
+The stream restarted after the earlier stale gap and then emitted consecutive ~5-minute heartbeats through #22. Exactly one current Lane 1 watcher should continue while the active worker session remains alive; do not start a duplicate.
 
-Worker file says `READY_FOR_LEAD_REVIEW`, but lead verdict remains **REWORK**.
+Substantive implementation under review:
+- clean branch `claude/serene-brown-g6uij0`
+- commit `3444076de27573ec57d9c8ae60876aece8e646d9`
 
-Reviewed worker-pc support `062ca922...` usefully closes the prior missing-DB and persisted-Greenhouse-binding gaps but is not accepted because it lacks exact-head test/CI evidence. A follow-up static audit corrected an interim lead note: the support/Lane 1 importer already persists provider/public ID/question-list hash. The actual remaining real-path blockers are:
-- verifier reads `generation_metadata["origin"]` while production packet builder writes `generation_metadata_json["generation_origin"]`,
-- verifier DB resolver accepts plain PostgreSQL schemes but not the application's normal `postgresql+psycopg://` default URL.
+Lead review found the runtime verifier chain substantially repaired, but P0A remains **REWORK** because the committed proof schema is stale:
+- `additionalProperties: true`,
+- candidate `result` still constrained to `REAL_PROOF_PASS` rather than `REAL_PROOF_CANDIDATE`.
 
-Before restarting Lane 1 heartbeat, verify the prior watcher process is dead; then launch exactly one current-epoch Lane 1 watcher.
+Lane 1 must fix/test the schema contract and rerun full validation before another lead review. No private proof run is authorized.
 
 ## Lane 2 — `worker/v15-assisted-application`
 
@@ -60,8 +47,9 @@ Actual latest branch heartbeat evidence:
 Required migration:
 1. stop/verify stopped the old Lane 2 watcher once,
 2. synchronize/rebase latest main,
-3. launch exactly one `FIVE_MIN_2026_09_21` watcher for Lane 2,
-4. do not launch a duplicate.
+3. launch exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher for Lane 2,
+4. do not launch a duplicate,
+5. complete A-R15-06..09 bounded validation and request review.
 
 ## Lane 3 — `worker/recruiting-ops`
 
@@ -72,44 +60,40 @@ Actual latest branch heartbeat evidence:
 - mode `PROVING_5M`
 - last check-in `2026-09-21T16:44:37Z`
 - branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- branch remains 0 commits ahead of main; accepted PR #3 batch is already merged
+- branch is 0 commits ahead of main; accepted PR #3 batch is already merged.
 
 Required migration:
 1. stop/verify stopped any old Lane 3 watcher once,
 2. synchronize to latest main,
-3. launch exactly one `FIVE_MIN_2026_09_21` watcher,
+3. launch exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
 4. run post-integration verification,
 5. repair only a real evidence-backed regression.
 
 ## Issue #7 / workflow health
 
-Automated heartbeat comments were confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`. Comments then stopped while Lane 1 heartbeat commits continued through `19:18:36Z`.
+Automated heartbeat comments were last confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`.
 
-Fresh main CI evidence still indicates **`CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure**, not heartbeat-workflow-code regression:
-- main CI failed before executing steps,
+Lane 1 Git heartbeat commits continued substantially later, including the restarted current stream through `21:31:56Z`, but the current heartbeat workflow jobs still fail before executing any step. Latest inspected heartbeat-validation job shows:
 - `steps: []`,
 - `runner_id: 0`,
-- scheduled heartbeat monitor also failed during the same outage.
+- conclusion `failure` within seconds.
 
-Do not rewrite heartbeat workflow semantics merely to manufacture activity. A direct ChatGPT lead comment was posted to issue #7 this run.
+Classification remains **`CI_BLOCKED_ACCOUNT` / hosted-runner startup failure**, not a heartbeat-protocol regression. Do not rewrite heartbeat semantics to manufacture comments. ChatGPT must continue to post one direct concise lead comment to issue #7 each hourly run.
 
 ## worker-pc support
 
-Completed support implementation:
-- `jobs-v14-p0a-remaining-fix-20260921-1545`
-- branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
-- commit `062ca922c640d964220b550a06f61288b9a040c9`
-- useful but **not accepted** due missing exact-head validation.
+`worker-pc` is online, capacity 1, and remains support infrastructure only.
 
-Completed read-only audit:
-- `jobs-v14-p0a-importer-contract-audit-20260921-1645`
-- corrected the interim importer diagnosis and surfaced the generation-metadata and driver-qualified PostgreSQL URL blockers.
+Completed runtime-contract support:
+- task `jobs-v14-p0a-runtime-contract-fix-20260921-1700`
+- branch `worker/jobs-v14-p0a-runtime-contract-fix-20260921-1700`
+- commit `7e88542b5ce5d8cf1c607a24d8f92399556c15ce`
+- actual Jobs diff was inspected and limited to verifier/tests; Lane 1 incorporated the relevant fixes into `3444076...`.
 
-New bounded support task:
-- `jobs-v14-p0a-runtime-contract-fix-20260921-1700`
-- support only; no automatic merge.
-
-`worker-pc` remains infrastructure support only, never a fourth active implementation lane.
+New bounded schema support task:
+- `jobs-v14-p0a-schema-gate-20260921-1748`
+- base `claude/serene-brown-g6uij0`
+- schema/test support only; no automatic merge or acceptance.
 
 ## Interpretation
 
