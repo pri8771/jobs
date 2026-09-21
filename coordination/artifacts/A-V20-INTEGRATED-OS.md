@@ -37,3 +37,11 @@ dashboard/analytics/health.
 - funnel analytics
 - human review for uncertainty
 - cross-IDE artifact continuity
+
+
+## Detailed acceptance contract
+
+- docs/V2_0_INTEGRATION_ACCEPTANCE.md
+
+Use ENGINEERING_READY when code/integration artifacts pass but explicit live user/external gates remain.
+Use LIVE_ACCEPTED only when the real Gmail/live-data campaign passes.
