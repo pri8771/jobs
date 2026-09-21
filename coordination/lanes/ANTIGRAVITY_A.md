@@ -70,3 +70,17 @@ Do not start V1.6 until:
 ## Status
 
 REWORK
+
+
+## P1 after V1.4 REAL_PROOF
+
+Do not implement these before RP14-A1/A2.
+
+Lead second re-audit:
+- docs/LANE_A_REAUDIT_2.md
+
+Tasks:
+- A-R15-06 SP2 page-level prompt-injection inspection/security warning semantics
+- A-R15-07 SP2 actual cover-letter file-upload wiring + field-specific upload mapping
+
+After REAL_PROOF, complete these before V1.5 version-complete proof.
