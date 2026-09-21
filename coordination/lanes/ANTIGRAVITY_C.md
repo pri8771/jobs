@@ -71,10 +71,13 @@ Then Gmail readiness:
 - J20G-02 SP2 persistent ignored OAuth runtime wiring
 - J20G-03 SP2 typed secret-free REAL-Gmail readiness diagnostic
 
-## Handoff
+## P0 execution
 
-After RP14-C1..C3:
-- Lane A performs RP14-A1/A2 real packet build.
+After or during RP14-C1..C3, if this machine has all real inputs, run the proof itself immediately. Do not wait for Lane A merely because Lane A owns packet implementation.
+
+Commands are in docs/V1_4_REAL_PROOF_RUNBOOK.md.
+
+Push only the redacted proof bundle; private full evidence remains under .local/proofs/.
 
 After J20G-03 lead acceptance:
 - Lane B gets J20G-04.
