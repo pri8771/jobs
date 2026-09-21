@@ -21,19 +21,19 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V17-CRM-EVIDENCE | V1.7 | Recruiter/contact/thread evidence graph | implementation/evidence | Antigravity Lane B | READY | existing lifecycle assets | A-V17-MILESTONE-GATE |
 | A-V17-INTERVIEW-FOLLOWUP | V1.7 | Interview + follow-up operating layer | implementation/evidence | Antigravity Lane B | READY | existing lifecycle assets | A-V17-MILESTONE-GATE |
 | A-V17-MILESTONE-GATE | V1.7 | Integrated recruiting operations acceptance | milestone | ChatGPT | BLOCKED | A-V17-CRM-EVIDENCE, A-V17-INTERVIEW-FOLLOWUP | V2.0 |
-| A-V20-CONTROL-CENTER | V2.0 | Daily operator control center | implementation/UX | Antigravity Lane D | READY | existing dashboard | A-V20-INTEGRATED-OS |
-| A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Antigravity Lane D | READY | existing CI/health/backup | A-V20-INTEGRATED-OS |
-| A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Antigravity Lane D | READY | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
-| A-V20-ANALYTICS | V2.0 | Funnel/resume/source analytics | analytics | Antigravity Lane D | READY | resume attribution | A-V20-INTEGRATED-OS |
+| A-V20-CONTROL-CENTER | V2.0 | Daily operator control center | implementation/UX | Antigravity Lane B | LEAD_REVIEW | existing dashboard | A-V20-INTEGRATED-OS |
+| A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Antigravity Lane B | IN_PROGRESS | existing CI/health/backup | A-V20-INTEGRATED-OS |
+| A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Antigravity Lane B / future dedicated repair | IN_PROGRESS | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
+| A-V20-ANALYTICS | V2.0 | Funnel/resume/source analytics | analytics | Antigravity Lane B | IN_PROGRESS | resume attribution | A-V20-INTEGRATED-OS |
 | A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Antigravity Lane C + Lane D glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
 | A-V20-LIVE-INGESTION | V2.0 | Real Gmail/live-data ingestion proof | live integration | Antigravity + User | BLOCKED | A-V20-GMAIL-RUNTIME-READINESS + user OAuth | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Antigravity Lane C + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + Antigravity | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
-| A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | Antigravity | PROPOSED | A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE |
+| A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | Antigravity Lane D | READY | V2 relational model | A-V23-CAREER-INTELLIGENCE |
 | A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + Antigravity | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
 | A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | Antigravity | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
-| A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | Antigravity | PROPOSED | V2.0 ingestion + company/contact data | A-V23-CAREER-INTELLIGENCE |
-| A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | Antigravity | PROPOSED | stable V2 services | V3 agent runtime |
+| A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | Antigravity Lane D | READY | V2 company/job/contact model | A-V23-CAREER-INTELLIGENCE |
+| A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | Antigravity Lane D | READY | stable V2 service interfaces | V3 agent runtime |
 | A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | Antigravity | PROPOSED | A-V23-AGENT-TOOLS | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-PERMISSION-MODEL | V3.0 | Agent/action permission and approval model | policy/authorization | Antigravity | PROPOSED | V2 policy/audit | all V3 agents |
 | A-V30-AGENT-EVALUATION | V3.0 | Agent evaluation + observability | evaluation/observability | Antigravity | PROPOSED | A-V30-AGENT-RUNTIME | V3 acceptance |
