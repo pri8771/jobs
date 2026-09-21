@@ -2,7 +2,7 @@
 
 - Type: intelligence / monitoring
 - Phase: V2.3
-- Status: PROPOSED
+- Status: READY
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V2.0 ingestion + company/job/contact data
