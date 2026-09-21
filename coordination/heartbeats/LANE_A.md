@@ -5,13 +5,61 @@ lane: A
 branch: worker/v15-assisted-application
 mode: STEADY_HOURLY
 interval_minutes: 60
-consecutive_on_time: 3
-last_check_in_utc: 2026-09-21T13:05:00Z
+consecutive_on_time: 4
+last_check_in_utc: 2026-09-21T14:05:00Z
 review_state: READY_FOR_LEAD_REVIEW
 lead_action_requested: REVIEW
 ```
 
 ## Entries
+
+### 2026-09-21T14:05:00Z — Lane A (Application Execution)
+
+Artifact(s):
+- A-V15-BROWSER-SAFETY-CONTRACT
+- A-V15-ASSISTED-APPLICATION
+- A-V14-REAL-PROOF
+
+Task(s):
+- A-R15-01 SP2 ✅ LEAD_ACCEPTED
+- A-R15-02 SP2 ✅ LEAD_ACCEPTED (field-level J15-11 scope)
+- A-R15-03 SP1 ✅ LEAD_ACCEPTED
+- A-R15-04 SP2 ✅ LEAD_ACCEPTED
+- A-R15-05 SP2 ✅ LEAD_ACCEPTED
+- Steady hourly check-in #1 on STEADY_HOURLY cadence.
+- Rebased cleanly on latest `origin/main` (`117d341`).
+- `REAL_PROOF_BLOCKED_PRIVATE_INPUT` remains current status for Lane A local execution (waiting on real resume bytes for selected variant `resume_ai_software_engineer` without synthesis; Lane C owns P0A RP14-T1..T7).
+
+Done since last heartbeat:
+- Fetched and integrated latest `origin/main` (`117d341`).
+- Verified all tests pass cleanly: 144 unit and adversarial tests in 1.37s.
+- Ruff clean, MyPy zero errors across Lane A codebase.
+- Monitored P0 queue and prepared for P1 post-proof residual tasks (A-R15-06..09).
+
+Verification:
+- targeted tests: `tests/test_assisted_safety_adversarial.py` — 27 passed
+- pytest: 144 passed in 1.37s
+- ruff: All checks passed
+- mypy: Clean on all Lane A code
+
+Commits:
+- `38f2ef3` (rebased on `117d341`)
+
+Blockers / risks:
+- `REAL_PROOF_BLOCKED_PRIVATE_INPUT` on Lane A until real resume mapping for `resume_ai_software_engineer` exists.
+- P0A proof-tool integrity (RP14-T1..T7) is under active implementation on Lane C.
+
+Next:
+- Await ChatGPT lead review / unblocking of P0A and directives on V1.5 P1 tasks A-R15-06..A-R15-09.
+- Continue STEADY_HOURLY cadence (next heartbeat at 15:05Z or immediately upon new repo directives).
+
+Lead action requested:
+- REVIEW
+
+Review state:
+- READY_FOR_LEAD_REVIEW
+
+---
 
 ### 2026-09-21T13:05:00Z — Lane A (Application Execution)
 
