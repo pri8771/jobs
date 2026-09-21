@@ -31,12 +31,12 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Lane 1 + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + sequential work surfaces | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
 | A-V23-OPPORTUNITY-GRAPH | V2.3 | Evidence-backed opportunity graph/query layer | data/query architecture | paused historical Lane D | READY | V2 relational model | A-V23-CAREER-INTELLIGENCE |
-| A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + future lane | PROPOSED | A-V20-INTEGRATED-OS | V3.0 |
+| A-V23-CAREER-INTELLIGENCE | V2.3 | Career intelligence & optimization layer | milestone/intelligence | ChatGPT + future lane | PROPOSED | A-V20-INTEGRATED-OS + V2.3 sub-artifacts | V3.0 |
 | A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | future lane | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
 | A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | paused historical Lane D | READY | V2 company/job/contact model | A-V23-CAREER-INTELLIGENCE |
 | A-V23-INTERVIEW-INTELLIGENCE | V2.3 | Source-backed interview preparation intelligence | intelligence/preparation | future work surface | PROPOSED | A-V17-INTERVIEW-FOLLOWUP, A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE, A-V30-INTERVIEW-AGENT |
 | A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | paused historical Lane D | READY | stable V2 service interfaces | V3 agent runtime |
-| A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | future lane | PROPOSED | A-V23-AGENT-TOOLS | A-V30-CAREER-AGENT-NETWORK |
+| A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | future lane | PROPOSED | A-V23-AGENT-TOOLS, A-V30-PERMISSION-MODEL, A-V30-SHARED-MEMORY | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-PERMISSION-MODEL | V3.0 | Agent/action permission and approval model | policy/authorization | future lane | PROPOSED | V2 policy/audit | all V3 agents |
 | A-V30-SHARED-MEMORY | V3.0 | Scoped durable agent memory over canonical truth | memory/continuity | future work surface | PROPOSED | A-V23-AGENT-TOOLS, A-V30-PERMISSION-MODEL | A-V30-AGENT-RUNTIME, specialist agents |
 | A-V30-MARKET-SCOUT | V3.0 | Market/company/opportunity monitoring specialist | specialist agent | future work surface | PROPOSED | A-V23-CAREER-INTELLIGENCE, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
@@ -50,7 +50,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V30-POLICY-SAFETY-AGENT | V3.0 | Policy/safety audit specialist | specialist agent | future work surface | PROPOSED | A-V30-PERMISSION-MODEL, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-ANALYTICS-AGENT | V3.0 | Outcome/strategy analytics specialist | specialist agent | future work surface | PROPOSED | A-V20-ANALYTICS, A-V23-STRATEGY-LEARNING, A-V30-AGENT-RUNTIME | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-AGENT-EVALUATION | V3.0 | Agent evaluation + observability | evaluation/observability | future lane | PROPOSED | A-V30-AGENT-RUNTIME | V3 acceptance |
-| A-V30-CAREER-AGENT-NETWORK | V3.0 | Autonomous career agent network | milestone/multi-agent | ChatGPT + future lane | PROPOSED | A-V23-CAREER-INTELLIGENCE | continuous career ops |
+| A-V30-CAREER-AGENT-NETWORK | V3.0 | Autonomous career agent network | milestone/multi-agent | ChatGPT + future lane | PROPOSED | A-V23-CAREER-INTELLIGENCE + V3 platform + specialist artifacts | continuous career ops |
 
 ## Current critical path
 
