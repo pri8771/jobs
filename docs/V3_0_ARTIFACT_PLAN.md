@@ -59,7 +59,7 @@ Each agent must define:
 
 ## V3.0 integration artifact
 
-A-V30-CAREER-NETWORK
+A-V30-CAREER-AGENT-NETWORK
 
 Acceptance scenario:
 User says "Find me a better job."
@@ -75,3 +75,16 @@ The system:
 8. proposes next career actions,
 9. asks the user only for consequential decisions or missing facts,
 10. records all actions/evidence in the shared artifact graph.
+
+
+## Prepared implementation contracts
+
+- `docs/V3_PERMISSION_MODEL.md`
+- `docs/V3_TOOL_PERMISSION_MATRIX.md`
+- `docs/V3_RUNTIME_DATA_CONTRACTS.md`
+- `docs/V3_SHARED_MEMORY_CONTRACT.md`
+- `docs/V3_AGENT_HANDOFF_PROTOCOL.md`
+- `docs/V3_SPECIALIST_AGENT_SPECS.md`
+- `docs/V3_AGENT_EVAL_MATRIX.md`
+- `docs/V3_INTEGRATION_ACCEPTANCE_SCENARIOS.md`
+- `docs/FUTURE_SCHEMA_MIGRATION_PLAN_V16_V23_V30.md`
