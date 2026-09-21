@@ -1,154 +1,90 @@
 # Antigravity Lane C Status
 
-Branch:
-- worker/live-data-foundations
-
-Lane:
-- Real Data / Candidate Provenance / Gmail Foundations
-
-Owner:
-- Antigravity Session C
-
-Reviewer:
-- ChatGPT
+Branch: `worker/live-data-foundations`
+Lane: Real Data / Candidate Provenance / Gmail Foundations
+Owner: Antigravity Session C
+Reviewer: ChatGPT
 
 ## Immediate P0A — V1.4 proof-tool integrity
 
-Before any private candidate/resume proof work, rebase latest `main` and execute the proof-tool hardening gate for artifact `A-V14-REAL-PROOF`.
+Start from latest `main` and execute only the production proof-tool hardening for artifact `A-V14-REAL-PROOF` before any private candidate/resume proof work.
 
-Authoritative audit:
-- `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
+Authoritative audit: `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
 
-Required bounded tasks:
-- RP14-T1 SP2 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separate candidate-bundle-bound PASS/FAIL receipt. The verifier must emit a FAIL receipt on rejected candidates as well as PASS on accepted candidates; do not return before writing failure evidence.
-- RP14-T2 SP2 local private bundle SHAs cross-match redacted evidence fields and proof_run_id
-- RP14-T3 SP3 JobModel/questions bind to the actual approved current Greenhouse fetch/attestation
-- RP14-T4 SP2 reject copied/renamed example candidate profiles using content evidence
-- RP14-T5 SP1 explicit redacted-evidence allowlist / no arbitrary extra fields
-- RP14-T6 SP1 unambiguous deterministic-generation labeling
-- RP14-T7 SP2 independently verify packet/manifest/resume-variant/artifact cross-links
+Tasks:
+- RP14-T1 SP2 — runner emits `REAL_PROOF_CANDIDATE`; verifier emits separately candidate-bundle-bound PASS/FAIL receipts, including FAIL receipts for rejected candidates.
+- RP14-T2 SP2 — local/private bundle SHA + `proof_run_id` cross-binding.
+- RP14-T3 SP3 — bind JobModel/questions to the approved current Greenhouse fetch/attestation.
+- RP14-T4 SP2 — reject copied/renamed example candidate profiles by content evidence.
+- RP14-T5 SP1 — explicit committed-evidence allowlist; reject arbitrary extra fields.
+- RP14-T6 SP1 — unambiguous deterministic-production generation labeling.
+- RP14-T7 SP2 — independently verify packet/manifest/resume-variant/artifact cross-links.
 
-Required verification:
-- forged/hand-authored structurally valid proof is rejected,
-- unrelated local artifacts cannot satisfy the redacted hashes,
-- fake JobModel/questions cannot satisfy the approved live-source binding,
-- copied example candidate data is rejected,
-- targeted proof-integrity tests pass,
-- full pytest, Ruff, mypy, and CI pass.
+Required evidence:
+- forged structurally-valid proof rejected,
+- unrelated local artifacts rejected,
+- fake/unapproved job/question data rejected,
+- copied example candidate data rejected,
+- arbitrary extra evidence fields rejected,
+- deterministic generation honestly represented,
+- broken packet/artifact links rejected,
+- targeted tests + full pytest/Ruff/mypy/CI green.
 
-Scope:
-- proof scripts,
-- proof schema,
-- proof-tooling tests,
-- minimal directly related docs.
+Scope: proof scripts, proof schema, proof-tooling tests, minimal directly related docs. Do not use private candidate/resume inputs during P0A and do not execute the actual proof yet.
 
-Do NOT use private candidate/resume inputs during this batch and do NOT execute the actual real proof yet.
+Push one coherent batch with a worker-authored heartbeat marked `READY_FOR_LEAD_REVIEW`, then stop for Scout/ChatGPT review. Do not self-accept.
 
-Push one coherent batch with a worker-authored heartbeat marked READY_FOR_LEAD_REVIEW, then stop for Scout/ChatGPT review. Workers do not self-accept P0A.
+## Branch maintenance performed by lead
 
-## P0 — V1.4 real proof readiness after P0A acceptance
+At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main and contained only two unique lead-seeded heartbeat commits (`4122f9bd...` and `2ce7674f...`). ChatGPT inspected both commits and confirmed they contained no worker implementation or worker-authored heartbeat. The branch was therefore force-aligned to green Jobs main so this lane now sees the current P0A contract and validation workflows.
 
-Only after ChatGPT accepts RP14-T1..T7:
+This alignment is maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
 
-### RP14-C1 — SP2
-Locate and validate the real private candidate profile used by the project and the actual resume-source mappings on the local machine.
+## Remote-worker support — do not duplicate production code
 
-Requirements:
-- do not use config/candidate_profile.example.yaml,
-- do not create a temp/synthetic resume,
-- do not commit private resume/profile contents,
-- verify exact source files exist,
-- hash actual resume bytes,
-- report only redacted source/provenance/hash metadata.
+`worker-pc` became free after non-Jobs workflow `35580580156` completed with failure. ChatGPT dispatched bounded task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` from Jobs main.
 
-### RP14-C2 — SP2
-Create/import the real proof JobModel/source from the current approved OpenSesame AI Automation Engineer posting:
+That task is TESTS ONLY. It may return adversarial acceptance tests for the known P0A gaps but is forbidden from modifying production proof scripts/schema/docs/coordination/private data/Gmail/browser code. Treat any returned tests as untrusted review input until ChatGPT/Scout inspect the actual branch/diff. Continue production RP14-T1..T7 work; do not wait for the remote test task.
 
-https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740
+## After P0A lead acceptance — real proof readiness
 
-Use current public posting data, not a fixture.
+### RP14-C1 SP2
+Locate and validate the actual private candidate profile and actual resume-source mappings locally. Do not use `config/candidate_profile.example.yaml`, temp/synthetic resumes, or commit private contents. Hash actual resume bytes and emit only redacted readiness evidence.
 
-This task does NOT authorize opening/submitting the application.
+### RP14-C2 SP2
+Import/validate the current OpenSesame AI Automation Engineer JobModel/source/questions using the public Greenhouse source and `scripts/import_v14_proof_job.py`.
 
-### RP14-C3 — SP1
-Verify the production packet path has a non-mock generation route available.
+### RP14-C3 SP1
+Confirm the production packet path has a non-mock generation route. `DeterministicModelGateway` is acceptable only when labeled honestly as deterministic production generation. If unavailable, report `REAL_PROOF_BLOCKED_PROVIDER`; never silently fall back to mock.
 
-Acceptable:
-- configured real external model provider,
-- configured local production model provider,
-- deterministic production generation path explicitly represented as non-mock.
+## Proof execution after readiness
 
-Forbidden:
-- MockModelGateway,
-- HallucinatingModelGateway,
-- test/adversarial_mock origin,
-- silent fallback.
+If this machine has the real private profile + actual mapped resume bytes after P0A acceptance, execute RP14-E1/E2 immediately; do not wait for Lane A merely because Lane A owns packet implementation.
 
-If unavailable:
-- report REAL_PROOF_BLOCKED_PROVIDER,
-- do not substitute mock.
-
-Contracts:
-- docs/V1_4_REAL_PROOF_RUNBOOK.md
-- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
-- coordination/artifacts/A-V14-REAL-PROOF.md
-
-## P0 execution after readiness
-
-After P0A acceptance, if this machine has the real private profile + actual mapped resume bytes, run the proof itself immediately. Do not wait for Lane A merely because Lane A owns packet implementation.
-
-Commands are in docs/V1_4_REAL_PROOF_RUNBOOK.md.
-
-Push only runtime-generated redacted candidate evidence plus the independently generated verifier receipt; private full evidence remains under `.local/proofs/`.
+Use the commands in `docs/V1_4_REAL_PROOF_RUNBOOK.md`. Push only runtime-generated redacted candidate evidence plus the independently generated verifier receipt. Private full evidence stays in `.local/proofs/`.
 
 If private inputs are absent, report `REAL_PROOF_BLOCKED_PRIVATE_INPUT`; never synthesize substitutes.
 
-## After the real-proof attempt
+## After the V1.4 proof attempt
 
-Continue candidate provenance:
-- J12-01 SP2 private-safe provenance records
-- J12-02 SP2 allowed_for_application enforcement
-- J12-03 SP1 provenance report CLI
+Candidate provenance:
+- J12-01 SP2 candidate fact provenance records
+- J12-02 SP2 `allowed_for_application` enforcement
+- J12-03 SP1 private-safe provenance report CLI
 
 Then Gmail readiness:
 - J20G-01 SP2 partial Gmail fetch fails closed / no checkpoint advance
-- J20G-02 SP2 persistent ignored OAuth runtime wiring
+- J20G-02 SP2 safe persistent OAuth/runtime wiring
 - J20G-03 SP2 typed secret-free REAL-Gmail readiness diagnostic
 
-After J20G-03 lead acceptance:
-- Lane B gets J20G-04.
-
-## Remote-worker note
-
-The infrastructure-only `worker-pc` Jobs branch-push probe succeeded at commit `b6c800f0ed4ffe8450aceb0021b0c417ac7e16ae`; that probe is not for merge and does not complete any RP14 task. Do not duplicate work with remote-worker tasks if Lane C is actively implementing the same slice.
-
-At the 2026-09-21 02:48 ET lead review, `worker-pc` was online but occupied by an in-progress SwarmAI task in `pri8771/remote-workers`, so no new Jobs task was dispatched. Lane C remains the critical-path owner for RP14-T1..T7.
-
-At the 2026-09-21 03:46 ET lead review, the same SwarmAI workflow `35566726945` was still in progress. Lane C itself remained at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02` with no worker-authored heartbeat or P0A implementation batch. Do not wait on remote-worker capacity: rebase current main and execute RP14-T1..T7 on this lane.
-
-At the 2026-09-21 04:45 ET lead review, the SwarmAI workflow had been cancelled, freeing `worker-pc`. ChatGPT dispatched `jobs-v14-p0a-preflight-20260921-0445` as a **read-only, non-conflicting acceptance-preflight audit**. It may provide adversarial review/mapping evidence, but it does not implement or complete RP14-T1..T7. Lane C must not wait for it: rebase latest main and execute the existing P0A implementation batch now.
-
-At the 2026-09-21 05:44 ET lead review, the read-only preflight completed successfully in remote workflow `35579791471`. It produced no Jobs branch/commit and therefore completed no implementation task. Its static inspection reinforces the existing RP14-T1..T7 scope and adds one explicit T1 acceptance detail: rejected candidates must still produce a bundle-bound `REAL_PROOF_FAIL` receipt. Lane C is still unchanged at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. A new non-Jobs SwarmAI workflow `35580580156` immediately occupied the capacity-1 remote worker, so no Jobs implementation task was dispatched remotely. Do not wait for remote capacity.
+J20G-04 remains Lane B after J20G-03 lead acceptance.
 
 ## External boundary
 
-Do not:
-- perform real OAuth consent,
-- access live mailbox,
-- open/prefill/submit a job application,
-- commit private candidate/resume contents.
-
-## Next
-
-1. rebase latest main
-2. execute RP14-T1..T7 only
-3. run targeted + full verification
-4. push one coherent P0A batch + worker heartbeat READY_FOR_LEAD_REVIEW
-5. stop for Scout/ChatGPT acceptance
-6. only after P0A acceptance execute RP14-C1..C3 and the real proof if real local inputs are available
+Do not perform real OAuth consent, access a live mailbox, open/prefill/submit a real application, send external messages, bypass MFA/CAPTCHA, fabricate candidate facts, or commit private candidate/resume contents.
 
 ## Status
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
-
-Latest lead review: 2026-09-21 05:44 ET — no worker-authored heartbeat or implementation commit has landed; branch head remains `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02`. Jobs main `fa807c620addf2173884bc0100294d4f3a4cc7b8` passed CI run #309. Remote preflight `35579791471` completed successfully and is advisory-only; worker-pc is currently occupied by non-Jobs workflow `35580580156`.
+Heartbeat proving: 0/3 worker-authored check-ins.
+Latest lead review: 2026-09-21 06:46 ET.

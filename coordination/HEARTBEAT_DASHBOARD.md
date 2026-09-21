@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 05:44 ET / 2026-09-21T09:44Z
+Last evidence review: 2026-09-21 06:46 ET / 2026-09-21T10:46Z
 
 ## Cadence policy
 
@@ -8,14 +8,13 @@ Workers:
 - PROVING_15M until 3 consecutive on-time worker-authored check-ins.
 - Then STEADY_HOURLY.
 
-ChatGPT lead automation:
-- HOURLY (platform maximum scheduled frequency).
+ChatGPT lead scheduled review remains hourly.
 
 ## Verified proving status
 
 | Lane | Branch | Verified worker-authored heartbeats | Proving streak | Last verified check-in | State |
 |---|---|---:|---:|---|---|
-| A | worker/v15-assisted-application | 1 | 1/3 | 2026-09-21T02:41:00Z | NOT PROVEN — one real heartbeat only |
+| A | worker/v15-assisted-application | 1 | 1/3 | 2026-09-21T02:41:00Z | NOT PROVEN |
 | B | worker/recruiting-ops | 0 | 0/3 | none | NOT STARTED |
 | C | worker/live-data-foundations | 0 | 0/3 | none | NOT STARTED |
 | D | worker/v23-foundations | 0 | 0/3 | none | NOT STARTED |
@@ -23,45 +22,32 @@ ChatGPT lead automation:
 
 ## Latest lead recheck
 
-- No worker branch advanced after the previously reviewed Lane A commit `ed875775122f0d390af6ab15beb378904af2a476`.
-- Lane B remains at `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`.
-- Lane C remains at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02` with no RP14-T1..T7 batch or worker-authored heartbeat.
-- Lane D remains at `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
-- Scout remains at `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
-- No V1.4 real-proof evidence JSON or verifier receipt has landed; `coordination/proofs/` still contains only the README and schema.
-- Jobs `main` head `fa807c620addf2173884bc0100294d4f3a4cc7b8` completed standard CI successfully in run #309.
-- Scheduled heartbeat monitor run `35576477294` previously failed at `Check worker heartbeat freshness`; the workflow intentionally fails when any lane is missing, unproven, or stale. This remains a liveness signal, not a product-CI regression.
-- Remote Jobs preflight task `jobs-v14-p0a-preflight-20260921-0445` completed successfully in workflow `35579791471`. It was read-only/static, produced no Jobs branch or commit, and therefore cannot satisfy any RP14 implementation task.
-- The preflight independently maps the current P0A scope and explicitly confirms the RP14-T1 requirement that runtime output be `REAL_PROOF_CANDIDATE`, the verifier emit a separately bundle-bound PASS/FAIL receipt, and failure paths emit FAIL receipts rather than returning before evidence is written.
-- Immediately afterward the capacity-1 `worker-pc` was occupied by non-Jobs SwarmAI workflow `35580580156`, currently in progress, so no additional Jobs remote task was dispatched.
+- Lane A remains `ed875775122f0d390af6ab15beb378904af2a476`.
+- Lane B remains `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`.
+- Lane D remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
+- Scout remains `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
+- Lane C had no worker implementation or worker-authored heartbeat. Its branch was 165 commits behind main and had only two unique lead-seeded heartbeat commits. ChatGPT inspected those commits and aligned the branch to current green main. This is lead maintenance and does not count as heartbeat activity.
+- No V1.4 runtime proof candidate or verifier receipt exists.
+- Jobs main `19c136f5dda7e885e66d4b8b3c567103a6dde485` passed CI run #314 before this coordination update.
+- Non-Jobs remote workflow `35580580156` completed with failure and freed `worker-pc` capacity.
+- Bounded remote Jobs support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` was dispatched as TESTS ONLY. It was queued at this review and does not count as any lane heartbeat or implementation acceptance.
 
-## Evidence notes
+## Evidence rules
 
 - Lead-seeded heartbeat commits do not count.
-- Lane A produced one worker-authored heartbeat associated with its V1.5 rework batch. There is no prior worker-authored heartbeat 10–20 minutes before it, so no 15-minute cadence has been proven.
-- B/C/D/Scout heartbeat files still contain the lead seed with no worker-authored proving series.
-- Therefore the 15-minute proving system is configured but has NOT demonstrated three consecutive check-ins for any lane.
-- The scheduled heartbeat monitor's current failure is expected while these conditions remain true; do not misreport it as code/test CI failure.
+- Lead branch rebases/resets/alignment do not count.
+- Remote-worker infrastructure task execution does not count as a lane heartbeat unless the actual Jobs branch contains a worker-authored heartbeat conforming to protocol and it is reviewed.
+- No lane may be called STEADY_HOURLY until it has three consecutive on-time worker-authored proving heartbeats.
 
 ## Required next proof
 
-Each active worker must:
-1. pull latest main/heartbeat protocol,
-2. write a worker-authored heartbeat,
-3. repeat at 10–20 minute intervals,
-4. reach three consecutive on-time check-ins,
-5. then switch itself to STEADY_HOURLY.
+Each active lane worker must pull latest main, emit a worker-authored heartbeat, repeat within the proving cadence until 3/3, then switch itself to STEADY_HOURLY. READY_FOR_LEAD_REVIEW or BLOCKED events should be reported immediately.
 
-## Notification/review path
+## Review path
 
-1. Worker pushes implementation + heartbeat to its branch.
-2. Heartbeat-format GitHub workflow validates compatible heartbeat pushes once latest workflow is present on the branch.
-3. Worker PR/branch is the durable review surface.
-4. ChatGPT Jobs Lead Sync reviews all branches/heartbeats hourly.
-5. READY_FOR_LEAD_REVIEW or BLOCKED takes priority over future planning.
-6. ChatGPT updates lane instructions on main with acceptance/rework/next assignment.
+1. Worker pushes implementation + heartbeat to its dedicated branch.
+2. ChatGPT reviews actual diff/tests/CI before accepting claims.
+3. Scout independently audits designated safety/proof batches.
+4. ChatGPT updates authoritative main coordination truth only after review.
 
-## Limitation
-
-Direct GitHub push -> instant ChatGPT wake-up is not currently available.
-Hourly lead automation is the reliable ChatGPT-side review loop.
+Direct GitHub push -> instant ChatGPT wake-up is not available; hourly lead review is the reliable lead loop.
