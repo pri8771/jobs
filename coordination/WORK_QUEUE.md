@@ -1,288 +1,171 @@
 # Active Work Queue
 
 ChatGPT owns prioritization and acceptance.
-Four Antigravity implementation sessions plus one Scout execute artifact-backed work in parallel.
 
-Last prioritized: 2026-09-20 20:47 ET
+Fresh lead re-audit baseline: 2026-09-20 21:20 ET
 
-## Formal milestone cadence
+## Formal milestones
 
 V1.7 -> V2.0 -> V2.3 -> V3.0
 
-V1.5/V1.6 remain required application-execution artifacts, but the next formal milestone checkpoint is V1.7.
-Old V1.8/V1.9 capabilities are absorbed into V2.0.
+## Current accepted foundation
 
-Goal: reach V2.0 engineering-ready as quickly as possible and full V2.0 ACCEPTED today if user-interactive live-data gates are also completed.
+### A-V14-PACKET-SAFETY — ACCEPTED
 
-Reference:
-- docs/V1_7_TO_V3_ACCELERATION_PLAN.md
+Lane A residual repair was merged to main as:
+- merge commit `8a0cdb4`
 
-## Parallel branch model
+Main CI:
+- PASS
 
-### Antigravity Lane A — Application Execution
-Branch: `worker/app-execution`
+Accepted protections:
+- immutable/content-addressed artifacts
+- exact resume family attribution
+- generation origin/live-readiness gate
+- quantitative claims require exact evidence
+- prior V1.4 packet-safety requirements remain satisfied
 
-Primary ownership:
-- preparation/
-- storage/
-- browser/
-- automation/
-- related tests/migrations
+## Lane A — V1.5 Assisted Application
 
-Status reporting:
-- coordination/lanes/ANTIGRAVITY_A.md
+Branch:
+- `worker/v15-assisted-application`
 
-### Antigravity Lane B — Recruiting Operations
-Branch: `worker/recruiting-ops`
-
-Primary ownership:
-- lifecycle/
-- CRM/interview/follow-up behavior
-- related tests
-
-Status reporting:
-- coordination/lanes/ANTIGRAVITY_B.md
-
-### Antigravity Lane D — V2.0 Platform & Reliability
-Branch: `worker/platform-reliability`
-
-Primary ownership:
-- dashboard/
-- health.py
-- worker.py platform/reliability glue
-- scripts/
-- analytics
-- related tests
-
-Status reporting:
-- coordination/lanes/ANTIGRAVITY_D.md
-
-### Scout — QA / Prep
-Branch: `scout/qa-prep`
-
-Default is read-heavy/non-owning. Scout writes findings only under `coordination/scout/` unless ChatGPT explicitly promotes an implementation task.
-
-### Antigravity Lane C — Live Data & Provenance Foundations
-Branch: `worker/live-data-foundations`
-
-Primary ownership:
-- adapters/gmail.py
-- ingestion/
-- new provenance/
-- new integration/ harness later
-- cli/
-- docker-compose.yml
-- related tests
-
-Status reporting:
-- coordination/lanes/ANTIGRAVITY_C.md
-
-Workers must not edit shared lead-owned coordination truth on their branches unless explicitly assigned:
-- coordination/ARTIFACT_INDEX.md
-- coordination/WORK_QUEUE.md
-- coordination/CONTEXT.md
-- state/CURRENT.md
-
-Open a PR when a coherent artifact batch is ready. ChatGPT reviews/accepts/merges milestone work.
-
-## Lane A — immediate
-
-Artifact: A-V14-PACKET-SAFETY
-
-Commit 10fd61d passed CI and completed most of the repair. Lead re-audit found four bounded residuals.
-
-| Task | SP | Status | Work |
-|---|---:|---|---|
-| R14-01 | 2 | READY | Make artifact storage genuinely immutable/content-addressed; second packet build cannot overwrite historical bytes |
-| R14-02 | 2 | READY | Store correct selected resume family, not global primary headline |
-| R14-03 | 2 | READY | Record generation origin and forbid explicit mock/test output from producing live-ready packet |
-| R14-04 | 2 | READY | Reject unsupported quantitative experience-duration/count claims even when underlying skill exists |
-
-Acceptance:
-- targeted regression tests,
-- full pytest/ruff/mypy,
-- CI green,
-- A-V14 evidence bundle updated on Lane A status file.
-
-After A-V14 ACCEPTED, immediately start prepared V1.5 tasks from:
+Artifact:
 - A-V15-BROWSER-SAFETY-CONTRACT
 - A-V15-ASSISTED-APPLICATION
-- docs/V1_5_BROWSER_SAFETY_CONTRACT.md
 
-Then progress into A-V16-SUBMISSION-CONTRACT engineering without crossing live submit/user-authorization boundaries.
+Ready tasks:
+- J15-00 SP2 require explicit accepted packet ID; no latest-packet fallback
+- J15-01 SP2 inspect form before any write + field classification/provenance
+- J15-02 SP2 manual barrier classifier
+- J15-03 SP3 machine-readable pre-submit review manifest
+- J15-04 SP2 artifact read-back/hash verification immediately before upload
+- J15-07 SP3 one persistent visible Playwright context for inspect/prefill/upload/review
+- J15-08 SP2 block unresolved/UNKNOWN_REQUIRED before prefill
+- J15-09 SP2 external-evidence-only submitted state
+- J15-10 SP1 mock browser can never create real submitted state
 
-## Lane B — immediate and independent
+Engineering only. No live application/session without user approval.
 
-### Artifact A-V17-CRM-EVIDENCE
+## Lane B — V1.7 + V2.0 Rework
 
-| Task | SP | Status | Work |
-|---|---:|---|---|
-| J17-01 | 2 | READY | Audit current CRM/linking against artifact acceptance contract |
-| J17-02 | 3 | READY | Repair multi-role recruiter/contact/thread relationship gaps |
-| J17-03 | 2 | READY | Add manual correction/merge service for bad contact/message links |
-| J17-04 | 3 | READY | Expand source-evidence timeline + ambiguity regression tests |
+Branch:
+- `worker/recruiting-ops`
 
-### Artifact A-V17-INTERVIEW-FOLLOWUP
+Existing worker commits:
+- 21f2be9 V1.7
+- bd98cf5 V2.0 platform/analytics batch
 
-| Task | SP | Status | Work |
-|---|---:|---|---|
-| J17-05 | 2 | READY | Audit interview extraction/follow-up edge cases |
-| J17-06 | 3 | READY | Repair reschedule/cancel/timezone/idempotency gaps |
-| J17-07 | 2 | READY | Harden follow-up dedupe and answered-thread detection |
-| J17-08 | 2 | READY | Fill classification/lifecycle gaps for offer/rejection/background/onboarding |
+Do not throw these away.
 
-After a coherent V1.7 batch, open PR for lead review.
+Lead re-audit:
+- docs/LANE_B_REAUDIT.md
 
-Lane B stops at coherent V1.7 acceptance evidence. V2.0 platform work is owned by Lane D.
+Rework tasks:
+- B-R17-01 SP2 add conservative classifier paths for RECRUITER_FOLLOW_UP/BACKGROUND_CHECK/ONBOARDING/WITHDRAWAL and end-to-end tests
+- B-R17-02 SP2 contradictory rejection after OFFER_ACCEPTED/ONBOARDING -> review, not silent regression
+- B-R20-01 SP3 historical funnel/resume/source/role outcome metrics use ApplicationEvent history, not current status only
+- B-R20-02 SP2 fix "applications submitted" denominator; simulation/non-submitted rows do not count as real submitted
+- B-R20-03 SP1 remove "statistically robust" overclaim; descriptive sample-size language only
+- B-R20-04 SP2 remove false Gmail readiness inference; wait for Lane C typed readiness for final integration
+- B-R20-06 SP2 protect dashboard state-changing POST when not strictly local/authorized
 
-## Lane D — V2.0 Platform & Reliability
+Worker-run history claim J20-14 is NOT accepted yet.
+Do not expand it in this batch unless ChatGPT explicitly reassigns B-R20-05.
 
-### A-V20-CONTROL-CENTER
-- J20-01 SP2 inventory current dashboard vs acceptance contract
-- J20-02 SP3 fill highest-value missing operator views
-- J20-03 SP2 source/worker/policy health surfaces
-- J20-04 SP2 operator-flow regression tests
+After rework:
+- full tests
+- Ruff
+- mypy
+- push
+- READY FOR LEAD RE-REVIEW
 
-### A-V20-RELIABILITY
-- J20-05 SP2 audit migration/backup/health gaps
-- J20-06 SP3 migration + backup/restore verification automation
-- J20-07 SP3 audit/planning precursor for durable worker-run history
-- J20-08 SP2 health/recovery regression coverage
-- J20-12 SP2 distinguish registered/simulated/not-implemented/live-capable adapter health
-- J20-13 SP2 consume Lane C Gmail readiness + expose worker last-success/last-error
-- J20-14 SP3 persist durable worker run history — wait for ChatGPT clearance before shared DB model/migration edits
-- J20-15 SP1 fail restore when checksum is missing unless explicit audited emergency override
-- J20-16 SP1 remove silent production DB-password default behavior
+## Lane C — Live Data & Candidate Provenance
 
-### A-V20-ANALYTICS
-- J20-09 SP2 audit current analytics dimensions
-- J20-10 SP3 resume/source/role outcome aggregation
-- J20-11 SP2 time-to-stage + sample-size warning logic
+Branch:
+- `worker/live-data-foundations`
 
-## Shared/user-bound V2.0 artifacts
+Artifacts:
+- A-V12-CANDIDATE-PROVENANCE
+- A-V20-GMAIL-RUNTIME-READINESS
 
-### A-V12-CANDIDATE-PROVENANCE
-Lane C engineering may proceed now using a new provenance module and private-safe source references. Integration into application packet behavior must preserve Lane A ownership and wait for a reviewed interface where the code paths meet.
+Ready:
+- J12-01 SP2 private-safe candidate fact provenance records
+- J12-02 SP2 allowed_for_application enforcement
+- J12-03 SP1 provenance report CLI
+- J20G-01 SP2 Gmail partial-fetch must fail closed/no checkpoint advance
+- J20G-02 SP2 persistent ignored OAuth runtime wiring
+- J20G-03 SP2 typed secret-free REAL-Gmail diagnostic
 
-### A-V20-LIVE-INGESTION / A-V12-GMAIL-CANARY
-Code/runbook prep can proceed.
-Actual OAuth requires user interaction.
-No mock path may satisfy this artifact.
+Do not perform actual OAuth or access real mailbox.
+Final health integration waits until the readiness interface is reviewed.
 
-### A-PROOF-JOB-SELECTION
-User chooses the real proof job.
-Do not force Snorkel AI merely because it is convenient.
+## Lane D — V2.3 Foundations
 
-## V2.0 final integration gate
+Branch:
+- `worker/v23-foundations`
 
-Artifact: A-V20-INTEGRATED-OS
+Lane D does NOT redo Lane B's V2.0 code.
 
-Full ACCEPTED requires:
-- V1.7 recruiting ops accepted
-- control center accepted
-- reliability accepted
-- analytics accepted
-- real Gmail/live-data ingestion accepted
-- real candidate/resume provenance
-- safe application path/evidence
-- end-to-end integration proof
-- human uncertainty gates preserved
+Artifacts:
+- A-V23-OPPORTUNITY-GRAPH
+- A-V23-TARGET-COMPANY-WATCH
+- A-V23-AGENT-TOOLS
 
-If live user boundaries are pending, label the product ENGINEERING READY; do not falsely call V2.0 live accepted.
+Ready tasks:
 
-## V2.3 prep
+### Opportunity graph
+- J23O-01 SP2 implement read-only opportunity graph projection over existing relational models; no graph DB and no new schema
+- J23O-02 SP2 typed evidence-preserving queries for company/job/contact/application/resume relationships
+- J23O-03 SP2 edge/projection dedupe + provenance tests
 
-Artifact: A-V23-CAREER-INTELLIGENCE
-Contract:
-- docs/V2_3_SPEC.md
+### Target company watch
+- J23T-01 SP2 local target-company watch configuration/model in new V2.3 module without external polling
+- J23T-02 SP2 derive known jobs/applications/contacts/signals from existing DB truth
+- J23T-03 SP1 tests for pause/dedupe/already-known roles
 
-Do not start broad V2.3 implementation until V2.0 critical artifacts are stable, but ChatGPT may prepare contracts and worker slices ahead of time.
+### Agent tool layer
+- J23A-01 SP2 typed ToolResult/request envelope + permission metadata
+- J23A-02 SP3 read-only wrappers for jobs/applications/contacts/timelines/resume analytics/policy/health
+- J23A-03 SP2 local-write/draft interface contracts without external side effects
 
-## V3.0 prep
+No external actions.
+No MCP requirement yet.
+No shared DB migration unless ChatGPT explicitly authorizes one.
 
-Artifact: A-V30-CAREER-AGENT-NETWORK
-Contract:
-- docs/V3_0_ARTIFACT_PLAN.md
+## Scout — QA / Prep / Adversarial Review
+
+Branch:
+- `scout/qa-prep`
+
+Scout owns no production code by default.
+
+First priorities:
+1. independently re-audit Lane B repair branch
+2. audit Lane A V1.5 branch once code lands
+3. audit Lane C Gmail/provenance branch
+4. audit Lane D V2.3 interfaces
+5. maintain V2 integration risk log
+
+Scout outputs only under coordination/scout/.
+
+## Remaining V2.0 acceptance work
+
+Even when B rework is accepted, V2.0 still requires:
+- Lane C Gmail runtime readiness
+- actual user OAuth/live Gmail canary
+- candidate provenance
+- A-V20 integration fixture after core branches merge
+- accepted safe application execution path
+- real-data integration evidence
+
+Do not call V2.0 live ACCEPTED from simulated/test evidence.
 
 ## Safety
 
-- LinkedIn/Indeed submission MANUAL_ONLY unless policy explicitly changes with current evidence.
-- No CAPTCHA/MFA bypass or stealth/evasion.
-- No fabricated candidate facts.
-- Mock/simulation never equals real preparation/submission.
-- External confirmation required for real submitted state.
-- Consequential live actions require the defined user approval boundary.
-
-## Canonical unique future task IDs
-
-This section resolves task-ID collisions created while lead automation and manual lead prep ran concurrently. These IDs are authoritative for the artifacts below.
-
-### A-V20-INTEGRATION-FIXTURE
-- J20I-01 SP3 implement deterministic golden integration fixture
-- J20I-02 SP2 emit machine-readable integration report
-- J20I-03 SP2 add duplicate/out-of-order replay cases
-Contract: docs/V2_0_INTEGRATION_FIXTURE.md
-
-### A-V20-GMAIL-RUNTIME-READINESS
-Do not interrupt an active coherent V1.7 batch in Lane B. Lane C may execute J20G-01..J20G-03 independently now.
-- J20G-01 SP2 fail closed if a listed Gmail message cannot be fetched; preserve checkpoint for retry
-- J20G-02 SP2 wire ignored runtime OAuth token/client configuration safely into worker runtime/container
-- J20G-03 SP2 add safe REAL-Gmail diagnostic command/service with a typed secret-free readiness report
-- J20G-04 SP2 integrate Gmail readiness/last-success/error into health + worker-run evidence by consuming the J20G-03 report
-Coordinate J20G-04 with Lane D's existing J20-13 rather than duplicating health work.
-Contract: docs/V2_0_GMAIL_RUNTIME_READINESS.md
-
-### A-V16-SUBMISSION-ENGINE-REPAIR
-Blocked until Lane A reaches V1.6 engineering.
-- J16-01 SP2 persist exact job/packet/method-specific user authorization
-- J16-02 SP2 stable idempotency key + duplicate guard across requisition/status
-- J16-03 SP3 explicit PREPARED/AUTHORIZED/SUBMITTING/UNCONFIRMED/SUBMITTED/FAILED state model
-- J16-04 SP3 ambiguous-submit recovery; no blind retry
-- J16-05 SP2 external-confirmation gate
-- J16-06 SP2 exact preflight/audit manifest
-- J16-07 SP1 complete only submission-satisfied tasks; never blanket-complete all pending job tasks
-- J16-08 SP2 exact packet-job binding + packet/artifact integrity preflight
-- J16-09 SP1 separate request-attempt pacing telemetry from successful submission metrics
-Contracts:
-- docs/V1_6_SUBMISSION_CONTRACT.md
-- docs/V1_6_LEAD_AUDIT.md
-
-### Worker-run history task authority
-- J20-14 SP3 is the canonical implementation task for A-V20-WORKER-RUN-HISTORY.
-- Earlier J20-07 references should be treated as the audit/planning precursor, not a second implementation.
-
-## Lane C — immediate and independent
-
-### A-V12-CANDIDATE-PROVENANCE
-
-| Task | SP | Status | Work |
-|---|---:|---|---|
-| J12-01 | 2 | READY | Implement private-safe machine-readable candidate fact provenance records without committing raw private facts |
-| J12-02 | 2 | READY | Enforce allowed_for_application=false for inferred/unknown facts |
-| J12-03 | 1 | READY | Add provenance validation/report CLI using field paths/source refs, with redaction |
-
-Implementation guidance:
-- prefer a new provenance module rather than editing candidate_profile.py while Lane A is active,
-- provenance metadata may reference private local source files without committing their contents,
-- EEO/self-ID remains manual and should not become application-allowed truth.
-
-### A-V20-GMAIL-RUNTIME-READINESS
-
-| Task | SP | Status | Work |
-|---|---:|---|---|
-| J20G-01 | 2 | READY | Fail closed on partial Gmail fetch; no checkpoint advance or partial committed ingestion |
-| J20G-02 | 2 | READY | Wire ignored/persistent OAuth token/client config safely into worker runtime/container |
-| J20G-03 | 2 | READY | Add safe REAL-Gmail diagnostic and typed secret-free readiness report |
-| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane D consumes J20G-03 readiness output for health/worker-run evidence |
-
-Contract:
-- docs/V2_0_GMAIL_RUNTIME_READINESS.md
-
-After J20G-01..03 are reviewed, Lane C may prepare the engineering side of A-V12-GMAIL-CANARY but must stop before actual OAuth consent/live mailbox access.
-
-### Later Lane C — A-V20-INTEGRATION-FIXTURE
-
-Do not start until V1.7 + core V2 repairs are stable:
-- J20I-01 SP3 deterministic golden integration fixture
-- J20I-02 SP2 machine-readable integration report
-- J20I-03 SP2 duplicate/out-of-order replay cases
+- no fabricated candidate facts
+- no mock == real
+- LinkedIn/Indeed remain MANUAL_ONLY
+- no CAPTCHA/MFA bypass
+- external confirmation required for real submitted state
+- consequential external actions require scoped user approval
