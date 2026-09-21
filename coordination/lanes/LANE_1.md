@@ -14,21 +14,28 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
-## Latest lead re-review — 2026-09-21 14:53 ET
+## Latest lead re-review — 2026-09-21 14:58 ET
 
 Latest substantive implementation reviewed:
 - `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Current branch head observed:
-- `9badcd32cdc848baa3f0c657ddb45c9858d8c977`
-- all commits after `5e505846...` through that head are heartbeat-only
+Current Lane 1 branch head observed:
+- `bac19e5dd12a93644320ff9274ed562f1e347f20`
+- heartbeat #13 at `2026-09-21T18:53:27Z`
+- commits after `5e505846...` remain heartbeat-only
 
 Verdict:
 - **REWORK**
 - P0A is not accepted
 - private candidate/resume proof execution remains forbidden
 
-The worker-pc read-only post-repair audit finished at 18:39Z and independently confirmed the remaining source-attestation integrity defect. Its audit could not execute Python/pytest inside the remote sandbox, so it is supporting static evidence rather than acceptance evidence.
+The worker-pc read-only post-repair audit independently confirmed the remaining source-attestation integrity defect. The follow-up tests-only support task also completed and returned an actual Jobs branch:
+- branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449`
+- commit `cffae70577b6719c92e7d7edc3ecd94d00db622d`
+- actual diff reviewed by ChatGPT: exactly one file changed, `tests/test_real_proof_verifier.py`, +420 lines, no production files
+- no GitHub CI exists for that worker commit and the worker sandbox could not execute pytest/Ruff/Python, so this commit is **review input only**, not acceptance evidence
+
+The support tests explicitly encode the two remaining fail-closed requirements and may be cherry-picked or adapted into the Lane 1 repair. Do not merge the worker-pc branch automatically.
 
 ## Remaining bounded assignment
 
@@ -47,7 +54,7 @@ Requirements:
 - omitted `database_url` / `db_path` must fail,
 - unrelated or tampered persisted rows must fail.
 
-Add/convert adversarial tests proving all of the above.
+Adopt/adapt the worker-pc adversarial tests for missing DB target and persisted-row contradictions.
 
 ### 2. RP14-T3 — source attestation is independently bound to persisted import evidence
 
@@ -66,7 +73,7 @@ Load the corresponding persisted Greenhouse `JobSource` and `Job` evidence and b
 
 A bundle with a self-consistent forged `source_attestation`, locally authored questions file, and fabricated description/content SHA must fail even if its internal hashes are mutually consistent.
 
-Add adversarial tests for:
+Adopt/adapt the worker-pc tests for:
 - forged description SHA,
 - forged questions file/hash,
 - mismatched JobSource provider/source kind/public job ID/API URL,
@@ -74,13 +81,11 @@ Add adversarial tests for:
 - mismatched canonical apply URL,
 - JobSource linked to a different Job.
 
-A bounded `worker-pc` tests-only task is running to produce additional adversarial-test support. Do not wait for it; Lane 1 owns the production fix. Any returned worker-pc branch is review input only and must not be merged automatically.
-
 ## Final validation / review boundary
 
 After both repairs:
 1. synchronize/rebase the Lane 1 production changes onto latest main while avoiding unrelated historical coordination churn,
-2. run focused real-proof verifier/runner tests,
+2. run focused real-proof verifier/runner tests, including the worker-pc adversarial cases,
 3. run full `pytest`,
 4. run `ruff check .`,
 5. run `mypy src tests`,
@@ -95,9 +100,9 @@ Do **not** use private candidate/resume inputs or execute the real proof until C
 Lane 1 is correctly on the owner heartbeat standard.
 
 Latest verified current-epoch heartbeat:
-- `2026-09-21T18:43:24Z`
-- heartbeat #11
-- branch head `9badcd32...`
+- `2026-09-21T18:53:27Z`
+- heartbeat #13
+- branch head `bac19e5dd...`
 
 Canonical command:
 ```bash
