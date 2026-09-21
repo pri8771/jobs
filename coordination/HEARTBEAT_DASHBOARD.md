@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-21 UTC
+Last evidence review: 2026-09-20 23:42 ET / 2026-09-21T03:42Z
 
 ## Cadence policy
 
@@ -20,6 +20,13 @@ ChatGPT lead automation:
 | C | worker/live-data-foundations | 0 | 0/3 | none | NOT STARTED |
 | D | worker/v23-foundations | 0 | 0/3 | none | NOT STARTED |
 | Scout | scout/qa-prep | 0 | 0/3 | none | NOT STARTED |
+
+## Latest lead recheck
+
+- No worker branch advanced after the previously reviewed Lane A commit `ed875775122f0d390af6ab15beb378904af2a476`.
+- Lane C/B/D/Scout heads are still the lead-seeded heartbeat/instruction commits, not worker-authored proving heartbeats.
+- No V1.4 real-proof evidence JSON has landed.
+- The immediate heartbeat smoke/proving helper is available on main at `scripts/worker_heartbeat_probe.py`; smoke probes do not count as real 15-minute proof.
 
 ## Evidence notes
 
