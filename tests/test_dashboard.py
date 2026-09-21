@@ -1028,5 +1028,133 @@ def test_final_interview_evidence_and_accepted_rates(db_session: Session) -> Non
     assert safety_perf["accept_rate_pct"] == 50.0
 
 
+def test_funnel_summary_historical_outcomes_with_terminal_rejection(
+    db_session: Session,
+) -> None:
+    """B-R20-01: Headline funnel summary preserves screening/interview stage achievements after rejection."""
+    comp = CompanyModel(id=uuid.uuid4(), normalized_name="Anthropic")
+    db_session.add(comp)
+    db_session.flush()
+
+    job = JobModel(
+        id=uuid.uuid4(),
+        company_id=comp.id,
+        normalized_title="Alignment Engineer",
+        status="ACTIVE",
+    )
+    db_session.add(job)
+    db_session.flush()
+
+    # Application was submitted, reached screening, reached interview, then rejected
+    app = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job.id,
+        status="REJECTED",
+        policy_decision="auto_allowed",
+        application_mode="auto",
+        applied_at=datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=10),
+    )
+    db_session.add(app)
+    db_session.flush()
+
+    now = datetime.datetime.now(datetime.UTC)
+    ev_submit = ApplicationEventModel(
+        application_id=app.id,
+        event_type="APPLICATION_SUBMITTED",
+        occurred_at=now - datetime.timedelta(days=10),
+        source="system",
+    )
+    ev_screen = ApplicationEventModel(
+        application_id=app.id,
+        event_type="SCREENING_SCHEDULED",
+        occurred_at=now - datetime.timedelta(days=7),
+        source="email",
+    )
+    ev_interview = ApplicationEventModel(
+        application_id=app.id,
+        event_type="INTERVIEW_SCHEDULED",
+        occurred_at=now - datetime.timedelta(days=4),
+        source="email",
+    )
+    ev_reject = ApplicationEventModel(
+        application_id=app.id,
+        event_type="APPLICATION_REJECTED",
+        occurred_at=now - datetime.timedelta(days=1),
+        source="email",
+    )
+    db_session.add_all([ev_submit, ev_screen, ev_interview, ev_reject])
+    db_session.commit()
+
+    service = FunnelAnalyticsService(db_session)
+    summary = service.get_funnel_summary()
+
+    # Even though app.status is REJECTED, historical stages are preserved in headline metrics
+    assert summary["total_jobs_discovered"] == 1
+    assert summary["total_submitted"] == 1
+    assert summary["total_screening"] == 1
+    assert summary["total_interviewing"] == 1
+    assert summary["total_rejected"] == 1
+    assert summary["conversion_rates"]["submission_to_screen_pct"] == 100.0
+    assert summary["conversion_rates"]["screen_to_interview_pct"] == 100.0
+
+
+def test_funnel_summary_excludes_simulation_and_unsubmitted(
+    db_session: Session,
+) -> None:
+    """B-R20-02: Headline funnel denominator excludes simulation, mock, auto_simulated, and unsubmitted apps."""
+    comp = CompanyModel(id=uuid.uuid4(), normalized_name="OpenAI")
+    db_session.add(comp)
+    db_session.flush()
+
+    job1 = JobModel(id=uuid.uuid4(), company_id=comp.id, normalized_title="Research Scientist 1")
+    job2 = JobModel(id=uuid.uuid4(), company_id=comp.id, normalized_title="Research Scientist 2")
+    job3 = JobModel(id=uuid.uuid4(), company_id=comp.id, normalized_title="Research Scientist 3")
+    job4 = JobModel(id=uuid.uuid4(), company_id=comp.id, normalized_title="Research Scientist 4")
+    db_session.add_all([job1, job2, job3, job4])
+    db_session.flush()
+
+    # 1. Real submission
+    app_real = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job1.id,
+        status="SUBMITTED",
+        application_mode="assisted",
+        applied_at=datetime.datetime.now(datetime.UTC),
+    )
+    # 2. Simulated status
+    app_sim_status = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job2.id,
+        status="SIMULATED",
+        application_mode="auto",
+        applied_at=datetime.datetime.now(datetime.UTC),
+    )
+    # 3. Simulated mode (auto_simulated)
+    app_sim_mode = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job3.id,
+        status="SUBMITTED",
+        application_mode="auto_simulated",
+        applied_at=datetime.datetime.now(datetime.UTC),
+    )
+    # 4. Unsubmitted draft / discovered
+    app_unsubmitted = ApplicationModel(
+        id=uuid.uuid4(),
+        job_id=job4.id,
+        status="DISCOVERED",
+        application_mode="manual",
+    )
+    db_session.add_all([app_real, app_sim_status, app_sim_mode, app_unsubmitted])
+    db_session.commit()
+
+    service = FunnelAnalyticsService(db_session)
+    summary = service.get_funnel_summary()
+
+    assert summary["total_jobs_discovered"] == 4
+    # Only app_real is a real submission
+    assert summary["total_submitted"] == 1
+
+
+
 
 

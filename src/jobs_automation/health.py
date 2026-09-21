@@ -179,31 +179,36 @@ class HealthCheckService:
 
         Follows B-R20-05:
         - Reads worker_run (begin) and worker_run_finished (finalize) AuditLog records.
-        - Falls back to legacy worker_sweep records for backward compatibility.
+        - Identifies newest attempt by comparing begin and finish records.
+        - True latest-attempt worker health reflects unfinished RUNNING attempts.
         - Detects stale RUNNING records (begin with no matching finish after threshold).
-        - Exposes: last_attempt_at/status, last_success_at, last_error_at, stale_running_run.
+        - Exposes: last_attempt_at, last_attempt_status, last_success_at, last_error_at,
+          last_error_category, last_reconciliation_at, stale_running_run, stale_run_id.
         """
         try:
             with self.session_factory() as session:
                 now = datetime.datetime.now(datetime.UTC)
 
-                # 1. Find the most recent finalize record
+                # 1. Find the most recent begin record
+                last_begin = session.scalar(
+                    select(AuditLogModel)
+                    .where(AuditLogModel.action_type == "worker_run")
+                    .order_by(AuditLogModel.occurred_at.desc())
+                )
+
+                # 2. Find the most recent finalize record
                 last_finish = session.scalar(
                     select(AuditLogModel)
                     .where(AuditLogModel.action_type == "worker_run_finished")
                     .order_by(AuditLogModel.occurred_at.desc())
                 )
 
-                # 2. Detect stale RUNNING (begin with no finish)
+                # 3. Detect unfinished or stale RUNNING attempt
                 stale_running = False
                 stale_run_id: str | None = None
-                last_begin = session.scalar(
-                    select(AuditLogModel)
-                    .where(AuditLogModel.action_type == "worker_run")
-                    .where(AuditLogModel.result == "RUNNING")
-                    .order_by(AuditLogModel.occurred_at.desc())
-                )
-                if last_begin:
+                is_currently_running = False
+
+                if last_begin and last_begin.result == "RUNNING":
                     run_id = last_begin.external_reference
                     has_finish = session.scalar(
                         select(AuditLogModel)
@@ -215,109 +220,127 @@ class HealthCheckService:
                         if age_seconds > self.WORKER_STALE_RUN_THRESHOLD_SECONDS:
                             stale_running = True
                             stale_run_id = run_id
+                        else:
+                            is_currently_running = True
 
-                # 3. Derive health fields
-                if last_finish:
-                    fin_meta = last_finish.metadata_json or {}
+                # 4. Scan recent finishes for last success, last error, last reconciliation
+                last_success_at: str | None = None
+                last_error_at: str | None = None
+                last_error_category: str | None = None
+                last_reconciliation_at: str | None = None
+
+                recent_finishes = session.scalars(
+                    select(AuditLogModel)
+                    .where(AuditLogModel.action_type == "worker_run_finished")
+                    .order_by(AuditLogModel.occurred_at.desc())
+                    .limit(50)
+                ).all()
+
+                for f in recent_finishes:
+                    f_meta = f.metadata_json or {}
+                    if f.result == "SUCCESS" and last_success_at is None:
+                        last_success_at = f.occurred_at.isoformat()
+                    if f.result in ("FAILED", "PARTIAL") and last_error_at is None:
+                        last_error_at = f.occurred_at.isoformat()
+                        cats = f_meta.get("error_categories", [])
+                        if cats:
+                            last_error_category = cats[0]
+                        elif f_meta.get("sample_errors"):
+                            last_error_category = f_meta["sample_errors"][0]
+                    if f_meta.get("reconciliation_performed") and last_reconciliation_at is None:
+                        last_reconciliation_at = f.occurred_at.isoformat()
+
+                # Determine true latest attempt
+                if last_begin and (not last_finish or last_begin.occurred_at > last_finish.occurred_at):
+                    # True newest attempt is the begin record (RUNNING or interrupted)
+                    last_attempt_at = last_begin.occurred_at.isoformat()
+                    last_attempt_status = "RUNNING"
+                    attempt_age_seconds = (now - last_begin.occurred_at).total_seconds()
+                elif last_finish:
                     last_attempt_at = last_finish.occurred_at.isoformat()
                     last_attempt_status = last_finish.result
-                    last_success_at: str | None = None
-                    last_error_at: str | None = None
-
-                    # Scan recent finishes for last success/error
-                    recent_finishes = session.scalars(
+                    attempt_age_seconds = (now - last_finish.occurred_at).total_seconds()
+                else:
+                    # Fall back to legacy worker_sweep if present
+                    last_sweep = session.scalar(
                         select(AuditLogModel)
-                        .where(AuditLogModel.action_type == "worker_run_finished")
+                        .where(AuditLogModel.action_type == "worker_sweep")
                         .order_by(AuditLogModel.occurred_at.desc())
-                        .limit(20)
-                    ).all()
-                    for f in recent_finishes:
-                        if f.result == "SUCCESS" and last_success_at is None:
-                            last_success_at = f.occurred_at.isoformat()
-                        if f.result in ("FAILED", "PARTIAL") and last_error_at is None:
-                            last_error_at = f.occurred_at.isoformat()
-
-                    age_seconds = (now - last_finish.occurred_at).total_seconds()
-                    has_errors = bool(fin_meta.get("error_count", 0)) or last_attempt_status == "FAILED"
-                    is_stale = age_seconds > 28800  # 8 hours without a run
-                    if stale_running or last_attempt_status == "FAILED" or is_stale:
-                        status = "DEGRADED"
-                    elif has_errors:
-                        status = "DEGRADED"
-                    else:
-                        status = "HEALTHY"
-
-                    stale_note = (
-                        f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
                     )
+                    if last_sweep:
+                        age_seconds = (now - last_sweep.occurred_at).total_seconds()
+                        has_errors = bool(last_sweep.metadata_json.get("errors"))
+                        status = "DEGRADED" if (has_errors or age_seconds > 28800) else "HEALTHY"
+                        return ComponentHealth(
+                            name="worker",
+                            status=status,
+                            message=(
+                                f"Last worker sweep {round(age_seconds / 60, 1)}m ago "
+                                f"({last_sweep.result}). [legacy record]"
+                            ),
+                            details={
+                                "last_attempt_at": last_sweep.occurred_at.isoformat(),
+                                "last_attempt_status": last_sweep.result,
+                                "last_success_at": None,
+                                "last_error_at": None,
+                                "last_error_category": None,
+                                "last_reconciliation_at": None,
+                                "age_seconds": round(age_seconds, 1),
+                                "stale_running_run": False,
+                                "stale_run_id": None,
+                                "metrics": last_sweep.metadata_json,
+                            },
+                        )
                     return ComponentHealth(
                         name="worker",
-                        status=status,
-                        message=(
-                            f"Last worker run {round(age_seconds / 60, 1)}m ago "
-                            f"({last_attempt_status}).{stale_note}"
-                        ),
+                        status="DEGRADED",
+                        message="No worker runs have been recorded yet.",
                         details={
-                            "last_attempt_at": last_attempt_at,
-                            "last_attempt_status": last_attempt_status,
-                            "last_success_at": last_success_at,
-                            "last_error_at": last_error_at,
-                            "age_seconds": round(age_seconds, 1),
-                            "stale_running_run": stale_running,
-                            "stale_run_id": stale_run_id,
-                            "metrics": fin_meta,
-                        },
-                    )
-
-                # 4. No finalize record — fall back to legacy worker_sweep record
-                last_sweep = session.scalar(
-                    select(AuditLogModel)
-                    .where(AuditLogModel.action_type == "worker_sweep")
-                    .order_by(AuditLogModel.occurred_at.desc())
-                )
-                if last_sweep:
-                    age_seconds = (now - last_sweep.occurred_at).total_seconds()
-                    has_errors = bool(last_sweep.metadata_json.get("errors"))
-                    status = "DEGRADED" if (stale_running or has_errors or age_seconds > 28800) else "HEALTHY"
-                    return ComponentHealth(
-                        name="worker",
-                        status=status,
-                        message=(
-                            f"Last worker sweep {round(age_seconds / 60, 1)}m ago "
-                            f"({last_sweep.result}). [legacy record]"
-                        ),
-                        details={
-                            "last_attempt_at": last_sweep.occurred_at.isoformat(),
-                            "last_attempt_status": last_sweep.result,
+                            "last_attempt_at": None,
+                            "last_attempt_status": None,
                             "last_success_at": None,
                             "last_error_at": None,
-                            "age_seconds": round(age_seconds, 1),
-                            "stale_running_run": stale_running,
-                            "stale_run_id": stale_run_id,
-                            "metrics": last_sweep.metadata_json,
+                            "last_error_category": None,
+                            "last_reconciliation_at": None,
+                            "age_seconds": None,
+                            "stale_running_run": False,
+                            "stale_run_id": None,
+                            "metrics": {},
                         },
                     )
 
-                # 5. No records at all
-                stale_note = (
-                    f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
-                )
-                msg = (
-                    f"No completed worker run records found yet.{stale_note}"
-                    if not stale_running
-                    else f"Stale worker run in progress.{stale_note}"
-                )
+                fin_meta = (last_finish.metadata_json or {}) if last_finish else {}
+                has_errors = bool(fin_meta.get("error_count", 0)) or last_attempt_status == "FAILED"
+                is_stale = attempt_age_seconds > 28800  # 8 hours without a run
+
+                if stale_running or last_attempt_status == "FAILED" or is_stale:
+                    status = "DEGRADED"
+                elif has_errors:
+                    status = "DEGRADED"
+                else:
+                    status = "HEALTHY"
+
+                stale_note = f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                running_note = " [RUNNING in progress]" if is_currently_running else ""
+
                 return ComponentHealth(
                     name="worker",
-                    status="DEGRADED",
-                    message=msg,
+                    status=status,
+                    message=(
+                        f"Last worker run {round(attempt_age_seconds / 60, 1)}m ago "
+                        f"({last_attempt_status}).{stale_note}{running_note}"
+                    ),
                     details={
-                        "last_attempt_at": None,
-                        "last_attempt_status": None,
-                        "last_success_at": None,
-                        "last_error_at": None,
+                        "last_attempt_at": last_attempt_at,
+                        "last_attempt_status": last_attempt_status,
+                        "last_success_at": last_success_at,
+                        "last_error_at": last_error_at,
+                        "last_error_category": last_error_category,
+                        "last_reconciliation_at": last_reconciliation_at,
+                        "age_seconds": round(attempt_age_seconds, 1),
                         "stale_running_run": stale_running,
                         "stale_run_id": stale_run_id,
+                        "metrics": fin_meta,
                     },
                 )
         except Exception as exc:
