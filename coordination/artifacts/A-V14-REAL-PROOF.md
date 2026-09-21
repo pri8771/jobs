@@ -2,10 +2,10 @@
 
 - Type: real-data proof / acceptance evidence
 - Phase: V1.4
-- Status: READY
+- Status: BLOCKED
 - Priority: P0
 - Owner: Lane C + Lane A + Scout + ChatGPT lead
-- Dependencies: V1.4 engineering implementation accepted
+- Dependencies: V1.4 engineering implementation accepted; P0A proof-tool integrity gate accepted
 - Downstream: V1.4 COMPLETE designation and all future version-complete claims
 
 ## Goal
@@ -19,13 +19,35 @@ OpenSesame — AI Automation Engineer
 Public source:
 https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740
 
-Lead has verified the public posting is live for the proof target.
+Lead reverified the public posting is live on 2026-09-21 at the current lead check.
 
 No browser prefill/application submission is authorized by this artifact.
 
-## Current execution readiness
+## Current blocking gate — P0A proof-tool integrity
 
-Main now contains a one-command proof path:
+Do **not** execute the private-data proof until the proof-verification chain is hardened and lead-accepted.
+
+Authoritative audit:
+- `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
+
+Required repairs:
+- RP14-T1 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits a separately bound PASS/FAIL receipt
+- RP14-T2 local private artifact hashes cross-match the committed redacted candidate bundle
+- RP14-T3 JobModel/questions bind to the actual current approved Greenhouse source/fetch
+- RP14-T4 copied/renamed example candidate profiles are rejected by content evidence, not filename only
+- RP14-T5 committed evidence uses an explicit allowlist / no arbitrary extra fields
+- RP14-T6 deterministic generation is labeled unambiguously
+- RP14-T7 packet/manifest/resume-variant/artifact cross-links are independently verified
+
+Independent remote-worker audit confirmed the two highest-severity issues: a hand-authored structurally valid bundle can pass the current verifier, and the optional local evidence is not cross-bound to the redacted bundle.
+
+Remote branch task `jobs-v14-proof-hardening-r2` is currently executing on `worker-pc` with capacity=1. No result/worker branch had been published at the current lead check, so nothing from that task is accepted yet.
+
+Once P0A is lead-accepted, this artifact returns to READY and Lane A or Lane C may execute the real proof immediately on whichever machine has the actual private profile + mapped real resume bytes.
+
+## Current execution readiness after P0A
+
+Main contains the intended one-command proof path:
 - `scripts/import_v14_proof_job.py`
 - `scripts/run_v14_real_proof.py`
 - `scripts/verify_v14_real_proof.py`
@@ -33,27 +55,22 @@ Main now contains a one-command proof path:
 
 The importer reads current public Greenhouse job/question data into the configured local Jobs database and a gitignored questions file.
 
-The runner:
-- rejects example/test candidate-profile paths,
-- resolves and hashes the actual selected resume source,
-- requires a real persisted JobModel/source,
-- uses the normal `ApplicationPacketBuilder`,
-- uses `DeterministicModelGateway` as an explicit production-safe non-mock generation path,
-- writes private artifacts/full evidence under gitignored `.local/proofs/`,
-- writes only redacted runtime-derived proof evidence under `coordination/proofs/`.
+The runner is intended to:
+- reject example/test candidate-profile paths/content,
+- resolve and hash the actual selected resume source,
+- require a real persisted JobModel/source,
+- use the normal `ApplicationPacketBuilder`,
+- use `DeterministicModelGateway` as an explicit production-safe non-mock generation path,
+- write private artifacts/full evidence under gitignored `.local/proofs/`,
+- write only redacted runtime-derived proof evidence under `coordination/proofs/`.
 
-The verifier rejects mock/fixture markers, validates required hashes/privacy invariants, and can re-hash local artifacts when given the private full bundle.
+The hardened verifier must reject mock/fixture/forged markers, validate required hashes/privacy invariants, bind the candidate bundle to the local full bundle, verify packet/artifact cross-links, and emit a separately bound verifier receipt.
 
 Current evidence state:
 - `coordination/proofs/` contains the schema/readme only,
-- no runtime-generated V1.4 proof JSON is committed yet,
-- therefore REAL_PROOF has NOT happened and this artifact remains READY, not ACCEPTED.
-
-Latest lead recheck — 2026-09-20 23:42 ET:
-- OpenSesame job `7967740` is still live on the public Greenhouse board,
-- current main proof-tooling head `9cfd15835f829457f47a19d68caf3043d35fcd21` has successful CI,
-- no new Lane A/C proof execution commit or redacted proof JSON has landed,
-- no Scout proof audit is possible yet because runtime evidence does not exist.
+- no runtime-generated V1.4 proof candidate JSON is committed yet,
+- no verifier receipt exists,
+- therefore REAL_PROOF has NOT happened and this artifact is BLOCKED on P0A, not ACCEPTED.
 
 ## Required real inputs
 
@@ -67,7 +84,9 @@ Latest lead recheck — 2026-09-20 23:42 ET:
 
 ## Required output
 
-One redacted runtime-derived evidence record with:
+One runtime-derived redacted candidate evidence record plus one independently generated verifier receipt.
+
+Candidate evidence must include:
 - proof_run_id
 - run timestamp
 - code commit SHA
@@ -77,18 +96,23 @@ One redacted runtime-derived evidence record with:
 - candidate provenance/unresolved-fact summary
 - selected resume family/variant/version
 - real resume SHA-256 + byte count
-- model/gateway provider/model/origin
+- generation engine/origin
 - packet ID/hash
 - resume artifact SHA
 - cover-letter artifact SHA
 - manifest SHA
-- generation origin
 - is_live_ready
 - resolved answer count
 - unresolved question list/categories
-- read-back verification result
+- read-back verification inputs/results that are safe to commit
 - explicit `mock_or_fixture_inputs_present: false`
-- successful independent verifier result
+
+Verifier receipt must include at minimum:
+- candidate bundle SHA-256
+- verifier code commit SHA
+- verification timestamp
+- result `REAL_PROOF_PASS|REAL_PROOF_FAIL`
+- whether the private local bundle was verified
 
 ## Acceptance rules
 
@@ -101,22 +125,27 @@ One redacted runtime-derived evidence record with:
 - no browser/application submission required
 - unresolved questions are okay when truthfully surfaced
 - evidence bundle must be independently reviewable without exposing private content
+- P0A proof-tool integrity repairs must be lead-accepted before any private proof can satisfy this artifact
+- candidate evidence alone never self-establishes PASS; the verifier receipt and lead review are required
 
 ## Task split
 
+### P0A proof-tool integrity — worker-pc / implementation worker
+Implement RP14-T1..RP14-T7 from `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`, add adversarial tests, run targeted/full tests plus Ruff/mypy/CI, push a bounded worker branch, and stop for lead review. No private proof execution in this task.
+
 ### RP14-C1 — SP2 — Lane C
-Locate/validate the real private candidate profile and actual resume-source mappings locally.
+After P0A acceptance, locate/validate the real private candidate profile and actual resume-source mappings locally.
 Do not commit private contents.
 Produce redacted readiness evidence or explicitly report `REAL_PROOF_BLOCKED_PRIVATE_INPUT`.
 
 ### RP14-C2 — SP2 — Lane C
-Import/validate the real OpenSesame JobModel/source/questions from the live Greenhouse public endpoint using the provided importer.
+After P0A acceptance, import/validate the real OpenSesame JobModel/source/questions from the live Greenhouse public endpoint using the provided importer.
 
 ### RP14-C3 — SP1 — Lane C
-Confirm the proof uses a non-mock production generation route. `DeterministicModelGateway` is an acceptable explicit non-mock path for this packet-preparation proof.
+After P0A acceptance, confirm the proof uses a non-mock production generation route. `DeterministicModelGateway` is an acceptable explicit non-mock path for this packet-preparation proof when labeled as deterministic generation rather than an external model provider.
 
 ### RP14-E1 — SP2 — First eligible Lane A or Lane C worker
-The first worker machine that has the actual private candidate profile + real resume mapping should execute the proof end-to-end.
+After P0A acceptance, the first worker machine that has the actual private candidate profile + real resume mapping should execute the proof end-to-end.
 
 Use:
 - `python scripts/import_v14_proof_job.py`
@@ -127,23 +156,25 @@ Do not wait for a cross-lane handoff if the same worker already has all real inp
 No browser/submission required.
 
 ### RP14-E2 — SP2 — Executing worker
-Push only the runner-generated redacted evidence JSON and a heartbeat requesting review. Private paths/content remain local.
+Push only the runner-generated redacted candidate evidence JSON plus verifier receipt and a heartbeat requesting review. Private paths/content remain local.
 
 ### RP14-S1 — SP2 — Scout
-Independently audit the proof bundle:
+Independently audit the proof candidate + verifier receipt:
 - no fixture/mock inputs,
 - job is real/current,
-- resume hash corresponds to runtime artifact evidence,
+- candidate bundle SHA matches the verifier receipt,
+- resume/local artifact hashes correspond to runtime artifact evidence,
 - generation origin is non-mock,
-- packet/artifact hashes are internally consistent,
+- packet/artifact hashes and cross-links are internally consistent,
 - evidence is runtime-derived,
 - private contents are not exposed.
 
 ### RP14-L1 — Lead
-ChatGPT re-audits evidence and marks A-V14-REAL-PROOF ACCEPTED only if the proof is genuine.
+ChatGPT re-audits candidate evidence, verifier receipt, Scout findings, relevant code/test/CI evidence, and marks A-V14-REAL-PROOF ACCEPTED only if the proof is genuine.
 
 ## Completion
 
 V1.4 is COMPLETE only when:
 - A-V14-PACKET-SAFETY engineering acceptance remains valid, and
-- A-V14-REAL-PROOF is ACCEPTED.
+- P0A proof-tool integrity is lead-accepted, and
+- A-V14-REAL-PROOF is ACCEPTED from a genuine runtime candidate bundle + independently bound REAL_PROOF_PASS verifier receipt.
