@@ -34,15 +34,15 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied example profile contents, extra fields, misleading generation metadata, and broken packet/artifact links; targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Current lead review — 2026-09-21 07:43 ET
+## Current lead review — 2026-09-21 08:46 ET
 
-- Jobs `main` head `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` passed CI run #315.
-- Lane C remains exactly at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`; it has produced no worker implementation and no worker-authored heartbeat. RP14-T1..T7 remain open.
-- Lane A remains `ed875775122f0d390af6ab15beb378904af2a476`; Lane B remains `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`; Lane D remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`; Scout remains `d221eecbe21aa33051c888b9e42f10a307ed9ecd`. No new READY_FOR_LEAD_REVIEW batch exists.
-- `coordination/proofs/` still contains only `README.md` and `v14_real_proof.schema.json`; there is no runtime proof candidate or verifier receipt. V1.4 therefore remains NOT COMPLETE.
-- Remote support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure: `Worker branch push failed.` The sanitized result contains no Jobs branch, commit, tests, or summary, and no corresponding Jobs branch exists, so none of that attempted work is reviewable or accepted.
-- Workflow logs show task execution reached the branch-push stage and the remote-workers result itself was published successfully afterward, but the executor suppresses the target-repository push stderr and collapses it to the generic failure. The branch-mode Jobs path is therefore not reliable enough for an immediate retry without better diagnostic/recovery evidence.
-- Lane C remains the production implementation owner for RP14-T1..T7 and must not wait for remote-worker support. No private proof execution is authorized before P0A lead acceptance.
+- `coordination/proofs/` still contains only `README.md` and `v14_real_proof.schema.json`; there is no runtime `REAL_PROOF_CANDIDATE` and no independently bound verifier receipt. V1.4 remains NOT COMPLETE.
+- Lane C remains at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. P0A remains NOT ACCEPTED.
+- Lane A advanced to `f5742f210812cac77d7f9df47c58efbfb886f6e3`. Its current production browser blobs for the already reviewed A-R15-01..A-R15-05 scope are unchanged from the previously accepted task-scope code, and PR #2 current-head CI run #321 passed. This preserves task-scope V1.5 acceptance only; V1.5 remains IN_PROGRESS.
+- Lane A also attempted the V1.4 packet proof while P0A was still unaccepted. That attempt cannot count as RP14-E1/E2 or acceptance evidence because this artifact explicitly forbids private proof execution before P0A lead acceptance.
+- The early attempt did expose a truthful local input blocker: the real profile selected resume variant `resume_ai_software_engineer`, but Lane A had no actual file mapped for that selected variant; only `enterprise_automation_solutions_architect.md` was present. The runner failed closed and no substitute resume was synthesized. Treat Lane A as `REAL_PROOF_BLOCKED_PRIVATE_INPUT` unless a genuine intended resume mapping is available after P0A.
+- Lane A's latest heartbeat claims `consecutive_on_time: 2`, but its preserved worker entries are 02:41Z and 12:49Z. The >20 minute gap resets the proving streak, so lead recognizes Lane A as 1/3.
+- The latest remote Jobs tests-only task remains failed with `Worker branch push failed.` and produced no reviewable Jobs branch/commit/tests. `worker-pc` is presently occupied by a non-Jobs SwarmAI workflow, so no new Jobs remote task was dispatched.
 
 ## Real-proof execution after P0A acceptance
 
@@ -56,12 +56,14 @@ Import/validate the current real OpenSesame JobModel/source/questions using `scr
 Confirm the production packet path has a non-mock generation route. `DeterministicModelGateway` is acceptable only when represented honestly as deterministic production generation. No silent fallback to mock.
 
 ### RP14-E1/E2 — SP2 + SP2 — first eligible Lane A or Lane C machine
-Whichever worker machine first has the actual private profile and real mapped resume bytes runs:
+Whichever worker machine first has the actual private profile and real mapped resume bytes runs, after P0A acceptance:
 - `python scripts/import_v14_proof_job.py`
 - `python scripts/run_v14_real_proof.py ...`
 - `python scripts/verify_v14_real_proof.py ... --local-full-bundle ...`
 
 Do not wait for a cross-lane handoff when one eligible machine has all inputs. Push only runtime-generated redacted candidate evidence plus the separately generated verifier receipt; private full evidence remains local/gitignored.
+
+A machine without the actual selected resume mapping is not eligible merely because another real resume file exists locally. Do not synthesize, relabel, or silently substitute resume bytes to make the proof pass.
 
 ### RP14-S1 — SP2 — Scout
 Independently audit runtime derivation, no mock/fixture contamination, current-job binding, candidate-bundle SHA binding, local/artifact hash consistency, packet/manifest/resume linkage, generation origin, and privacy.
