@@ -36,11 +36,14 @@ class PacketBuildResult(BaseModel):
     resume_variant_id: str
     resume_variant_name: str
     resume_variant: str = ""
+    resume_family: str = ""
     resume_artifact_uri: str
     resume_artifact_sha256: str
     cover_letter_artifact_uri: str
     cover_letter_artifact_sha256: str
     manifest_artifact_uri: str
+    is_live_ready: bool = False
+    generation_origin: str = "mock"
     has_unresolved_questions: bool
     unresolved_questions: list[str] = Field(default_factory=list)
     resolved_answers_count: int = 0
@@ -117,9 +120,10 @@ class ApplicationPacketBuilder:
         self.session.add(resume_artifact)
         self.session.flush()
 
-        # 3. Create Immutable ResumeVariant Record (J14-03, J14-04)
+        # 3. Create Immutable ResumeVariant Record with Exact Family Attribution (R14-02)
+        resume_family = ResumeVariantSelector.get_resume_family(variant_name, self.profile)
         resume_variant = ResumeVariantModel(
-            resume_family=self.profile.target.primary_headline,
+            resume_family=resume_family,
             name=variant_name,
             version=1,
             source_reference=str(source_path),
@@ -132,7 +136,9 @@ class ApplicationPacketBuilder:
         self.session.flush()
 
         # 4. Draft and Materialize Cover Letter (J14-05, J14-06)
-        cover_letter_text = self.cover_letter_drafter.draft(job, self.profile)
+        cover_letter_text, cl_metadata = self.cover_letter_drafter.draft_with_metadata(
+            job, self.profile
+        )
         cl_filename = f"{job.id}.txt"
         cl_uri, cl_sha, cl_size = self.artifact_store.store(
             content=cover_letter_text,
@@ -153,7 +159,7 @@ class ApplicationPacketBuilder:
         self.session.add(cl_artifact)
         self.session.flush()
 
-        # 5. Resolve Questions with Provenance (J14-08, J14-09)
+        # 5. Resolve Questions with Provenance (J14-08, J14-09, R14-04)
         answers: dict[str, str] = {}
         answer_provenance: dict[str, Any] = {}
         unresolved: list[str] = []
@@ -162,7 +168,31 @@ class ApplicationPacketBuilder:
                 questions, self.profile
             )
 
-        # 6. Deterministic Packet Hash
+        # 6. Determine Generation Origin and Live-Readiness Gate (R14-03)
+        # Check origins across model gateway, cover letter drafter, and question answering
+        is_mock_gateway = type(self.gateway).__name__ in ("MockModelGateway", "HallucinatingModelGateway")
+        cl_origin = cl_metadata.get("origin", "mock" if is_mock_gateway else "real")
+
+        mock_answer_found = any(
+            str(p.get("model_origin", "")).lower() in ("mock", "test", "adversarial_mock")
+            for p in answer_provenance.values()
+        )
+
+        if is_mock_gateway or cl_origin in ("mock", "test", "adversarial_mock") or mock_answer_found:
+            generation_origin = "mock"
+        elif cl_origin == "real" or any(p.get("method") == "model_assisted" for p in answer_provenance.values()):
+            generation_origin = "real"
+        else:
+            generation_origin = "deterministic"
+
+        # Explicit mock/test generation origin may NEVER create a live-ready packet.
+        # Live readiness requires non-mock generation origin AND zero unresolved questions.
+        is_live_ready = bool(
+            generation_origin not in ("mock", "test", "adversarial_mock")
+            and not unresolved
+        )
+
+        # 7. Deterministic Packet Hash
         packet_payload = {
             "job_id": str(job.id),
             "profile_version": self.profile.version,
@@ -176,7 +206,7 @@ class ApplicationPacketBuilder:
             json.dumps(packet_payload, sort_keys=True).encode("utf-8")
         ).hexdigest()
 
-        # 7. Persist ApplicationPacketModel with ResumeVariant Linkage
+        # 8. Persist ApplicationPacketModel with ResumeVariant Linkage and Readiness
         packet = ApplicationPacketModel(
             job_id=job.id,
             candidate_profile_version=self.profile.version,
@@ -187,18 +217,24 @@ class ApplicationPacketBuilder:
             answer_provenance_json=answer_provenance,
             unresolved_questions_json=unresolved,
             packet_hash=packet_hash,
+            is_live_ready=is_live_ready,
+            generation_metadata_json={
+                "generation_origin": generation_origin,
+                "cover_letter_origin": cl_origin,
+                "cover_letter_model": cl_metadata.get("model"),
+            },
         )
         self.session.add(packet)
         self.session.flush()
 
-        # 8. Materialize Machine-Readable Packet Manifest (J14-10)
+        # 9. Materialize Machine-Readable Packet Manifest (J14-10, R14-02, R14-03)
         manifest_data = {
             "packet_id": str(packet.id),
             "job_id": str(job.id),
             "company": job.company.normalized_name if job.company else "Unknown",
             "title": job.normalized_title,
             "candidate_profile_version": self.profile.version,
-            "resume_family": self.profile.target.primary_headline,
+            "resume_family": resume_family,
             "resume_variant_id": str(resume_variant.id),
             "resume_variant_name": variant_name,
             "resume_source_reference": str(source_path),
@@ -209,6 +245,8 @@ class ApplicationPacketBuilder:
             "answers": answers,
             "answer_provenance": answer_provenance,
             "unresolved_questions": unresolved,
+            "generation_origin": generation_origin,
+            "is_live_ready": is_live_ready,
             "packet_hash": packet_hash,
             "created_at": packet.created_at.isoformat(),
         }
@@ -218,7 +256,7 @@ class ApplicationPacketBuilder:
             filename=f"manifest_{packet.id}.json",
         )
 
-        # 9. Check unresolved questions and route to task if needed
+        # 10. Check unresolved questions and route to task if needed
         if unresolved:
             task = TaskModel(
                 task_type="NEEDS_REVIEW",
@@ -244,11 +282,14 @@ class ApplicationPacketBuilder:
             resume_variant_id=str(resume_variant.id),
             resume_variant_name=variant_name,
             resume_variant=variant_name,
+            resume_family=resume_family,
             resume_artifact_uri=resume_uri,
             resume_artifact_sha256=resume_sha,
             cover_letter_artifact_uri=cl_uri,
             cover_letter_artifact_sha256=cl_sha,
             manifest_artifact_uri=manifest_uri,
+            is_live_ready=is_live_ready,
+            generation_origin=generation_origin,
             has_unresolved_questions=bool(unresolved),
             unresolved_questions=unresolved,
             resolved_answers_count=len(answers),

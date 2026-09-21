@@ -188,6 +188,25 @@ class ControlledAutoApplicationEngine:
                 message="No prepared application packet found for job.",
             )
 
+        # Check Live-Readiness Gate (R14-03):
+        # Explicit mock/test generation origin may NEVER be submitted live.
+        if not mock_mode and not getattr(packet, "is_live_ready", False):
+            self._log_audit(
+                action_type="live_submission_rejected_not_ready",
+                entity_type="job",
+                entity_id=job_id,
+                result="rejected",
+                metadata={"reason": "Packet is not live ready (mock origin or unresolved questions)"},
+            )
+            self.session.commit()
+            return ControlledAutoApplicationResult(
+                job_id=str(job_id),
+                status="FAILED_NOT_LIVE_READY",
+                destination_domain=domain,
+                platform=adapter.platform_name,
+                message="Application packet was generated from mock/test origin or has unresolved items; not eligible for live submission.",
+            )
+
         # 7. Adapter Packet Validation & Unknown-Question Stop Condition
         validation = adapter.validate_packet(packet, self.candidate)
         if not validation.is_valid:

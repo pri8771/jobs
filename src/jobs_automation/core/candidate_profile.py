@@ -102,6 +102,7 @@ class ResumeVersion(BaseModel):
 
     id: str
     priority: int
+    family: str | None = None
     emphasize: list[str] = Field(default_factory=list)
     source_path: str | None = None
 

@@ -178,12 +178,12 @@ def test_application_packet_builder_creates_reproducible_packet(
     assert db_packet.resume_variant_id is not None
     assert "What is your required salary?" in db_packet.answer_provenance_json
 
-    # Verify ResumeVariantModel persistence and linkage (J14-03, J14-04)
+    # Verify ResumeVariantModel persistence and linkage (J14-03, J14-04, R14-02)
     db_variant = db_session.execute(
         select(ResumeVariantModel).where(ResumeVariantModel.id == db_packet.resume_variant_id)
     ).scalar_one()
     assert db_variant.name == "resume_ai_software_engineer"
-    assert db_variant.resume_family == candidate_profile.target.primary_headline
+    assert db_variant.resume_family == "Senior Software Engineer / AI Automation Engineer"
     assert len(db_variant.content_hash) == 64
 
     # Verify artifacts actually exist on disk and hash-match (J14-05)
@@ -197,12 +197,15 @@ def test_application_packet_builder_creates_reproducible_packet(
     ).scalar_one()
     assert store.verify(cl_artifact.storage_uri, cl_artifact.sha256) is True
 
-    # Verify machine-readable manifest (J14-10)
+    # Verify machine-readable manifest (J14-10, R14-02, R14-03)
     manifest_bytes = store.read(result.manifest_artifact_uri)
     manifest = json.loads(manifest_bytes.decode("utf-8"))
     assert manifest["packet_id"] == str(packet.id)
     assert manifest["resume_variant_name"] == "resume_ai_software_engineer"
+    assert manifest["resume_family"] == "Senior Software Engineer / AI Automation Engineer"
     assert manifest["resume_artifact_sha256"] == resume_artifact.sha256
+    assert manifest["generation_origin"] == "mock"
+    assert manifest["is_live_ready"] is False
 
 
 def test_packet_builder_fails_closed_when_resume_source_missing(
