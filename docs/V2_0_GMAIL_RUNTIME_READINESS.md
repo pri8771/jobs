@@ -43,6 +43,14 @@ Current health/status can say database/adapters/policy are healthy but does not 
 - worker container can access the token,
 - latest ingestion was real rather than mock.
 
+### 4. Cross-lane readiness interface is currently implicit
+
+Lane C owns Gmail/OAuth/runtime diagnostics while Lane B owns `health.py`, `worker.py`, and worker-run evidence.
+
+Without a typed boundary, Lane B could accidentally duplicate OAuth logic, depend on secret-bearing credential objects, or report a registered/mock adapter as real Gmail readiness.
+
+The integration boundary is therefore part of this artifact contract, not an implementation detail.
+
 ## Required fixes
 
 ### J20G-01 SP2 — fail closed on partial Gmail fetch
@@ -84,6 +92,29 @@ Add a harmless read-only diagnostic that reports:
 
 It must not print client secret, access token, refresh token, or email bodies.
 
+#### Required typed output boundary
+
+Lane C must expose a typed, secret-free readiness value object that Lane B can consume without importing credential internals. A Pydantic model is preferred.
+
+Minimum fields:
+- `mode`: literal `REAL`
+- `configured`: bool
+- `token_path`: safe filesystem path string only
+- `token_present`: bool
+- `credentials_parseable`: bool
+- `refresh_ok`: bool
+- `api_canary_ok`: bool
+- `scopes`: list of safe scope strings
+- `error_category`: stable non-secret category or null
+- `checked_at`: UTC timestamp
+
+The diagnostic API must be non-interactive by default. Health checks and scheduled workers must never trigger OAuth consent UI.
+
+Suggested interface shape:
+- `GmailDiagnosticService.check() -> GmailReadinessReport`
+
+Exact module placement is Lane C's implementation choice, but the value object must remain transport-neutral and safe to serialize into health/worker evidence.
+
 ### J20G-04 SP2 — health + worker evidence
 
 Integrate Gmail readiness with:
@@ -98,6 +129,16 @@ Expose:
 - last reconciliation
 
 Registered/mock adapters do not count as real Gmail ready.
+
+#### Cross-lane consumption rule
+
+Lane B consumes only the secret-free readiness interface produced by J20G-03. Lane B must not:
+- read or serialize access/refresh tokens,
+- receive the Gmail client secret through dashboard APIs,
+- invoke interactive OAuth,
+- infer REAL readiness from adapter registration alone.
+
+Health/worker evidence may persist status, timestamps, safe token path, scopes, and stable error categories, but never token contents or message bodies.
 
 ## OAuth user boundary
 
@@ -119,6 +160,7 @@ A-V20-GMAIL-RUNTIME-READINESS is accepted when:
 - partial fetch cannot silently advance checkpoint,
 - container/runtime token persistence is configured safely,
 - diagnostic proves real Gmail adapter readiness without exposing secrets,
+- J20G-03 publishes the typed secret-free readiness boundary and J20G-04 consumes it without duplicated OAuth/credential logic,
 - health/worker evidence distinguishes REAL Gmail from mock/unavailable,
 - tests/CI green.
 
