@@ -24,11 +24,11 @@ Read in order:
 
 ## Assigned branches / lane files
 
-- Lane A: `worker/v15-assisted-application` -> `coordination/lanes/ANTIGRAVITY_A.md`
-- Lane B: `worker/recruiting-ops` -> `coordination/lanes/ANTIGRAVITY_B.md`
-- Lane C: `worker/live-data-foundations` -> `coordination/lanes/ANTIGRAVITY_C.md`
-- Lane D: `worker/v23-foundations` -> `coordination/lanes/ANTIGRAVITY_D.md`
-- Scout: `scout/qa-prep` -> `coordination/scout/SCOUT_STATUS.md`
+- Lane 1: `worker/v14-real-proof` -> `coordination/lanes/LANE_1.md`
+- Lane 2: `worker/v15-assisted-application` -> `coordination/lanes/LANE_2.md`
+- Lane 3: `worker/recruiting-ops` -> `coordination/lanes/LANE_3.md`
+
+Old Lane C/D/Scout contracts are historical/paused and are not active assignments.
 
 ## Execution
 
@@ -53,7 +53,7 @@ For the current epoch `DAYWATCH_2026_09_21`:
 
 1. Pull/rebase latest main before implementation work.
 2. Launch the detached watcher for your lane:
-   `python scripts/worker_heartbeat_watch.py --lane <LANE> --epoch DAYWATCH_2026_09_21 --detach`
+   `python scripts/worker_heartbeat_watch.py --lane <1|2|3> --epoch DAYWATCH_2026_09_21 --detach`
 3. Confirm the command prints `HEARTBEAT_WATCH_STARTED`.
 4. Continue normal lane work immediately.
 5. The watcher performs:
@@ -64,3 +64,11 @@ For the current epoch `DAYWATCH_2026_09_21`:
 7. Preserve historical heartbeat entries; only the current epoch counts for this exercise.
 
 Read `coordination/HEARTBEAT_PROTOCOL.md` for exact timing and metadata rules.
+
+
+## Visible progress
+
+Every active-lane heartbeat is mirrored automatically to GitHub issue #7:
+`Jobs Automation — Live Progress`.
+
+A heartbeat may simply say the lane is still working on its current task; code does not need to be pushed at every heartbeat.
