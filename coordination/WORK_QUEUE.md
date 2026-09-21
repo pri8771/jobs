@@ -1,9 +1,9 @@
 # Active Work Queue
 
 ChatGPT owns prioritization and acceptance.
-Two Antigravity sessions execute artifact-backed worker lanes in parallel.
+Three Antigravity sessions execute artifact-backed worker lanes in parallel.
 
-Last prioritized: 2026-09-20 20:25 ET
+Last prioritized: 2026-09-20 20:47 ET
 
 ## Formal milestone cadence
 
@@ -128,7 +128,7 @@ Then continue on the same lane with V2.0 brownfield validation:
 ### A-V20-RELIABILITY
 - J20-05 SP2 audit migration/backup/health gaps
 - J20-06 SP3 migration + backup/restore verification automation
-- J20-07 SP3 durable worker-run history/evidence
+- J20-07 SP3 audit/planning precursor for durable worker-run history
 - J20-08 SP2 health/recovery regression coverage
 - J20-12 SP2 distinguish registered/simulated/not-implemented/live-capable adapter health
 - J20-13 SP2 expose Gmail + worker last-success/last-error readiness
@@ -144,7 +144,7 @@ Then continue on the same lane with V2.0 brownfield validation:
 ## Shared/user-bound V2.0 artifacts
 
 ### A-V12-CANDIDATE-PROVENANCE
-Engineering may proceed after V1.4 acceptance.
+Lane C engineering may proceed now using a new provenance module and private-safe source references. Integration into application packet behavior must preserve Lane A ownership and wait for a reviewed interface where the code paths meet.
 
 ### A-V20-LIVE-INGESTION / A-V12-GMAIL-CANARY
 Code/runbook prep can proceed.
@@ -195,7 +195,6 @@ Contract:
 - External confirmation required for real submitted state.
 - Consequential live actions require the defined user approval boundary.
 
-
 ## Canonical unique future task IDs
 
 This section resolves task-ID collisions created while lead automation and manual lead prep ran concurrently. These IDs are authoritative for the artifacts below.
@@ -207,11 +206,11 @@ This section resolves task-ID collisions created while lead automation and manua
 Contract: docs/V2_0_INTEGRATION_FIXTURE.md
 
 ### A-V20-GMAIL-RUNTIME-READINESS
-Do not interrupt the current V1.7 batch.
+Do not interrupt an active coherent V1.7 batch in Lane B. Lane C may execute J20G-01..J20G-03 independently now.
 - J20G-01 SP2 fail closed if a listed Gmail message cannot be fetched; preserve checkpoint for retry
 - J20G-02 SP2 wire ignored runtime OAuth token/client configuration safely into worker runtime/container
-- J20G-03 SP2 add safe REAL-Gmail diagnostic command/service
-- J20G-04 SP2 integrate Gmail readiness/last-success/error into health + worker-run evidence
+- J20G-03 SP2 add safe REAL-Gmail diagnostic command/service with a typed secret-free readiness report
+- J20G-04 SP2 integrate Gmail readiness/last-success/error into health + worker-run evidence by consuming the J20G-03 report
 Coordinate J20G-04 with existing J20-13 rather than duplicating health work.
 Contract: docs/V2_0_GMAIL_RUNTIME_READINESS.md
 
@@ -234,7 +233,6 @@ Contracts:
 - J20-14 SP3 is the canonical implementation task for A-V20-WORKER-RUN-HISTORY.
 - Earlier J20-07 references should be treated as the audit/planning precursor, not a second implementation.
 
-
 ## Lane C — immediate and independent
 
 ### A-V12-CANDIDATE-PROVENANCE
@@ -256,8 +254,8 @@ Implementation guidance:
 |---|---:|---|---|
 | J20G-01 | 2 | READY | Fail closed on partial Gmail fetch; no checkpoint advance or partial committed ingestion |
 | J20G-02 | 2 | READY | Wire ignored/persistent OAuth token/client config safely into worker runtime/container |
-| J20G-03 | 2 | READY | Add safe REAL-Gmail diagnostic command/service with no token/secret output |
-| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane B integrates Gmail readiness with health/worker-run evidence after J20G-03 |
+| J20G-03 | 2 | READY | Add safe REAL-Gmail diagnostic and typed secret-free readiness report |
+| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane B consumes J20G-03 readiness output for health/worker-run evidence |
 
 Contract:
 - docs/V2_0_GMAIL_RUNTIME_READINESS.md
