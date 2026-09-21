@@ -10,3 +10,8 @@
 
 ## Contract
 See docs/V3_AGENT_EVALUATION.md.
+
+## Supporting contracts
+
+- `docs/V3_AGENT_EVAL_MATRIX.md`
+- `docs/V3_INTEGRATION_ACCEPTANCE_SCENARIOS.md`
