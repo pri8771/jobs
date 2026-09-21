@@ -7,10 +7,10 @@ mode: ACTIVE_5M
 interval_minutes: 5
 heartbeat_count: 18
 last_check_in_utc: 2026-09-21T19:18:36Z
-current_task: V1.4 real-proof tooling RP14-T1..T7
-progress_note: P0A proof-tool integrity repairs complete; ready for lead review
-review_state: READY_FOR_LEAD_REVIEW
-lead_action_requested: REVIEW
+current_task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
+progress_note: Fable worker session started; prior watcher confirmed stale (last #18 19:18:36Z, no process in this environment); auditing support commit 062ca92; no private inputs used
+review_state: WORKING
+lead_action_requested: NONE
 
 ## Entries
 
