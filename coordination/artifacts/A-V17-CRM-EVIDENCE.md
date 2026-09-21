@@ -2,7 +2,7 @@
 
 - Type: implementation / evidence
 - Phase: V1.7
-- Status: READY
+- Status: LEAD_REVIEW
 - Owner: Antigravity Lane B
 - Reviewer: ChatGPT
 - Dependencies: none for code audit/repair
@@ -37,3 +37,16 @@ Make recruiter/contact/thread/application history reconstructable from source ev
 - J17-02 SP3 — add multi-role contact/thread relationship support or repair gaps
 - J17-03 SP2 — add manual correction/merge service for contact/message links
 - J17-04 SP3 — expand lifecycle evidence/timeline tests
+
+## Lead evidence state
+
+Reviewed worker commits:
+- `21f2be9` initial V1.7 implementation
+- `33d18b4` lead-repair batch
+
+The authoritative residual review in `docs/LANE_B_REREVIEW_2026_09_20.md` accepts B-R17-01 and B-R17-02. No remaining semantic CRM/lifecycle defect from the current lead audit is open against this card.
+
+The card remains LEAD_REVIEW rather than ACCEPTED because the repair branch was behind current main and the repair commit had no GitHub CI/check result. Required final evidence:
+- rebase/integration with current main,
+- full tests/Ruff/mypy,
+- green integrated GitHub CI.
