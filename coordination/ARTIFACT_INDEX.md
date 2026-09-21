@@ -8,8 +8,8 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | Artifact ID | Phase | Artifact | Type | Owner | Status | Depends on | Unblocks |
 |---|---|---|---|---|---|---|---|
 | A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/acceptance | Antigravity Lane A | ACCEPTED | V1.1 accepted | V1.5 |
-| A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT | READY | none for design; implementation waits for A-V14 | A-V15-ASSISTED-APPLICATION |
-| A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Antigravity Lane A | READY | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT, A-PROOF-JOB-SELECTION | V1.6 |
+| A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Antigravity Lane A | IN_PROGRESS | A-V14 ACCEPTED | A-V15-ASSISTED-APPLICATION |
+| A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Antigravity Lane A | IN_PROGRESS | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT, A-PROOF-JOB-SELECTION | V1.6 |
 | A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
 | A-V16-SUBMISSION-ENGINE-REPAIR | V1.6 | Submission truth/idempotency/authorization repair | implementation/safety | Antigravity Lane A | BLOCKED | A-V15-ASSISTED-APPLICATION | A-V16-FIRST-REAL-SUBMISSION |
 | A-V16-FIRST-REAL-SUBMISSION | V1.6 | First system-submitted externally confirmed application | live-evidence | Antigravity + User | PROPOSED | A-V15-ASSISTED-APPLICATION, A-PROOF-JOB-SELECTION, A-V16-SUBMISSION-CONTRACT | strategy review |
@@ -25,7 +25,7 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V20-RELIABILITY | V2.0 | Recoverability + operational reliability | reliability/evidence | Antigravity Lane B | IN_PROGRESS | existing CI/health/backup | A-V20-INTEGRATED-OS |
 | A-V20-WORKER-RUN-HISTORY | V2.0 | Durable worker-run operational evidence | reliability/evidence | Antigravity Lane B / future dedicated repair | IN_PROGRESS | existing worker/health | A-V20-RELIABILITY, A-V20-CONTROL-CENTER |
 | A-V20-ANALYTICS | V2.0 | Funnel/resume/source analytics | analytics | Antigravity Lane B | IN_PROGRESS | resume attribution | A-V20-INTEGRATED-OS |
-| A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Antigravity Lane C + Lane D glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
+| A-V20-GMAIL-RUNTIME-READINESS | V2.0 | Safe scheduled-runtime Gmail readiness | integration/runtime safety | Antigravity Lane C + Lane B J20G-04 glue | READY | existing Gmail adapter/worker | A-V20-LIVE-INGESTION |
 | A-V20-LIVE-INGESTION | V2.0 | Real Gmail/live-data ingestion proof | live integration | Antigravity + User | BLOCKED | A-V20-GMAIL-RUNTIME-READINESS + user OAuth | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATION-FIXTURE | V2.0 | Deterministic cross-subsystem integration regression | integration/evidence | Antigravity Lane C + ChatGPT | READY | V1.7 + core V2 repairs | A-V20-INTEGRATED-OS |
 | A-V20-INTEGRATED-OS | V2.0 | Autonomous Personal Job Search OS acceptance | milestone/integration | ChatGPT + Antigravity | BLOCKED | V1.7 + V2.0 support artifacts + live ingestion | V2.3 |
@@ -41,18 +41,20 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 
 ## Current critical path
 
-A-V14-PACKET-SAFETY residual repair
-→ A-V15-ASSISTED-APPLICATION / A-V16 application execution
+A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION residual repair
+→ A-V16 application execution
 → A-V17-MILESTONE-GATE
 → A-V20-INTEGRATED-OS
 → A-V23-CAREER-INTELLIGENCE
 → A-V30-CAREER-AGENT-NETWORK
 
-## Parallel implementation lane
+## Parallel implementation lanes
 
-A-V17-CRM-EVIDENCE + A-V17-INTERVIEW-FOLLOWUP can proceed now on Lane B while Lane A finishes V1.4/V1.5/V1.6.
-
-A-V20-CONTROL-CENTER + A-V20-RELIABILITY + A-V20-ANALYTICS may also be audited/repaired in parallel after V1.7 worker slices are stable.
+- Lane A: V1.5 residual repair, then V1.6 after acceptance.
+- Lane B: A-V17 repair plus existing V2.0 dashboard/reliability/analytics bounded rework.
+- Lane C: A-V12-CANDIDATE-PROVENANCE + A-V20-GMAIL-RUNTIME-READINESS J20G-01..03; later V2 integration fixture.
+- Lane D: non-conflicting V2.3 foundations only.
+- Scout: independent non-owning QA/adversarial review.
 
 ## Supporting parallel path
 
