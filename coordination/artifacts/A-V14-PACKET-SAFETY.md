@@ -2,7 +2,7 @@
 
 - Type: implementation / acceptance
 - Phase: V1.4
-- Status: READY_FOR_REVIEW
+- Status: IN_PROGRESS
 - Owner: Antigravity
 - Reviewer: ChatGPT
 - Dependencies: V1.1 accepted
@@ -70,3 +70,18 @@ Repair J14-01 through J14-11 complete and verified (99 unit tests passing, SHA-2
 
 User requested immediate STOP at 2026-09-20 20:11 ET; execution paused before proceeding to V1.5.
 
+
+## Lead re-audit — residual rework
+
+Lead reviewed commit `10fd61d` and current CI.
+
+Most original J14 repairs are materially correct and retained.
+
+Four bounded residual tasks remain:
+
+- R14-01 SP2 — ArtifactStore currently overwrites the same target path via os.replace; make historical artifact bytes immutable/content-addressed and add a two-build regression test.
+- R14-02 SP2 — ResumeVariant.resume_family currently uses target.primary_headline rather than the actual selected resume family; add explicit family mapping and tests.
+- R14-03 SP2 — packet readiness does not yet enforce generation origin; explicit MockModelGateway/test content must never be considered live-ready.
+- R14-04 SP2 — model-assisted quantitative claims (for example years of Python) need exact canonical evidence; skill presence alone is insufficient.
+
+After these pass with green CI, A-V14 can be accepted immediately.
