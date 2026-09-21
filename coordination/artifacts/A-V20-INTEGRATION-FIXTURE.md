@@ -15,6 +15,6 @@ Prove the major V2.0 subsystems work together with a deterministic non-live gold
 See docs/V2_0_INTEGRATION_FIXTURE.md.
 
 ## Worker tasks
-- J20-12 SP3
-- J20-13 SP2
-- J20-14 SP2
+- J20I-01 SP3
+- J20I-02 SP2
+- J20I-03 SP2
