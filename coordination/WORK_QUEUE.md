@@ -46,6 +46,21 @@ Primary ownership:
 Status reporting:
 - coordination/lanes/ANTIGRAVITY_B.md
 
+### Antigravity Lane C — Live Data & Provenance Foundations
+Branch: `worker/live-data-foundations`
+
+Primary ownership:
+- adapters/gmail.py
+- ingestion/
+- new provenance/
+- new integration/ harness later
+- cli/
+- docker-compose.yml
+- related tests
+
+Status reporting:
+- coordination/lanes/ANTIGRAVITY_C.md
+
 Workers must not edit shared lead-owned coordination truth on their branches unless explicitly assigned:
 - coordination/ARTIFACT_INDEX.md
 - coordination/WORK_QUEUE.md
@@ -218,3 +233,40 @@ Contracts:
 ### Worker-run history task authority
 - J20-14 SP3 is the canonical implementation task for A-V20-WORKER-RUN-HISTORY.
 - Earlier J20-07 references should be treated as the audit/planning precursor, not a second implementation.
+
+
+## Lane C — immediate and independent
+
+### A-V12-CANDIDATE-PROVENANCE
+
+| Task | SP | Status | Work |
+|---|---:|---|---|
+| J12-01 | 2 | READY | Implement private-safe machine-readable candidate fact provenance records without committing raw private facts |
+| J12-02 | 2 | READY | Enforce allowed_for_application=false for inferred/unknown facts |
+| J12-03 | 1 | READY | Add provenance validation/report CLI using field paths/source refs, with redaction |
+
+Implementation guidance:
+- prefer a new provenance module rather than editing candidate_profile.py while Lane A is active,
+- provenance metadata may reference private local source files without committing their contents,
+- EEO/self-ID remains manual and should not become application-allowed truth.
+
+### A-V20-GMAIL-RUNTIME-READINESS
+
+| Task | SP | Status | Work |
+|---|---:|---|---|
+| J20G-01 | 2 | READY | Fail closed on partial Gmail fetch; no checkpoint advance or partial committed ingestion |
+| J20G-02 | 2 | READY | Wire ignored/persistent OAuth token/client config safely into worker runtime/container |
+| J20G-03 | 2 | READY | Add safe REAL-Gmail diagnostic command/service with no token/secret output |
+| J20G-04 | 2 | BLOCKED/CROSS-LANE | Lane B integrates Gmail readiness with health/worker-run evidence after J20G-03 |
+
+Contract:
+- docs/V2_0_GMAIL_RUNTIME_READINESS.md
+
+After J20G-01..03 are reviewed, Lane C may prepare the engineering side of A-V12-GMAIL-CANARY but must stop before actual OAuth consent/live mailbox access.
+
+### Later Lane C — A-V20-INTEGRATION-FIXTURE
+
+Do not start until V1.7 + core V2 repairs are stable:
+- J20I-01 SP3 deterministic golden integration fixture
+- J20I-02 SP2 machine-readable integration report
+- J20I-03 SP2 duplicate/out-of-order replay cases
