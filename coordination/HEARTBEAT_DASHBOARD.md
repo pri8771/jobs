@@ -10,13 +10,15 @@ Previous heartbeat evidence is preserved but does not count toward this new epoc
 
 ## Fresh-session status
 
-| Lane | Branch | 5m proving | 24h watch | Current state |
-|---|---|---:|---:|---|
-| A | worker/v15-assisted-application | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| B | worker/recruiting-ops | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| C | worker/live-data-foundations | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| D | worker/v23-foundations | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
-| Scout | scout/qa-prep | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+| Lane | Branch | Latest branch commit checked | 5m proving | 24h watch | Current state |
+|---|---|---|---:|---:|---|
+| A | worker/v15-assisted-application | 2026-09-21T14:05:01Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+| B | worker/recruiting-ops | 2026-09-21T13:26:36Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+| C | worker/live-data-foundations | 2026-09-21T10:49:11Z | 0/3 new epoch | not started | P0A WORK PENDING + FRESH SESSION NEEDED |
+| D | worker/v23-foundations | 2026-09-21T02:15:15Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+| Scout | scout/qa-prep | 2026-09-21T02:15:17Z | 0/3 new epoch | not started | WAITING FOR FRESH SESSION |
+
+Lead verification at 2026-09-21 10:53 ET: all listed branch-head timestamps predate the approximately 14:45Z `DAYWATCH_2026_09_21` reset. No worker self-claim from an earlier epoch/cadence counts toward the new proving sequence.
 
 ## Watcher command
 
