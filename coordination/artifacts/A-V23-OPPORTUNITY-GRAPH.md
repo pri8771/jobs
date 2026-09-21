@@ -3,10 +3,10 @@
 - Type: data/query architecture
 - Phase: V2.3
 - Status: READY
-- Owner: V2.3 implementation surface (lane per lead decision D3)
+- Owner: single active implementation worker when V2.3 is the active work surface
 - Reviewer: ChatGPT
 - Story points: 12 (V23-OG-01..10) + shared foundation V23-F01/F03/F05
-- Dependencies: migration `004_v23_intelligence_foundation` (V23-F03); V2 relational model on main
+- Dependencies: migration `005_v23_intelligence_foundation` (V23-F03); V2 relational model on main
 - Downstream: A-V23-CAREER-BRIEFING, A-V23-TARGET-COMPANY-WATCH (relationship signal), A-V23-AGENT-TOOLS, V3 agents
 
 ## Purpose
