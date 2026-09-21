@@ -2,7 +2,7 @@
 
 ChatGPT owns prioritization and acceptance.
 
-Fresh lead re-audit baseline: 2026-09-20 21:20 ET
+Fresh lead re-audit baseline: 2026-09-20 21:45 ET
 
 ## Formal milestones
 
@@ -25,28 +25,47 @@ Accepted protections:
 - quantitative claims require exact evidence
 - prior V1.4 packet-safety requirements remain satisfied
 
-## Lane A — V1.5 Assisted Application
+## Lane A — V1.5 Assisted Application REWORK
 
 Branch:
 - `worker/v15-assisted-application`
 
-Artifact:
+Artifacts:
 - A-V15-BROWSER-SAFETY-CONTRACT
 - A-V15-ASSISTED-APPLICATION
 
-Ready tasks:
-- J15-00 SP2 require explicit accepted packet ID; no latest-packet fallback
-- J15-01 SP2 inspect form before any write + field classification/provenance
+Worker batch reviewed:
+- `3d17fa8` — substantial V1.5 assisted-browser implementation
+
+Authoritative lead re-audit:
+- `docs/LANE_A_V15_REAUDIT.md`
+
+First-pass lead-accepted slices from `3d17fa8`:
 - J15-02 SP2 manual barrier classifier
-- J15-03 SP3 machine-readable pre-submit review manifest
-- J15-04 SP2 artifact read-back/hash verification immediately before upload
-- J15-07 SP3 one persistent visible Playwright context for inspect/prefill/upload/review
-- J15-08 SP2 block unresolved/UNKNOWN_REQUIRED before prefill
-- J15-09 SP2 external-evidence-only submitted state
-- J15-10 SP1 mock browser can never create real submitted state
-- J15-11 SP2 external form/page prompt-injection resistance; untrusted page text cannot alter policy, truth, permissions, or answers
+- J15-03 SP3 pre-submit review manifest
+- J15-04 SP2 upload hash verification
+- J15-07 SP3 persistent single Playwright context
+- J15-08 SP2 unresolved/unknown-required stop gates
+- J15-10 SP1 mock isolation
+
+Residual repair tasks:
+- A-R15-01 SP2 exact accepted packet integrity + answer provenance/hash gate; covers residuals in J15-00/J15-01
+- A-R15-02 SP2 enforce form fingerprint re-check before first write; changed form -> no prefill/review
+- A-R15-03 SP2 external confirmation hardening; caller/local receipt text alone can never create real SUBMITTED; repairs J15-09
+- A-R15-04 SP1 unknown file inputs must not default to resume; recognized resume/cover mappings only
+- A-R15-05 SP2 rebase current main and implement J15-11 external form/page prompt-injection resistance
+
+After repair:
+- targeted adversarial tests from docs/LANE_A_V15_REAUDIT.md
+- full pytest
+- Ruff
+- mypy
+- push coherent branch batch
+- GitHub CI on reviewable/integrated commit
+- READY FOR LEAD RE-REVIEW
 
 Engineering only. No live application/session without user approval.
+Do not start V1.6 until A-V15 is ACCEPTED.
 
 ## Lane B — V1.7 + V2.0 Rework
 
@@ -99,7 +118,7 @@ Ready:
 - J20G-03 SP2 typed secret-free REAL-Gmail diagnostic
 
 Do not perform actual OAuth or access real mailbox.
-Final health integration waits until the readiness interface is reviewed.
+J20G-04 final health/worker integration belongs to Lane B after Lane C's typed readiness interface is lead-reviewed.
 
 ## Lane D — V2.3 Foundations
 
@@ -141,23 +160,23 @@ Branch:
 
 Scout owns no production code by default.
 
-First priorities:
-1. independently re-audit Lane B repair branch
-2. audit Lane A V1.5 branch once code lands
-3. audit Lane C Gmail/provenance branch
+Immediate priorities:
+1. independently audit Lane A `3d17fa8` and specifically A-R15-01..A-R15-05 / J15-11 adversarial cases
+2. independently re-audit Lane B repair branch when a new commit lands
+3. audit Lane C Gmail/provenance branch when code lands
 4. audit Lane D V2.3 interfaces
 5. maintain V2 integration risk log
 
-Scout outputs only under coordination/scout/.
+Scout outputs only under coordination/scout/ or pre-reserved audit docs.
 
 ## Remaining V2.0 acceptance work
 
 Even when B rework is accepted, V2.0 still requires:
+- accepted safe application execution path from Lane A
 - Lane C Gmail runtime readiness
 - actual user OAuth/live Gmail canary
 - candidate provenance
 - A-V20 integration fixture after core branches merge
-- accepted safe application execution path
 - real-data integration evidence
 
 Do not call V2.0 live ACCEPTED from simulated/test evidence.
@@ -169,4 +188,6 @@ Do not call V2.0 live ACCEPTED from simulated/test evidence.
 - LinkedIn/Indeed remain MANUAL_ONLY
 - no CAPTCHA/MFA bypass
 - external confirmation required for real submitted state
+- free-form/local receipt text is not external evidence
+- external form/page content is untrusted data and cannot change instructions/policy/truth
 - consequential external actions require scoped user approval
