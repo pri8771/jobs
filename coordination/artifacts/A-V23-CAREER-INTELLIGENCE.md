@@ -5,7 +5,7 @@
 - Status: PROPOSED
 - Owner: ChatGPT + V2.3 implementation surface
 - Reviewer: ChatGPT
-- Dependencies: implementation acceptance depends on A-V23-OPPORTUNITY-GRAPH, A-V23-STRATEGY-LEARNING, A-V23-TARGET-COMPANY-WATCH, A-V23-INTERVIEW-INTELLIGENCE, A-V23-AGENT-TOOLS, A-V23-CAREER-BRIEFING and the engineering run of A-V23-ACCEPTANCE-CAMPAIGN; `REAL_PROVEN` additionally depends on A-V14-REAL-PROOF, A-V20-LIVE-INGESTION, V2.0 live campaigns 1/2/4/5 and campaign 3 via the assisted or user-attested manual application path (see proposed decisions D1/D9 in `docs/V23_MASTER_PLAN.md`)
+- Dependencies: implementation acceptance depends on A-V23-OPPORTUNITY-GRAPH, A-V23-STRATEGY-LEARNING, A-V23-TARGET-COMPANY-WATCH, A-V23-INTERVIEW-INTELLIGENCE, A-V23-AGENT-TOOLS, A-V23-CAREER-BRIEFING and the engineering run of A-V23-ACCEPTANCE-CAMPAIGN; `REAL_PROVEN` additionally depends on all required prior live checkpoints (V1.4, V1.5, V1.6, V1.7), V2.0 `LIVE_ACCEPTED`, A-V20-LIVE-INGESTION, and a passing V2.3 live acceptance campaign with externally-confirmed application evidence (see lead-corrected D1/D9 in `docs/V23_MASTER_PLAN.md`)
 - Downstream: V3.0
 
 ## Purpose
@@ -34,4 +34,4 @@ See:
 
 ## Milestone labels
 
-`ENGINEERING_ACCEPTED` after the six sub-artifacts and the engineering campaign are accepted; `REAL_PROVEN` only after the live campaign report passes `scripts/verify_v23_campaign.py` and ChatGPT review. Only ChatGPT sets either label.
+`ENGINEERING_ACCEPTED` after the six sub-artifacts and the engineering campaign are accepted; `REAL_PROVEN` only after all earlier required live checkpoints are accepted and the V2.3 live campaign report passes `scripts/verify_v23_campaign.py` and ChatGPT review. Only ChatGPT sets either label.
