@@ -2,10 +2,11 @@
 
 from jobs_automation.adapters.base import ATSAdapter, EmailAdapter, ModelGateway
 from jobs_automation.adapters.gmail import GmailAdapter, GmailOAuthClient, MockEmailAdapter
-from jobs_automation.adapters.models import LiteLLMModelGateway, MockModelGateway
+from jobs_automation.adapters.models import DeterministicModelGateway, LiteLLMModelGateway, MockModelGateway
 
 __all__ = [
     "ATSAdapter",
+    "DeterministicModelGateway",
     "EmailAdapter",
     "GmailAdapter",
     "GmailOAuthClient",
