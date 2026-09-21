@@ -14,7 +14,7 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
-## Latest lead review — 2026-09-21 17:58 ET
+## Latest lead review — 2026-09-21 18:03 ET
 
 Current Lane 1 heartbeat branch head observed:
 - `df4045883c1fde7b29af92a20028d3b6397e9a93`
@@ -23,7 +23,7 @@ Current Lane 1 heartbeat branch head observed:
 - mode `ACTIVE_5M`
 - worker state `READY_FOR_LEAD_REVIEW`
 
-**Liveness correction:** the heartbeat stream is now stale. More than three expected 5-minute intervals elapsed after #22 with no newer Lane 1 heartbeat commit. Before resuming work, verify the old watcher is dead, pull latest `main`, and launch exactly one new `FIVE_MIN_2026_09_21` watcher. Never launch a duplicate watcher.
+**Liveness:** stale. Multiple expected 5-minute intervals elapsed after #22 with no newer Lane 1 heartbeat commit. Before resuming work, verify the old watcher is dead, pull latest `main`, and launch exactly one new `FIVE_MIN_2026_09_21` watcher. Never launch a duplicate watcher.
 
 Clean implementation branch / substantive batch:
 - `claude/serene-brown-g6uij0`
@@ -57,38 +57,47 @@ Worker-reported exact-head local validation for `3444076...`:
 
 Worker claims do not equal lead acceptance.
 
-## Remaining blocking defect — schema did not clean-port
+## Remaining blocker and reviewed worker-pc support
 
-`coordination/proofs/v14_real_proof.schema.json` is still the old contract at `3444076...`:
-
+At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` is still stale:
 - `additionalProperties: true`
 - `result.const: REAL_PROOF_PASS`
 
-Repository search also found no test currently referencing `v14_real_proof.schema.json`, so this contract drift is not protected by the reviewed test suite.
+Repository search also found no test referencing `v14_real_proof.schema.json` at that clean-port commit.
 
-This directly violates RP14-T1/RP14-T5. The runtime candidate must be `REAL_PROOF_CANDIDATE`, and committed candidate evidence must use a closed allowlist.
+This directly violates RP14-T1/RP14-T5.
+
+Bounded support task `jobs-v14-p0a-schema-gate-20260921-1748` completed successfully on `worker-pc` and returned:
+- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`
+- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`
+- direct parent `3444076de27573ec57d9c8ae60876aece8e646d9`
+
+Lead inspected the actual support diff. It changes only:
+- `coordination/proofs/v14_real_proof.schema.json`,
+- `tests/test_real_proof_schema.py`,
+- `pyproject.toml` (adds `jsonschema` to dev dependencies so executable schema semantics can run).
+
+The support patch structurally does the right thing:
+- top-level `additionalProperties: false`,
+- `result.const: REAL_PROOF_CANDIDATE`,
+- schema property/required key set pinned to both runner AST-emitted keys and verifier `ALLOWED_TOP_LEVEL_KEYS`,
+- legitimate current fields added (`candidate_unresolved_fact_categories`, `questions_count`, `generation_engine`, provider/model fields),
+- deterministic-generation constraints aligned with verifier,
+- tests cover production-shape acceptance, arbitrary extra-field rejection, self-declared PASS rejection, missing required keys, and out-of-contract values.
+
+**Support verdict: useful / not accepted or merge-ready.** The worker environment did not execute the test suite and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or reimplement this support inside its coherent current-main batch and prove it with focused/full validation. Do not merge the support branch directly.
 
 ### Immediate bounded rework
 
 1. Verify the stale Lane 1 watcher is dead.
 2. Pull latest `main` and launch exactly one current `FIVE_MIN_2026_09_21` watcher.
-3. Synchronize the clean implementation with latest `main` coordination truth without importing old heartbeat/coordination churn into the code-review diff.
-4. Correct `coordination/proofs/v14_real_proof.schema.json`:
-   - `additionalProperties: false`,
-   - `result.const: REAL_PROOF_CANDIDATE`,
-   - properties/required fields match the actual redacted candidate emitted by `scripts/run_v14_real_proof.py` and accepted by the verifier,
-   - include legitimate current fields such as `candidate_unresolved_fact_categories`, `questions_count`, `generation_engine`, and nullable provider/model fields as appropriate.
-5. Add focused schema regression tests that:
-   - accept the actual production candidate shape,
-   - reject an arbitrary extra field,
-   - reject a candidate that self-declares `REAL_PROOF_PASS`.
-6. Re-run focused importer/runner/verifier/schema tests.
-7. Re-run full `pytest`, `ruff check .`, and `mypy src tests`.
-8. Push one coherent current-main P0A batch and mark `READY_FOR_LEAD_REVIEW`.
-9. Obtain exact-head GitHub CI when Actions runners execute. Current hosted Actions attempts still fail before steps (`steps: []`, `runner_id: 0`); report `CI_BLOCKED_ACCOUNT`, never green, while that persists.
-10. Stop for lead review. Do **not** use private inputs or run the genuine proof before explicit P0A acceptance.
-
-A bounded support task `jobs-v14-p0a-schema-gate-20260921-1748` is executing on `worker-pc` against the clean implementation branch for the schema-only gap. It is support material only. Lane 1 must not wait for it and must not auto-merge it.
+3. Synchronize the reviewed clean implementation with latest `main` coordination truth without importing old heartbeat/coordination churn into the code-review diff.
+4. Adopt or faithfully reimplement the reviewed support commit `70ef7adc...` schema + schema-test contract.
+5. Run focused importer/runner/verifier/schema tests, including the new JSON-schema tests.
+6. Run full `pytest`, `ruff check .`, and `mypy src tests`.
+7. Push one coherent current-main P0A batch and mark `READY_FOR_LEAD_REVIEW`.
+8. Obtain exact-head GitHub CI when Actions runners execute. Current hosted Actions attempts still fail before steps (`steps: []`, `runner_id: 0`); report `CI_BLOCKED_ACCOUNT`, never green, while that persists.
+9. Stop for lead review. Do **not** use private inputs or run the genuine proof before explicit P0A acceptance.
 
 ## Heartbeat
 
