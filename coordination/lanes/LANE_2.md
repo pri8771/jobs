@@ -29,8 +29,9 @@ Do not expand into V1.6.
 ## Immediate bounded assignment
 
 1. Pull/rebase latest `main` while preserving accepted A-R15-01..05 and current A-R15-06..09 source changes.
-2. If a `FIVE_MIN_2026_09_21` watcher is running, stop it. The authoritative heartbeat epoch is `DAYWATCH_2026_09_21`.
-3. Continue/restart only the numeric Lane 2 DAYWATCH watcher.
+2. Use only the fixed five-minute heartbeat:
+   `python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
+3. Ensure exactly one watcher process is active.
 4. Run focused assisted-safety adversarial tests + full pytest/Ruff/mypy + current-head branch CI.
 5. When the current head is coherent and green, set `READY_FOR_LEAD_REVIEW` / `REVIEW` and stop implementation changes for lead review.
 
@@ -42,11 +43,9 @@ Known Lane 2 machine blocker remains: the real profile selected `resume_ai_softw
 
 ## Heartbeat
 
-Authoritative epoch: `DAYWATCH_2026_09_21`.
+Canonical owner directive:
+`python scripts/worker_heartbeat_watch.py --lane 2 --epoch FIVE_MIN_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
 
-Launch only if no correct watcher is already running:
-`python scripts/worker_heartbeat_watch.py --lane 2 --epoch DAYWATCH_2026_09_21 --task "V1.5 assisted-application safety A-R15-06..09" --detach`
-
-Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
+Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
 
 No Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.
