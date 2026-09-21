@@ -71,6 +71,8 @@ Lead second re-audit:
 Remaining V1.5 tasks:
 - A-R15-06 SP2 — page-level prompt-injection inspection/security warning semantics.
 - A-R15-07 SP2 — actual cover-letter file-upload wiring + field-specific upload mapping; eliminate generic file-input cross-attachment.
+- A-R15-08 SP2 — recompute/revalidate accepted packet hash, answers/provenance, and linked resume/artifact identity immediately before browser use.
+- A-R15-09 SP1 — unknown file inputs remain manual/unfilled; never default to resume.
 
 These are real V1.5 residuals but must not delay V1.4 REAL_PROOF.
 
@@ -78,7 +80,7 @@ These are real V1.5 residuals but must not delay V1.4 REAL_PROOF.
 
 Do not start V1.6 until:
 1. A-V14-REAL-PROOF is accepted,
-2. A-R15-06/07 are repaired and reviewed,
+2. A-R15-06..A-R15-09 are repaired and reviewed,
 3. V1.5 engineering is integrated with green evidence, and
 4. the V1.5 real-proof requirement is satisfied before V1.5 is called COMPLETE.
 
