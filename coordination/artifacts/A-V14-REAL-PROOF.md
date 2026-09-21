@@ -34,16 +34,15 @@ Required repairs:
 
 Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied example profile contents, extra fields, misleading generation metadata, and broken packet/artifact links; targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
 
-## Current lead review — 2026-09-21 06:46 ET
+## Current lead review — 2026-09-21 07:43 ET
 
-- Jobs `main` pre-review head `19c136f5dda7e885e66d4b8b3c567103a6dde485` passed CI run #314.
-- Lane A remains `ed875775122f0d390af6ab15beb378904af2a476`; B remains `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`; D remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`; Scout remains `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
-- Lane C had not produced implementation. Its branch was 165 commits behind `main` and contained only two lead-seeded heartbeat commits (`4122f9bd...`, `2ce7674f...`) with no worker-authored heartbeat or product/proof code changes.
-- After inspecting both unique Lane C commits, ChatGPT lead force-aligned `worker/live-data-foundations` to the green `main` head. This is branch maintenance only and is not worker activity, acceptance evidence, or a heartbeat.
-- `coordination/proofs/` still contains no runtime proof candidate and no verifier receipt. V1.4 therefore remains NOT COMPLETE.
-- Remote-worker workflow `35580580156` (non-Jobs SwarmAI) completed with failure, freeing capacity-1 `worker-pc`.
-- ChatGPT dispatched bounded independent Jobs support task `jobs-v14-p0a-adversarial-tests-20260921-0642` in remote-workers workflow `35590523591`. Scope is tests only; it may encode P0A acceptance cases but cannot self-accept, modify production proof tooling, touch private inputs, or complete RP14-T1..T7 by itself.
-- Lane C remains the production implementation owner for RP14-T1..T7. The remote test branch is support evidence only and must be reviewed before use.
+- Jobs `main` head `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` passed CI run #315.
+- Lane C remains exactly at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`; it has produced no worker implementation and no worker-authored heartbeat. RP14-T1..T7 remain open.
+- Lane A remains `ed875775122f0d390af6ab15beb378904af2a476`; Lane B remains `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`; Lane D remains `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`; Scout remains `d221eecbe21aa33051c888b9e42f10a307ed9ecd`. No new READY_FOR_LEAD_REVIEW batch exists.
+- `coordination/proofs/` still contains only `README.md` and `v14_real_proof.schema.json`; there is no runtime proof candidate or verifier receipt. V1.4 therefore remains NOT COMPLETE.
+- Remote support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure: `Worker branch push failed.` The sanitized result contains no Jobs branch, commit, tests, or summary, and no corresponding Jobs branch exists, so none of that attempted work is reviewable or accepted.
+- Workflow logs show task execution reached the branch-push stage and the remote-workers result itself was published successfully afterward, but the executor suppresses the target-repository push stderr and collapses it to the generic failure. The branch-mode Jobs path is therefore not reliable enough for an immediate retry without better diagnostic/recovery evidence.
+- Lane C remains the production implementation owner for RP14-T1..T7 and must not wait for remote-worker support. No private proof execution is authorized before P0A lead acceptance.
 
 ## Real-proof execution after P0A acceptance
 
