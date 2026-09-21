@@ -47,9 +47,9 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 | A-V23-STRATEGY-LEARNING | V2.3 | Evidence-backed strategy learning | analytics/strategy | future lane | PROPOSED | V2.0 analytics + outcomes | A-V23-CAREER-INTELLIGENCE |
 | A-V23-TARGET-COMPANY-WATCH | V2.3 | Target company opportunity watch | intelligence/monitoring | paused historical Lane D | READY | V2 company/job/contact model | A-V23-CAREER-INTELLIGENCE |
 | A-V23-INTERVIEW-INTELLIGENCE | V2.3 | Source-backed interview preparation intelligence | intelligence/preparation | future work surface | PROPOSED | A-V17-INTERVIEW-FOLLOWUP, A-V20-INTEGRATED-OS | A-V23-CAREER-INTELLIGENCE, A-V30-INTERVIEW-AGENT |
-| A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | single active worker when promoted | READY | stable V2/V2.3 service interfaces + V1.6 scoped approvals for P3 | V3 agent runtime |
-| A-V23-CAREER-BRIEFING | V2.3 | Evidence-backed user-facing career intelligence briefing | implementation/intelligence | single active worker when promoted | PROPOSED | V2.3 graph/strategy/watch/interview services | A-V23-ACCEPTANCE-CAMPAIGN |
-| A-V23-ACCEPTANCE-CAMPAIGN | V2.3 | Machine-verifiable engineering + real live V2.3 acceptance campaign | acceptance/live evidence | single active worker + eligible live machine + ChatGPT | PROPOSED | V2.3 services + prior required live checkpoints | A-V23-CAREER-INTELLIGENCE |
+| A-V23-AGENT-TOOLS | V2.3 | Stable transport-neutral agent tool layer | service/tool architecture | future lane when promoted | READY | stable V2/V2.3 service interfaces + V1.6 scoped approvals for P3 | V3 agent runtime |
+| A-V23-CAREER-BRIEFING | V2.3 | Evidence-backed user-facing career intelligence briefing | implementation/intelligence | future lane when promoted | PROPOSED | V2.3 graph/strategy/watch/interview services | A-V23-ACCEPTANCE-CAMPAIGN |
+| A-V23-ACCEPTANCE-CAMPAIGN | V2.3 | Machine-verifiable engineering + real live V2.3 acceptance campaign | acceptance/live evidence | future lane + eligible live machine + ChatGPT | PROPOSED | V2.3 services + prior required live checkpoints | A-V23-CAREER-INTELLIGENCE |
 | A-V30-AGENT-RUNTIME | V3.0 | Durable specialist-agent runtime | runtime/orchestration | future lane | PROPOSED | A-V23-AGENT-TOOLS, A-V30-PERMISSION-MODEL, A-V30-SHARED-MEMORY | A-V30-CAREER-AGENT-NETWORK |
 | A-V30-PERMISSION-MODEL | V3.0 | Agent/action permission and approval model | policy/authorization | future lane | PROPOSED | V2 policy/audit | all V3 agents |
 | A-V30-SHARED-MEMORY | V3.0 | Scoped durable agent memory over canonical truth | memory/continuity | future work surface | PROPOSED | A-V23-AGENT-TOOLS, A-V30-PERMISSION-MODEL | A-V30-AGENT-RUNTIME, specialist agents |
@@ -77,21 +77,20 @@ Lane 1 P0A proof-tool integrity acceptance
 → A-V23-CAREER-INTELLIGENCE
 → A-V30-CAREER-AGENT-NETWORK
 
-## Active implementation model
+## Active implementation lanes
 
 Owner-directed execution mode:
-- exactly one implementation worker/session is active at a time,
-- historical Lane 1/2/3/V23 branches are sequential work surfaces, not simultaneous workers,
-- the active implementation session has exactly one `FIVE_MIN_2026_09_21` heartbeat watcher,
-- bounded lower-cost subagents/worker-pc may provide independent analysis/test evidence but are not additional autonomous implementation lanes,
-- ChatGPT owns lead review, artifact acceptance, integration, task promotion, and milestone truth.
+- exactly three implementation lanes are active in parallel,
+- Lane 1 / `worker/v14-real-proof` owns the V1.4 P0 critical path,
+- Lane 2 / `worker/v15-assisted-application` owns the bounded V1.5 assisted-application safety scope,
+- Lane 3 / `worker/recruiting-ops` preserves merged recruiting/reliability work and performs bounded post-integration verification/repair,
+- each active lane uses exactly one `FIVE_MIN_2026_09_21` heartbeat watcher while its session is active,
+- `worker-pc` is bounded independent support/audit infrastructure only and is not a fourth implementation lane,
+- ChatGPT owns lead review, artifact acceptance, integration, and milestone truth.
 
-Current P0 work surface: `worker/v14-real-proof` / A-V14-P0A-INTEGRITY.
+Old Lane C is superseded. Old Lane D and Scout are paused as active sessions. Do not reopen them merely to create activity.
 
-Lead-accepted V2.3 planning package:
-- `docs/V23_LEAD_REVIEW_20260921.md`
-- `docs/V23_MASTER_PLAN.md`
-- `coordination/V23_WORKER_QUEUE.md`
+V2.3 planning documents added to the repository are future planning inventory only. They do not collapse the three active lanes or authorize V2.3 implementation now.
 
 ## Supporting path
 
