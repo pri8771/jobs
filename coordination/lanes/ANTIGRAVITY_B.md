@@ -40,3 +40,28 @@ READY
 - docs/V1_7_TO_V3_ACCELERATION_PLAN.md
 
 Rebase latest main before implementation.
+
+
+## Lead-audited concrete defects
+
+Prioritize these within the J17 tasks:
+- lifecycle processing is not idempotent across repeated worker sweeps; same message can produce duplicate events/audits/interviews,
+- interview extractor fabricates a default future datetime/timezone when no explicit schedule exists,
+- reschedules insert new interviews rather than reconcile/update,
+- cancellation is not modeled,
+- state regression protection only special-cases REJECTED,
+- multi-role recruiter/thread behavior lacks explicit tests/correction tooling,
+- unanswered-recruiter task should reconcile when a later reply arrives.
+
+V2.0 follow-on findings:
+- adapter health currently equates registered with live-ready,
+- Gmail/worker last-success health is absent,
+- no durable worker-run history,
+- restore proceeds without checksum,
+- backup/restore has a default password fallback,
+- dashboard lacks dedicated health/policy/follow-up/timeline surfaces,
+- analytics lacks resume/source/role/time-to-stage dimensions.
+
+Lead docs:
+- docs/V1_7_LEAD_AUDIT.md
+- docs/V2_0_BROWNFIELD_AUDIT.md
