@@ -56,10 +56,18 @@ class LifecycleEngine:
         "INTERVIEW_RESCHEDULE": ("INTERVIEWING", "INTERVIEW_RESCHEDULED"),
         "INTERVIEW_CANCELLED": ("INTERVIEWING", "INTERVIEW_CANCELLED"),
         "OFFER": ("OFFER_RECEIVED", "OFFER_EXTENDED"),
-        "BACKGROUND_CHECK": ("OFFER_RECEIVED", "BACKGROUND_CHECK_INITIATED"),
+        # BACKGROUND_CHECK is intentionally excluded from TRANSITION_MAP.
+        # A background check is evidence of process, not proof of a formal offer.
+        # It is handled via EVIDENCE_ONLY_MAP below as a stage-preserving evidence event.
         "ONBOARDING": ("ONBOARDING", "ONBOARDING_INITIATED"),
         "REJECTION": ("REJECTED", "APPLICATION_REJECTED"),
         "WITHDRAWAL": ("WITHDRAWN", "APPLICATION_WITHDRAWN"),
+    }
+
+    # Classifications that record an evidence event without changing the application stage.
+    # The event is written using the associated event_type; the application status is unchanged.
+    EVIDENCE_ONLY_MAP: dict[str, str] = {
+        "BACKGROUND_CHECK": "BACKGROUND_CHECK_INITIATED",
     }
 
     STAGE_RANKS: dict[str, int] = {
@@ -159,6 +167,41 @@ class LifecycleEngine:
             self.crm.record_touchpoint(contact, message)
 
         classification = message.classification
+
+        # Evidence-only classifications: record the event but do NOT advance the application stage.
+        # A background check is process evidence, not proof of a formal offer.
+        if classification in self.EVIDENCE_ONLY_MAP:
+            evidence_event_type = self.EVIDENCE_ONLY_MAP[classification]
+            previous_status = app.status
+            app.last_activity_at = message.received_at
+            self._record_event_and_audit(
+                app=app,
+                message=message,
+                event_type=evidence_event_type,
+                previous_status=previous_status,
+                new_status=previous_status,
+                contact=contact,
+                regression_prevented=False,
+            )
+            logger.info(
+                "BACKGROUND_CHECK evidence recorded for application %s; stage preserved at %s.",
+                app.id,
+                previous_status,
+            )
+            return LifecycleTransitionResult(
+                application_id=str(app.id),
+                previous_status=previous_status,
+                new_status=previous_status,
+                event_type=evidence_event_type,
+                contact_name=contact.name if contact else None,
+                interview_scheduled=False,
+                regression_prevented=False,
+                message=(
+                    f"Application {app.id} background check evidence recorded; "
+                    f"stage preserved at {previous_status}"
+                ),
+            )
+
         if classification not in self.TRANSITION_MAP:
             # General message, record touchpoint and update activity without state transition
             app.last_activity_at = message.received_at
