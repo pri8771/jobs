@@ -1,58 +1,58 @@
-# V2.3 Master Worker Queue — PROPOSED
+# V2.3 next-round worker queue
 
-Status: **PLANNING PACKAGE LEAD-ACCEPTED WITH CORRECTIONS**. Rows remain inactive until ChatGPT promotes a bounded task/artifact into `coordination/WORK_QUEUE.md`. Read `docs/V23_LEAD_REVIEW_20260921.md` first.
-This file is subordinate to `docs/V23_LEAD_REVIEW_20260921.md`, `AGENTS.md`, and the active `WORK_QUEUE.md`. There is one active implementation worker/session and one five-minute heartbeat watcher. The lane/group names below identify historical work surfaces and dependency groups, not simultaneous implementation workers.
+Status: **PREPARED — NOT ACTIVATED**. Do not change the running Fable V1.4/V1.5 assignment.
 
-Source of task detail (every ID below is fully specified there):
-- `docs/V23_TASK_GRAPH_RECOVERY.md` (R14-*, R15-*, A-R15-*, R16-*, R17-*)
-- `docs/V23_TASK_GRAPH_V20.md` (J20-*, J20G-*, J20I-*, G-*, C*)
-- `docs/V23_TASK_GRAPH_V23.md` (V23-F/OG/SL/TW/II/TL/CB/AC)
-- decisions D1–D9 and gates: `docs/V23_MASTER_PLAN.md` §11–§13
+## Authority and activation
 
-Promotion rule: a row may be promoted only when its dependency is open, its lead decision (if any) is taken, it does not conflict with the active branch batch, and it implies no live-action authority.
+User is product owner. ChatGPT is lead and acceptance authority. Fable/Claude is the assigned worker. This queue becomes active only after the current handoff, live-Git reconciliation and explicit lead promotion into `coordination/WORK_QUEUE.md`.
 
-## 0. Immediately executable after lead review (first five)
+The next-round operating contract is `docs/V23_NEXT_ROUND_CONTRACT.md`. Verified planning defects and exact corrections are in `docs/V23_REVIEW_FINDINGS_20260921.md`. The machine-readable corrective tasks are `coordination/V23_HARDENING_TASKS.json`.
 
-| # | Task(s) | Lane / group | SP | Model | Blocked by |
-|---|---|---|---|---|---|
-| 1 | R14-P01 + R14-P02 (then R14-P03, R14-P04) | Lane 1 | 1+1 (+1+1) | Sonnet high | none (already assigned) |
-| 2 | R14-P03 proof-integrity adversarial suite | active V1.4 surface | 1 | Sonnet medium | R14-P01/P02 |
-| 3 | R14-P04 exact-head independent validation | active V1.4 surface | 1 | Sonnet low | R14-P03 |
-| 4 | R14-I01..I05 clean current-main proof integration | next V1.4 surface | 5 × 1 | Sonnet/Haiku | P0A lead acceptance |
-| 5 | next unblocked artifact: V1.4 live proof if gate open, otherwise V1.5 clean integration | single active worker | bounded SP1/SP2 | Sonnet | current gate truth |
+These are corrections to the existing feature inventory, not 42 new features. Retain valid tasks from:
+- `docs/V23_TASK_GRAPH_RECOVERY.md`
+- `docs/V23_TASK_GRAPH_V20.md`
+- `docs/V23_TASK_GRAPH_V23.md`
 
-## 1. PG1 — V1.4 dependency group (`worker/v14-real-proof` → `worker/v14-clean-integration`)
+For mapped contradictions, the activated correction governs. Do not run both definitions. Reuse an already accepted equivalent instead of rebuilding it.
 
-Order: R14-P01, R14-P02, R14-P03, R14-P04 → `LEAD_GATE` P0A → R14-I01..I05 → `LEAD_GATE` → `USER_GATE` private inputs → R14-L01..L07 → (after lead assignment) J20G-01, J20G-02, J20G-03, J20G-04 → `USER_GATE` OAuth → G-01..G-05 → R17-L01..L09.
-SP: 4 + 5 + (5 SP1 + 2 LIVE) + 8 + (1 SP1 + 3 LIVE) + (5 SP1 + 4 LIVE).
+## First steps at the next safe handoff
 
-## 2. PG2 — V1.5/V1.6 dependency group (`worker/v15-assisted-application` → `worker/v15-clean-integration` when active)
+1. Audit Fable's exact V1.4/V1.5 head, producer-to-verifier tests and genuine live receipts. Do not assume the old blocker still exists.
+2. Reconcile one active assignment and heartbeat owner; resolve conflicting instruction writers once rather than repeatedly overwriting main.
+3. Run the plan checker and inspect the consolidated readiness ledger. No account/credential/live action is created by the checker.
+4. Prove the first prospective submission route is actually accessible and permitted before implementing transport-specific assumptions.
+5. Promote one bounded artifact from the packets below. Do not reopen already accepted work.
 
-Order: R15-I01..I04 → A-R15-09, A-R15-08, A-R15-06 (lands `core/untrusted_text.py` if V23-F02 has not), A-R15-07, R15-V01 → `LEAD_GATE` V1.5 engineering → mandatory-for-completion `USER_GATE` R15-L01..L07 (may be scheduled when gate opens while safe engineering continues) → (lead advancement) R16-A01..A04 → R16-I01..I05 → R16-P01..P07 → R16-C01..C05 → R16-H01..H04 → R16-T01, R16-T02 → implement the first compliant supported transport when one is identified (R16-T03..T05) → `USER_GATE` R16-L01..L06. Engineering may continue elsewhere while a transport/user gate is blocked, but V1.6 live proof remains mandatory before V2.0/V2.3 completion.
-Schema window: migration `004_v16_submission_truth` (R16-A01 + R16-I02) lands before PG4's `005_v23_intelligence_foundation` (lead-corrected D4).
+## Execution packets
 
-## 3. PG3 — V1.7/V2.0 dependency group (historical `worker/recruiting-ops`; execute only when this is the active work surface)
-
-Order: R17-E01, R17-E02, R17-E03, R17-E03b (optional), R17-E04, R17-E05 → J20-12, J20-15, J20-16 → J20-01, J20-02, J20-03, J20-04 → J20-05, J20-06a, J20-06b, J20-08 → J20-17, J20-19, J20-20 → J20-09, J20-10 → J20I-01, J20I-02, J20I-03 → (after V23-F04) J20-11 → V23-SL-01..07 → V23-CB-01..05 → (optional) J20-18.
-
-## 4. PG4 — V2.3 intelligence dependency group (`worker/v23-intelligence` when this becomes the single active work surface)
-
-Order: V23-F01, V23-F02, V23-F03 (schema window 004), V23-F04, V23-F05 → V23-OG-01, OG-02, OG-03, OG-04, OG-08, OG-05, OG-06, OG-07, OG-09, OG-10 → V23-TW-01, TW-02, TW-03, TW-04, TW-05, TW-06, TW-07 → V23-II-01, II-02, II-03, II-04, II-05, II-06, II-07 → V23-TL-01, TL-02, TL-03 (Opus review), TL-04, TL-05, TL-06, TL-07, TL-08 (needs J20-15, J20-17), TL-09 (needs V1.5 clean port), TL-10, TL-11 → V23-AC-01 (needs J20I-01, CB-02), AC-02, AC-03 → `USER_GATE` inputs → V23-AC-04 LIVE → `LEAD_GATE` A-V23-CAREER-INTELLIGENCE.
-
-Parallelism inside PG4 means dependency-level/subagent parallelizability only. With the one-worker rule, the parent implementation session owns integration and commits sequential coherent batches. Lower-cost subagents may independently analyze/test non-overlapping surfaces. TL follows the services it wraps; CB follows OG/SL/TW/II; AC is last.
-
-## 5. Gates that block only their own action
-
-| Gate | Blocks | Does not block |
+| Packet | Work | Done when |
 |---|---|---|
-| `USER_GATE` private inputs | R14-L05..L07, live V2.0/V2.3 campaigns | all engineering |
-| `USER_GATE` Gmail OAuth | G-03..05, R17-L04..L07, live campaigns | J20G engineering, fixtures |
-| `USER_GATE` visible browser | R15-L03..L06 | V1.5 engineering, V1.6 engineering |
-| `USER_GATE` per-application submit + eligible transport | R16-L* (deferred) | everything |
-| `USER_GATE` target list / manual application reports | V23-AC-04 inputs | V2.3 engineering; any reported submission stays unconfirmed until external evidence |
-| `LEAD_GATE` P0A | R14-I, R14-L | Lane 2/3/PG4 work |
-| `CI_BLOCKED_ACCOUNT` | CI-green evidence | `INDEPENDENT_SANDBOX_VALIDATION` (D6) |
+| P0 | H-GOV-01/02, H-ACCESS-01/02 | plan revision and actual access/input gates are known |
+| P1 | H-PROOF-01/02/03 | accepted producers/consumers agree; code and evidence identities are stable |
+| P2 | H-ID, H-AUTH, H-SUB with existing R16 work | durable submission claim, real scoped authority, preflight, confirmation and approved transport are accepted |
+| P3 | H-MAIL with existing Gmail/CRM work | complete bounded paging, direction/time semantics, genuine lifecycle replay are accepted |
+| P4 | H-AN-01, H-UI-02, H-OPS-01/02 with existing V2.0 work | actual daily user flow and nonempty PostgreSQL/artifact restore work |
+| P5 | H-TOOL, H-GRAPH, H-WATCH, H-AN-02, H-UI-01/03 with existing V2.3 work | useful evidence-backed intelligence and correctly governed tools work |
+| P6 | H-PROOF-04/05, H-OPS-03 | independently verified real campaign plus restart/replay evidence passes |
+| P7 | H-V3-01..07 | deferred V3 contracts reviewed after V2.3 and a separate V3 assignment; no V3 implementation here |
 
-## 6. Review rule (unchanged)
+Dependencies, code surfaces, implementation steps, proposed test names, failure behavior and model/effort classes are defined per task in JSON. Packets are review/organization groups, not giant commits. SP1/SP2 labels do not justify combining unrelated work.
 
-Workers push coherent tested batches, set `READY_FOR_LEAD_REVIEW`, and stop at the review boundary. ChatGPT reviews actual diff/tests/validation records, accepts or issues one bounded rework, integrates, and writes the next bounded assignment into the lane file. Worker claims are evidence inputs only.
+## Token-efficient task loading
+
+```sh
+python scripts/validate_v23_hardening_plan.py --check --self-test
+python scripts/validate_v23_hardening_plan.py --task H-ID-01
+```
+
+The helper is standard-library-only and read-only. It validates plan structure and renders a task; it does not validate application code, infer a live PASS, assign work or grant authority.
+
+## Non-negotiable finish gates
+
+Each required milestone V1.4, V1.5, V1.6, V1.7, V2.0 and V2.3 needs accepted engineering and genuine production-path evidence. A provider canary with synthetic content is not a genuine candidate/recruiting event. A user-attested manual submission remains unconfirmed until accepted external confirmation.
+
+Engineering may advance behind a live gate. Formal completion cannot silently skip that gate. Missing transport/access is reported precisely; the worker must not fabricate a pass or replace a desired job with a dummy target.
+
+After each coherent artifact: exact code/test/evidence handoff, `READY_FOR_LEAD_REVIEW`, then stop that artifact until its gate opens. Keep only one active implementation session and one five-minute heartbeat owner under the reconciled owner directive. Planning helpers and subagent reads do not create additional watchers.
+
+Do not start broad V3 implementation, change Fable's current scope, create accounts, read mail, submit applications, message third parties or spend money because this plan exists.
