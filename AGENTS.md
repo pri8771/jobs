@@ -118,6 +118,8 @@ When multiple Antigravity sessions are active:
 Current lane contract:
 - coordination/TEAM_LANES.md
 
+Current workers may include three parallel lanes: application execution, recruiting operations, and live-data/provenance foundations.
+
 ## Antigravity execution protocol
 
 Antigravity is expected to keep moving the queue while active.
