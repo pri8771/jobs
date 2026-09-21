@@ -5,13 +5,64 @@ lane: A
 branch: worker/v15-assisted-application
 mode: STEADY_HOURLY
 interval_minutes: 60
-consecutive_on_time: 5
-last_check_in_utc: 2026-09-21T15:05:00Z
+consecutive_on_time: 6
+last_check_in_utc: 2026-09-21T16:06:00Z
 review_state: READY_FOR_LEAD_REVIEW
 lead_action_requested: REVIEW
 ```
 
 ## Entries
+
+### 2026-09-21T16:06:00Z — Lane A / Lane 2 (Application Execution)
+
+Artifact(s):
+- A-V15-BROWSER-SAFETY-CONTRACT
+- A-V15-ASSISTED-APPLICATION
+- A-V14-REAL-PROOF
+
+Task(s):
+- A-R15-01 SP2 ✅ LEAD_ACCEPTED
+- A-R15-02 SP2 ✅ LEAD_ACCEPTED (field-level J15-11 scope)
+- A-R15-03 SP1 ✅ LEAD_ACCEPTED
+- A-R15-04 SP2 ✅ LEAD_ACCEPTED
+- A-R15-05 SP2 ✅ LEAD_ACCEPTED
+- A-R15-06 SP2 ✅ COMPLETE — Page-level prompt injection inspection and security warning semantics implemented.
+- A-R15-07 SP2 ✅ COMPLETE — Real cover-letter upload wiring and field-aware upload mapping implemented.
+- A-R15-08 SP2 ✅ COMPLETE — Canonical packet hash verification before browser interaction implemented.
+- A-R15-09 SP1 ✅ COMPLETE — Unknown file inputs classify as UNKNOWN_REQUIRED/UNKNOWN_OPTIONAL and never default to resume.
+- Steady hourly check-in #3 on STEADY_HOURLY cadence.
+- Rebased cleanly on latest `origin/main` (`c38148f`).
+
+Done since last heartbeat:
+- Fetched and integrated latest `origin/main` (`c38148f`, aligning with 3-lane operating model).
+- Rebased `worker/v15-assisted-application` on top of main.
+- Verified test suite: 155 unit and adversarial tests passed in 1.46s.
+- Ruff clean, MyPy zero errors across Lane 2 codebase.
+
+Verification:
+- targeted tests: `tests/test_assisted_safety_adversarial.py` — 38 passed
+- pytest: 155 passed in 1.46s
+- ruff: All checks passed
+- mypy: Clean on all Lane A / Lane 2 code
+
+Commits:
+- `1f8a431` (rebased on `c38148f`)
+
+Blockers / risks:
+- `REAL_PROOF_BLOCKED_PRIVATE_INPUT` on Lane 2 until real resume mapping for `resume_ai_software_engineer` exists.
+- P0A proof-tool integrity (RP14-T1..T7) is under active execution on Lane 1 (`worker/v14-real-proof`).
+
+Next:
+- Await ChatGPT lead review of V1.5 completed residuals A-R15-06..A-R15-09.
+- Continue STEADY_HOURLY cadence (next heartbeat at 17:06Z or immediately upon new repo directives).
+
+Lead action requested:
+- REVIEW
+
+Review state:
+- READY_FOR_LEAD_REVIEW
+
+---
 
 ### 2026-09-21T15:05:00Z — Lane A (Application Execution)
 
