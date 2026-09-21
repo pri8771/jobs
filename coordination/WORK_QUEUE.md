@@ -1,114 +1,144 @@
 # Active Work Queue
 
-Owner directive:
-**No version is COMPLETE until one genuine non-mock production-path example passes.**
+Owner directives:
+- **No version is COMPLETE until one genuine non-mock production-path example passes.**
+- **One Antigravity implementation session is active at a time.**
+- **One active session = exactly one 5-minute heartbeat watcher.**
 
-Exactly three active implementation lanes:
-- Lane 1 — V1.4 real-proof critical path
-- Lane 2 — V1.5 assisted-application safety
-- Lane 3 — V1.7/V2.0 recruiting/reliability
+Canonical execution program:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
 
-Old Lane C is superseded. Old Lane D and Scout are paused. `worker-pc` is infrastructure/support only.
+Downstream lead preparation:
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
 
-## P0 — Lane 1 — V1.4 proof-tool integrity rework
+Historical Lane 1/Lane 2/Lane 3 branches are work surfaces, not simultaneous active worker sessions.
 
-Branch / review surface:
+## P0 — V1.4 proof-tool integrity
+
+Work surface:
 - `worker/v14-real-proof`
 - draft PR #8
 
-Verdict on `8f8c21f...`:
-- **REWORK**
+Current accepted truth from the prior lead/audit review:
+- reviewed implementation `8f8c21f...` had green CI,
+- P0A verdict = **REWORK**,
+- the active worker must inspect the current PR/head before assuming no newer repair exists.
 
-Required next batch:
-- enforce CANDIDATE-only candidate input,
-- require local/private binding for PASS,
-- make candidate-bundle SHA binding mandatory,
-- always emit bound FAIL receipt on rejection,
-- implement full approved Greenhouse source/job/description/question attestation binding,
-- keep copied-example content rejection and make source class runtime-derived,
-- enforce deterministic-generation labeling in verifier,
-- independently recompute canonical packet hash and verify job/resume/artifact linkage,
-- add adversarial tests for each gap,
-- run focused proof tests + full pytest/Ruff/mypy + branch CI.
+Required repair categories:
+- CANDIDATE-only candidate input,
+- mandatory private/local PASS binding,
+- mandatory candidate-bundle SHA binding,
+- candidate-bound default FAIL receipt,
+- complete approved Greenhouse job/source/question attestation,
+- copied-example content rejection + runtime-derived private source class,
+- verifier-enforced deterministic production origin,
+- independent canonical packet/job/resume/artifact/provenance recomputation,
+- adversarial tests for each gap.
 
-Worker-pc independent read-only audit completed successfully and independently returned REWORK; it corroborated the lead T1/T2/T7 holes and added the material T3/T6 enforcement findings above. The audit could not execute tests; branch CI remains the execution gate.
+Required checks:
+- targeted proof tests,
+- full pytest,
+- Ruff,
+- mypy,
+- current-head branch CI.
 
-Do not run private-data proof before P0A acceptance.
+Gate:
+- do not run the real private-data proof before ChatGPT accepts P0A.
 
-Heartbeat evidence:
-- valid DAYWATCH proving 3/3 at 16:27:55 → 16:32:56 → 16:37:59Z,
-- clean 24h watch started 16:37:59Z,
-- first valid watch heartbeat 16:53:01Z,
-- misses 0.
+## Next — V1.4 real proof
 
-## Lane 2 — V1.5 assisted application
+After explicit P0A acceptance:
+- use real live job,
+- actual private canonical profile,
+- exact genuine selected resume bytes,
+- production packet builder,
+- non-mock generation,
+- runtime redacted evidence,
+- separately generated verifier receipt.
 
-Branch / review surface:
+Packet proof only.
+No application submission.
+
+## Next — V1.5 assisted application
+
+Work surface:
 - `worker/v15-assisted-application`
 - PR #2
 
-Preserve:
-- A-R15-01..05 task-scope accepted implementation.
+Preserve A-R15-01..05.
+Complete/verify A-R15-06..09:
+- page prompt-injection warnings,
+- exact resume/cover-letter field mapping,
+- immediate pre-browser integrity revalidation,
+- unknown file inputs remain manual.
 
-Current scope only:
-- A-R15-06 — page-level prompt-injection warning semantics,
-- A-R15-07 — field-specific cover-letter/file upload mapping,
-- A-R15-08 — packet/provenance/artifact integrity revalidation at the browser boundary,
-- A-R15-09 — unknown file inputs stay manual/unfilled.
+Rebase latest main before final review batch.
+Run focused tests + full pytest/Ruff/mypy + exact-head CI.
+Request lead review.
 
-Current evidence:
-- implementation for A-R15-06..09 exists on the branch and has had green CI evidence,
-- PR #2 is diverged from current main and not mergeable; no current-head READY_FOR_LEAD_REVIEW acceptance yet,
-- valid DAYWATCH proving 3/3 after restart; clean watch started 16:38:09Z,
-- 16:53:11Z is the verified cadence check-in; too-early 16:39/16:54 writes are not counted as 15-minute cadence evidence and suggest overlapping watchers.
+No live browser action without explicit owner authorization.
 
-Immediate:
-- pull/rebase latest main,
-- ensure exactly one DAYWATCH watcher,
-- run focused + full pytest/Ruff/mypy + current-head branch CI,
-- request review only on one coherent current head.
+## Next — V1.6 controlled submission engineering
 
-No V1.6.
+Start only after V1.5 engineering acceptance or explicit lead authorization.
 
-Known V1.4 proof blocker on this machine remains: selected `resume_ai_software_engineer` had no genuine mapped resume bytes. Do not synthesize or substitute another resume.
+Engineering tasks are defined in:
+- `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md`
+- `docs/V1_6_TO_V3_PREP_PLAN.md`
 
-## Lane 3 — V1.7 / V2.0
+This engineering phase does not authorize a real submission.
 
-Branch:
+Real submission artifact:
+- `A-V16-FIRST-REAL-SUBMISSION`
+
+Authorization rules:
+- `docs/AUTHORIZATION_GATES.md`
+
+## Next — V1.7 recruiting operations
+
+Work surface:
 - `worker/recruiting-ops`
 
-Lead integration completed:
-- PR #3 merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`
-- newly accepted/integrated: B-R20-05/J20-14, B-R20-01, B-R20-02
-- preserved accepted: B-R17-03, B-R20-07, B-R20-08 and earlier accepted Lane 3 residuals
-- A-V20-WORKER-RUN-HISTORY is lead-accepted.
+Audit existing accepted/merged implementation first.
+Repair only real gaps in:
+- `A-V17-CRM-EVIDENCE`
+- `A-V17-INTERVIEW-FOLLOWUP`
 
-Next bounded assignment:
-1. pull/rebase branch onto latest main,
-2. verify merged accepted source + targeted worker/health/dashboard tests,
-3. run full pytest/Ruff/mypy,
-4. repair only an actual integration regression if one exists,
-5. if green, record waiting status and stop implementation work.
+Then request ChatGPT review of:
+- `A-V17-MILESTONE-GATE`
 
-J20G-04 remains blocked until Lane 1 later produces the authorized Gmail-readiness dependency. Do not invent unrelated work to keep Lane 3 busy.
+Do not rebuild accepted components without evidence of a regression/gap.
 
-Heartbeat note:
-- Lane 3 self-reported 3/3, but actual current-epoch times 16:18Z → 16:34Z → 16:44Z do not satisfy 4–7 minute proving gaps; next worker heartbeat restarts at 1/3.
+## Heartbeat
 
-## Heartbeat / visible progress
+Authoritative owner epoch:
+- `FIVE_MIN_2026_09_21`
 
-Authoritative owner epoch: `DAYWATCH_2026_09_21`.
-
-Per lane:
-1. `PROVING_5M`: 3 consecutive worker-authored check-ins with 4–7 minute gaps.
-2. `WATCH_15M_24H`: approximately every 15 minutes for a clean 24 hours; any gap >20 minutes increments misses and restarts the clean window.
-3. `STEADY_HOURLY`: only after a clean 24-hour watch.
-
-Workers must stop any superseded `FIVE_MIN_2026_09_21` watcher and keep exactly one DAYWATCH watcher.
+Rules:
+- one active Antigravity implementation session,
+- exactly one watcher for that session,
+- every 5 minutes while active,
+- no 15-minute/hourly transitions,
+- no duplicate watchers,
+- when switching work branches, stop the old watcher before starting the one watcher for the new active branch.
 
 Visible progress:
 - GitHub issue #7
 
+A heartbeat may simply say:
+`Still working on <task>; no blocker.`
+
+## ChatGPT downstream role
+
+While Antigravity executes the current sequence, ChatGPT should primarily:
+- review/audit worker output,
+- prepare V1.6→V3.0 contracts/tasks/tests/runbooks,
+- keep artifact dependencies coherent,
+- shorten future critical paths,
+- avoid competing with Antigravity on straightforward implementation.
+
+Do not invent filler implementation.
+
 ## Safety
 
-No live Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, private candidate-data commits, or fabricated candidate facts without explicit scoped user authorization.
+No live Gmail OAuth/mailbox access, browser application submission, external messaging, calendar mutation, spending, MFA/CAPTCHA bypass, private candidate-data commits, or fabricated candidate facts without explicit scoped owner authorization.
