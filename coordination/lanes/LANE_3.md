@@ -4,94 +4,51 @@ Branch:
 - `worker/recruiting-ops`
 
 Owner:
-- fresh Antigravity session
+- active Lane 3 worker
 
 Reviewer:
 - ChatGPT lead
 
-## Lead checkpoint — 2026-09-21 15:44Z
+## Lead acceptance — 2026-09-21 16:51Z
 
-- Draft PR #3 head is `68595d1fe825545b7f1506b7068d1c78376f7953`.
-- Current-head CI is green, but the branch is far behind main and must be rebased before new work.
-- Historical `LANE_B.md` does not count for `DAYWATCH_2026_09_21`.
-- Active `coordination/heartbeats/LANE_3.md` is not yet on the branch because it has not rebased the three-lane reset; after rebasing, launch the numeric Lane 3 watcher and start at 0/3.
-- Preserve accepted B-R17-03/B-R20-07/B-R20-08 exactly while completing the remaining durability and headline-funnel residuals.
+PR #3 was reviewed on actual source/tests/current-head CI and merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
 
-## Already lead-accepted at task scope
+Newly lead-accepted at task scope and integrated:
+- B-R20-05 / J20-14 — crash-durable worker begin/finalize, fail-closed begin persistence, sanitized bounded errors, true latest-attempt health, reconciliation/error fields, rollback/run-id/privacy tests,
+- B-R20-01 — headline funnel preserves historical stage achievements from event history,
+- B-R20-02 — headline funnel uses real-submission denominator semantics.
 
-- B-R17-03
-- B-R20-07
-- B-R20-08
+Previously accepted and preserved:
+- B-R17-03,
+- B-R20-07,
+- B-R20-08,
+- earlier accepted Lane 3 residual tasks recorded in `WORKER_PERFORMANCE.md`.
 
-Preserve those fixes.
+Current-head branch CI was green before integration. Main CI after the merge/lead coordination updates is the next integration gate.
 
-## Immediate scope
+## Heartbeat truth
 
-Rebase current branch on latest main, preserving worker source changes.
+Authoritative epoch is `DAYWATCH_2026_09_21`.
 
-Finish B-R20-05 / J20-14:
-- fail closed if durable begin record cannot persist,
-- no raw upstream error strings in operational metadata,
-- true latest-attempt worker health including unfinished RUNNING attempt,
-- required last_reconciliation and last_error fields,
-- crash/rollback/distinct-run-id/secret-sanitization tests.
+The worker heartbeat metadata self-reported a proving streak that does not match actual timestamps: 16:18Z → 16:34Z → 16:44Z are not 4–7 minute proving gaps. Those timestamps do not establish 3/3.
 
-Also finish:
-- B-R20-01 — headline funnel historical outcomes from event history,
-- B-R20-02 — headline funnel denominator uses real-submission semantics.
+If a `FIVE_MIN_2026_09_21` watcher is running, stop it. Pull latest main and run only the DAYWATCH watcher. The next worker check-in starts/restarts the proving sequence according to actual timestamps.
 
-Run targeted tests + full pytest/Ruff/mypy/CI.
+## Next bounded assignment — post-integration verification only
 
-Gmail J20G-04 remains blocked on later Lane 1/Candidate-Gmail sequence.
+1. Pull/rebase `worker/recruiting-ops` onto latest `main` after PR #3 merge.
+2. Confirm the merged source for the accepted Lane 3 files matches the reviewed implementation.
+3. Run the targeted worker/health/dashboard tests plus full pytest/Ruff/mypy against the integrated baseline.
+4. If a regression exists, push only the minimal regression repair and request lead review.
+5. If integration is green with no regression, record `BLOCKED` / `NONE` with progress note `waiting for J20G-04 dependency` and stop implementation work.
+
+Do not invent new work merely to keep the lane busy. `J20G-04` remains blocked until Lane 1 later produces the authorized Gmail-readiness dependency. Do not access Gmail/OAuth while blocked.
 
 ## Heartbeat
 
-Launch:
-`python scripts/worker_heartbeat_watch.py --lane 3 --epoch DAYWATCH_2026_09_21 --task "V1.7/V2.0 worker-run and funnel repairs" --detach`
+Launch only if no correct watcher is already running:
+`python scripts/worker_heartbeat_watch.py --lane 3 --epoch DAYWATCH_2026_09_21 --task "V1.7/V2.0 post-integration verification" --detach`
 
-Heartbeat progress is posted to GitHub issue #7.
+Cadence: 3 proving heartbeats at 4–7 minute gaps → 15-minute watch for a clean 24 hours → hourly.
 
-## Exit
-
-Push one coherent repair batch and set READY_FOR_LEAD_REVIEW.
-
-
-## Lead review checkpoint — current batch
-
-Worker has pushed a coherent B-R20-05 / B-R20-01 / B-R20-02 repair batch and requested review.
-
-Positive evidence:
-- branch rebased onto current main,
-- heartbeat protocol is active,
-- targeted tests reported 32/32 pass,
-- full pytest reported 151/151 pass,
-- Ruff reported pass,
-- substantive worker/health/funnel repairs are present.
-
-Blocking evidence:
-- GitHub CI run `35624767610` failed at **Run Mypy Typechecker**.
-- migration and pytest CI steps were skipped because mypy failed.
-
-Required next action:
-1. inspect/reproduce the exact CI mypy failure on the branch,
-2. fix the type errors without weakening behavior/tests,
-3. rerun mypy + targeted tests + full pytest/Ruff,
-4. push a new coherent commit,
-5. keep the heartbeat watcher running,
-6. request REVIEW again only after branch CI is green.
-
-Do not expand scope beyond this CI/type repair.
-
-## Heartbeat migration — fixed 5-minute standard
-
-Current canonical heartbeat epoch:
-- `FIVE_MIN_2026_09_21`
-
-If an older DAYWATCH watcher is still running:
-1. stop that old watcher process,
-2. pull latest `main`,
-3. launch exactly one new watcher:
-   `python scripts/worker_heartbeat_watch.py --lane 3 --epoch FIVE_MIN_2026_09_21 --detach`
-4. do not start another watcher after that.
-
-There are no cadence transitions anymore. Heartbeat remains every 5 minutes for the entire active session.
+No live Gmail OAuth/mailbox access, browser application submission, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized.
