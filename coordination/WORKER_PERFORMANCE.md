@@ -12,8 +12,8 @@ Only attempted tasks are counted. READY / NOT_ATTEMPTED tasks are excluded until
 | SP | Attempted | Lead Accepted | First-Pass Accepted | Rework Tasks | Accepted Points |
 |---:|---:|---:|---:|---:|---:|
 | 1 | 6 | 5 | 3 | 3 | 5 |
-| 2 | 26 | 21 | 11 | 15 | 42 |
-| 3 | 8 | 2 | 2 | 6 | 6 |
+| 2 | 26 | 22 | 11 | 15 | 44 |
+| 3 | 8 | 4 | 2 | 6 | 12 |
 | 4 | 0 | 0 | 0 | 0 | 0 |
 | 5 | 0 | 0 | 0 | 0 | 0 |
 
@@ -97,10 +97,10 @@ These are READY but deliberately not attempted before A-V14-REAL-PROOF.
 
 | Task ID | SP | Status | Owner | Artifact | Lead notes |
 |---|---:|---|---|---|---|
-| A-R15-06 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Page-level prompt-injection signal/warning semantics; field-level-only detection is insufficient |
-| A-R15-07 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | Wire actual cover-letter file upload; field-specific mapping; eliminate generic cross-attachment |
-| A-R15-08 | 2 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | Recompute/revalidate packet hash, answers/provenance, ResumeVariant/artifact linkage at browser boundary |
-| A-R15-09 | 1 | READY | Antigravity Lane A | A-V15-BROWSER-SAFETY-CONTRACT | Unknown file inputs remain manual/unfilled; never default to resume |
+| A-R15-06 | 2 | READY | Lane 2 | A-V15-BROWSER-SAFETY-CONTRACT | Page-level prompt-injection signal/warning semantics; field-level-only detection is insufficient |
+| A-R15-07 | 2 | READY | Lane 2 | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | Wire actual cover-letter file upload; field-specific mapping; eliminate generic cross-attachment |
+| A-R15-08 | 2 | READY | Lane 2 | A-V15-BROWSER-SAFETY-CONTRACT / A-V15-ASSISTED-APPLICATION | Recompute/revalidate packet hash, answers/provenance, ResumeVariant/artifact linkage at browser boundary |
+| A-R15-09 | 1 | READY | Lane 2 | A-V15-BROWSER-SAFETY-CONTRACT | Unknown file inputs remain manual/unfilled; never default to resume |
 
 Authoritative details:
 - `docs/LANE_A_REAUDIT_2.md`
@@ -130,37 +130,58 @@ GitHub evidence at lead review:
 
 | Task ID | SP | Status | Owner | Artifact | Lead notes |
 |---|---:|---|---|---|---|
-| B-R17-03 | 2 | READY | Antigravity Lane B | A-V17-CRM-EVIDENCE | Background-check semantics must not fabricate OFFER_RECEIVED |
-| B-R20-07 | 1 | READY | Antigravity Lane B | A-V20-ANALYTICS / A-V20-CONTROL-CENTER | Simulation/test rows never count as real submissions |
-| B-R20-08 | 2 | READY | Antigravity Lane B | A-V20-ANALYTICS | Evidence-backed final-interview/acceptance metrics |
-| B-R20-05 / J20-14 | 3 | READY | Antigravity Lane B | A-V20-WORKER-RUN-HISTORY | Crash-durable begin/finalize worker-run semantics |
+| B-R17-03 | 2 | READY | Lane 3 | A-V17-CRM-EVIDENCE | Background-check semantics must not fabricate OFFER_RECEIVED |
+| B-R20-07 | 1 | READY | Lane 3 | A-V20-ANALYTICS / A-V20-CONTROL-CENTER | Simulation/test rows never count as real submissions |
+| B-R20-08 | 2 | READY | Lane 3 | A-V20-ANALYTICS | Evidence-backed final-interview/acceptance metrics |
+| B-R20-05 / J20-14 | 3 | READY | Lane 3 | A-V20-WORKER-RUN-HISTORY | Crash-durable begin/finalize worker-run semantics |
 
 ## Lane B final residual review — commit 68595d1
 
 GitHub evidence:
 - PR #3 head: `68595d1fe825545b7f1506b7068d1c78376f7953`
 - CI run #329: SUCCESS
-- Worker Heartbeat Validation: FAILURE; the heartbeat file does not use the required top-level metadata keys and uses invalid lead action `AUDIT`.
+- Worker Heartbeat Validation: FAILURE; the heartbeat file did not yet use the required active-lane metadata protocol.
 
 | Task ID | SP | Status | Worker commit | CI | Rework cycles | Lead notes |
 |---|---:|---|---|---|---:|---|
 | B-R17-03 | 2 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | BACKGROUND_CHECK is evidence-only; INTERVIEWING and OFFER_RECEIVED stages are preserved; no offer event is synthesized by this path |
 | B-R20-07 | 1 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | `_is_real_submission()` excludes SIMULATED plus simulation/auto_simulated/mock/test modes; focused applied_at adversarial cases pass |
 | B-R20-08 | 2 | LEAD_ACCEPTED | 68595d1 | CI #329 green | 1 | Final-interview requires explicit final/panel/onsite evidence; accepted counts/rates exposed without inferring final from generic interviews |
-| B-R20-05 / J20-14 | 3 | REWORK | 68595d1 | CI #329 green | 2 | Begin/finalize direction is good but durability/privacy/health contract is incomplete |
+| B-R20-05 / J20-14 | 3 | REWORK | 68595d1 | CI #329 green | 2 | Begin/finalize direction was good but durability/privacy/health contract remained incomplete at this checkpoint |
 
-B-R20-05 required rework:
+Historical B-R20-05 rework requirements were:
 - do not run the pipeline after durable begin-record persistence fails,
-- replace raw `sample_errors = str(exc)` persistence with safe error categories/codes,
-- report the true newest RUNNING attempt and required `last_reconciliation_at` + `last_error_at/category`,
-- add explicit exception-after-begin, pipeline-rollback durability, distinct-run-id, and adversarial secret-sanitization tests,
-- repair the heartbeat file to `HEARTBEAT_PROTOCOL.md` format before the next review request.
+- replace raw exception-string persistence with safe bounded error categories/codes,
+- report the true newest RUNNING attempt plus reconciliation/error fields,
+- add exception-after-begin, rollback durability, distinct-run-id and adversarial secret-sanitization tests.
 
-Still-open prior analytics residuals:
-- B-R20-01 remains REWORK because headline `get_funnel_summary()` still derives funnel history from current status rather than event history.
-- B-R20-02 remains REWORK because headline funnel/submission semantics still do not use the same real-submission denominator. The new B-R20-07 helper fix is valid but does not close this older headline residual.
+Historical prior analytics residuals were:
+- B-R20-01 headline funnel needed ApplicationEvent history semantics,
+- B-R20-02 headline funnel needed the same real-submission denominator used by dimensional analytics.
 
-J20G-04 remains blocked on Lane C J20G-03.
+## Lane 3 final repair acceptance — commit 7437b70 / merged via d32a4c8
+
+Lead review date: 2026-09-21.
+
+Reviewed evidence:
+- actual source diff in `worker.py`, `health.py`, `dashboard/analytics.py`, and targeted tests,
+- durable begin record is committed before pipeline execution and begin persistence failure returns fail-closed,
+- begin/finalize sessions are isolated from pipeline rollback,
+- persisted failures use bounded sanitized error categories rather than raw upstream exception text,
+- run IDs are distinct,
+- worker health exposes newest unfinished RUNNING attempts plus reconciliation/error metadata,
+- headline funnel derives historical achievements from ApplicationEvent history and applies real-submission semantics,
+- targeted/adversarial tests cover begin failure, exception-after-begin, rollback durability, distinct run IDs, secret sanitization, latest health state, historical funnel and real-submission denominator,
+- final branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` CI #411: GREEN,
+- PR #3 merged to main as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
+
+| Task ID | SP | Final status | Accepted worker code | Rework cycles | Lead notes |
+|---|---:|---|---|---:|---|
+| B-R20-05 / J20-14 | 3 | LEAD_ACCEPTED | 7437b70 | 3 | Crash-durable worker-run begin/finalize, sanitized persistence, true latest-attempt health and adversarial durability/privacy coverage accepted and integrated |
+| B-R20-01 | 3 | LEAD_ACCEPTED | 7437b70 | 2 | Headline funnel now preserves historical stage achievements from lifecycle event history |
+| B-R20-02 | 2 | LEAD_ACCEPTED | 7437b70 | 2 | Headline funnel/submission denominator now uses real-submission semantics |
+
+J20G-04 remains blocked on the future Lane 1 Gmail-readiness dependency. The accepted Lane 3 batch does not authorize Gmail access.
 
 ## Interpretation
 
@@ -172,7 +193,7 @@ J20G-04 remains blocked on Lane C J20G-03.
 
 ## Rules
 
-- Antigravity reports completion; ChatGPT owns LEAD_ACCEPTED/REWORK.
+- Workers report completion; ChatGPT owns LEAD_ACCEPTED/REWORK.
 - CI success is necessary but not sufficient.
 - A real blocker reported promptly is not counted as task failure.
 - >SP5 must be decomposed before assignment.
