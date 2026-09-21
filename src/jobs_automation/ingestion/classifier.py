@@ -82,7 +82,63 @@ class EmailClassifier:
                 needs_review=False,
             )
 
-        # 4. Rejection
+        # 4. Withdrawal confirmation (must clearly indicate application was withdrawn)
+        withdrawal_patterns = [
+            "withdrawn your application",
+            "application has been withdrawn",
+            "confirming your withdrawal",
+            "withdrawal confirmation",
+            "you have withdrawn",
+            "withdrew your application",
+            "requested to withdraw",
+        ]
+        if any(p in subject_lower or p in body_lower[:1000] for p in withdrawal_patterns):
+            return EmailClassificationResult(
+                classification=EmailClassification.WITHDRAWAL,
+                confidence=0.92,
+                direction="inbound",
+                company_hint=self._extract_company_hint(email),
+                needs_review=False,
+            )
+
+        # 5. Background check
+        background_check_patterns = [
+            "background check",
+            "background screening",
+            "pre-employment screening",
+            "background verification",
+            "sterling background",
+            "checkr",
+            "hireright",
+        ]
+        if any(p in subject_lower or p in body_lower[:1000] for p in background_check_patterns):
+            return EmailClassificationResult(
+                classification=EmailClassification.BACKGROUND_CHECK,
+                confidence=0.90,
+                direction="inbound",
+                company_hint=self._extract_company_hint(email),
+                needs_review=False,
+            )
+
+        # 6. Onboarding
+        onboarding_patterns = [
+            "onboarding",
+            "new hire paperwork",
+            "welcome to the team",
+            "onboarding documents",
+            "first day details",
+            "i-9 verification",
+        ]
+        if any(p in subject_lower or p in body_lower[:1000] for p in onboarding_patterns):
+            return EmailClassificationResult(
+                classification=EmailClassification.ONBOARDING,
+                confidence=0.90,
+                direction="inbound",
+                company_hint=self._extract_company_hint(email),
+                needs_review=False,
+            )
+
+        # 7. Rejection
         rejection_patterns = [
             "not moving forward",
             "other candidates",
@@ -203,7 +259,27 @@ class EmailClassifier:
                 needs_review=False,
             )
 
-        # 8. Recruiter outreach / follow up
+        # 10. Recruiter follow-up (explicit follow-up on previous communication)
+        recruiter_followup_patterns = [
+            "following up on my previous",
+            "following up on our conversation",
+            "following up regarding your application",
+            "just following up",
+            "checking in on my last email",
+            "touching base on my previous note",
+            "circling back on",
+            "wanted to follow up",
+        ]
+        if any(p in subject_lower or p in body_lower[:1000] for p in recruiter_followup_patterns):
+            return EmailClassificationResult(
+                classification=EmailClassification.RECRUITER_FOLLOW_UP,
+                confidence=0.85,
+                direction="inbound",
+                company_hint=self._extract_company_hint(email),
+                needs_review=False,
+            )
+
+        # 11. Recruiter initial outreach
         recruiter_patterns = [
             "came across your profile",
             "impressed by your background",

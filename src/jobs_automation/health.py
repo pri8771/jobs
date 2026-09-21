@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import os
 import time
 from typing import Any
 
@@ -213,34 +212,50 @@ class HealthCheckService:
                 details={"error": str(exc)},
             )
 
-    def check_gmail(self) -> ComponentHealth:
-        """Inspects Gmail adapter configuration and last ingestion timestamp."""
+    def check_gmail(self, readiness_result: dict[str, Any] | None = None) -> ComponentHealth:
+        """Inspects Gmail adapter readiness without heuristic credential assumptions.
+
+        Follows B-R20-04:
+        - Fails safely as DEGRADED / NOT_INTEGRATED unless an explicit typed readiness
+          result is provided (supplied by Lane C's J20G-03 service).
+        - Avoids any environment variable heuristic (e.g. GMAIL_CREDENTIALS_JSON) that
+          could falsely claim live readiness.
+        """
         try:
             with self.session_factory() as session:
                 last_msg = session.scalar(
                     select(InboundMessageModel)
                     .order_by(InboundMessageModel.received_at.desc())
                 )
-                creds_configured = bool(
-                    os.getenv("GMAIL_CREDENTIALS_JSON") or os.path.exists("credentials.json")
+                last_received_at = last_msg.received_at.isoformat() if last_msg else None
+
+            if readiness_result is not None:
+                # Typed readiness result supplied (e.g. from Lane C's diagnostic service)
+                status = readiness_result.get("status", "DEGRADED")
+                message = readiness_result.get(
+                    "message", f"Gmail readiness verified: {status}"
                 )
-                details: dict[str, Any] = {
-                    "credentials_configured": creds_configured,
-                    "last_message_received_at": last_msg.received_at.isoformat() if last_msg else None,
-                }
-                if not creds_configured:
-                    return ComponentHealth(
-                        name="gmail",
-                        status="DEGRADED",
-                        message="Gmail live credentials not configured. Ingestion operates with mock adapter.",
-                        details=details,
-                    )
+                details = dict(readiness_result)
+                details["last_message_received_at"] = last_received_at
                 return ComponentHealth(
                     name="gmail",
-                    status="HEALTHY",
-                    message="Gmail configured.",
+                    status=status,
+                    message=message,
                     details=details,
                 )
+
+            # Default fail-safe without false credential heuristic
+            return ComponentHealth(
+                name="gmail",
+                status="DEGRADED",
+                message="Gmail integration status: NOT_INTEGRATED (awaiting typed OAuth readiness provider).",
+                details={
+                    "status": "NOT_INTEGRATED",
+                    "live_capable": False,
+                    "last_message_received_at": last_received_at,
+                    "diagnostic": "Awaiting Lane C J20G-03 typed readiness integration; no mock/heuristic assumed.",
+                },
+            )
         except Exception as exc:
             return ComponentHealth(
                 name="gmail",

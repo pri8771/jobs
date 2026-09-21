@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+import uuid
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -37,6 +38,7 @@ class LifecycleTransitionResult(BaseModel):
     event_type: str
     contact_name: str | None = None
     interview_scheduled: bool = False
+    regression_prevented: bool = False
     message: str
 
 
@@ -188,9 +190,24 @@ class LifecycleEngine:
         # Stage progression & regression policy
         regression_prevented = False
         if target_status == "REJECTED":
-            new_status = "REJECTED"
-            app.status = new_status
-            app.closed_at = message.received_at
+            if previous_status in ("OFFER_ACCEPTED", "ONBOARDING"):
+                logger.warning(
+                    "Contradictory rejection message received for application %s in %s state. "
+                    "Routing to human review and preserving current state.",
+                    app.id,
+                    previous_status,
+                )
+                self._route_contradiction_to_review(
+                    message=message,
+                    application_id=str(app.id),
+                    previous_status=previous_status,
+                )
+                new_status = previous_status
+                regression_prevented = True
+            else:
+                new_status = "REJECTED"
+                app.status = new_status
+                app.closed_at = message.received_at
         elif target_status == "WITHDRAWN":
             new_status = "WITHDRAWN"
             app.status = new_status
@@ -251,6 +268,7 @@ class LifecycleEngine:
             event_type=event_type,
             contact_name=contact.name if contact else None,
             interview_scheduled=interview_scheduled,
+            regression_prevented=regression_prevented,
             message=f"Application {app.id} transitioned from {previous_status} to {new_status}"
             if not regression_prevented
             else f"Application {app.id} status preserved at {previous_status} (regression prevented)",
@@ -352,6 +370,29 @@ class LifecycleEngine:
                 "provider_message_id": message.provider_message_id,
                 "subject": message.subject,
                 "matched_application_ids": app_ids,
+            },
+        )
+        self.session.add(task)
+
+    def _route_contradiction_to_review(
+        self,
+        message: InboundMessageModel,
+        application_id: str,
+        previous_status: str,
+    ) -> None:
+        task = TaskModel(
+            task_type="NEEDS_REVIEW",
+            application_id=uuid.UUID(application_id),
+            status="pending",
+            payload_json={
+                "reason": f"Contradictory rejection message received while application is in {previous_status} state",
+                "message_id": str(message.id),
+                "provider_message_id": message.provider_message_id,
+                "subject": message.subject,
+                "application_id": application_id,
+                "current_status": previous_status,
+                "proposed_status": "REJECTED",
+                "action_required": "Operator must verify if offer was rescinded or if rejection is an automated system glitch.",
             },
         )
         self.session.add(task)
