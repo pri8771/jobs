@@ -41,29 +41,9 @@ Do **not** use private candidate/resume inputs or execute the real proof until C
 
 ## Heartbeat
 
-Authoritative owner epoch: `DAYWATCH_2026_09_21`.
+Canonical owner directive:
+`python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --task "V1.4 real-proof P0A rework" --detach`
 
-Verified current sequence:
-- 16:27:55Z — proving 1/3
-- 16:32:56Z — proving 2/3
-- 16:37:59Z — proving 3/3; clean 24-hour watch starts
-- 16:53:01Z — valid first ~15-minute watch check-in
-- misses: 0
+Exactly one watcher. Fixed 5-minute cadence while active. No transitions.
 
-Keep exactly one DAYWATCH watcher. Stop any superseded `FIVE_MIN_2026_09_21` watcher before continuing.
-
-Launch only if no correct DAYWATCH watcher is already running:
-`python scripts/worker_heartbeat_watch.py --lane 1 --epoch DAYWATCH_2026_09_21 --task "V1.4 real-proof P0A rework" --detach`
-
-Cadence: 3 proving heartbeats at 4–7 minute gaps → approximately 15-minute heartbeats for a clean 24 hours; any gap >20 minutes increments misses and restarts the clean window → hourly after the clean 24 hours.
-
-## After P0A acceptance
-
-Immediately:
-1. validate real private profile + exact selected-resume mapping,
-2. import/revalidate the live OpenSesame job/questions,
-3. run the genuine V1.4 packet proof,
-4. commit only runtime-generated redacted candidate evidence + separate verifier receipt,
-5. stop for lead acceptance.
-
-No Gmail OAuth/mailbox access, browser prefill/application submission, external messaging, MFA/CAPTCHA handling, spending, or fabricated candidate facts are authorized.
+Any DAYWATCH/15-minute/hourly instruction is superseded unless the owner explicitly changes this again.
