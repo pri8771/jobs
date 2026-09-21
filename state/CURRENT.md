@@ -1,6 +1,6 @@
 # Current State
 
-Updated: 2026-09-21 06:46 ET
+Updated: 2026-09-21 07:43 ET
 
 ## Completion policy
 
@@ -37,7 +37,7 @@ Open bounded repairs:
 
 Status: NOT ACCEPTED.
 
-Lane C remains production implementation owner. During this review its branch was found 165 commits behind main with only two unique lead-seeded heartbeat commits and no worker code. After inspecting those commits, ChatGPT lead aligned `worker/live-data-foundations` to green main. This is branch maintenance only and is not a worker heartbeat or acceptance event.
+Lane C remains production implementation owner. Its branch is still at the prior lead-aligned head `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` and has produced no worker implementation or worker-authored heartbeat since alignment. RP14-T1..T7 are all still open.
 
 ## Remote worker
 
@@ -51,13 +51,15 @@ Relevant Jobs history:
 - read-only P0A preflight completed successfully but implemented nothing.
 
 New this review:
-- non-Jobs SwarmAI workflow `35580580156` completed with failure, freeing the worker slot;
-- bounded independent Jobs task `jobs-v14-p0a-adversarial-tests-20260921-0642` was dispatched under workflow `35590523591`;
-- scope is TESTS ONLY from Jobs main, with no production/schema/docs/coordination/private-data/Gmail/browser changes;
-- task was queued at the time of this state update;
-- any returned branch/commit must be inspected before use or acceptance.
+- bounded TESTS-ONLY task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure;
+- sanitized result: `Worker branch push failed.`;
+- returned Jobs branch: none;
+- returned commit: none;
+- returned tests/summary: none;
+- no corresponding Jobs branch exists;
+- the remote-workers workflow did successfully publish the sanitized failure result after the target branch push failed.
 
-Remote-workers remains infrastructure only. Jobs repo remains authoritative.
+Workflow logs show the task reached the branch-push stage, but the executor suppresses the target-repository push stderr and reports only the generic failure. Therefore no code or tests from this attempt are reviewable or acceptable, and an identical branch-mode retry would be low-value until the infrastructure path has better diagnostics/recovery. Remote-workers remains infrastructure only; Jobs remains authoritative.
 
 ## V1.4 real proof
 
@@ -68,7 +70,7 @@ Packet-preparation proof only; no browser prefill/application submission authori
 
 After P0A acceptance, required real inputs are the actual private candidate profile, actual mapped resume bytes, current real job/questions, production `ApplicationPacketBuilder`, and a non-mock generation route. Required committed evidence is a runtime-generated redacted candidate bundle plus a separately generated verifier receipt bound to candidate SHA.
 
-Current proof directory contains schema/readme only; no runtime proof candidate or verifier receipt exists.
+Current proof directory contains only `README.md` and `v14_real_proof.schema.json`; no runtime proof candidate or verifier receipt exists.
 
 ## Lane states
 
@@ -88,7 +90,7 @@ Current proof directory contains schema/readme only; no runtime proof candidate 
 
 ### Lane C
 - branch: `worker/live-data-foundations`
-- lead-aligned to latest green main during this review
+- head: `020f262b2a99cbf6d6b9647750af88d9b6a1cf66`
 - worker-authored heartbeat streak: 0/3
 - immediate work: RP14-T1..T7 production proof-tool hardening; do not use private inputs or execute the proof yet
 - after lead P0A acceptance: RP14-C1..C3, then execute RP14-E1/E2 directly if genuine local inputs are present
@@ -104,7 +106,8 @@ Current proof directory contains schema/readme only; no runtime proof candidate 
 - branch: `scout/qa-prep`
 - head: `d221eecbe21aa33051c888b9e42f10a307ed9ecd`
 - no new worker-authored heartbeat/audit
-- next priority: Lane C P0A batch, then remote test-only branch if it lands, then RP14-S1 when genuine proof evidence appears
+- next priority: Lane C P0A batch, then RP14-S1 when genuine proof evidence appears
+- failed remote test-only task produced no reviewable branch, so there is nothing from it for Scout to audit
 
 ## Heartbeat truth
 
@@ -118,8 +121,9 @@ Lead-seeded heartbeat commits and lead branch maintenance do not count. PROVING_
 
 ## CI / review evidence
 
-- Jobs main `19c136f5dda7e885e66d4b8b3c567103a6dde485` passed CI run #314 before this coordination update.
+- Jobs main `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` passed CI run #315 before this coordination update.
 - No implementation/scout branch produced a READY_FOR_LEAD_REVIEW batch in this review.
+- Remote workflow `35590523591` failed at the target Jobs branch-push stage and returned no reviewable Jobs branch/commit.
 - No `WORKER_PERFORMANCE` update is due because no worker implementation batch was audited/accepted/rejected this cycle.
 
 ## Critical path
