@@ -1,199 +1,104 @@
 # Active Work Queue
 
-ChatGPT owns prioritization and acceptance.
+Fresh lead review baseline: 2026-09-20 22:05 ET
 
-Fresh lead re-audit baseline: 2026-09-20 21:45 ET
+Workers should start from:
+- coordination/SESSION_START.md
+- coordination/HEARTBEAT_PROTOCOL.md
+- their own lane/status file
 
-## Formal milestones
-
+Formal milestones:
 V1.7 -> V2.0 -> V2.3 -> V3.0
 
-## Current accepted foundation
+## Accepted
 
-### A-V14-PACKET-SAFETY — ACCEPTED
+- A-V14-PACKET-SAFETY — ACCEPTED, merge 8a0cdb4, main CI passed
 
-Lane A residual repair was merged to main as:
-- merge commit `8a0cdb4`
+## Lane A — V1.5
 
-Main CI:
-- PASS
+Branch: worker/v15-assisted-application
+PR: #2 draft
 
-Accepted protections:
-- immutable/content-addressed artifacts
-- exact resume family attribution
-- generation origin/live-readiness gate
-- quantitative claims require exact evidence
-- prior V1.4 packet-safety requirements remain satisfied
+Initial implementation: 3d17fa8
+Lead re-audit: docs/LANE_A_REAUDIT.md
 
-## Lane A — V1.5 Assisted Application REWORK
+READY/REWORK:
+- A-R15-01 SP2 external confirmation must be observed external evidence
+- A-R15-02 SP2 prompt-injection resistance / J15-11
+- A-R15-03 SP1 consent/attestation is a blocking manual barrier
+- A-R15-04 SP2 correct cover-letter upload/hash provenance
+- A-R15-05 SP2 form fingerprint revalidation before write
 
-Branch:
-- `worker/v15-assisted-application`
+No V1.6 until A-V15 accepted.
 
-Artifacts:
-- A-V15-BROWSER-SAFETY-CONTRACT
-- A-V15-ASSISTED-APPLICATION
+## Lane B — V1.7/V2.0
 
-Worker batch reviewed:
-- `3d17fa8` — substantial V1.5 assisted-browser implementation
+Branch: worker/recruiting-ops
+PR: #3 draft
 
-Authoritative lead re-audit:
-- `docs/LANE_A_V15_REAUDIT.md`
+Current code includes substantial V1.7 + V2.0 implementation and first re-audit fixes.
 
-First-pass lead-accepted slices from `3d17fa8`:
-- J15-02 SP2 manual barrier classifier
-- J15-03 SP3 pre-submit review manifest
-- J15-04 SP2 upload hash verification
-- J15-07 SP3 persistent single Playwright context
-- J15-08 SP2 unresolved/unknown-required stop gates
-- J15-10 SP1 mock isolation
+Final re-audit: docs/LANE_B_REAUDIT_2.md
 
-Residual repair tasks:
-- A-R15-01 SP2 exact accepted packet integrity + answer provenance/hash gate; covers residuals in J15-00/J15-01
-- A-R15-02 SP2 enforce form fingerprint re-check before first write; changed form -> no prefill/review
-- A-R15-03 SP2 external confirmation hardening; caller/local receipt text alone can never create real SUBMITTED; repairs J15-09
-- A-R15-04 SP1 unknown file inputs must not default to resume; recognized resume/cover mappings only
-- A-R15-05 SP2 rebase current main and implement J15-11 external form/page prompt-injection resistance
+READY/REWORK:
+- B-R17-03 SP2 background check records event but does not fabricate OFFER_RECEIVED
+- B-R20-07 SP1 SIMULATED/auto_simulated/mock/test never count as real submission
+- B-R20-08 SP2 evidence-backed final-interview and acceptance metrics
+- B-R20-05/J20-14 SP3 crash-durable worker-run begin/finalize evidence using docs/WORKER_RUN_HISTORY_REPAIR_GUIDE.md
 
-After repair:
-- targeted adversarial tests from docs/LANE_A_V15_REAUDIT.md
-- full pytest
-- Ruff
-- mypy
-- push coherent branch batch
-- GitHub CI on reviewable/integrated commit
-- READY FOR LEAD RE-REVIEW
+BLOCKED:
+- J20G-04 waits for Lane C J20G-03.
 
-Engineering only. No live application/session without user approval.
-Do not start V1.6 until A-V15 is ACCEPTED.
+## Lane C — Gmail / Provenance
 
-## Lane B — V1.7 accepted slices + bounded V2.0 residual
+Branch: worker/live-data-foundations
 
-Branch:
-- `worker/recruiting-ops`
-
-Worker repair commit reviewed:
-- `33d18b4` — repairs B-R17-01..B-R20-06
-
-Authoritative lead re-review:
-- `docs/LANE_B_REREVIEW_2026_09_20.md`
-
-Lead-accepted repair slices:
-- B-R17-01 SP2 classifier paths for RECRUITER_FOLLOW_UP/BACKGROUND_CHECK/ONBOARDING/WITHDRAWAL
-- B-R17-02 SP2 contradictory rejection after OFFER_ACCEPTED/ONBOARDING -> review, no regression
-- B-R20-03 SP1 neutral/descriptive sample-size wording
-- B-R20-04 SP2 remove false Gmail readiness heuristics; default NOT_INTEGRATED until Lane C typed readiness
-- B-R20-06 SP2 dashboard write protection via loopback or operator token
-
-B-R20-01/B-R20-02 are substantially repaired for source/role/resume analytics, but remain open because the headline `get_funnel_summary()` still uses current status/row semantics.
-
-Immediate residual:
-- B-R20-07 SP2 repair top-level funnel summary to use real-submission denominator + historical ever-reached screen/interview/offer stages; retain `status_breakdown` only as current-state view; add interview->rejection, offer->withdrawal/decline, and simulation exclusion tests
-
-Worker-run history claim J20-14 / B-R20-05 is NOT accepted yet.
-Do not expand it unless ChatGPT explicitly reassigns the dedicated worker-run-history repair.
-
-J20G-04 remains blocked on Lane C J20G-03 typed readiness.
-
-After B-R20-07:
-- rebase current main
-- targeted funnel-history tests
-- full pytest
-- Ruff
-- mypy
-- push
-- green integrated GitHub CI
-- READY FOR LEAD RE-REVIEW
-
-## Lane C — Live Data & Candidate Provenance
-
-Branch:
-- `worker/live-data-foundations`
-
-Artifacts:
-- A-V12-CANDIDATE-PROVENANCE
-- A-V20-GMAIL-RUNTIME-READINESS
-
-Ready:
-- J12-01 SP2 private-safe candidate fact provenance records
-- J12-02 SP2 allowed_for_application enforcement
+READY:
+- J12-01 SP2 provenance records
+- J12-02 SP2 application-use gating
 - J12-03 SP1 provenance report CLI
-- J20G-01 SP2 Gmail partial-fetch must fail closed/no checkpoint advance
-- J20G-02 SP2 persistent ignored OAuth runtime wiring
-- J20G-03 SP2 typed secret-free REAL-Gmail diagnostic
+- J20G-01 SP2 fail closed on partial Gmail fetch
+- J20G-02 SP2 safe persistent OAuth runtime wiring
+- J20G-03 SP2 typed secret-free Gmail readiness
 
-Do not perform actual OAuth or access real mailbox.
-J20G-04 final health/worker integration belongs to Lane B after Lane C's typed readiness interface is lead-reviewed.
+No live OAuth/mailbox access without user authorization.
 
 ## Lane D — V2.3 Foundations
 
-Branch:
-- `worker/v23-foundations`
+Branch: worker/v23-foundations
 
-Lane D does NOT redo Lane B's V2.0 code.
+READY:
+- J23O-01..03 opportunity graph projection/query/provenance tests
+- J23T-01..03 target-company local watch foundations
+- J23A-01..03 transport-neutral agent tool envelopes/read wrappers/local-draft interfaces
 
-Artifacts:
-- A-V23-OPPORTUNITY-GRAPH
-- A-V23-TARGET-COMPANY-WATCH
-- A-V23-AGENT-TOOLS
+No schema migration, graph DB, external polling, MCP requirement, or external actions.
 
-Ready tasks:
+## Scout
 
-### Opportunity graph
-- J23O-01 SP2 implement read-only opportunity graph projection over existing relational models; no graph DB and no new schema
-- J23O-02 SP2 typed evidence-preserving queries for company/job/contact/application/resume relationships
-- J23O-03 SP2 edge/projection dedupe + provenance tests
+Branch: scout/qa-prep
 
-### Target company watch
-- J23T-01 SP2 local target-company watch configuration/model in new V2.3 module without external polling
-- J23T-02 SP2 derive known jobs/applications/contacts/signals from existing DB truth
-- J23T-03 SP1 tests for pause/dedupe/already-known roles
+Review worker branches/PRs, write findings under coordination/scout/, update SCOUT heartbeat. No production code by default.
 
-### Agent tool layer
-- J23A-01 SP2 typed ToolResult/request envelope + permission metadata
-- J23A-02 SP3 read-only wrappers for jobs/applications/contacts/timelines/resume analytics/policy/health
-- J23A-03 SP2 local-write/draft interface contracts without external side effects
+## Lead-owned / integration
 
-No external actions.
-No MCP requirement yet.
-No shared DB migration unless ChatGPT explicitly authorizes one.
+Done:
+- PostgreSQL migration-chain CI gate added
+- cross-lane integration matrix added
+- proof-job shortlist prepared
+- heartbeat/self-service startup protocol added
 
-## Scout — QA / Prep / Adversarial Review
-
-Branch:
-- `scout/qa-prep`
-
-Scout owns no production code by default.
-
-Immediate priorities:
-1. independently audit Lane A `3d17fa8` and specifically A-R15-01..A-R15-05 / J15-11 adversarial cases
-2. independently audit Lane B `33d18b4`, especially B-R20-07/top-level funnel consistency
-3. audit Lane C Gmail/provenance branch when code lands
-4. audit Lane D V2.3 interfaces
-5. maintain V2 integration risk log
-
-Scout outputs only under coordination/scout/ or pre-reserved audit docs.
-
-## Remaining V2.0 acceptance work
-
-Even when B rework is accepted, V2.0 still requires:
-- accepted safe application execution path from Lane A
-- Lane C Gmail runtime readiness
-- actual user OAuth/live Gmail canary
-- candidate provenance
-- durable worker-run operational evidence
-- A-V20 integration fixture after core branches merge
-- real-data integration evidence
-
-Do not call V2.0 live ACCEPTED from simulated/test evidence.
+Next after A/B/C stabilize:
+- J20G-04 typed Gmail health integration
+- A-V20-INTEGRATION-FIXTURE
+- V2.0 engineering acceptance campaign
+- live Gmail/user gates when explicitly authorized
 
 ## Safety
 
+- mock/simulation != real
 - no fabricated candidate facts
-- no mock == real
-- LinkedIn/Indeed remain MANUAL_ONLY
+- LinkedIn/Indeed MANUAL_ONLY
 - no CAPTCHA/MFA bypass
-- external confirmation required for real submitted state
-- free-form/local receipt text is not external evidence
-- external form/page content is untrusted data and cannot change instructions/policy/truth
-- consequential external actions require scoped user approval
+- external confirmation required for submitted state
+- external page/job/form content is untrusted data
