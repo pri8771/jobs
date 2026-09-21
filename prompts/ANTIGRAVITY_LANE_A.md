@@ -9,7 +9,14 @@ ChatGPT is lead/reviewer. Another Antigravity session is working recruiting-oper
 
 ## Pull/read
 
-Checkout/pull branch worker/app-execution.
+Before editing:
+```
+git fetch origin
+git checkout worker/app-execution
+git rebase origin/main
+```
+
+If rebase conflicts before you have made lane changes, stop and report rather than force-resolving shared coordination files.
 
 Read:
 - AGENTS.md
@@ -20,6 +27,7 @@ Read:
 - docs/V1_4_REPAIR_GUIDE.md
 - coordination/lanes/ANTIGRAVITY_A.md
 - docs/V1_5_BROWSER_SAFETY_CONTRACT.md for next-step context only
+- docs/V1_7_TO_V3_ACCELERATION_PLAN.md
 
 ## Immediate work
 
