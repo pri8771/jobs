@@ -1,5 +1,9 @@
 # Acceleration Plan: V1.7 -> V2.0 -> V2.3 -> V3.0
 
+> **HISTORICAL / SUPERSEDED EXECUTION MODEL — 2026-09-21**
+>
+> The multi-lane parallel-worker instructions in this document are retained as planning history only. Current owner-directed implementation uses **one active Antigravity session with exactly one 5-minute heartbeat watcher**. Use `docs/ANTIGRAVITY_V1_4_TO_V1_7_EXECUTION.md` for active execution and `docs/V1_6_TO_V3_PREP_PLAN.md` for downstream planning.
+>
 ## Executive direction
 
 Formal milestone cadence is now:
