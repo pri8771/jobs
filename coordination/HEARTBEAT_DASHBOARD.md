@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Last evidence review: 2026-09-20 23:42 ET / 2026-09-21T03:42Z
+Last evidence review: 2026-09-21 02:48 ET / 2026-09-21T06:48Z
 
 ## Cadence policy
 
@@ -24,15 +24,19 @@ ChatGPT lead automation:
 ## Latest lead recheck
 
 - No worker branch advanced after the previously reviewed Lane A commit `ed875775122f0d390af6ab15beb378904af2a476`.
-- Lane C/B/D/Scout heads are still the lead-seeded heartbeat/instruction commits, not worker-authored proving heartbeats.
-- No V1.4 real-proof evidence JSON has landed.
-- The immediate heartbeat smoke/proving helper is available on main at `scripts/worker_heartbeat_probe.py`; smoke probes do not count as real 15-minute proof.
+- Lane B remains at `8f4909fbbd61ef8dc7327d21ce6dfe0781db8e21`.
+- Lane C remains at `2ce7674fc19cb705ce2f988c8f723f0dd2df6e02` with no RP14-T1..T7 batch or worker-authored heartbeat.
+- Lane D remains at `11ff552cd8d5f31a1406bc7d4ab2833ed252db42`.
+- Scout remains at `d221eecbe21aa33051c888b9e42f10a307ed9ecd`.
+- No V1.4 real-proof evidence JSON or verifier receipt has landed; `coordination/proofs/` still contains only the README and schema.
+- Jobs `main` head before this coordination refresh was `ea6a3990395cd803bfede26b1ac7e880551e0a82`, and its CI completed successfully.
+- Remote `worker-pc` is online/capacity 1, but the remote-workers control plane currently has an in-progress SwarmAI task occupying the worker; no Jobs task was dispatched during this review.
 
 ## Evidence notes
 
 - Lead-seeded heartbeat commits do not count.
 - Lane A produced one worker-authored heartbeat associated with its V1.5 rework batch. There is no prior worker-authored heartbeat 10–20 minutes before it, so no 15-minute cadence has been proven.
-- B/C/D/Scout heartbeat files still contain the lead seed with `last_check_in_utc: null` and `consecutive_on_time: 0`.
+- B/C/D/Scout heartbeat files still contain the lead seed with no worker-authored proving series.
 - Therefore the 15-minute proving system is configured but has NOT demonstrated three consecutive check-ins for any lane.
 
 ## Required next proof
