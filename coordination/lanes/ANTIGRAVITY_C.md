@@ -34,15 +34,19 @@ Scope: proof scripts, proof schema, proof-tooling tests, minimal directly relate
 
 Push one coherent batch with a worker-authored heartbeat marked `READY_FOR_LEAD_REVIEW`, then stop for Scout/ChatGPT review. Do not self-accept.
 
-## Current lead review — 2026-09-21 08:46 ET
+## Current lead review — 2026-09-21 09:55 ET
 
-Lane C is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. Rebase latest main before work.
+Lane C is still at `020f262b2a99cbf6d6b9647750af88d9b6a1cf66` with no worker-authored heartbeat and no RP14-T1..T7 implementation. Rebase latest main before work. This remains the project critical path.
 
-Lane A attempted the V1.4 packet proof before P0A acceptance and failed closed because its selected real resume variant `resume_ai_software_engineer` has no actual mapped file on that machine. That attempt is not valid proof evidence and does not change the P0A gate. It does mean Lane A is currently known to be `REAL_PROOF_BLOCKED_PRIVATE_INPUT` unless a genuine intended resume mapping exists later.
+Lane A is still not an eligible real-proof executor because its selected real resume variant `resume_ai_software_engineer` has no actual mapped file on that machine. Its early proof attempt was before P0A acceptance and cannot count. Do not wait for Lane A after P0A if Lane C has the complete genuine inputs.
 
-Therefore Lane C remains especially important to the critical path: finish RP14-T1..T7 first. After lead acceptance, execute RP14-C1..C3 immediately and determine whether this machine has the complete genuine profile/resume mapping. Do not wait for Lane A if Lane C has all real inputs.
+A bounded remote support task has been queued for **RP14-T5 only**:
+- task: `jobs-v14-p0a-t5-schema-20260921-0946`
+- scope: proof evidence schema + adversarial extra-field tests only
+- no private candidate/resume data, Gmail, browser/application behavior, or acceptance-state writes
+- no automatic merge
 
-`worker-pc` remote capacity is currently occupied by a non-Jobs SwarmAI workflow, so there is no parallel remote Jobs implementation to wait for. The previous Jobs tests-only remote attempt failed on target branch push and produced no reviewable code.
+A non-Jobs SwarmAI task started moments before that Jobs dispatch became visible, so the capacity-1 worker has the Jobs task pending behind it. This is support only. **Do not wait for the remote task and do not assume RP14-T5 is done.** If the remote task eventually returns a Jobs branch/commit, ChatGPT will inspect it before Lane C adopts any change.
 
 ## Branch maintenance performed by lead
 
@@ -50,7 +54,7 @@ At the 2026-09-21 06:46 ET lead review, this branch was 165 commits behind main 
 
 This alignment is maintenance only. It is not worker activity, does not count toward heartbeat proving, and completes no RP14 task.
 
-## Remote-worker support — unavailable as reviewable code
+## Prior remote-worker support — unavailable as reviewable code
 
 The bounded TESTS-ONLY support task `jobs-v14-p0a-adversarial-tests-20260921-0642` / workflow `35590523591` completed with failure at the target Jobs branch-push step.
 
@@ -61,7 +65,7 @@ Result:
 - no corresponding Jobs worker branch exists,
 - remote-workers successfully published only the sanitized failure result afterward.
 
-Do not wait for or depend on that task. It completed no RP14 work. The remote executor currently suppresses target-repository push stderr, so another identical branch-mode retry would be low-value until the infrastructure path has better diagnostics/recovery. Continue RP14-T1..T7 directly on `worker/live-data-foundations`.
+Do not depend on that attempt. It completed no RP14 work.
 
 ## After P0A lead acceptance — real proof readiness
 
@@ -104,4 +108,4 @@ Do not perform real OAuth consent, access a live mailbox, open/prefill/submit a 
 
 P0A PROOF-TOOL INTEGRITY — READY FOR WORKER IMPLEMENTATION
 Heartbeat proving: 0/3 worker-authored check-ins.
-Latest lead review: 2026-09-21 08:46 ET.
+Latest lead review: 2026-09-21 09:55 ET.
