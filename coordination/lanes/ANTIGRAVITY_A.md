@@ -48,7 +48,24 @@ Lead audit:
 6. update coordination/heartbeats/LANE_A.md
 7. set heartbeat review state READY FOR LEAD REVIEW
 
-Do not start V1.6 until lead acceptance.
+## P0 immediately after this rework batch
+
+Before V1.6, execute A-V14-REAL-PROOF tasks:
+- RP14-A1 SP2 — run the production V1.4 packet builder using the real JobModel prepared by Lane C, the real private candidate profile, actual resume bytes, and a non-mock generation path.
+- RP14-A2 SP2 — emit the redacted runtime-derived proof bundle and read-back hashes.
+
+Read:
+- docs/V1_4_REAL_PROOF_RUNBOOK.md
+- docs/REAL_PROOF_ACCEPTANCE_POLICY.md
+- coordination/artifacts/A-V14-REAL-PROOF.md
+
+No browser or application submission is required or authorized.
+
+If a real provider is unavailable, fail closed and report REAL_PROOF_BLOCKED_PROVIDER. Never switch to mock.
+
+Do not start V1.6 until:
+1. current V1.5 rework is lead-reviewed as appropriate, and
+2. V1.4 real proof has at least been executed and handed to Scout/lead for review.
 
 ## Status
 
