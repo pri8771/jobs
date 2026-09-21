@@ -27,7 +27,8 @@ Branch:
 Latest substantive repair reviewed:
 - `5e5058461d5371f292c93e0c53cb0b93caba7e44`
 
-Later branch commits through `9badcd32cdc848baa3f0c657ddb45c9858d8c977` are heartbeat-only.
+Current branch head observed:
+- `bac19e5dd12a93644320ff9274ed562f1e347f20` — heartbeat #13
 
 Lead verdict:
 - **REWORK**
@@ -59,7 +60,12 @@ Add focused tests for:
 - DB source metadata/hash mismatch,
 - fabricated description/content SHA.
 
-A bounded tests-only `worker-pc` task is running as support. Lane 1 does not wait for it and owns the production repair.
+`worker-pc` support is now available as reviewed test input:
+- branch `worker/jobs-v14-p0a-remaining-tests-20260921-1449`,
+- commit `cffae70577b6719c92e7d7edc3ecd94d00db622d`,
+- actual diff inspected: only `tests/test_real_proof_verifier.py`, +420 lines,
+- no worker-side pytest/Ruff/Python execution and no GitHub CI on that commit,
+- therefore **not accepted/integrated**; Lane 1 may cherry-pick or adapt the tests and must execute them in its own validation batch.
 
 ### R14-P04 — final validation / review boundary
 - synchronize PR #8 to latest main without dragging unrelated historical churn,
@@ -99,7 +105,7 @@ Current bounded scope:
 
 Current branch evidence:
 - head `ddb4f848a97dec87033cfdef7ca33642480d99bc`,
-- 32 commits ahead / 140 behind current main,
+- 32 commits ahead / 140 behind main at lead review,
 - heartbeat still on obsolete `DAYWATCH_2026_09_21` / `WATCH_15M_24H`, last 17:39:16Z.
 
 Immediate assignment:
@@ -128,7 +134,7 @@ Preserve accepted behavior:
 
 Current branch evidence:
 - head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`,
-- 0 commits ahead / 128 behind current main,
+- 0 commits ahead / 128 behind main at lead review,
 - heartbeat still on obsolete DAYWATCH, last 16:44:37Z.
 
 Immediate assignment:
@@ -153,10 +159,10 @@ Canonical standard:
 - exactly one watcher per Lane 1/2/3,
 - no cadence transitions.
 
-Lane 1 is current through heartbeat #11 at 18:43:24Z.
+Lane 1 is current through heartbeat #13 at 18:53:27Z.
 Lane 2 and Lane 3 must migrate off DAYWATCH.
 
-Issue #7 automated heartbeat comments stopped after 18:18Z even though Lane 1 commits continued. Current heartbeat jobs and the latest main CI job are failing before any workflow steps start. Treat this as `CI_BLOCKED_ACCOUNT` / Actions runner startup failure until runner execution resumes; do not rewrite heartbeat logic merely to create activity.
+Issue #7 automated heartbeat comments stopped after 18:18Z even though Lane 1 commits continued. Current heartbeat jobs and current main CI jobs are failing before any workflow steps start. Treat this as `CI_BLOCKED_ACCOUNT` / Actions runner startup failure until runner execution resumes; do not rewrite heartbeat logic merely to create activity.
 
 ## Review rule
 
