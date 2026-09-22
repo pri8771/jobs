@@ -440,6 +440,7 @@ class BoundedIngestionRunner:
             adapter=self.adapter,
             candidate_emails=self.candidate_emails,
             canary_identities=self.canary_identities,
+            safe_errors=True,
         )
         summary: IngestionSweepSummary = engine.run_sweep(
             query=request.provider_query(),

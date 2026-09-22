@@ -65,6 +65,7 @@ class EmailIngestionEngine:
         candidate_emails: list[str] | None = None,
         safety_overlap_minutes: int = 15,
         canary_identities: list[str] | None = None,
+        safe_errors: bool = False,
     ) -> None:
         self.session = session
         self.adapter = adapter
@@ -77,6 +78,10 @@ class EmailIngestionEngine:
         self.canary_identities = {
             identity.strip().lower() for identity in (canary_identities or []) if identity.strip()
         }
+        # The scheduled worker retains its diagnostic error text and applies its established
+        # sanitizer at its own audit boundary.  A bounded run renders errors to the operator
+        # and persists a portable evidence record, so it opts into fixed, safe categories.
+        self.safe_errors = safe_errors
 
     def _is_canary(self, raw_msg: Any) -> bool:
         if not self.canary_identities:
@@ -323,10 +328,14 @@ class EmailIngestionEngine:
             self.session.rollback()
             # A rolled-back sweep has no durable batch to drive downstream work.
             summary.batch_message_ids.clear()
-            if summary.checkpoint_held_reason is not None:
-                summary.errors.append("POLL_INCOMPLETE")
+            if self.safe_errors:
+                summary.errors.append(
+                    "POLL_INCOMPLETE"
+                    if summary.checkpoint_held_reason is not None
+                    else "INGESTION_ERROR"
+                )
             else:
-                summary.errors.append("INGESTION_ERROR")
+                summary.errors.append(str(e))
             logger.warning("Email ingestion sweep failed with %s", type(e).__name__)
 
         summary.completed_at = datetime.datetime.now(datetime.UTC)

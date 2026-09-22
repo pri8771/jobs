@@ -200,7 +200,7 @@ def test_incomplete_poll_cannot_advance_checkpoint_past_lost_evidence(db_session
 
     summary = engine.run_sweep(max_messages=10)
     assert summary.messages_ingested == 0
-    assert summary.errors == ["POLL_INCOMPLETE"]
+    assert summary.errors == ["poll_incomplete: truncated_by_cap=False, missing_messages=1"]
     assert summary.batch_message_ids == []
     assert summary.checkpoint_advanced_to is None
     assert summary.checkpoint_held_reason is not None
@@ -217,7 +217,7 @@ def test_incomplete_poll_cannot_advance_checkpoint_past_lost_evidence(db_session
     )
     capped_summary = capped.run_sweep(max_messages=2)
     assert capped_summary.messages_ingested == 0
-    assert capped_summary.errors == ["POLL_INCOMPLETE"]
+    assert capped_summary.errors == ["poll_incomplete: truncated_by_cap=True, missing_messages=0"]
     assert capped_summary.batch_message_ids == []
     assert capped_summary.checkpoint_advanced_to is None
     assert "truncated_by_cap=True" in (capped_summary.checkpoint_held_reason or "")
@@ -276,7 +276,9 @@ def test_malformed_or_mismatched_gmail_evidence_aborts_before_all_writes(
 
     summary = engine.run_sweep(max_messages=10)
 
-    assert summary.errors == ["POLL_INCOMPLETE"]
+    assert summary.errors[0].startswith(
+        "poll_incomplete: truncated_by_cap=False, missing_messages="
+    )
     assert summary.messages_ingested == 0
     assert summary.batch_message_ids == []
     assert summary.checkpoint_advanced_to is None
