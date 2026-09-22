@@ -1,33 +1,13 @@
-# Portfolio handoff — setup snapshot, not live health
+# Portfolio status — evidence-backed management rollup
 
-Setup state: **PREPARED_NOT_ACTIVATED**. No Codex management session or new worker/watch service was started by writing this file.
+Observed: 2026-09-22. This is derived status only; native project records and ChatGPT lead decisions remain authoritative. No worker, scheduler, merge, or deployment is created by this rollup.
 
-| Project | Instruction ref observed | Scope from native contract | Worker routing hint | Heartbeat policy from native contract | Code/live acceptance in this setup |
-|---|---|---|---|---|---|
-| Jobs | main @ 5610f43276c7886bbdb1d1d038473101566a19c3 | V1.7 live, stop beyond it | Fable; current branch/handoff to reverify; PR #11 candidate capsule | One owned five-minute ACTIVE_5M stream | Not independently audited/executed in this notes setup |
-| Social Bots | chatgpt/social-bots-plan-20260920 @ 982fbce3406e24f186d9b68d0fadeb9bf7058ca6 | LEAD-048 live V1.7 only | fable/social-bots-v23-fasttrack-20260921, historical name not scope | SESSION_ONCE for fresh session only; no periodic chat watcher | Not independently audited/executed in this notes setup |
-| SwarmAI | coordination/swarm-control @ 817821d0bab6c68ae1b92671b115f8be98590ebc | OWNER_V17_LIVE_ONLY; v17 only | cursor/v17-single-session, handoff to Fable verified locally | One existing five-minute stream; verified ownership handoff | Not independently audited/executed in this notes setup |
+| Project | Verified scope and source | Worker / branch / SHA | Artifact | Engineering proof | Real gate and review state | Heartbeat interpretation | Blocker | Next record/action |
+|---|---|---|---|---|---|---|---|---|
+| Jobs Automation | V1.7 only; Jobs main `1a4efbb`; accepted local-origin candidate `b67fc523863babd3e195ee71a05f00fa0f2f7e79` | Codex repair branch `codex/jobs-local-origin-20260922@b67fc523`; historical implementation stream remains separate | G14–G17 local-origin repair | 48 focused pass; 527 pass / 1 existing alias skip; Ruff + mypy; real disposable PostgreSQL matrix 46 cases with zero denied-path mutation | Formal lead acceptance recorded at portfolio `c73dd361`; genuine G14–G17 production-path gates remain open; STOP on J20-01 remains active | Existing owned Jobs five-minute stream is unchanged; no new watcher | Owner/provider/product-path evidence gates | Native Jobs review/evidence `CODEX_LOCAL_ORIGIN_REPAIR_20260922.md` and `CODEX-LOCAL-ORIGIN-REPAIR-20260922`; wait for a new release |
+| Social Bots | LEAD-065 capture preparation only; accepted binding source `fec97738ec0e9407415f60228f7c3938613396c3` tree `43e80b92d8ae559db55a41ed33329695e6fd03fc` | Codex capture branch `codex/bots-capture-prep-20260922@033b973351a9e7d1b2204f9037f901bac1810140` | Two current public evidence candidates | Exactly two collector captures; both HTTP 200, trusted `live-capture`; raw and receipt digests frozen independently | READY_FOR_LEAD_SUITABILITY_REVIEW; no matrix, provider/model call, public effect, spend, or owner-call request | No new SESSION_ONCE on continuation; no watcher created | Lead must decide source suitability before any final matrix or owner grant | `social-bots/lead-reviews/CODEX_CURRENT_CAPTURE_PREP_20260922.md`, `social-bots/receipts/evidence/CODEX_CURRENT_CAPTURE_20260922/`, draft PR #17 |
+| SwarmAI | R28d-2 engineering only; source `6dbf8c43463cbdbd8c87561af2abcdde59969765` tree `36aadba9c0fdb63c015784bee311df7976e68c4f`, expected base accepted R28d-1 `a2cfb3c` | Codex branch `codex/swarm-r28d1-local-sandbox-20260922@6dbf8c4`; existing Cursor heartbeat stream remains separate | Mission worker action-boundary wiring | 69 focused pass; full offline 421 pass / 208 skips; owned PostgreSQL full 616 pass / 13 skips with zero public-schema tables after teardown; Ruff + mypy clean | READY_FOR_LEAD_REVIEW; no live/checkpoint acceptance. Brokered `live_local` mission remains held by the release | Existing five-minute stream reports published heartbeats; it is not replaced or treated as a crash by timestamp alone | Separate provider/model grant is needed for the held real mission. R730 remote reachability remains unverified: TeamViewer UI is uncontrollable and SSH alias has no resolvable hostname | `docs/coordination/reviews/CODEX_R28D2_20260922.md`, evidence `CODEX-R28D2-20260922/summary.json`, draft PR #26; lead exact-SHA review |
 
-These are scope/router observations, not assertions that workers are active, tests pass or milestones are accepted. Source branches may advance immediately. Re-read current canonical refs and native proof records before every status claim.
+## Current management conclusion
 
-## First Codex pass
-
-1. Verify access to each repo and load its native instructions.
-2. Inspect actual ready worker handoffs, code, checks and proof evidence.
-3. Verify worker and lead-writer ownership, including accessible scheduled review prompts.
-4. Review ready artifacts before new planning; produce project-local bounded review recommendations/assignments where authorized.
-5. Replace this derived table with a concise evidence-backed rollup and actual next actions, without overwriting native artifact truth.
-
-## Known coordination risk
-
-Previous project prompts and scheduled lead writers used obsolete lane/topology/scope rules. Some historical default branches lack the current root guidance entirely. Neither an old automation prompt nor a v23/v3 branch name can override a current explicit owner V1.7 scope.
-
-Do not assume the existing lead schedules are current, stale, paused or accessible: verify them before takeover. This setup leaves them unchanged. Use isolated proposals while another writer holds a canonical queue; avoid repeated competing governance rewrites.
-
-## Source index
-
-Jobs: `AGENTS.md`, `docs/FABLE_V17_LIVE.md` at the snapshot above.
-Social Bots: `CLAUDE.md`, `social-bots/SESSION_ROUTER.md`, `social-bots/delivery/V17_LIVE.md` at the snapshot above.
-SwarmAI: `AGENTS.md`, `docs/coordination/SESSION_START.md`, `docs/coordination/EXECUTION_CONTROL.json` at the snapshot above.
-
-Full routing: `PROJECTS.json`. Operational rules: `PORTFOLIO_RUNBOOK.md`. Substantive Jobs history/technical handoff: `JOBS_CONTEXT.md`.
+Jobs is intentionally waiting after a formal engineering acceptance. Bots and SwarmAI each have one bounded, reviewable artifact pending an independent lead decision. The R730 is owner-authorized but has no usable control transport from this session, so it is not counted as a host test, installation, or takeover.
