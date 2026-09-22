@@ -13,7 +13,8 @@ States:
 * ``CONNECTED``      — a parseable authorized-user token exists with exactly the
                        ``gmail.readonly`` scope and is refreshable or unexpired.
 * ``PROVEN``         — CONNECTED and a real (non-synthetic), complete bounded ingestion run
-                       against the mailbox is on record.
+                       whose secret-free mailbox fingerprint matches the token account is
+                       on record.
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ from sqlalchemy.orm import Session
 
 from jobs_automation.core.config import AppSettings
 from jobs_automation.db.models import AuditLogModel
+from jobs_automation.ingestion.bounded import mailbox_fingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -116,8 +118,17 @@ def _parse_token_file(path: Path) -> tuple[dict[str, Any] | None, str | None]:
     return structure, None
 
 
-def _latest_proven_run(session: Session | None) -> tuple[str | None, str | None]:
-    if session is None:
+def _token_mailbox_sha256(structure: dict[str, Any] | None) -> str | None:
+    """Derive the bounded-run fingerprint from the local token account only."""
+    if structure is None or not structure.get("account"):
+        return None
+    return mailbox_fingerprint(str(structure["account"]))["mailbox_sha256"]
+
+
+def _latest_proven_run(
+    session: Session | None, token_mailbox_sha256: str | None
+) -> tuple[str | None, str | None]:
+    if session is None or token_mailbox_sha256 is None:
         return None, None
     rows = session.scalars(
         select(AuditLogModel)
@@ -125,12 +136,13 @@ def _latest_proven_run(session: Session | None) -> tuple[str | None, str | None]
         .order_by(AuditLogModel.occurred_at.desc())
     ).all()
     for row in rows:
-        metadata = row.metadata_json or {}
+        metadata = row.metadata_json if isinstance(row.metadata_json, dict) else {}
         if (
             row.result == "SUCCESS"
             and metadata.get("adapter") == "gmail"
             and metadata.get("synthetic") is False
             and metadata.get("complete") is True
+            and metadata.get("mailbox_sha256") == token_mailbox_sha256
         ):
             return str(metadata.get("run_id") or row.external_reference or row.id), (
                 row.occurred_at.isoformat() if row.occurred_at else None
@@ -192,11 +204,14 @@ def assess_gmail_readiness(
         and (refresh_token_present or token_expired is False)
     )
 
+    token_mailbox_sha256 = _token_mailbox_sha256(structure)
     last_run_id, last_run_at = (None, None)
     if connected:
-        last_run_id, last_run_at = _latest_proven_run(session)
+        last_run_id, last_run_at = _latest_proven_run(session, token_mailbox_sha256)
         if session is None:
             notes.append("no database session: PROVEN cannot be assessed")
+        elif token_mailbox_sha256 is None:
+            notes.append("token account identity is unavailable: PROVEN cannot be assessed")
 
     if not configured:
         state: ReadinessState = "NOT_CONFIGURED"
@@ -210,7 +225,7 @@ def assess_gmail_readiness(
         state = "PROVEN"
     else:
         state = "CONNECTED"
-        notes.append("no real complete bounded ingestion run recorded yet")
+        notes.append("no matching real complete bounded ingestion run recorded yet")
 
     return GmailReadinessReport(
         state=state,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 from collections.abc import Generator
 from pathlib import Path
@@ -23,6 +24,7 @@ from jobs_automation.ingestion.readiness import (
 SECRET_ACCESS = "ya29.synthetic-access-token-value"
 SECRET_REFRESH = "1//synthetic-refresh-token-value"
 SECRET_CLIENT = "synthetic-client-secret-value"
+TOKEN_ACCOUNT = "owner.person@gmail.com"
 
 
 @pytest.fixture
@@ -55,7 +57,14 @@ def _settings(tmp_path: Path, *, configured: bool = True) -> AppSettings:
     )
 
 
-def _write_token(tmp_path: Path, *, scopes: list[str], expiry: str | None, refresh: bool) -> None:
+def _write_token(
+    tmp_path: Path,
+    *,
+    scopes: list[str],
+    expiry: str | None,
+    refresh: bool,
+    account: str | None = TOKEN_ACCOUNT,
+) -> None:
     payload = {
         "token": SECRET_ACCESS,
         "refresh_token": SECRET_REFRESH if refresh else None,
@@ -63,14 +72,31 @@ def _write_token(tmp_path: Path, *, scopes: list[str], expiry: str | None, refre
         "client_secret": SECRET_CLIENT,
         "scopes": scopes,
         "expiry": expiry,
-        "account": "owner.person@gmail.com",
+        "account": account,
     }
     (tmp_path / "gmail_token.json").write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _record_run(
-    session: Session, *, adapter: str, synthetic: bool, complete: bool, result: str
+    session: Session,
+    *,
+    adapter: str,
+    synthetic: bool,
+    complete: bool,
+    result: str,
+    mailbox_account: str | None = TOKEN_ACCOUNT,
 ) -> None:
+    metadata = {
+        "run_id": "run-1",
+        "adapter": adapter,
+        "synthetic": synthetic,
+        "complete": complete,
+        "status": result,
+    }
+    if mailbox_account is not None:
+        metadata["mailbox_sha256"] = hashlib.sha256(
+            mailbox_account.strip().lower().encode("utf-8")
+        ).hexdigest()
     session.add(
         AuditLogModel(
             action_type=BOUNDED_RUN_ACTION,
@@ -78,13 +104,7 @@ def _record_run(
             actor="bounded_ingestion",
             result=result,
             external_reference="run-1",
-            metadata_json={
-                "run_id": "run-1",
-                "adapter": adapter,
-                "synthetic": synthetic,
-                "complete": complete,
-                "status": result,
-            },
+            metadata_json=metadata,
         )
     )
     session.commit()
@@ -166,6 +186,51 @@ def test_real_complete_run_proves(tmp_path: Path, db_session: Session) -> None:
     assert report.api_canary_ok is True
     assert report.error_category is None
     assert report.to_health_result()["status"] == "HEALTHY"
+
+
+@pytest.mark.parametrize(
+    "mailbox_account",
+    [None, "different.owner@gmail.com"],
+    ids=["legacy-row-without-mailbox-fingerprint", "complete-run-for-different-account"],
+)
+def test_complete_run_without_matching_token_account_stays_connected(
+    tmp_path: Path, db_session: Session, mailbox_account: str | None
+) -> None:
+    _write_token(tmp_path, scopes=[READONLY_SCOPE], expiry=None, refresh=True)
+    _record_run(
+        db_session,
+        adapter="gmail",
+        synthetic=False,
+        complete=True,
+        result="SUCCESS",
+        mailbox_account=mailbox_account,
+    )
+
+    report = assess_gmail_readiness(_settings(tmp_path), db_session)
+
+    assert report.state == "CONNECTED"
+    assert report.last_proven_run_id is None
+    assert report.api_canary_ok is None
+    assert report.to_health_result()["status"] == "DEGRADED"
+
+
+def test_token_without_account_identity_cannot_claim_proven(
+    tmp_path: Path, db_session: Session
+) -> None:
+    _write_token(
+        tmp_path,
+        scopes=[READONLY_SCOPE],
+        expiry=None,
+        refresh=True,
+        account=None,
+    )
+    _record_run(db_session, adapter="gmail", synthetic=False, complete=True, result="SUCCESS")
+
+    report = assess_gmail_readiness(_settings(tmp_path), db_session)
+
+    assert report.state == "CONNECTED"
+    assert report.last_proven_run_id is None
+    assert any("account identity is unavailable" in note for note in report.notes)
 
 
 def test_report_never_serializes_secrets(tmp_path: Path, db_session: Session) -> None:

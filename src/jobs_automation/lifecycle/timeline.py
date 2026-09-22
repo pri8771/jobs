@@ -2,10 +2,11 @@
 
 The export binds source message identities (provider ids, provider timestamps), entity
 links, lifecycle events, interviews, tasks, contacts, uncertainty, canary exclusion, the
-latest bounded-run replay evidence and the code identity, without carrying private
-content: subjects, sender addresses and task reasons are digested, bodies are never
-included. ``scripts/export_v17_timeline.py`` writes it; ``scripts/verify_v17_timeline.py``
-re-derives it from the trusted runtime database and compares.
+latest application-bound bounded-run replay evidence and the code identity, without
+carrying private content: subjects, sender addresses and task reasons are digested,
+bodies are never included. ``scripts/export_v17_timeline.py`` writes it;
+``scripts/verify_v17_timeline.py`` re-derives it from the trusted runtime database and
+compares.
 """
 
 from __future__ import annotations
@@ -37,6 +38,8 @@ from jobs_automation.ingestion.bounded import (
 
 TIMELINE_SCHEMA_VERSION = 1
 LOW_CONFIDENCE_THRESHOLD = 0.8
+# Must match the bounded-run writer's versioned audit metadata contract.
+BOUNDED_AUDIT_SCHEMA_VERSION = 2
 
 
 def _sha(text: str | None) -> str | None:
@@ -53,6 +56,82 @@ def _domain(address: str | None) -> str | None:
 
 def _iso(value: datetime.datetime | None) -> str | None:
     return value.isoformat() if value else None
+
+
+def _application_sha256(application_id: uuid.UUID) -> str:
+    """Return the secret-safe application association stored on bounded audits."""
+    return hashlib.sha256(str(application_id).encode("utf-8")).hexdigest()
+
+
+def _metadata_binds_application(metadata: dict[str, Any], application_sha256: str) -> bool:
+    """Require an exact application hash in the schema-versioned audit association list."""
+    associations = metadata.get("application_id_sha256")
+    if isinstance(associations, str):
+        return associations == application_sha256
+    if not isinstance(associations, list):
+        return False
+    return any(
+        isinstance(association, str) and association == application_sha256
+        for association in associations
+    )
+
+
+def _successful_complete_bounded_audit(
+    row: AuditLogModel, metadata: dict[str, Any]
+) -> bool:
+    """A timeline must not surface failed, incomplete, or legacy bounded-run evidence."""
+    return (
+        row.result == "SUCCESS"
+        and metadata.get("schema_version") == BOUNDED_AUDIT_SCHEMA_VERSION
+        and metadata.get("status") == "SUCCESS"
+        and metadata.get("complete") is True
+    )
+
+
+def _replay_has_bound_original(
+    session: Session, metadata: dict[str, Any], application_sha256: str
+) -> bool:
+    """Verify replay flags and the original audit's application binding before export."""
+    replay_of_run_id = metadata.get("replay_of_run_id")
+    if replay_of_run_id is None:
+        return True
+    if (
+        not isinstance(replay_of_run_id, str)
+        or not replay_of_run_id
+        or metadata.get("replay_identical") is not True
+        or metadata.get("replay_matches_original") is not True
+    ):
+        return False
+    original = session.scalar(
+        select(AuditLogModel).where(
+            AuditLogModel.action_type == BOUNDED_RUN_ACTION,
+            AuditLogModel.external_reference == replay_of_run_id,
+        )
+    )
+    if original is None:
+        return False
+    original_metadata = (
+        original.metadata_json if isinstance(original.metadata_json, dict) else {}
+    )
+    return _successful_complete_bounded_audit(
+        original, original_metadata
+    ) and _metadata_binds_application(original_metadata, application_sha256)
+
+
+def _latest_application_bounded_audit(
+    session: Session, application_sha256: str
+) -> tuple[AuditLogModel, dict[str, Any]] | None:
+    """Find the latest bounded audit explicitly associated with this application only."""
+    rows = session.scalars(
+        select(AuditLogModel)
+        .where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+        .order_by(AuditLogModel.occurred_at.desc())
+    ).all()
+    for row in rows:
+        metadata = row.metadata_json if isinstance(row.metadata_json, dict) else {}
+        if _metadata_binds_application(metadata, application_sha256):
+            return row, metadata
+    return None
 
 
 def timeline_digest(export: dict[str, Any]) -> str:
@@ -207,25 +286,25 @@ def build_timeline_export(
         t for t in tasks if t["task_type"] == "NEEDS_REVIEW" and t["status"] == "pending"
     ]
 
-    latest_run = session.scalars(
-        select(AuditLogModel)
-        .where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
-        .order_by(AuditLogModel.occurred_at.desc())
-    ).first()
     replay: dict[str, Any] | None = None
-    if latest_run is not None:
-        metadata = latest_run.metadata_json or {}
-        replay = {
-            "run_id": metadata.get("run_id") or latest_run.external_reference,
-            "status": metadata.get("status"),
-            "adapter": metadata.get("adapter"),
-            "synthetic": bool(metadata.get("synthetic")),
-            "complete": bool(metadata.get("complete")),
-            "replay_of_run_id": metadata.get("replay_of_run_id"),
-            "replay_identical": metadata.get("replay_identical"),
-            "replay_matches_original": metadata.get("replay_matches_original"),
-            "recorded_at": _iso(latest_run.occurred_at),
-        }
+    application_sha256 = _application_sha256(application_id)
+    latest_application_run = _latest_application_bounded_audit(session, application_sha256)
+    if latest_application_run is not None:
+        latest_run, metadata = latest_application_run
+        if _successful_complete_bounded_audit(
+            latest_run, metadata
+        ) and _replay_has_bound_original(session, metadata, application_sha256):
+            replay = {
+                "run_id": metadata.get("run_id") or latest_run.external_reference,
+                "status": metadata.get("status"),
+                "adapter": metadata.get("adapter"),
+                "synthetic": bool(metadata.get("synthetic")),
+                "complete": bool(metadata.get("complete")),
+                "replay_of_run_id": metadata.get("replay_of_run_id"),
+                "replay_identical": metadata.get("replay_identical"),
+                "replay_matches_original": metadata.get("replay_matches_original"),
+                "recorded_at": _iso(latest_run.occurred_at),
+            }
 
     genuine_sources = [s for s in sources if not s["canary"]]
     export: dict[str, Any] = {
