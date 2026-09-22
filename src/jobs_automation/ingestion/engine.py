@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import uuid
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,6 +46,8 @@ class IngestionSweepSummary(BaseModel):
     is_reconciliation: bool = False
     is_dry_run: bool = False
     errors: list[str] = Field(default_factory=list)
+    # Internal membership for downstream bounded work, including replay duplicates.
+    batch_message_ids: list[uuid.UUID] = Field(default_factory=list, exclude=True)
 
 
 class EmailIngestionEngine:
@@ -186,7 +189,9 @@ class EmailIngestionEngine:
                 existing_stmt = select(InboundMessageModel).where(
                     InboundMessageModel.provider_message_id == raw_msg.provider_message_id
                 )
-                if self.session.execute(existing_stmt).scalars().first():
+                existing = self.session.execute(existing_stmt).scalars().first()
+                if existing is not None:
+                    summary.batch_message_ids.append(existing.id)
                     summary.messages_skipped_duplicate += 1
                     continue
 
@@ -222,6 +227,7 @@ class EmailIngestionEngine:
                 self.session.add(msg_model)
                 self.session.flush()
                 summary.messages_ingested += 1
+                summary.batch_message_ids.append(msg_model.id)
 
                 # Update latest processed time
                 if newest_processed_time is None or raw_msg.received_at > newest_processed_time:

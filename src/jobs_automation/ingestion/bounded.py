@@ -299,20 +299,35 @@ class BoundedIngestionRunner:
                 lifecycle = LifecycleEngine(self.session)
                 messages = self.session.scalars(
                     select(InboundMessageModel)
-                    .where(InboundMessageModel.classification != "JOB_ALERT")
+                    .where(
+                        InboundMessageModel.id.in_(summary.batch_message_ids),
+                        InboundMessageModel.classification != "JOB_ALERT",
+                    )
                     .order_by(InboundMessageModel.received_at.asc())
                 ).all()
+                genuine_ids: list[uuid.UUID] = []
+                thread_ids: set[str] = set()
                 for message in messages:
                     if (message.headers_json or {}).get("_provider", {}).get("canary"):
                         continue  # canary mail never drives genuine lifecycle state
+                    genuine_ids.append(message.id)
+                    thread_ids.add(message.provider_thread_id or message.provider_message_id)
                     transition = lifecycle.process_message(message)
                     if transition:
                         lifecycle_transitions += 1
                         if transition.interview_scheduled:
                             interviews_scheduled += 1
                 alerts = LifecycleAlertService(self.session)
-                unanswered_alerts = len(alerts.check_unanswered_recruiters())
-                stale_alerts = len(alerts.check_stale_applications())
+                application_ids = {
+                    app_id for app_id in self.session.scalars(
+                        select(MessageLinkModel.application_id).where(
+                            MessageLinkModel.inbound_message_id.in_(genuine_ids),
+                            MessageLinkModel.application_id.is_not(None),
+                        )
+                    ) if app_id is not None
+                }
+                unanswered_alerts = len(alerts.check_unanswered_recruiters(thread_ids=thread_ids))
+                stale_alerts = len(alerts.check_stale_applications(application_ids=application_ids))
                 self.session.commit()
             except Exception as exc:  # pragma: no cover - defensive; surfaced as FAILED
                 self.session.rollback()
@@ -341,6 +356,11 @@ class BoundedIngestionRunner:
                     recorded.get(key) == getattr(digests_after, key)
                     for key in ("messages", "links", "events", "tasks", "interviews", "contacts")
                 )
+            else:
+                errors.append("REPLAY_ORIGINAL_NOT_FOUND")
+            if replay_identical is not True or replay_matches_original is not True:
+                errors.append("REPLAY_LOGICAL_STATE_MISMATCH")
+                status = "FAILED"
 
         result = BoundedIngestionResult(
             run_id=run_id,

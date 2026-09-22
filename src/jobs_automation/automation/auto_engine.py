@@ -104,6 +104,15 @@ class ControlledAutoApplicationEngine:
                 message=f"Application for {job.normalized_title} already submitted on {existing_app.applied_at}",
             )
 
+        if existing_app and existing_app.status == "SUBMISSION_UNCONFIRMED":
+            return ControlledAutoApplicationResult(
+                job_id=str(job_id),
+                application_id=str(existing_app.id),
+                status="SUBMISSION_UNCONFIRMED",
+                destination_domain=domain,
+                message="Prior submission outcome requires external confirmation; automatic redispatch is blocked.",
+            )
+
         # 2. Policy Gate Evaluation
         policy_res = self.policy_evaluator.evaluate(domain, capability="submit_application")
         if policy_res.decision != PolicyDecision.AUTO_ALLOWED:
@@ -186,6 +195,14 @@ class ControlledAutoApplicationEngine:
                 status="FAILED",
                 destination_domain=domain,
                 message="No prepared application packet found for job.",
+            )
+
+        if packet.job_id != job_id:
+            return ControlledAutoApplicationResult(
+                job_id=str(job_id),
+                status="FAILED_PACKET_BINDING",
+                destination_domain=domain,
+                message="The selected application packet belongs to a different job.",
             )
 
         # Check Live-Readiness Gate (R14-03):
@@ -287,9 +304,12 @@ class ControlledAutoApplicationEngine:
 
         # 9. Atomic Submission State & Receipt Recording
         now = utc_now()
-        is_simulation = (sub_res.status == "SIMULATED")
-        app_status = "SIMULATED" if is_simulation else "SUBMITTED"
-        event_type = "APPLICATION_SIMULATED" if is_simulation else "APPLICATION_SUBMITTED"
+        # Adapter flags, receipt strings and URLs are claims, not independently
+        # correlated provider confirmation. No validator is wired into this engine
+        # yet, so live outcomes remain unconfirmed and may not be redispatched.
+        is_simulation = mock_mode
+        app_status = "SIMULATED" if is_simulation else "SUBMISSION_UNCONFIRMED"
+        event_type = "APPLICATION_SIMULATED" if is_simulation else "SUBMISSION_UNCONFIRMED"
         app_mode = "auto_simulated" if is_simulation else "auto"
 
         app = existing_app or ApplicationModel(
@@ -300,7 +320,9 @@ class ControlledAutoApplicationEngine:
             packet_id=packet.id,
         )
         app.status = app_status
-        app.applied_at = now
+        app.packet_id = packet.id
+        app.application_mode = app_mode
+        app.applied_at = now if is_simulation else None
         app.last_activity_at = now
         if not existing_app:
             self.session.add(app)
@@ -322,13 +344,13 @@ class ControlledAutoApplicationEngine:
         )
         self.session.add(event)
 
-        audit_action = "auto_application_simulated" if is_simulation else "auto_application_submitted"
+        audit_action = "auto_application_simulated" if is_simulation else "auto_application_unconfirmed"
         self._log_audit(
             action_type=audit_action,
             entity_type="application",
             entity_id=app.id,
             input_hash=packet.packet_hash,
-            result="simulated" if is_simulation else "success",
+            result="simulated" if is_simulation else "unconfirmed",
             external_reference=sub_res.receipt_id,
             metadata={
                 "domain": domain,
@@ -339,14 +361,15 @@ class ControlledAutoApplicationEngine:
             },
         )
 
-        # Complete pending review tasks
-        self._complete_tasks_for_job(job_id=job.id, app_id=app.id)
+        # An unconfirmed live claim does not satisfy submission-dependent tasks.
+        if is_simulation:
+            self._complete_tasks_for_job(job_id=job.id, app_id=app.id)
         self.session.commit()
 
         msg = (
             f"Application simulated in mock mode for {adapter.platform_name}. Simulation ID: {sub_res.receipt_id}"
             if is_simulation
-            else f"Application automatically submitted to {adapter.platform_name}. Receipt: {sub_res.receipt_id}"
+            else f"Submission to {adapter.platform_name} is unconfirmed; correlated external evidence requires review."
         )
 
         return ControlledAutoApplicationResult(
