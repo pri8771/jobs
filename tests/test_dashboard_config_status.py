@@ -7,9 +7,9 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from test_dashboard import DummyRequestHandler
 
 import jobs_automation.dashboard.server as dashboard_server
+from tests.test_dashboard import DummyRequestHandler
 
 UNAVAILABLE = {
     "state": "UNAVAILABLE",
