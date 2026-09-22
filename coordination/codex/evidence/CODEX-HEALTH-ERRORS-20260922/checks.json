@@ -1,0 +1,40 @@
+{
+  "repository": "pri8771/jobs",
+  "source_sha": "ed864cb5ac3eb806c91ef55d489fb6084da19fe0",
+  "tree": "da5262ce5db05d608baae460b291188dc672e0fd",
+  "parent": "9e29a59b729deb8f925121c70b90498794b55519",
+  "release": "2095aebc847297f098302f143330c6ea16d02a23",
+  "checks": [
+    {
+      "command": "PROOF_TEST_PG_ADMIN_URL='postgresql+psycopg:///postgres?host=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd&port=56422' PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q",
+      "exit": 0,
+      "result": "451 passed, 1 existing host skip",
+      "log": "full.txt"
+    },
+    {
+      "command": "PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q tests/test_health.py tests/test_worker.py",
+      "exit": 0,
+      "result": "27 passed",
+      "log": "focused.txt"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff check src tests/test_health.py",
+      "exit": 0,
+      "log": "ruff.txt"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/mypy src",
+      "exit": 0,
+      "result": "74 files",
+      "log": "mypy.txt"
+    },
+    {
+      "command": "PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-health-errors-pg.py",
+      "exit": 0,
+      "result": "realPG exception4paths secret-free; nominalpathsunchanged; cleanupcount0",
+      "log": "postgres-observed.txt"
+    }
+  ],
+  "separate_remaining_health_evidence_source": "9e29a59b729deb8f925121c70b90498794b55519",
+  "evidence_type": "engineering / synthetic adapters and owned disposable PostgreSQL, no real mailbox/provider"
+}

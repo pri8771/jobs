@@ -1,0 +1,42 @@
+{
+  "checks.json": {
+    "bytes": 1580,
+    "sha256": "852a53be7c77f1f8f46cb41bba38d64d16fa812043860ded80c461886691ceba"
+  },
+  "focused.txt": {
+    "bytes": 99,
+    "sha256": "3ac0012c395f9b30655e47f635c3ffffa8641722a7af52b1544ef4f93f45e209"
+  },
+  "full.txt": {
+    "bytes": 602,
+    "sha256": "7373a74d642fdeb1d35cfdfa38b55d9e48a7f6ab7994f654ecd2bbb1d528b5c0"
+  },
+  "mypy.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "postgres-observed.txt": {
+    "bytes": 1165,
+    "sha256": "b7ebf4b01b805b02bc10531203af20b713c0245f2229878761c6fa8708f6d70b"
+  },
+  "postgres-verification.py": {
+    "bytes": 2341,
+    "sha256": "5c8a31d39ff9e688c44f57c8c47871721b93e6d4f98fb6a2d1015e519a5227e6"
+  },
+  "red-before.txt": {
+    "bytes": 518,
+    "sha256": "883790b75dc4cbe670bad1d6ee72a4b64cc51fcdd559bdf7af3afb42fc641fdd"
+  },
+  "remaining-health-observed.txt": {
+    "bytes": 5921,
+    "sha256": "2ea1bccef28a41b544e694fcab5722b9f5919cd38da349a529ae00952523b1f1"
+  },
+  "remaining-health-verification.py": {
+    "bytes": 8040,
+    "sha256": "2bac4060ca470e42e4a057f1c4859a909b23e9c4c6d7a913641e076361ac9b6b"
+  },
+  "ruff.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  }
+}
