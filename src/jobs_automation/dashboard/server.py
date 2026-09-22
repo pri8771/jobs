@@ -15,6 +15,7 @@ from urllib.parse import parse_qs, urlparse
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from jobs_automation.core.config import ConfigLoader
 from jobs_automation.dashboard.analytics import FunnelAnalyticsService
 from jobs_automation.db.models import (
     ApplicationModel,
@@ -527,6 +528,33 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
         if path in ("", "/index.html"):
             self._send_html(DASHBOARD_HTML)
+            return
+
+        if path == "/api/config-status":
+            try:
+                report = ConfigLoader().validate_all()
+                names = sorted(set(report.loaded_files))
+                config_status = {
+                    "state": "VALID" if report.success is True else "INVALID",
+                    "error_count": len(report.errors),
+                    "warning_count": len(report.warnings),
+                    "loaded_config_count": len(names),
+                    "loaded_config_names": names,
+                    "unresolved_fact_counts": {
+                        category: len(report.unresolved_facts[category])
+                        for category in sorted(report.unresolved_facts)
+                    },
+                }
+            except Exception:
+                config_status = {
+                    "state": "UNAVAILABLE",
+                    "error_count": 0,
+                    "warning_count": 0,
+                    "loaded_config_count": 0,
+                    "loaded_config_names": [],
+                    "unresolved_fact_counts": {},
+                }
+            self._send_json(config_status)
             return
 
         with self.session_factory() as session:
