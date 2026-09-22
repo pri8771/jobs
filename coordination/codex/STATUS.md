@@ -27,3 +27,5 @@ All isolated test databases and fixture servers are stopped. Existing product se
 Next permitted boundary: owner approves the concrete repair handoff; then refresh each actual worker ref and dirty/ownership state, deliver only its native packet to the existing Fable session and ChatGPT lead, obtain ACK, and keep formal acceptance separate. A new commit or a delivered message is not an ACK. Do not reset to these remembered SHAs or merge coordination snapshots.
 
 Prior independent first-pass findings remain in `coordination/reviews/CODEX_PORTFOLIO_20260922.md` and their original evidence refs. This checkpoint supersedes earlier next-action text that requested immediate routing.
+
+Final remote readback: Swarm coordination advanced to `54549b7ba9a587e679653273adc2fe59b8b8f45b` (03:10:56Z), with only heartbeat/status changes since `b2c788f`. Implementation and substantive contract/review files are unchanged. All three worker bases and previously published Codex review branch tips remain unchanged; the three repair branch names are absent remotely. No new verdict, integration or repair ACK is inferred.
