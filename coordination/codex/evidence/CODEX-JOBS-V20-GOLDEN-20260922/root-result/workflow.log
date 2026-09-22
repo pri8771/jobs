@@ -1,0 +1,339 @@
+{
+  "result": "PASS_STEPS_1_17",
+  "fixture": {
+    "trace_id": "j20i-e32ee3a5-9a4a-4e16-aa74-0ad98c4ac4fe",
+    "fixture_version": "v2.0-golden-synthetic-20260922",
+    "source": {
+      "sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+      "tree": "047eb8501e562cbbca450e946e260a1b8454f74b"
+    },
+    "result": "PASS_STEPS_1_8",
+    "entities": {
+      "source_message_id": "golden-alert-1",
+      "job_id": "f4b0d1ff-5a74-4a02-8f55-847ed8e89581",
+      "packet_id": "f650502f-6190-4a4a-b51b-5d232da73ee9",
+      "application_id": "ea2e2ba4-1327-442f-88ae-0c34ad64fb90",
+      "resume_variant_id": "cdfc1df8-e217-4d6c-af94-28848f9664e6",
+      "resume_artifact_id": "9bea5128-ae5c-427e-aee6-7c96e9705704",
+      "cover_letter_artifact_id": "e775ec52-af63-492e-bae9-2784d38a03ea"
+    },
+    "packet": {
+      "packet_hash": "028bb95486e1caf47578df736f7c3cfcf1080d4917dede76583826a40a019d62",
+      "resume_family": "Senior Software Engineer / AI Automation Engineer",
+      "resume_variant_name": "resume_ai_software_engineer",
+      "resume_source_reference": "/private/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-v20-golden-cont-m7s8af_a/resume/engineering_resume_ai_software_engineer.md",
+      "resume_source_sha256": "4c987dfe936f0b95a13471ac4c5f56db79ad130c9aaf4dd7283bdd636f019079",
+      "resume_artifact_sha256": "4c987dfe936f0b95a13471ac4c5f56db79ad130c9aaf4dd7283bdd636f019079",
+      "cover_letter_artifact_sha256": "addffa6e7f17e44d7c267582cc0042778850b4ee506c1b4904a647acdacd6883",
+      "generation_origin": "deterministic",
+      "is_live_ready": false,
+      "answers": {
+        "Are you legally authorized to work in the US?": "Yes"
+      },
+      "answer_provenance": {
+        "Are you legally authorized to work in the US?": {
+          "method": "deterministic",
+          "sources": [
+            "work_authorization.authorized_to_work_in_us"
+          ],
+          "confidence": 1.0
+        }
+      },
+      "unresolved_questions": [
+        "Demographic/EEO self-identification question 'What is your gender?' requires explicit candidate choice.",
+        "Unverified question: 'Describe a production quantum compiler you personally built.' (Reason: No semantic model provider is configured. Deterministic safe mode leaves unsupported questions unresolved.)"
+      ]
+    },
+    "review_visibility": [
+      {
+        "task_type": "NEEDS_REVIEW",
+        "status": "pending",
+        "reason": "Packet has 2 unresolved question(s)",
+        "unresolved_questions": [
+          "Demographic/EEO self-identification question 'What is your gender?' requires explicit candidate choice.",
+          "Unverified question: 'Describe a production quantum compiler you personally built.' (Reason: No semantic model provider is configured. Deterministic safe mode leaves unsupported questions unresolved.)"
+        ]
+      }
+    ],
+    "assertions": {
+      "one_normalized_job": true,
+      "duplicate_no_second_job": true,
+      "shortlisted": true,
+      "packet_hash_verified": true,
+      "explicit_resume_source": "/private/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-v20-golden-cont-m7s8af_a/resume/engineering_resume_ai_software_engineer.md",
+      "unknown_and_eeo_unresolved": true,
+      "non_live_manual_application": true
+    },
+    "temporary_workspace": "/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-v20-golden-cont-m7s8af_a"
+  },
+  "lifecycle": {
+    "final_status": "REJECTED",
+    "events": [
+      [
+        "APPLICATION_CONFIRMED",
+        "golden-confirm-1",
+        "recruiter"
+      ],
+      [
+        "INTERVIEW_REQUESTED",
+        "golden-outreach-1",
+        "recruiter"
+      ],
+      [
+        "INTERVIEW_CONFIRMED",
+        "golden-interview-1",
+        "recruiter"
+      ],
+      [
+        "CANDIDATE_REPLIED",
+        "golden-reply-1",
+        "candidate"
+      ],
+      [
+        "APPLICATION_REJECTED",
+        "golden-rejection-1",
+        "recruiter"
+      ]
+    ],
+    "interviews": 1,
+    "contacts": 2
+  },
+  "initial_interview_duplicate": {
+    "run_id": "2319be00-6cfa-4904-8707-c33e188cc1ee",
+    "messages_polled": 0,
+    "messages_ingested": 0,
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "unanswered_alerts": 0,
+    "stale_alerts": 0,
+    "reconciliation_performed": true,
+    "errors": [],
+    "warnings": []
+  },
+  "same_db_full_replay": {
+    "run_id": "ef7e9d02-745e-4559-ab1e-419180f37b2b",
+    "messages_polled": 6,
+    "messages_ingested": 0,
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "unanswered_alerts": 0,
+    "stale_alerts": 0,
+    "reconciliation_performed": false,
+    "errors": [],
+    "warnings": []
+  },
+  "durable_snapshot": {
+    "counts": {
+      "messages": 6,
+      "links": 6,
+      "events": 5,
+      "followups": 1,
+      "interviews": 1
+    },
+    "funnel": {
+      "total_jobs_discovered": 1,
+      "total_submitted": 1,
+      "total_screening": 1,
+      "total_interviewing": 1,
+      "total_offers": 0,
+      "total_rejected": 1,
+      "pending_reviews": 2,
+      "conversion_rates": {
+        "discovery_to_submission_pct": 100.0,
+        "submission_to_screen_pct": 100.0,
+        "screen_to_interview_pct": 100.0,
+        "interview_to_offer_pct": 0.0
+      },
+      "status_breakdown": {
+        "REJECTED": 1
+      }
+    },
+    "resume_performance": [
+      {
+        "resume_family": "Senior Software Engineer / AI Automation Engineer",
+        "variant_name": "resume_ai_software_engineer",
+        "version": 1,
+        "applications_count": 1,
+        "screenings": 1,
+        "interviews": 1,
+        "final_interviews": 0,
+        "offers": 0,
+        "accepted": 0,
+        "interview_rate_pct": 100.0,
+        "final_interview_rate_pct": 0.0,
+        "offer_rate_pct": 0.0,
+        "accept_rate_pct": 0.0,
+        "low_sample_size": true,
+        "confidence_label": "Low sample size (N=1 < 5)"
+      }
+    ],
+    "app_crm_provider_ids": [
+      "golden-confirm-1",
+      "golden-outreach-1",
+      "golden-interview-1",
+      "golden-reply-1",
+      "golden-rejection-1"
+    ],
+    "contact_crm_provider_ids": [
+      "golden-outreach-1",
+      "golden-interview-1",
+      "golden-reply-1",
+      "golden-rejection-1"
+    ],
+    "redacted_source_ids": [
+      "golden-confirm-1",
+      "golden-outreach-1",
+      "golden-interview-1",
+      "golden-reply-1",
+      "golden-rejection-1"
+    ],
+    "redacted_reply": {
+      "provider_message_id": "golden-reply-1",
+      "provider_thread_id": "golden-recruiting-thread",
+      "provider_received_at": "2026-09-19T03:26:12-04:00",
+      "claimed_date_utc": null,
+      "direction": "outbound",
+      "direction_basis": null,
+      "classification": "CANDIDATE_REPLY",
+      "confidence": 0.95,
+      "subject_sha256": "efe8c3fd047e0fd115a0258c3cf515e933adacee6622276ba030e1935dd13e8e",
+      "sender_domain": "invalid",
+      "canary": false,
+      "link_method": "thread_reply_attribution",
+      "link_confidence": 0.85
+    },
+    "redacted_digest": "fada9b1ce7120d8c0422d3bbf52d5d31c0aed891ac640c6a8b0e19bd7394c175",
+    "pending_reviews": [
+      {
+        "task_type": "NEEDS_REVIEW",
+        "status": "pending",
+        "reason": "Packet has 2 unresolved question(s)",
+        "unresolved_questions": [
+          "Demographic/EEO self-identification question 'What is your gender?' requires explicit candidate choice.",
+          "Unverified question: 'Describe a production quantum compiler you personally built.' (Reason: No semantic model provider is configured. Deterministic safe mode leaves unsupported questions unresolved.)"
+        ]
+      },
+      {
+        "task_type": "NEEDS_REVIEW",
+        "status": "pending",
+        "reason": "Interview requested but no explicit schedule confirmed",
+        "unresolved_questions": null
+      }
+    ]
+  },
+  "dashboard_counts": {
+    "/api/jobs": 1,
+    "/api/kanban": 7,
+    "/api/contacts": 2,
+    "/api/interviews": 1,
+    "/api/reviews": 2,
+    "/api/followups": 1,
+    "/api/audit": 19,
+    "/api/timeline?application_id=ea2e2ba4-1327-442f-88ae-0c34ad64fb90": 5
+  },
+  "health": {
+    "timestamp": "2026-09-22T07:26:12.329694Z",
+    "overall_status": "DEGRADED",
+    "components": {
+      "database": {
+        "name": "database",
+        "status": "HEALTHY",
+        "message": "Connected in 0.34ms, 2 pending tasks in queue.",
+        "latency_ms": 0.34,
+        "details": {
+          "pending_tasks": 2
+        }
+      },
+      "kill_switches": {
+        "name": "kill_switches",
+        "status": "HEALTHY",
+        "message": "Kill switches nominal. Submissions permitted according to policy.",
+        "latency_ms": 0.0,
+        "details": {
+          "global_kill_switch_active": false,
+          "greenhouse_killed": false,
+          "lever_killed": false
+        }
+      },
+      "policy_registry": {
+        "name": "policy_registry",
+        "status": "HEALTHY",
+        "message": "0 platform policies verified and up to date.",
+        "latency_ms": 0.0,
+        "details": {
+          "total_policies": 0
+        }
+      },
+      "adapters": {
+        "name": "adapters",
+        "status": "DEGRADED",
+        "message": "2 ATS adapters registered (greenhouse, lever), 0 live-capable. (Live automation NOT_IMPLEMENTED; simulation/mock mode only).",
+        "latency_ms": 0.0,
+        "details": {
+          "registered_platforms": [
+            "greenhouse",
+            "lever"
+          ],
+          "live_capable_platforms": [],
+          "simulation_only_platforms": [
+            "greenhouse",
+            "lever"
+          ]
+        }
+      },
+      "worker": {
+        "name": "worker",
+        "status": "HEALTHY",
+        "message": "Last worker run 0.0m ago (SUCCESS).",
+        "latency_ms": 0.0,
+        "details": {
+          "last_attempt_at": "2026-09-22T03:26:12.314165-04:00",
+          "last_attempt_status": "SUCCESS",
+          "last_success_at": "2026-09-22T03:26:12.314165-04:00",
+          "last_error_at": null,
+          "last_error_category": null,
+          "last_reconciliation_at": "2026-09-22T03:26:12.282062-04:00",
+          "age_seconds": 0.0,
+          "stale_running_run": false,
+          "stale_run_id": null,
+          "metrics": {
+            "run_id": "ef7e9d02-745e-4559-ab1e-419180f37b2b",
+            "error_count": 0,
+            "finished_at": "2026-09-22T07:26:12.314077+00:00",
+            "final_status": "SUCCESS",
+            "stale_alerts": 0,
+            "sample_errors": [],
+            "jobs_discovered": 0,
+            "messages_polled": 6,
+            "error_categories": [],
+            "messages_ingested": 0,
+            "unanswered_alerts": 0,
+            "lifecycle_transitions": 0,
+            "reconciliation_performed": false
+          }
+        }
+      },
+      "gmail": {
+        "name": "gmail",
+        "status": "DEGRADED",
+        "message": "Gmail readiness: NOT_CONFIGURED",
+        "latency_ms": 0.0,
+        "details": {
+          "status": "DEGRADED",
+          "message": "Gmail readiness: NOT_CONFIGURED",
+          "readiness_state": "NOT_CONFIGURED",
+          "live_capable": false,
+          "configured": false,
+          "token_present": false,
+          "credentials_parseable": false,
+          "scope_is_readonly_only": false,
+          "last_proven_run_id": null,
+          "last_proven_at": null,
+          "error_category": "CLIENT_NOT_CONFIGURED",
+          "checked_at": "2026-09-22T07:26:12.329655+00:00",
+          "last_message_received_at": "2026-09-20T03:26:12-04:00"
+        }
+      }
+    }
+  }
+}
