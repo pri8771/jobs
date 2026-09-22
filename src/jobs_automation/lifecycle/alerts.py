@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import datetime
 import logging
+import uuid
+from collections.abc import Collection
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from jobs_automation.db.base import utc_now
@@ -24,10 +26,16 @@ class LifecycleAlertService:
         self,
         window_hours: int = 48,
         now: datetime.datetime | None = None,
+        *,
+        thread_ids: Collection[str] | None = None,
     ) -> list[TaskModel]:
         """Flags recruiter emails that have gone unanswered by the candidate beyond window_hours,
 
         and automatically closes/resolves stale pending tasks when a candidate reply arrives.
+
+        ``thread_ids`` limits processing to threads explicitly admitted by a bounded
+        ingestion batch. ``None`` preserves the worker's full-mailbox behavior; an
+        empty collection processes no threads. Scoped calls ignore canary evidence.
         """
         if now is None:
             now = utc_now()
@@ -50,11 +58,20 @@ class LifecycleAlertService:
             )
             .order_by(InboundMessageModel.received_at.asc())
         )
+        if thread_ids is not None:
+            inbound_stmt = inbound_stmt.where(
+                func.coalesce(
+                    InboundMessageModel.provider_thread_id,
+                    InboundMessageModel.provider_message_id,
+                ).in_(thread_ids)
+            )
         all_inbound = self.session.scalars(inbound_stmt).all()
 
         # Group by thread
         threads: dict[str, list[InboundMessageModel]] = {}
         for msg in all_inbound:
+            if thread_ids is not None and (msg.headers_json or {}).get("_provider", {}).get("canary"):
+                continue
             thread_id = msg.provider_thread_id or msg.provider_message_id
             threads.setdefault(thread_id, []).append(msg)
 
@@ -72,7 +89,15 @@ class LifecycleAlertService:
                 )
                 .order_by(InboundMessageModel.received_at.desc())
             )
-            latest_reply = self.session.scalars(reply_stmt).first()
+            latest_reply = next(
+                (
+                    reply
+                    for reply in self.session.scalars(reply_stmt)
+                    if thread_ids is None
+                    or not (reply.headers_json or {}).get("_provider", {}).get("canary")
+                ),
+                None,
+            )
 
             # Check if reply is AFTER the latest inbound recruiter message
             has_valid_reply = (
@@ -155,6 +180,8 @@ class LifecycleAlertService:
         stale_days: int = 14,
         now: datetime.datetime | None = None,
         screening_stale_days: int = 21,
+        *,
+        application_ids: Collection[uuid.UUID] | None = None,
     ) -> list[TaskModel]:
         """Detects applications with no activity after stale_days without spamming follow-ups."""
         if now is None:
@@ -170,6 +197,8 @@ class LifecycleAlertService:
             ApplicationModel.status.in_(("SUBMITTED", "CONFIRMED")),
             ApplicationModel.last_activity_at <= cutoff_submitted,
         )
+        if application_ids is not None:
+            stmt = stmt.where(ApplicationModel.id.in_(application_ids))
         apps = self.session.scalars(stmt).all()
 
         for app in apps:
@@ -205,6 +234,8 @@ class LifecycleAlertService:
             ApplicationModel.status == "SCREENING",
             ApplicationModel.last_activity_at <= cutoff_screening,
         )
+        if application_ids is not None:
+            stmt_screening = stmt_screening.where(ApplicationModel.id.in_(application_ids))
         screening_apps = self.session.scalars(stmt_screening).all()
 
         for app in screening_apps:

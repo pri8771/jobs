@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+import uuid
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -45,6 +46,10 @@ class IngestionSweepSummary(BaseModel):
     is_reconciliation: bool = False
     is_dry_run: bool = False
     errors: list[str] = Field(default_factory=list)
+    # Internal membership of the messages admitted by this sweep.  It is deliberately
+    # excluded from serialized summaries because the IDs are database identifiers, but
+    # bounded lifecycle work needs it to avoid scanning an older mailbox backlog.
+    batch_message_ids: list[uuid.UUID] = Field(default_factory=list, exclude=True)
 
 
 class EmailIngestionEngine:
@@ -176,6 +181,19 @@ class EmailIngestionEngine:
             summary.messages_polled = len(raw_messages)
             summary.poll_report = self.adapter.last_poll_report()
 
+            # A bounded Gmail poll is all-or-nothing.  A partial listing, a failed
+            # fetch, a payload mismatch, or a cap truncation means there is no safe
+            # ordering for classification, linking, lifecycle work, or checkpointing.
+            # Raise before the first write so the common error path leaves no partial
+            # state behind and the next overlap can retry the complete evidence set.
+            if summary.poll_report is not None and not summary.poll_report.complete:
+                summary.checkpoint_held_reason = (
+                    "poll_incomplete: "
+                    f"truncated_by_cap={summary.poll_report.truncated_by_cap}, "
+                    f"missing_messages={len(summary.poll_report.missing_message_ids)}"
+                )
+                raise RuntimeError(summary.checkpoint_held_reason)
+
             # Sort by received_at ascending to process chronologically
             raw_messages.sort(key=lambda m: m.received_at)
 
@@ -186,7 +204,9 @@ class EmailIngestionEngine:
                 existing_stmt = select(InboundMessageModel).where(
                     InboundMessageModel.provider_message_id == raw_msg.provider_message_id
                 )
-                if self.session.execute(existing_stmt).scalars().first():
+                existing = self.session.execute(existing_stmt).scalars().first()
+                if existing is not None:
+                    summary.batch_message_ids.append(existing.id)
                     summary.messages_skipped_duplicate += 1
                     continue
 
@@ -222,6 +242,7 @@ class EmailIngestionEngine:
                 self.session.add(msg_model)
                 self.session.flush()
                 summary.messages_ingested += 1
+                summary.batch_message_ids.append(msg_model.id)
 
                 # Update latest processed time
                 if newest_processed_time is None or raw_msg.received_at > newest_processed_time:
@@ -286,18 +307,7 @@ class EmailIngestionEngine:
                     "Dry-run sweep completed: session changes rolled back, zero rows persisted to database."
                 )
             else:
-                if poll_report is not None and not poll_report.complete:
-                    summary.checkpoint_held_reason = (
-                        "poll_incomplete: "
-                        f"truncated_by_cap={poll_report.truncated_by_cap}, "
-                        f"missing_messages={len(poll_report.missing_message_ids)}"
-                    )
-                    logger.warning(
-                        "Checkpoint held at %s: %s",
-                        last_checkpoint.isoformat() if last_checkpoint else None,
-                        summary.checkpoint_held_reason,
-                    )
-                elif not advance_checkpoint:
+                if not advance_checkpoint:
                     summary.checkpoint_held_reason = "bounded_run_does_not_advance_checkpoint"
                 elif newest_processed_time and not reconcile:
                     self.save_checkpoint(
@@ -311,7 +321,13 @@ class EmailIngestionEngine:
 
         except Exception as e:
             self.session.rollback()
-            summary.errors.append(str(e))
+            # A rolled-back sweep has no durable batch to drive downstream work.
+            summary.batch_message_ids.clear()
+            if summary.checkpoint_held_reason is not None:
+                summary.errors.append("POLL_INCOMPLETE")
+            else:
+                summary.errors.append("INGESTION_ERROR")
+            logger.warning("Email ingestion sweep failed with %s", type(e).__name__)
 
         summary.completed_at = datetime.datetime.now(datetime.UTC)
         return summary
