@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from jobs_automation.adapters.base import ModelGateway
 from jobs_automation.core import CandidateProfileConfig
+from jobs_automation.db.canary_provenance import require_job_without_durable_canary_provenance
 from jobs_automation.db.models import (
     ApplicationPacketModel,
     ArtifactModel,
@@ -117,6 +118,8 @@ class ApplicationPacketBuilder:
         - Never synthesizes stub resumes.
         - Materializes and verifies SHA-256 for all stored artifacts.
         """
+        require_job_without_durable_canary_provenance(self.session, job.id)
+
         # 1. Select targeted resume variant and resolve exact source path (J14-01, J14-02)
         variant_name = ResumeVariantSelector.select_variant(job, matched_role_family)
         source_path = self.profile.resume.resolve_source_path(variant_name)

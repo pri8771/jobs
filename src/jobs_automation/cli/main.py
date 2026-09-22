@@ -20,6 +20,48 @@ from jobs_automation.worksheets.generator import ProfileWorksheetGenerator
 console = Console()
 
 
+def _persist_current_canary_reclassification(session: Any, identities: list[str]) -> int:
+    """Apply the active durable alias policy before a stateful CLI consumer runs.
+
+    This helper deliberately makes no attempt to repair historical dependent records.
+    It only persists the one-way source classification, allowing the engine-level
+    provenance and lifecycle guards to keep those records reconciliation-only.
+    """
+    from jobs_automation.ingestion.engine import reclassify_persisted_canary_messages
+
+    changed = reclassify_persisted_canary_messages(session, identities)
+    if changed:
+        session.commit()
+    return changed
+
+
+def _visibility_canary_identities(config_dir: str) -> list[str]:
+    """Load the active durable-canary policy before showing operational status.
+
+    Read-only views must not quietly fall back to an unfiltered database when the
+    policy file is unavailable or invalid.  The source reclassification itself is
+    deliberately one-way and only happens after this preflight succeeds.
+    """
+    try:
+        platforms, _ = ConfigLoader(config_dir).load_platforms()
+    except Exception as exc:
+        raise click.ClickException(
+            "Canary policy configuration unavailable; refusing unfiltered status output: "
+            f"{exc}"
+        ) from exc
+    return list(platforms.email.canary_identities)
+
+
+def _canary_safe_visibility_snapshot(session: Any, config_dir: str) -> tuple[Any, int]:
+    """Reclassify under the active policy and return the durable quarantine snapshot."""
+    from jobs_automation.db.canary_provenance import durable_canary_provenance
+
+    reclassified = _persist_current_canary_reclassification(
+        session, _visibility_canary_identities(config_dir)
+    )
+    return durable_canary_provenance(session), reclassified
+
+
 @click.group()
 @click.version_option(version="0.1.0", prog_name="jobs-automation")
 def cli() -> None:
@@ -228,12 +270,25 @@ def generate_worksheet(config_dir: str, output: str) -> None:
     "--mock-fixtures", is_flag=True, default=False, help="Use realistic offline test fixtures."
 )
 @click.option("--config-dir", default="config", help="Path to config directory.")
-def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir: str) -> None:
+@click.option(
+    "--canary-identity",
+    "canary_identities",
+    multiple=True,
+    help="Additional owner-controlled test alias excluded from evidence and lifecycle work.",
+)
+def poll_emails(
+    reconcile: bool,
+    dry_run: bool,
+    mock_fixtures: bool,
+    config_dir: str,
+    canary_identities: tuple[str, ...],
+) -> None:
     """Execute periodic Gmail mailbox sweep (4-hour cadence, thread-preserving, idempotent)."""
     console.print(Panel.fit("[bold blue]Jobs Automation — Mailbox Polling Sweep[/bold blue]"))
 
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
+    platforms, _ = loader.load_platforms()
     if profile.identity.email:
         candidate_emails = [profile.identity.email]
     else:
@@ -269,10 +324,20 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        active_canary_identities = [*platforms.email.canary_identities, *canary_identities]
+        # A direct poll may be followed by a separate lifecycle/evaluation command.
+        # Reconcile historical durable rows now, before admitting a new batch, so
+        # later consumers cannot mistake an old owner-controlled alias for evidence.
+        reclassified_canaries = 0
+        if not dry_run:
+            reclassified_canaries = _persist_current_canary_reclassification(
+                session, active_canary_identities
+            )
         ingestion_engine = EmailIngestionEngine(
             session=session,
             adapter=adapter,
             candidate_emails=candidate_emails,
+            canary_identities=active_canary_identities,
         )
 
         console.print(
@@ -292,6 +357,7 @@ def poll_emails(reconcile: bool, dry_run: bool, mock_fixtures: bool, config_dir:
         )
         table.add_row("Existing Jobs Updated", str(summary.jobs_updated_existing))
         table.add_row("Review Tasks Created", str(summary.review_tasks_created))
+        table.add_row("Historical Canary Messages Reclassified", str(reclassified_canaries))
         table.add_row(
             "Checkpoint Advanced To", summary.checkpoint_advanced_to or "None (Unchanged)"
         )
@@ -361,65 +427,75 @@ def import_jobs(file_path: str, skip_gone: bool, limit: int | None) -> None:
 
 
 @cli.command(name="mailbox-status")
-def mailbox_status() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def mailbox_status(config_dir: str) -> None:
     """Display mailbox health, checkpointing status, and ingested message statistics."""
-    console.print(Panel.fit("[bold blue]Jobs Automation — Mailbox & Ingestion Status[/bold blue]"))
-
     settings = AppSettings()
     engine = get_engine(settings.database_url)
     session_factory = get_sessionmaker(engine)
 
-    from sqlalchemy import distinct, func, select
+    from sqlalchemy import select
 
     from jobs_automation.db.models import InboundMessageModel, JobModel, TaskModel
+    from jobs_automation.ingestion.readiness import assess_gmail_readiness
 
     with session_factory() as session:
-        # Checkpoint
-        chk_stmt = (
+        provenance, reclassified_canaries = _canary_safe_visibility_snapshot(session, config_dir)
+        console.print(Panel.fit("[bold blue]Jobs Automation — Mailbox & Ingestion Status[/bold blue]"))
+
+        # V17-M03: secret-safe readiness (no OAuth launch, no mailbox access)
+        readiness = assess_gmail_readiness(settings, session)
+        readiness_table = Table(title="Gmail Readiness (secret-free)", show_header=False)
+        readiness_table.add_column("Property", style="bold cyan")
+        readiness_table.add_column("Value")
+        readiness_table.add_row("State", readiness.state)
+        readiness_table.add_row("Client configured", str(readiness.configured))
+        readiness_table.add_row(
+            "Token present / parseable",
+            f"{readiness.token_present} / {readiness.credentials_parseable}",
+        )
+        readiness_table.add_row(
+            "Scope is gmail.readonly only", str(readiness.scope_is_readonly_only)
+        )
+        readiness_table.add_row(
+            "Mailbox identity hint", readiness.mailbox_identity_hint or "unknown"
+        )
+        readiness_table.add_row("Last proven real run", readiness.last_proven_run_id or "none")
+        readiness_table.add_row("Error category", readiness.error_category or "none")
+        console.print(readiness_table)
+        for note in readiness.notes:
+            console.print(f"  [dim]• {note}[/dim]")
+        console.print()
+
+        all_messages = session.scalars(select(InboundMessageModel)).all()
+        messages = [
+            message
+            for message in all_messages
+            if str(message.id) not in provenance.message_references
+        ]
+        all_tasks = session.scalars(select(TaskModel)).all()
+        visible_tasks = [task for task in all_tasks if not provenance.task_is_quarantined(task)]
+        jobs_count = sum(
+            job.id not in provenance.job_ids for job in session.scalars(select(JobModel)).all()
+        )
+
+        # Retain ordinary operational semantics while keeping reconciliation-only
+        # source rows out of counts, checkpoints, and classification summaries.
+        checkpoint_tasks = session.scalars(
             select(TaskModel)
             .where(TaskModel.task_type == "email_checkpoint")
             .order_by(TaskModel.due_at.desc())
+        ).all()
+        last_chk = next(
+            (task for task in checkpoint_tasks if not provenance.task_is_quarantined(task)),
+            None,
         )
-        last_chk = session.execute(chk_stmt).scalars().first()
-
-        # Message totals
-        total_msgs = session.execute(select(func.count(InboundMessageModel.id))).scalar() or 0
-        inbound_count = (
-            session.execute(
-                select(func.count(InboundMessageModel.id)).where(
-                    InboundMessageModel.direction == "inbound"
-                )
-            ).scalar()
-            or 0
-        )
-        outbound_count = (
-            session.execute(
-                select(func.count(InboundMessageModel.id)).where(
-                    InboundMessageModel.direction == "outbound"
-                )
-            ).scalar()
-            or 0
-        )
-
-        # Unique threads
-        threads_count = (
-            session.execute(
-                select(func.count(distinct(InboundMessageModel.provider_thread_id)))
-            ).scalar()
-            or 0
-        )
-
-        # Jobs discovered
-        jobs_count = session.execute(select(func.count(JobModel.id))).scalar() or 0
-
-        # Pending review tasks
-        review_count = (
-            session.execute(
-                select(func.count(TaskModel.id)).where(
-                    TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
-                )
-            ).scalar()
-            or 0
+        total_msgs = len(messages)
+        inbound_count = sum(message.direction == "inbound" for message in messages)
+        outbound_count = sum(message.direction == "outbound" for message in messages)
+        threads_count = len({message.provider_thread_id for message in messages})
+        review_count = sum(
+            task.task_type == "NEEDS_REVIEW" and task.status == "pending" for task in visible_tasks
         )
 
         overview = Table(title="Mailbox & Ingestion Overview", show_header=False)
@@ -438,15 +514,34 @@ def mailbox_status() -> None:
             "Tasks Awaiting Review (NEEDS_REVIEW)",
             f"[bold yellow]{review_count}[/bold yellow]" if review_count else "0",
         )
+        overview.add_row(
+            "Reconciliation-only Canary Messages Excluded",
+            str(len(all_messages) - len(messages)),
+        )
+        overview.add_row(
+            "Reconciliation-only Jobs Excluded",
+            str(len(provenance.job_ids)),
+        )
+        overview.add_row(
+            "Reconciliation-only Tasks Excluded",
+            str(len(all_tasks) - len(visible_tasks)),
+        )
+        if reclassified_canaries:
+            overview.add_row(
+                "Historical Canary Messages Newly Reclassified",
+                str(reclassified_canaries),
+            )
 
         console.print(overview)
         console.print()
 
         # Breakdown by classification
-        class_stmt = select(
-            InboundMessageModel.classification, func.count(InboundMessageModel.id)
-        ).group_by(InboundMessageModel.classification)
-        class_rows = session.execute(class_stmt).all()
+        classification_counts: dict[str, int] = {}
+        for message in messages:
+            classification_counts[message.classification] = (
+                classification_counts.get(message.classification, 0) + 1
+            )
+        class_rows = list(classification_counts.items())
         if class_rows:
             class_table = Table(title="Messages by Classification", header_style="bold magenta")
             class_table.add_column("Classification", style="bold")
@@ -466,6 +561,7 @@ def evaluate_jobs(config_dir: str, limit: int) -> None:
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
     search_config, _ = loader.load_job_search()
+    platforms, _ = loader.load_platforms()
 
     from jobs_automation.evaluation.engine import JobEvaluationEngine
 
@@ -474,6 +570,7 @@ def evaluate_jobs(config_dir: str, limit: int) -> None:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        _persist_current_canary_reclassification(session, platforms.email.canary_identities)
         eval_engine = JobEvaluationEngine(
             session=session,
             candidate_profile=profile,
@@ -508,10 +605,12 @@ def prepare_packets(config_dir: str, limit: int) -> None:
 
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
+    platforms, _ = loader.load_platforms()
 
     from sqlalchemy import select
 
     from jobs_automation.adapters.models import MockModelGateway
+    from jobs_automation.db.canary_provenance import job_ids_with_durable_canary_provenance
     from jobs_automation.db.models import JobModel
     from jobs_automation.preparation.packet_builder import ApplicationPacketBuilder
 
@@ -520,6 +619,7 @@ def prepare_packets(config_dir: str, limit: int) -> None:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        _persist_current_canary_reclassification(session, platforms.email.canary_identities)
         builder = ApplicationPacketBuilder(
             session=session,
             candidate_profile=profile,
@@ -530,8 +630,11 @@ def prepare_packets(config_dir: str, limit: int) -> None:
             select(JobModel)
             .where(JobModel.status == "shortlisted")
             .order_by(JobModel.first_seen_at.desc())
-            .limit(limit)
         )
+        quarantined_job_ids = job_ids_with_durable_canary_provenance(session)
+        if quarantined_job_ids:
+            stmt = stmt.where(JobModel.id.not_in(quarantined_job_ids))
+        stmt = stmt.limit(limit)
         jobs = session.execute(stmt).scalars().all()
 
         if not jobs:
@@ -566,10 +669,9 @@ def prepare_packets(config_dir: str, limit: int) -> None:
 
 
 @cli.command(name="review-queue")
-def review_queue() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def review_queue(config_dir: str) -> None:
     """List pending review tasks awaiting candidate input."""
-    console.print(Panel.fit("[bold blue]Jobs Automation — Human Review Queue[/bold blue]"))
-
     from sqlalchemy import select
 
     from jobs_automation.db.models import TaskModel
@@ -579,15 +681,24 @@ def review_queue() -> None:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        provenance, reclassified_canaries = _canary_safe_visibility_snapshot(session, config_dir)
+        console.print(Panel.fit("[bold blue]Jobs Automation — Human Review Queue[/bold blue]"))
         stmt = (
             select(TaskModel)
             .where(TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending")
             .order_by(TaskModel.due_at.desc().nulls_last())
         )
-        tasks = session.execute(stmt).scalars().all()
+        all_tasks = session.execute(stmt).scalars().all()
+        tasks = [task for task in all_tasks if not provenance.task_is_quarantined(task)]
 
         if not tasks:
             console.print("[green]Review queue is clean! No pending items require review.[/green]")
+            if all_tasks:
+                console.print(
+                    "[dim]"
+                    f"{len(all_tasks)} reconciliation-only canary-derived review item(s) excluded."
+                    "[/dim]"
+                )
             return
 
         table = Table(title="Pending Review Items", header_style="bold yellow")
@@ -601,6 +712,19 @@ def review_queue() -> None:
             table.add_row(str(t.id)[:8] + "...", reason, time_str)
 
         console.print(table)
+        excluded_count = len(all_tasks) - len(tasks)
+        if excluded_count:
+            console.print(
+                "[dim]"
+                f"{excluded_count} reconciliation-only canary-derived review item(s) excluded."
+                "[/dim]"
+            )
+        if reclassified_canaries:
+            console.print(
+                "[dim]"
+                f"{reclassified_canaries} historical canary source message(s) newly reclassified."
+                "[/dim]"
+            )
 
 
 @cli.command(name="assisted-apply")
@@ -640,12 +764,14 @@ def assisted_apply(
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
     policy_cfg, _ = loader.load_policy_registry()
+    platforms, _ = loader.load_platforms()
 
     from sqlalchemy import select
 
     from jobs_automation.browser.assisted_engine import AssistedApplicationEngine
     from jobs_automation.browser.mock_runner import MockBrowserRunner
     from jobs_automation.browser.playwright_runner import PlaywrightBrowserRunner
+    from jobs_automation.db.canary_provenance import job_ids_with_durable_canary_provenance
     from jobs_automation.db.models import ApplicationModel, ApplicationPacketModel, JobModel
     from jobs_automation.policy.evaluator import PolicyEvaluator
 
@@ -654,6 +780,7 @@ def assisted_apply(
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        _persist_current_canary_reclassification(session, platforms.email.canary_identities)
         target_job_id: uuid.UUID | None = uuid.UUID(job_id) if job_id else None
         target_packet_id: uuid.UUID | None = uuid.UUID(packet_id) if packet_id else None
 
@@ -670,6 +797,9 @@ def assisted_apply(
                 .order_by(ApplicationPacketModel.created_at.desc())
                 .limit(1)
             )
+            quarantined_job_ids = job_ids_with_durable_canary_provenance(session)
+            if quarantined_job_ids:
+                stmt = stmt.where(JobModel.id.not_in(quarantined_job_ids))
             pkt = session.scalar(stmt)
             if pkt:
                 target_job_id = pkt.job_id
@@ -782,11 +912,13 @@ def auto_apply(
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
     policy_cfg, _ = loader.load_policy_registry()
+    platforms, _ = loader.load_platforms()
 
     from sqlalchemy import select
 
     from jobs_automation.automation.auto_engine import ControlledAutoApplicationEngine
     from jobs_automation.automation.kill_switch import KillSwitchManager
+    from jobs_automation.db.canary_provenance import job_ids_with_durable_canary_provenance
     from jobs_automation.db.models import ApplicationModel, ApplicationPacketModel, JobModel
 
     settings = AppSettings()
@@ -794,6 +926,7 @@ def auto_apply(
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        _persist_current_canary_reclassification(session, platforms.email.canary_identities)
         target_job_id: uuid.UUID | None = uuid.UUID(job_id) if job_id else None
         target_packet_id: uuid.UUID | None = uuid.UUID(packet_id) if packet_id else None
 
@@ -809,6 +942,9 @@ def auto_apply(
                 .order_by(ApplicationPacketModel.created_at.desc())
                 .limit(1)
             )
+            quarantined_job_ids = job_ids_with_durable_canary_provenance(session)
+            if quarantined_job_ids:
+                stmt = stmt.where(JobModel.id.not_in(quarantined_job_ids))
             pkt = session.scalar(stmt)
             if pkt:
                 target_job_id = pkt.job_id
@@ -882,12 +1018,9 @@ def auto_apply(
 
 
 @cli.command(name="lifecycle-status")
-def lifecycle_status() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def lifecycle_status(config_dir: str) -> None:
     """Display current application lifecycle pipeline stages, interviews, and activity."""
-    console.print(
-        Panel.fit("[bold blue]Jobs Automation — Application Lifecycle Pipeline[/bold blue]")
-    )
-
     from sqlalchemy import select
 
     from jobs_automation.db.models import ApplicationModel
@@ -897,11 +1030,22 @@ def lifecycle_status() -> None:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        provenance, reclassified_canaries = _canary_safe_visibility_snapshot(session, config_dir)
+        console.print(
+            Panel.fit("[bold blue]Jobs Automation — Application Lifecycle Pipeline[/bold blue]")
+        )
         stmt = select(ApplicationModel).order_by(ApplicationModel.last_activity_at.desc())
-        apps = session.scalars(stmt).all()
+        all_apps = session.scalars(stmt).all()
+        apps = [app for app in all_apps if app.id not in provenance.application_ids]
 
         if not apps:
-            console.print("[yellow]No tracked applications found in database.[/yellow]")
+            console.print("[yellow]No ordinary tracked applications found in database.[/yellow]")
+            if all_apps:
+                console.print(
+                    "[dim]"
+                    f"{len(all_apps)} reconciliation-only canary-derived application(s) excluded."
+                    "[/dim]"
+                )
             return
 
         table = Table(title="Active Applications Pipeline", header_style="bold green")
@@ -916,7 +1060,9 @@ def lifecycle_status() -> None:
             co = app.job.company_name if app.job else "Unknown"
             title = app.job.title if app.job else "Unknown"
             applied_str = app.applied_at.strftime("%Y-%m-%d") if app.applied_at else "Pending"
-            int_count = len(app.interviews) if app.interviews else 0
+            int_count = sum(
+                interview.id not in provenance.interview_ids for interview in app.interviews
+            )
             int_str = (
                 f"[bold green]{int_count} scheduled[/bold green]"
                 if int_count > 0
@@ -935,13 +1081,25 @@ def lifecycle_status() -> None:
             table.add_row(co, title, status_style, app.application_mode, applied_str, int_str)
 
         console.print(table)
+        excluded_count = len(all_apps) - len(apps)
+        if excluded_count:
+            console.print(
+                "[dim]"
+                f"{excluded_count} reconciliation-only canary-derived application(s) excluded."
+                "[/dim]"
+            )
+        if reclassified_canaries:
+            console.print(
+                "[dim]"
+                f"{reclassified_canaries} historical canary source message(s) newly reclassified."
+                "[/dim]"
+            )
 
 
 @cli.command(name="contacts")
-def contacts_crm() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def contacts_crm(config_dir: str) -> None:
     """List recruiter and hiring manager CRM contact records."""
-    console.print(Panel.fit("[bold blue]Jobs Automation — Recruiter CRM Directory[/bold blue]"))
-
     from sqlalchemy import select
 
     from jobs_automation.db.models import ContactModel
@@ -951,12 +1109,21 @@ def contacts_crm() -> None:
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
-        contacts = session.scalars(
+        provenance, reclassified_canaries = _canary_safe_visibility_snapshot(session, config_dir)
+        console.print(Panel.fit("[bold blue]Jobs Automation — Recruiter CRM Directory[/bold blue]"))
+        all_contacts = session.scalars(
             select(ContactModel).order_by(ContactModel.last_contact_at.desc().nulls_last())
         ).all()
+        contacts = [contact for contact in all_contacts if contact.id not in provenance.contact_ids]
 
         if not contacts:
-            console.print("[yellow]No recruiter contacts recorded yet.[/yellow]")
+            console.print("[yellow]No ordinary recruiter contacts recorded yet.[/yellow]")
+            if all_contacts:
+                console.print(
+                    "[dim]"
+                    f"{len(all_contacts)} reconciliation-only canary-derived contact(s) excluded."
+                    "[/dim]"
+                )
             return
 
         table = Table(title="Recruiter & Hiring Team Contacts", header_style="bold cyan")
@@ -972,10 +1139,30 @@ def contacts_crm() -> None:
             table.add_row(c.name, c.email or "[dim]N/A[/dim]", c.role or "Recruiter", co, last_dt)
 
         console.print(table)
+        excluded_count = len(all_contacts) - len(contacts)
+        if excluded_count:
+            console.print(
+                "[dim]"
+                f"{excluded_count} reconciliation-only canary-derived contact(s) excluded."
+                "[/dim]"
+            )
+        if reclassified_canaries:
+            console.print(
+                "[dim]"
+                f"{reclassified_canaries} historical canary source message(s) newly reclassified."
+                "[/dim]"
+            )
 
 
 @cli.command(name="update-lifecycle")
-def update_lifecycle() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+@click.option(
+    "--canary-identity",
+    "canary_identities",
+    multiple=True,
+    help="Additional owner-controlled test alias excluded before lifecycle processing.",
+)
+def update_lifecycle(config_dir: str, canary_identities: tuple[str, ...]) -> None:
     """Sweep recruiting messages, trigger lifecycle transitions, and check follow-up alerts."""
     console.print(
         Panel.fit("[bold blue]Jobs Automation — Lifecycle & Communication Engine[/bold blue]")
@@ -984,14 +1171,27 @@ def update_lifecycle() -> None:
     from sqlalchemy import select
 
     from jobs_automation.db.models import InboundMessageModel
+    from jobs_automation.ingestion.engine import reclassify_persisted_canary_messages
     from jobs_automation.lifecycle.alerts import LifecycleAlertService
     from jobs_automation.lifecycle.engine import LifecycleEngine
 
+    # This is a stateful consumer of historical inbox data.  Load the same durable
+    # owner-controlled alias policy as the worker and reconcile it before a lifecycle
+    # engine or alert service can inspect an older, previously untagged row.
+    platforms, _ = ConfigLoader(config_dir).load_platforms()
+    active_canary_identities = [*platforms.email.canary_identities, *canary_identities]
     settings = AppSettings()
     engine = get_engine(settings.database_url)
     session_factory = get_sessionmaker(engine)
 
     with session_factory() as session:
+        reclassified_canaries = reclassify_persisted_canary_messages(
+            session, active_canary_identities
+        )
+        if reclassified_canaries:
+            # Keep the one-way safety classification even if a later lifecycle pass
+            # fails; no historical application/job/task state is rewritten here.
+            session.commit()
         lifecycle_engine = LifecycleEngine(session)
         alert_service = LifecycleAlertService(session)
 
@@ -1020,6 +1220,9 @@ def update_lifecycle() -> None:
 
         console.print(f"  • Messages processed: [bold]{len(messages)}[/bold]")
         console.print(
+            f"  • Historical canary messages reclassified: [bold]{reclassified_canaries}[/bold]"
+        )
+        console.print(
             f"  • Lifecycle state transitions: [bold green]{transitions_count}[/bold green]"
         )
         console.print(
@@ -1036,7 +1239,8 @@ def update_lifecycle() -> None:
 @cli.command(name="dashboard")
 @click.option("--host", default="127.0.0.1", help="Host interface to bind dashboard.")
 @click.option("--port", default=8765, type=int, help="Port to run dashboard (default: 8765).")
-def dashboard(host: str, port: int) -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def dashboard(host: str, port: int, config_dir: str) -> None:
     """Launch embedded interactive web dashboard and REST API."""
     console.print(
         Panel.fit(
@@ -1048,6 +1252,15 @@ def dashboard(host: str, port: int) -> None:
     settings = AppSettings()
     engine = get_engine(settings.database_url)
     session_factory = get_sessionmaker(engine)
+    platforms, _ = ConfigLoader(config_dir).load_platforms()
+    with session_factory() as session:
+        reclassified_canaries = _persist_current_canary_reclassification(
+            session, platforms.email.canary_identities
+        )
+    if reclassified_canaries:
+        console.print(
+            f"[yellow]Reclassified {reclassified_canaries} historical canary message(s) before dashboard startup.[/yellow]"
+        )
 
     server = DashboardServer(session_factory, host=host, port=port)
     try:
@@ -1058,18 +1271,28 @@ def dashboard(host: str, port: int) -> None:
 
 
 @cli.command(name="health-check")
-def health_check() -> None:
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def health_check(config_dir: str) -> None:
     """Run system readiness and diagnostic health checks."""
-    console.print(
-        Panel.fit(
-            "[bold blue]Jobs Automation — System Diagnostics & Health Check[/bold blue]"
-        )
-    )
     from jobs_automation.health import HealthCheckService
 
     settings = AppSettings()
     engine = get_engine(settings.database_url)
     session_factory = get_sessionmaker(engine)
+
+    # Health readiness must use the same active source policy as the operational
+    # commands.  A bad policy configuration must stop the command before it can
+    # report a canary-derived record as ordinary health evidence.
+    with session_factory() as session:
+        _persist_current_canary_reclassification(
+            session, _visibility_canary_identities(config_dir)
+        )
+
+    console.print(
+        Panel.fit(
+            "[bold blue]Jobs Automation — System Diagnostics & Health Check[/bold blue]"
+        )
+    )
 
     checker = HealthCheckService(session_factory)
     report = checker.run_full_check()
@@ -1126,7 +1349,20 @@ def health_check() -> None:
     default=False,
     help="Force 48-hour reconciliation pass for single sweep.",
 )
-def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reconcile: bool) -> None:
+@click.option(
+    "--canary-identity",
+    "canary_identities",
+    multiple=True,
+    help="Additional owner-controlled test alias excluded from evidence and lifecycle work.",
+)
+def worker(
+    once: bool,
+    interval: int,
+    mock_fixtures: bool,
+    config_dir: str,
+    reconcile: bool,
+    canary_identities: tuple[str, ...],
+) -> None:
     """Run scheduled background worker for ingestion, lifecycle updates, and alerting."""
     console.print(Panel.fit("[bold blue]Jobs Automation — Scheduled Worker Daemon[/bold blue]"))
     from jobs_automation.worker import WorkerDaemon
@@ -1148,6 +1384,7 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
         poll_interval_seconds=interval,
         config_dir=config_dir,
         email_adapter=email_adapter,
+        canary_identities=list(canary_identities),
     )
     if once:
         res = daemon.run_sweep(reconcile=True if reconcile else None)
@@ -1156,7 +1393,287 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
         daemon.start()
 
 
+@cli.command(name="ingest-mailbox")
+@click.option("--mailbox", required=True, help="Authorized mailbox address this run is bound to.")
+@click.option(
+    "--query",
+    required=True,
+    help="Gmail search query bounding the evidence set (e.g. 'label:recruiting').",
+)
+@click.option("--window-start", required=True, help="ISO-8601 window start (UTC if no offset).")
+@click.option("--window-end", required=True, help="ISO-8601 window end, exclusive.")
+@click.option("--cap", required=True, type=int, help="Maximum messages to ingest (1-500).")
+@click.option(
+    "--dry-run", is_flag=True, default=False, help="Poll and classify without persisting."
+)
+@click.option(
+    "--mock-fixtures",
+    is_flag=True,
+    default=False,
+    help="ENGINEERING ONLY: synthetic fixtures adapter; never genuine recruiting evidence.",
+)
+@click.option("--replay-run", default=None, help="Replay the recorded parameters of a run id.")
+@click.option(
+    "--apply-replay",
+    is_flag=True,
+    default=False,
+    help="Explicitly permit a stateful replay of a recorded non-dry run.",
+)
+@click.option(
+    "--canary-identity",
+    "canary_identities",
+    multiple=True,
+    help="Owner-controlled test alias whose mail is tagged as canary and excluded from evidence.",
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def ingest_mailbox(
+    mailbox: str,
+    query: str,
+    window_start: str,
+    window_end: str,
+    cap: int,
+    dry_run: bool,
+    mock_fixtures: bool,
+    replay_run: str | None,
+    apply_replay: bool,
+    canary_identities: tuple[str, ...],
+    config_dir: str,
+) -> None:
+    """Run one bounded, replayable mailbox ingestion (V17-M04): mailbox, query, window, cap.
+
+    Enforces the read-only grant and the mailbox identity before touching the mailbox,
+    never advances the incremental worker checkpoint, and records secret-free run
+    evidence with logical-state digests so the run can be replayed and compared.
+    """
+    import datetime
+
+    from jobs_automation.ingestion.bounded import (
+        BoundedIngestionError,
+        BoundedIngestionRequest,
+        BoundedIngestionRunner,
+    )
+    from jobs_automation.ingestion.readiness import assess_gmail_readiness
+
+    console.print(Panel.fit("[bold blue]Jobs Automation — Bounded Mailbox Ingestion[/bold blue]"))
+
+    def _parse_window(value: str, label: str) -> datetime.datetime:
+        try:
+            parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise click.ClickException(f"{label} must be ISO-8601: {exc}") from exc
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.UTC)
+
+    # Validate every operator-supplied boundary before loading configuration, opening the
+    # database, assessing OAuth readiness, or constructing GmailAdapter.  Constructing a
+    # live adapter may refresh an expired token, so malformed input must fail before that
+    # side effect is even reachable.
+    try:
+        request = BoundedIngestionRequest(
+            mailbox=mailbox,
+            query=query,
+            window_start=_parse_window(window_start, "--window-start"),
+            window_end=_parse_window(window_end, "--window-end"),
+            cap=cap,
+            dry_run=dry_run,
+        ).validated()
+    except (BoundedIngestionError, ValueError) as exc:
+        raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
+
+    if apply_replay and not replay_run:
+        raise click.ClickException("--apply-replay requires --replay-run")
+    if replay_run and dry_run and apply_replay:
+        raise click.ClickException("--dry-run and --apply-replay cannot be combined")
+    if replay_run and not (dry_run or apply_replay):
+        raise click.ClickException(
+            "replay requires --dry-run for a non-mutating check or --apply-replay for a "
+            "stateful replay"
+        )
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    platforms, _ = loader.load_platforms()
+    candidate_emails = [profile.identity.email] if profile.identity.email else []
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        adapter: Any
+        if mock_fixtures:
+            from jobs_automation.adapters.gmail import MockEmailAdapter
+            from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+
+            console.print(
+                "[bold yellow]SYNTHETIC ENGINEERING RUN: offline fixtures adapter; this is never "
+                "genuine recruiting evidence.[/bold yellow]"
+            )
+            adapter = MockEmailAdapter(get_sample_email_fixtures())
+            adapter_kind, synthetic = "mock_fixtures", True
+        else:
+            readiness = assess_gmail_readiness(settings, session)
+            if not readiness.live_capable or not readiness.scope_is_readonly_only:
+                console.print(
+                    f"[bold red]Read-only Gmail grant not established (state={readiness.state}, "
+                    f"error={readiness.error_category}). No OAuth flow was launched and the "
+                    "mailbox was not accessed.[/bold red]"
+                )
+                raise click.ClickException("GMAIL_READONLY_GRANT_REQUIRED")
+            from jobs_automation.adapters.gmail import GmailAdapter
+
+            adapter = GmailAdapter(verified_identities=candidate_emails)
+            adapter_kind, synthetic = "gmail", False
+
+        runner = BoundedIngestionRunner(
+            session,
+            adapter,
+            candidate_emails=candidate_emails,
+            canary_identities=[*platforms.email.canary_identities, *canary_identities],
+            adapter_kind=adapter_kind,
+            synthetic=synthetic,
+        )
+        try:
+            if replay_run:
+                result = runner.replay(
+                    replay_run,
+                    request,
+                    allow_stateful_replay=apply_replay,
+                )
+            else:
+                result = runner.run(request)
+        except BoundedIngestionError as exc:
+            raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
+
+    table = Table(title="Bounded Ingestion Result", header_style="bold green")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value")
+    table.add_row("Run ID", result.run_id)
+    table.add_row("Status", result.status)
+    table.add_row("Adapter / synthetic", f"{result.adapter} / {result.synthetic}")
+    table.add_row("Mailbox (sha256 prefix)", result.mailbox_sha256[:16])
+    table.add_row("Window", f"{result.window_start} -> {result.window_end}")
+    table.add_row("Cap", str(result.cap))
+    table.add_row("Poll complete", str(result.complete))
+    table.add_row(
+        "Messages polled / ingested / duplicates",
+        f"{result.messages_polled} / {result.messages_ingested} / {result.messages_skipped_duplicate}",
+    )
+    table.add_row("Canary messages tagged", str(result.canary_messages))
+    table.add_row(
+        "Lifecycle transitions / interviews",
+        f"{result.lifecycle_transitions} / {result.interviews_scheduled}",
+    )
+    table.add_row(
+        "Alerts (unanswered / stale)", f"{result.unanswered_alerts} / {result.stale_alerts}"
+    )
+    if result.replay_of_run_id:
+        table.add_row("Replay of", result.replay_of_run_id)
+        table.add_row("Replay identical", str(result.replay_identical))
+        table.add_row("Replay matches original", str(result.replay_matches_original))
+    table.add_row("Events digest", result.digests_after.events[:16])
+    table.add_row("Tasks digest", result.digests_after.tasks[:16])
+    console.print(table)
+    for error in result.errors:
+        console.print(f"  [red]• {error}[/red]")
+    if result.status == "FAILED":
+        sys.exit(1)
+    if result.status == "INCOMPLETE":
+        console.print(
+            "[yellow]Poll was incomplete; evidence is partial and no checkpoint moved.[/yellow]"
+        )
+        sys.exit(2)
+
+
+@cli.command(name="lifecycle-timeline")
+@click.option("--application-id", required=True, help="Application UUID to inspect.")
+@click.option("--config-dir", default="config", help="Path to config directory.")
+@click.option(
+    "--json-output",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Also write the redacted timeline export JSON to this path.",
+)
+def lifecycle_timeline(application_id: str, config_dir: str, json_output: str | None) -> None:
+    """Inspect one application's evidence timeline, due actions and replay status (V17-R05)."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from jobs_automation.lifecycle.timeline import build_timeline_export
+
+    console.print(Panel.fit("[bold blue]Jobs Automation — Application Timeline[/bold blue]"))
+    try:
+        target = uuid.UUID(application_id)
+    except ValueError as exc:
+        raise click.ClickException("--application-id must be a UUID") from exc
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+    platforms, _ = ConfigLoader(config_dir).load_platforms()
+    with session_factory() as session:
+        _persist_current_canary_reclassification(session, platforms.email.canary_identities)
+        try:
+            export = build_timeline_export(session, target)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+
+    app = export["application"]
+    console.print(
+        f"Application [bold]{app['id']}[/bold]: {app['company']} — {app['job_title']} — "
+        f"status [bold]{app['status']}[/bold] ({app['application_mode']})"
+    )
+    sources = Table(title="Source messages (redacted)", header_style="bold cyan")
+    for column in ("provider id", "provider time", "direction", "classification", "canary"):
+        sources.add_column(column)
+    for source in export["sources"]:
+        sources.add_row(
+            source["provider_message_id"],
+            source["provider_received_at"] or "",
+            f"{source['direction']} ({source['direction_basis'] or 'n/a'})",
+            source["classification"],
+            "yes" if source["canary"] else "no",
+        )
+    console.print(sources)
+    events = Table(title="Lifecycle events", header_style="bold green")
+    for column in ("event", "occurred", "source ref", "regression prevented"):
+        events.add_column(column)
+    for event in export["events"]:
+        events.add_row(
+            event["event_type"],
+            event["occurred_at"] or "",
+            event["source_reference"] or "",
+            str(event["regression_prevented"]),
+        )
+    console.print(events)
+    if export["interviews"]:
+        interviews = Table(title="Interviews", header_style="bold magenta")
+        for column in ("round", "start", "end", "tz", "status"):
+            interviews.add_column(column)
+        for interview in export["interviews"]:
+            interviews.add_row(
+                interview["round_type"],
+                interview["scheduled_start"] or "",
+                interview["scheduled_end"] or "",
+                interview["timezone"],
+                interview["status"],
+            )
+        console.print(interviews)
+    due = [t for t in export["tasks"] if t["status"] == "pending"]
+    console.print(
+        f"Due actions (pending tasks): [bold]{len(due)}[/bold] "
+        + ", ".join(t["task_type"] for t in due)
+    )
+    console.print(f"Uncertainty: {export['uncertainty']}")
+    console.print(f"Genuine evidence: {export['genuine_evidence']}")
+    console.print(f"Latest bounded run / replay: {export['replay']}")
+    console.print(f"Export digest: {export['export_sha256']}")
+    if json_output:
+        _Path(json_output).parent.mkdir(parents=True, exist_ok=True)
+        _Path(json_output).write_text(
+            _json.dumps(export, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        console.print(f"Redacted timeline export written to {json_output}")
+
+
 if __name__ == "__main__":
     cli()
-
-

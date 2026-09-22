@@ -119,6 +119,34 @@ def engineering_namespace() -> Iterator[Path]:
         shutil.rmtree(namespace, ignore_errors=True)
 
 
+@pytest.fixture
+def engineering_private_profile_namespace() -> Iterator[Path]:
+    """Create disposable profile inputs at a path accepted by the production guard.
+
+    The runner must reject temporary and pytest-owned profile paths in a real invocation.
+    This integration test itself runs from an isolated temporary checkout, so its
+    engineering-only candidate profile and resume live under a unique cache directory
+    outside that checkout.  The fixture owns and removes only its UUID-named child.
+    """
+    namespace = (
+        Path.home()
+        / ".cache"
+        / "jobs-automation"
+        / "engineering-real-proof-inputs"
+        / f"private_profile_{uuid.uuid4().hex}"
+    )
+    lowered = str(namespace).lower()
+    if "tmp" in namespace.parts or "pytest" in lowered:
+        raise RuntimeError(
+            "Engineering proof profile fixture requires a non-temporary, non-pytest path"
+        )
+    namespace.mkdir(parents=True, exist_ok=False)
+    try:
+        yield namespace
+    finally:
+        shutil.rmtree(namespace, ignore_errors=True)
+
+
 def _sqlite_backend(namespace: Path) -> Iterator[RuntimeBackend]:
     db_file = namespace / "engineering_proof.db"
     url = f"sqlite:///{db_file}"
@@ -319,10 +347,12 @@ def _mutate(runtime_url: str, mutate: Callable[[Any], None]) -> None:
 def test_v14_proof_chain_producer_to_consumer_on_production_services(
     runtime_backend: RuntimeBackend,
     engineering_namespace: Path,
+    engineering_private_profile_namespace: Path,
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     namespace = engineering_namespace
+    private_profile_namespace = engineering_private_profile_namespace
     runtime_url = runtime_backend.url
 
     # 1. Production importer persists the job through its own code path.
@@ -330,12 +360,13 @@ def test_v14_proof_chain_producer_to_consumer_on_production_services(
     questions = json.loads(questions_path.read_text(encoding="utf-8"))
     assert len(questions) == 3
 
-    # 2. Canonical engineering profile + genuine-shaped resume file in the namespace.
-    resume_path = namespace / "engineering_resume_ai_software_engineer.md"
+    # 2. Canonical engineering profile + genuine-shaped resume file in a disposable
+    # private-looking namespace accepted by the production path guard.
+    resume_path = private_profile_namespace / "engineering_resume_ai_software_engineer.md"
     resume_path.write_text(
         "# Engineering Candidate\n\nBuilds verifiable automation systems.\n", encoding="utf-8"
     )
-    profile_path = namespace / "candidate_profile.yaml"
+    profile_path = private_profile_namespace / "candidate_profile.yaml"
     profile_path.write_text(engineering_profile_yaml(resume_path.resolve()), encoding="utf-8")
 
     # 3. Production runner (subprocess) against the trusted runtime database.

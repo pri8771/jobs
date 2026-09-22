@@ -20,6 +20,7 @@ from jobs_automation.db.models import (
     InboundMessageModel,
     JobModel,
     PolicyRegistryModel,
+    TaskModel,
 )
 from jobs_automation.health import HealthCheckService
 from jobs_automation.worker import WorkerDaemon
@@ -80,6 +81,66 @@ def test_health_check_service_expired_policy(
     health = checker.check_policy_registry()
     assert health.status == "DEGRADED"
     assert "expired" in health.message
+
+
+def test_health_diagnostics_exclude_durable_canary_source_rows(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """Health queue and mailbox hints must not treat canary rows as live evidence."""
+    now = datetime.datetime.now(datetime.UTC)
+    genuine_received_at = now - datetime.timedelta(minutes=1)
+    with db_session_factory() as session:
+        canary_message = InboundMessageModel(
+            provider_message_id="health-canary-message",
+            provider_thread_id="health-canary-thread",
+            received_at=now,
+            sender="canary-owner@example.test",
+            recipients_json=["candidate@example.test"],
+            direction="inbound",
+            subject="Canary diagnostics",
+            headers_json={"_provider": {"canary": True}},
+            body_text="Owner-controlled canary.",
+            classification="JOB_ALERT",
+        )
+        genuine_message = InboundMessageModel(
+            provider_message_id="health-genuine-message",
+            provider_thread_id="health-genuine-thread",
+            received_at=genuine_received_at,
+            sender="recruiter@example.test",
+            recipients_json=["candidate@example.test"],
+            direction="inbound",
+            subject="Genuine diagnostics",
+            headers_json={},
+            body_text="Ordinary evidence.",
+            classification="JOB_ALERT",
+        )
+        session.add_all([canary_message, genuine_message])
+        session.flush()
+        session.add_all(
+            [
+                TaskModel(
+                    task_type="NEEDS_REVIEW",
+                    status="pending",
+                    payload_json={"provider_message_id": canary_message.provider_message_id},
+                ),
+                TaskModel(
+                    task_type="NEEDS_REVIEW",
+                    status="pending",
+                    payload_json={"provider_message_id": genuine_message.provider_message_id},
+                ),
+            ]
+        )
+        session.commit()
+
+    checker = HealthCheckService(db_session_factory)
+    database = checker.check_database()
+    assert database.details["pending_tasks"] == 1
+    assert database.details["reconciliation_only_pending_tasks_excluded"] == 1
+
+    gmail = checker.check_gmail({"status": "HEALTHY", "message": "typed readiness"})
+    assert gmail.status == "HEALTHY"
+    assert gmail.details["last_message_received_at"] == genuine_received_at.isoformat()
+    assert gmail.details["durable_canary_messages_excluded"] == 1
 
 
 def test_worker_daemon_respects_kill_switch(
@@ -379,5 +440,3 @@ def test_worker_health_reports_reconciliation_and_error_fields(
     assert health.details["last_error_category"] == "GMAIL_AUTH_ERROR"
     assert health.details["last_reconciliation_at"] is not None
     assert health.status == "DEGRADED"
-
-

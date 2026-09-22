@@ -9,6 +9,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from jobs_automation.core import CandidateProfileConfig, JobSearchConfig
+from jobs_automation.db.canary_provenance import (
+    job_ids_with_durable_canary_provenance,
+    require_job_without_durable_canary_provenance,
+)
 from jobs_automation.db.models import JobEvaluationModel, JobModel, TaskModel
 from jobs_automation.evaluation.filters import FilterDecisionStatus, HardFilterService
 from jobs_automation.evaluation.scorer import SemanticScorer
@@ -44,6 +48,10 @@ class JobEvaluationEngine:
 
     def evaluate_job(self, job: JobModel) -> JobEvaluationModel:
         """Evaluate a single job posting through hard filter and scoring pipeline."""
+        # Direct callers (including the CLI) can bypass the scheduled worker.  A
+        # durable canary link is therefore an engine-level stop condition, not merely
+        # a batch-query convention.
+        require_job_without_durable_canary_provenance(self.session, job.id)
         filter_res = self.filter_service.evaluate(job)
 
         # 1. Disqualified by hard filters
@@ -142,12 +150,15 @@ class JobEvaluationEngine:
         )
 
         try:
+            quarantined_job_ids = job_ids_with_durable_canary_provenance(self.session)
             stmt = (
                 select(JobModel)
                 .where(JobModel.status == "discovered")
                 .order_by(JobModel.first_seen_at.desc())
-                .limit(limit)
             )
+            if quarantined_job_ids:
+                stmt = stmt.where(JobModel.id.not_in(quarantined_job_ids))
+            stmt = stmt.limit(limit)
             jobs = self.session.execute(stmt).scalars().all()
 
             for job in jobs:

@@ -21,9 +21,14 @@ from jobs_automation.db.models import (
     ApplicationEventModel,
     ApplicationModel,
     ApplicationPacketModel,
+    AuditLogModel,
     CompanyModel,
+    ContactModel,
+    InboundMessageModel,
+    InterviewModel,
     JobModel,
     JobSourceModel,
+    MessageLinkModel,
     ResumeVariantModel,
     TaskModel,
 )
@@ -1158,3 +1163,310 @@ def test_funnel_summary_excludes_simulation_and_unsubmitted(
 
 
 
+
+def test_dashboard_quarantines_historical_durable_canary_derivatives(
+    db_session_factory: sessionmaker[Session],
+) -> None:
+    """A later durable tag hides, but never deletes or resolves, historical derivatives."""
+    now = datetime.datetime.now(datetime.UTC)
+    with db_session_factory() as session:
+        company = CompanyModel(normalized_name="Dashboard containment company")
+        session.add(company)
+        session.flush()
+
+        canary_job = JobModel(
+            company_id=company.id,
+            normalized_title="Canary-only executive role",
+            status="discovered",
+        )
+        genuine_job = JobModel(
+            company_id=company.id,
+            normalized_title="Genuine platform role",
+            status="discovered",
+        )
+        session.add_all([canary_job, genuine_job])
+        session.flush()
+        session.add_all(
+            [
+                JobSourceModel(job_id=canary_job.id, provider="CANARY_SOURCE"),
+                JobSourceModel(job_id=genuine_job.id, provider="GENUINE_SOURCE"),
+            ]
+        )
+
+        canary_variant = ResumeVariantModel(
+            resume_family="canary_family",
+            name="canary_variant",
+            version=1,
+            content_hash="canary-variant-hash",
+            target_job_id=canary_job.id,
+        )
+        genuine_variant = ResumeVariantModel(
+            resume_family="genuine_family",
+            name="genuine_variant",
+            version=1,
+            content_hash="genuine-variant-hash",
+            target_job_id=genuine_job.id,
+        )
+        session.add_all([canary_variant, genuine_variant])
+        session.flush()
+        canary_packet = ApplicationPacketModel(
+            job_id=canary_job.id,
+            candidate_profile_version=1,
+            resume_variant_id=canary_variant.id,
+            packet_hash="canary-packet-hash",
+        )
+        genuine_packet = ApplicationPacketModel(
+            job_id=genuine_job.id,
+            candidate_profile_version=1,
+            resume_variant_id=genuine_variant.id,
+            packet_hash="genuine-packet-hash",
+        )
+        session.add_all([canary_packet, genuine_packet])
+        session.flush()
+
+        canary_application = ApplicationModel(
+            job_id=canary_job.id,
+            packet_id=canary_packet.id,
+            status="OFFER_RECEIVED",
+            applied_at=now - datetime.timedelta(days=7),
+        )
+        genuine_application = ApplicationModel(
+            job_id=genuine_job.id,
+            packet_id=genuine_packet.id,
+            status="REJECTED",
+            applied_at=now - datetime.timedelta(days=7),
+            closed_at=now,
+        )
+        session.add_all([canary_application, genuine_application])
+        session.flush()
+
+        canary_message = InboundMessageModel(
+            provider_message_id="canary-dashboard-message",
+            provider_thread_id="canary-dashboard-thread",
+            received_at=now,
+            sender="Owner Canary <owner-canary@example.test>",
+            subject="PRIVATE CANARY SUBJECT",
+            headers_json={},
+            body_text="PRIVATE CANARY BODY",
+            classification="INTERVIEW_REQUEST",
+        )
+        genuine_message = InboundMessageModel(
+            provider_message_id="genuine-dashboard-message",
+            provider_thread_id="genuine-dashboard-thread",
+            received_at=now,
+            sender="Recruiter <recruiter@example.test>",
+            subject="Genuine application update",
+            headers_json={},
+            body_text="Genuine message body",
+            classification="REJECTION",
+        )
+        session.add_all([canary_message, genuine_message])
+        session.flush()
+        session.add_all(
+            [
+                MessageLinkModel(
+                    inbound_message_id=canary_message.id,
+                    job_id=canary_job.id,
+                    application_id=canary_application.id,
+                    company_id=company.id,
+                    confidence=1.0,
+                    method="historical_canary_link",
+                ),
+                MessageLinkModel(
+                    inbound_message_id=genuine_message.id,
+                    job_id=genuine_job.id,
+                    application_id=genuine_application.id,
+                    company_id=company.id,
+                    confidence=1.0,
+                    method="genuine_link",
+                ),
+            ]
+        )
+        session.add_all(
+            [
+                ApplicationEventModel(
+                    application_id=canary_application.id,
+                    event_type="INTERVIEW_REQUESTED",
+                    occurred_at=now,
+                    source="email_lifecycle",
+                    source_reference=canary_message.provider_message_id,
+                ),
+                ApplicationEventModel(
+                    application_id=genuine_application.id,
+                    event_type="INTERVIEW_REQUESTED",
+                    occurred_at=now,
+                    source="email_lifecycle",
+                    source_reference=genuine_message.provider_message_id,
+                ),
+            ]
+        )
+        session.add_all(
+            [
+                InterviewModel(
+                    application_id=canary_application.id,
+                    round_type="Canary interview",
+                    scheduled_start=now,
+                    scheduled_end=now + datetime.timedelta(hours=1),
+                    location_or_link="https://canary.example.test/private",
+                ),
+                InterviewModel(
+                    application_id=genuine_application.id,
+                    round_type="Genuine interview",
+                    scheduled_start=now,
+                    scheduled_end=now + datetime.timedelta(hours=1),
+                ),
+            ]
+        )
+        canary_contact = ContactModel(
+            company_id=company.id,
+            name="Owner Canary",
+            email="owner-canary@example.test",
+            source="email",
+        )
+        genuine_contact = ContactModel(
+            company_id=company.id,
+            name="Genuine Recruiter",
+            email="recruiter@example.test",
+            source="email",
+        )
+        session.add_all([canary_contact, genuine_contact])
+        session.flush()
+        canary_review = TaskModel(
+            task_type="NEEDS_REVIEW",
+            status="pending",
+            payload_json={
+                "provider_message_id": canary_message.provider_message_id,
+                "subject": canary_message.subject,
+            },
+        )
+        genuine_review = TaskModel(
+            job_id=genuine_job.id,
+            task_type="NEEDS_REVIEW",
+            status="pending",
+            payload_json={"question": "Genuine review"},
+        )
+        canary_followup = TaskModel(
+            task_type="UNANSWERED_RECRUITER",
+            status="pending",
+            payload_json={
+                "latest_message_id": canary_message.provider_message_id,
+                "subject": canary_message.subject,
+            },
+        )
+        session.add_all([canary_review, genuine_review, canary_followup])
+        session.flush()
+        session.add_all(
+            [
+                AuditLogModel(
+                    action_type="canary_audit",
+                    entity_type="message",
+                    entity_id=canary_message.id,
+                    result="success",
+                    external_reference=canary_message.provider_message_id,
+                    metadata_json={
+                        "provider_message_id": canary_message.provider_message_id,
+                        "subject": canary_message.subject,
+                    },
+                ),
+                AuditLogModel(
+                    action_type="genuine_audit",
+                    entity_type="message",
+                    entity_id=genuine_message.id,
+                    result="success",
+                    external_reference=genuine_message.provider_message_id,
+                    metadata_json={"provider_message_id": genuine_message.provider_message_id},
+                ),
+            ]
+        )
+        canary_application_id = canary_application.id
+        genuine_application_id = genuine_application.id
+        canary_message_id = canary_message.id
+        canary_contact_id = canary_contact.id
+        canary_review_id = canary_review.id
+        session.commit()
+
+    # Model the actual repair case: dependent records already existed before the
+    # mailbox policy durably reclassified the historical message as a canary.
+    with db_session_factory() as session:
+        reclassified_message = session.get(InboundMessageModel, canary_message_id)
+        assert reclassified_message is not None
+        reclassified_message.headers_json = {"_provider": {"canary": True}}
+        session.commit()
+
+    with db_session_factory() as session:
+        analytics = FunnelAnalyticsService(session)
+        summary = analytics.get_funnel_summary()
+        assert summary["total_jobs_discovered"] == 1
+        assert summary["total_submitted"] == 1
+        assert summary["pending_reviews"] == 1
+        assert analytics.get_source_breakdown() == {"GENUINE_SOURCE": 1}
+        assert [row["provider"] for row in analytics.get_source_performance()] == [
+            "GENUINE_SOURCE"
+        ]
+        assert [row["role_family"] for row in analytics.get_role_family_performance()] == [
+            "Genuine platform role"
+        ]
+        assert [row["variant_name"] for row in analytics.get_resume_performance()] == [
+            "genuine_variant"
+        ]
+        assert analytics.get_time_to_stage()["sample_sizes"]["interview"] == 1
+        board = analytics.get_kanban_board()
+        visible_card_ids = {
+            card["id"] for cards in board.values() for card in cards
+        }
+        assert str(genuine_application_id) in visible_card_ids
+        assert str(canary_application_id) not in visible_card_ids
+
+    def response_json(handler: DummyRequestHandler) -> Any:
+        return json.loads(handler.mock_wfile.getvalue().decode("utf-8"))
+
+    endpoints = {
+        "/api/jobs": "Canary-only executive role",
+        "/api/reviews": "PRIVATE CANARY SUBJECT",
+        "/api/followups": "PRIVATE CANARY SUBJECT",
+        "/api/interviews": "Canary interview",
+        "/api/contacts": "owner-canary@example.test",
+        "/api/audit": "PRIVATE CANARY SUBJECT",
+        "/api/offers-rejections": "Canary-only executive role",
+    }
+    for path, forbidden in endpoints.items():
+        handler = DummyRequestHandler("GET", path, session_factory=db_session_factory)
+        handler.do_GET()
+        assert handler.status_code == 200
+        assert forbidden not in json.dumps(response_json(handler))
+
+    canary_app_timeline = DummyRequestHandler(
+        "GET",
+        f"/api/timeline?application_id={canary_application_id}",
+        session_factory=db_session_factory,
+    )
+    canary_app_timeline.do_GET()
+    assert canary_app_timeline.status_code == 200
+    assert response_json(canary_app_timeline) == []
+
+    canary_contact_timeline = DummyRequestHandler(
+        "GET",
+        f"/api/timeline?contact_id={canary_contact_id}",
+        session_factory=db_session_factory,
+    )
+    canary_contact_timeline.do_GET()
+    assert canary_contact_timeline.status_code == 200
+    assert response_json(canary_contact_timeline) == []
+
+    body = json.dumps({"resolution_notes": "must not be written"}).encode("utf-8")
+    resolve = DummyRequestHandler(
+        "POST",
+        f"/api/reviews/{canary_review_id}/resolve",
+        body=body,
+        headers={"Content-Length": str(len(body))},
+        session_factory=db_session_factory,
+    )
+    resolve.do_POST()
+    assert resolve.status_code == 409
+    assert "reconciliation" in response_json(resolve)["error"].lower()
+
+    with db_session_factory() as session:
+        preserved_task = session.get(TaskModel, canary_review_id)
+        assert preserved_task is not None
+        assert preserved_task.status == "pending"
+        assert "resolution_notes" not in preserved_task.payload_json

@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Generator
 
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from jobs_automation.db.base import Base
@@ -907,6 +907,290 @@ def test_alerts_unanswered_recruiter_auto_resolve_on_reply(db_session: Session) 
     assert task.payload_json["resolved_by_reply_id"] == str(msg_reply.id)
 
 
+def test_lifecycle_ignores_historically_linked_durable_canary_message(
+    db_session: Session,
+) -> None:
+    """A later canary reclassification must stop the shared worker/CLI mutation path."""
+    engine = LifecycleEngine(db_session)
+    now = datetime.datetime.now(datetime.UTC)
+    activity_before = now - datetime.timedelta(days=2)
+
+    company = CompanyModel(normalized_name="canary-safe-company")
+    db_session.add(company)
+    db_session.flush()
+    job = JobModel(company_id=company.id, normalized_title="Canary Safe Engineer", status="active")
+    db_session.add(job)
+    db_session.flush()
+    application = ApplicationModel(
+        job_id=job.id,
+        status="SUBMITTED",
+        last_activity_at=activity_before,
+    )
+    db_session.add(application)
+    db_session.flush()
+
+    # This represents a row linked before a bounded run later identifies its alias as
+    # owner-controlled test traffic. Without the durable guard it would schedule an
+    # interview, create CRM/audit rows, and advance the application.
+    message = InboundMessageModel(
+        provider_message_id="historically-linked-canary",
+        provider_thread_id="historically-linked-canary-thread",
+        direction="inbound",
+        received_at=now,
+        sender="canary-recruiter@example.test",
+        subject="Interview request",
+        headers_json={"_provider": {"canary": True}},
+        body_text=(
+            "Please join the technical interview at 2026-10-15 14:00 UTC: "
+            "https://meet.google.com/abc-defg-hij"
+        ),
+        classification="INTERVIEW_REQUEST",
+        confidence=0.99,
+    )
+    db_session.add(message)
+    db_session.flush()
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=message.id,
+            application_id=application.id,
+            job_id=job.id,
+            confidence=0.99,
+            method="historical_link_before_canary_reclassification",
+        )
+    )
+    db_session.commit()
+
+    assert engine.process_message(message) is None
+    db_session.refresh(application)
+    assert application.status == "SUBMITTED"
+    assert application.last_activity_at == activity_before
+    assert db_session.scalars(select(ApplicationEventModel)).all() == []
+    assert db_session.scalars(select(AuditLogModel)).all() == []
+    assert db_session.scalars(select(ContactModel)).all() == []
+    assert db_session.scalars(select(InterviewModel)).all() == []
+    assert db_session.scalars(select(TaskModel)).all() == []
+
+
+def test_unscoped_alerts_ignore_canary_inbound_and_outbound_evidence(
+    db_session: Session,
+) -> None:
+    """Canary traffic cannot create or resolve worker/CLI unanswered-recruiter tasks."""
+    alert_service = LifecycleAlertService(db_session)
+    now = datetime.datetime.now(datetime.UTC)
+    four_days_ago = now - datetime.timedelta(days=4)
+
+    canary_inbound = InboundMessageModel(
+        provider_message_id="canary-recruiter-inbound",
+        provider_thread_id="canary-recruiter-thread",
+        direction="inbound",
+        received_at=four_days_ago,
+        sender="canary-recruiter@example.test",
+        subject="Canary outreach",
+        headers_json={"_provider": {"canary": True}},
+        body_text="Would you like to talk?",
+        classification="RECRUITER_OUTREACH",
+    )
+    genuine_inbound = InboundMessageModel(
+        provider_message_id="genuine-recruiter-inbound",
+        provider_thread_id="genuine-recruiter-thread",
+        direction="inbound",
+        received_at=four_days_ago,
+        sender="genuine-recruiter@example.test",
+        subject="Genuine outreach",
+        headers_json={},
+        body_text="Would you like to talk?",
+        classification="RECRUITER_OUTREACH",
+    )
+    db_session.add_all([canary_inbound, genuine_inbound])
+    db_session.commit()
+
+    tasks = alert_service.check_unanswered_recruiters(window_hours=48, now=now)
+    assert len(tasks) == 1
+    genuine_task = tasks[0]
+    assert genuine_task.payload_json["message_id"] == str(genuine_inbound.id)
+    assert genuine_task.status == "pending"
+
+    # A canary reply in a genuine thread must not falsely resolve its pending alert.
+    canary_reply = InboundMessageModel(
+        provider_message_id="canary-candidate-reply",
+        provider_thread_id="genuine-recruiter-thread",
+        direction="outbound",
+        received_at=now - datetime.timedelta(hours=1),
+        sender="candidate@example.test",
+        subject="Re: Genuine outreach",
+        headers_json={"_provider": {"canary": True}},
+        body_text="This is owner-controlled test traffic.",
+        classification="CANDIDATE_REPLY",
+    )
+    db_session.add(canary_reply)
+    db_session.commit()
+
+    assert alert_service.check_unanswered_recruiters(window_hours=48, now=now) == []
+    db_session.refresh(genuine_task)
+    assert genuine_task.status == "pending"
+    assert "resolved_by_reply_id" not in genuine_task.payload_json
+
+
+def test_unanswered_alerts_quarantine_historical_canary_tasks_in_shared_thread(
+    db_session: Session,
+) -> None:
+    """Genuine same-thread traffic must not reuse or close canary-provenance tasks."""
+    alert_service = LifecycleAlertService(db_session)
+    now = datetime.datetime.now(datetime.UTC)
+    four_days_ago = now - datetime.timedelta(days=4)
+    shared_thread_id = "mixed-history-thread"
+
+    canary_inbound = InboundMessageModel(
+        provider_message_id="historical-canary-provider-id",
+        provider_thread_id=shared_thread_id,
+        direction="inbound",
+        received_at=four_days_ago,
+        sender="canary-recruiter@example.test",
+        subject="Canary outreach",
+        headers_json={"_provider": {"canary": True}},
+        body_text="Owner-controlled test traffic.",
+        classification="RECRUITER_OUTREACH",
+    )
+    genuine_inbound = InboundMessageModel(
+        provider_message_id="genuine-shared-thread-provider-id",
+        provider_thread_id=shared_thread_id,
+        direction="inbound",
+        received_at=four_days_ago + datetime.timedelta(hours=1),
+        sender="genuine-recruiter@example.test",
+        subject="Genuine outreach",
+        headers_json={},
+        body_text="A real recruiter message in the same thread.",
+        classification="RECRUITER_OUTREACH",
+    )
+    db_session.add_all([canary_inbound, genuine_inbound])
+    db_session.flush()
+
+    # These are historical tasks created before the source was reclassified.  Each
+    # task exercises one of the timeline's source-provenance fields, alternating
+    # UUID and provider-message-id representations of the same durable canary.
+    provenance_keys = (
+        "provider_message_id",
+        "source_message_id",
+        "message_id",
+        "latest_message_id",
+        "resolved_by_reply_id",
+        "inbound_message_id",
+    )
+    historical_tasks: list[TaskModel] = []
+    for index, key in enumerate(provenance_keys):
+        reference = (
+            canary_inbound.provider_message_id
+            if index % 2 == 0
+            else str(canary_inbound.id)
+        )
+        historical_tasks.append(
+            TaskModel(
+                task_type="UNANSWERED_RECRUITER",
+                due_at=four_days_ago,
+                status="pending",
+                payload_json={"thread_id": shared_thread_id, key: reference},
+            )
+        )
+    db_session.add_all(historical_tasks)
+    db_session.commit()
+    historical_payloads = {task.id: dict(task.payload_json) for task in historical_tasks}
+
+    # The genuine message is old enough for an alert.  It receives a distinct task;
+    # none of the six historical tasks is reused or updated.
+    created = alert_service.check_unanswered_recruiters(window_hours=48, now=now)
+    assert len(created) == 1
+    genuine_task = created[0]
+    assert genuine_task.status == "pending"
+    assert genuine_task.payload_json["message_id"] == str(genuine_inbound.id)
+    for task in historical_tasks:
+        db_session.refresh(task)
+        assert task.status == "pending"
+        assert task.payload_json == historical_payloads[task.id]
+
+    genuine_reply = InboundMessageModel(
+        provider_message_id="genuine-shared-thread-reply-id",
+        provider_thread_id=shared_thread_id,
+        direction="outbound",
+        received_at=now - datetime.timedelta(hours=1),
+        sender="candidate@example.test",
+        subject="Re: Genuine outreach",
+        headers_json={},
+        body_text="I would be happy to speak.",
+        classification="CANDIDATE_REPLY",
+    )
+    db_session.add(genuine_reply)
+    db_session.commit()
+
+    assert alert_service.check_unanswered_recruiters(window_hours=48, now=now) == []
+    db_session.refresh(genuine_task)
+    assert genuine_task.status == "completed"
+    assert genuine_task.payload_json["resolved_by_reply_id"] == str(genuine_reply.id)
+    for task in historical_tasks:
+        db_session.refresh(task)
+        assert task.status == "pending"
+        assert task.payload_json == historical_payloads[task.id]
+
+
+def test_stale_alerts_skip_applications_with_durable_canary_provenance(
+    db_session: Session,
+) -> None:
+    """A late canary reclassification cannot create a new stale-state reminder."""
+    alert_service = LifecycleAlertService(db_session)
+    now = datetime.datetime.now(datetime.UTC)
+    old_activity = now - datetime.timedelta(days=30)
+
+    company = CompanyModel(normalized_name="stale-alert-company")
+    db_session.add(company)
+    db_session.flush()
+    contaminated_job = JobModel(company_id=company.id, normalized_title="Contaminated Role")
+    genuine_job = JobModel(company_id=company.id, normalized_title="Genuine Role")
+    db_session.add_all([contaminated_job, genuine_job])
+    db_session.flush()
+    contaminated_app = ApplicationModel(
+        job_id=contaminated_job.id,
+        status="SUBMITTED",
+        last_activity_at=old_activity,
+    )
+    genuine_app = ApplicationModel(
+        job_id=genuine_job.id,
+        status="SUBMITTED",
+        last_activity_at=old_activity,
+    )
+    db_session.add_all([contaminated_app, genuine_app])
+    db_session.flush()
+    canary_message = InboundMessageModel(
+        provider_message_id="stale-canary-source",
+        provider_thread_id="stale-canary-thread",
+        direction="inbound",
+        received_at=old_activity,
+        sender="canary@example.test",
+        subject="Canary source",
+        headers_json={"_provider": {"canary": True}},
+        body_text="Owner-controlled test traffic.",
+        classification="RECRUITER_OUTREACH",
+    )
+    db_session.add(canary_message)
+    db_session.flush()
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=canary_message.id,
+            application_id=contaminated_app.id,
+            job_id=contaminated_job.id,
+            confidence=0.99,
+            method="historical_link_before_canary_reclassification",
+        )
+    )
+    db_session.commit()
+
+    tasks = alert_service.check_stale_applications(stale_days=14, now=now)
+
+    assert len(tasks) == 1
+    assert tasks[0].application_id == genuine_app.id
+    assert db_session.scalars(
+        select(TaskModel).where(TaskModel.application_id == contaminated_app.id)
+    ).all() == []
+
+
 def test_alerts_duplicate_sweeps_do_not_duplicate_tasks(db_session: Session) -> None:
     """Acceptance test 10: Duplicate sweeps do not duplicate follow-up tasks."""
     alert_service = LifecycleAlertService(db_session)
@@ -1549,6 +1833,3 @@ def test_background_check_does_not_fabricate_offer_when_already_offered(db_sessi
     assert result.new_status == "OFFER_RECEIVED"
     assert result.previous_status == "OFFER_RECEIVED"
     assert app.status == "OFFER_RECEIVED"
-
-
-

@@ -7,7 +7,7 @@ import time
 from typing import Any
 
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select, text
+from sqlalchemy import select, text
 
 from jobs_automation.automation.adapters.registry import ATSAdapterRegistry
 from jobs_automation.automation.kill_switch import KillSwitchManager
@@ -51,14 +51,16 @@ class HealthCheckService:
         try:
             with self.session_factory() as session:
                 session.execute(text("SELECT 1"))
-                pending_tasks = (
-                    session.scalar(
-                        select(func.count(TaskModel.id)).where(
-                            TaskModel.status == "pending"
-                        )
-                    )
-                    or 0
+                from jobs_automation.db.canary_provenance import durable_canary_provenance
+
+                provenance = durable_canary_provenance(session)
+                pending_task_rows = session.scalars(
+                    select(TaskModel).where(TaskModel.status == "pending")
+                ).all()
+                pending_tasks = sum(
+                    not provenance.task_is_quarantined(task) for task in pending_task_rows
                 )
+                excluded_pending_tasks = len(pending_task_rows) - pending_tasks
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
             status = "HEALTHY" if elapsed_ms < 500 else "DEGRADED"
             return ComponentHealth(
@@ -66,7 +68,10 @@ class HealthCheckService:
                 status=status,
                 message=f"Connected in {elapsed_ms}ms, {pending_tasks} pending tasks in queue.",
                 latency_ms=elapsed_ms,
-                details={"pending_tasks": pending_tasks},
+                details={
+                    "pending_tasks": pending_tasks,
+                    "reconciliation_only_pending_tasks_excluded": excluded_pending_tasks,
+                },
             )
         except Exception as exc:
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
@@ -151,7 +156,9 @@ class HealthCheckService:
         # In current release, greenhouse and lever return NOT_IMPLEMENTED for live external submission unless mock_mode is active.
         live_capable: list[str] = []
         for name in adapters:
-            adp = registry.find_adapter(f"boards.{name}.io") or registry.find_adapter(f"jobs.{name}.co")
+            adp = registry.find_adapter(f"boards.{name}.io") or registry.find_adapter(
+                f"jobs.{name}.co"
+            )
             if hasattr(adp, "is_live_capable") and getattr(adp, "is_live_capable"):
                 live_capable.append(name)
 
@@ -251,7 +258,9 @@ class HealthCheckService:
                         last_reconciliation_at = f.occurred_at.isoformat()
 
                 # Determine true latest attempt
-                if last_begin and (not last_finish or last_begin.occurred_at > last_finish.occurred_at):
+                if last_begin and (
+                    not last_finish or last_begin.occurred_at > last_finish.occurred_at
+                ):
                     # True newest attempt is the begin record (RUNNING or interrupted)
                     last_attempt_at = last_begin.occurred_at.isoformat()
                     last_attempt_status = "RUNNING"
@@ -320,7 +329,9 @@ class HealthCheckService:
                 else:
                     status = "HEALTHY"
 
-                stale_note = f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                stale_note = (
+                    f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                )
                 running_note = " [RUNNING in progress]" if is_currently_running else ""
 
                 return ComponentHealth(
@@ -362,20 +373,28 @@ class HealthCheckService:
         """
         try:
             with self.session_factory() as session:
-                last_msg = session.scalar(
-                    select(InboundMessageModel)
-                    .order_by(InboundMessageModel.received_at.desc())
-                )
+                from jobs_automation.db.canary_provenance import durable_canary_provenance
+
+                provenance = durable_canary_provenance(session)
+                messages = session.scalars(
+                    select(InboundMessageModel).order_by(InboundMessageModel.received_at.desc())
+                ).all()
+                visible_messages = [
+                    message
+                    for message in messages
+                    if str(message.id) not in provenance.message_references
+                ]
+                last_msg = visible_messages[0] if visible_messages else None
                 last_received_at = last_msg.received_at.isoformat() if last_msg else None
+                excluded_messages = len(messages) - len(visible_messages)
 
             if readiness_result is not None:
                 # Typed readiness result supplied (e.g. from Lane C's diagnostic service)
                 status = readiness_result.get("status", "DEGRADED")
-                message = readiness_result.get(
-                    "message", f"Gmail readiness verified: {status}"
-                )
+                message = readiness_result.get("message", f"Gmail readiness verified: {status}")
                 details = dict(readiness_result)
                 details["last_message_received_at"] = last_received_at
+                details["durable_canary_messages_excluded"] = excluded_messages
                 return ComponentHealth(
                     name="gmail",
                     status=status,
@@ -383,17 +402,20 @@ class HealthCheckService:
                     details=details,
                 )
 
-            # Default fail-safe without false credential heuristic
+            # Secret-free, non-interactive readiness assessment (V17-M03). It never
+            # launches OAuth or touches the mailbox; PROVEN requires a recorded real run.
+            from jobs_automation.ingestion.readiness import assess_gmail_readiness
+
+            with self.session_factory() as session:
+                readiness = assess_gmail_readiness(session=session)
+            details = readiness.to_health_result()
+            details["last_message_received_at"] = last_received_at
+            details["durable_canary_messages_excluded"] = excluded_messages
             return ComponentHealth(
                 name="gmail",
-                status="DEGRADED",
-                message="Gmail integration status: NOT_INTEGRATED (awaiting typed OAuth readiness provider).",
-                details={
-                    "status": "NOT_INTEGRATED",
-                    "live_capable": False,
-                    "last_message_received_at": last_received_at,
-                    "diagnostic": "Awaiting Lane C J20G-03 typed readiness integration; no mock/heuristic assumed.",
-                },
+                status=str(details["status"]),
+                message=str(details["message"]),
+                details=details,
             )
         except Exception as exc:
             return ComponentHealth(
