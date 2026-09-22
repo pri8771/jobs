@@ -20,7 +20,18 @@ fi
 CHECKSUM_FILE="${BACKUP_FILE}.sha256"
 if [ -f "${CHECKSUM_FILE}" ]; then
   echo "Verifying SHA-256 integrity checksum..."
-  shasum -a 256 -c "${CHECKSUM_FILE}"
+  # Verify the supplied archive, not the path recorded on the original host.
+  # This also supports older sidecars containing a relative or absolute path.
+  EXPECTED_SHA256=$(awk 'NF { count++; digest=$1 } END { if (count != 1) exit 1; print digest }' "${CHECKSUM_FILE}")
+  if [[ ! "${EXPECTED_SHA256}" =~ ^[0-9a-f]{64}$ ]]; then
+    echo "Error: Invalid SHA-256 checksum record. Restore failed closed."
+    exit 1
+  fi
+  ACTUAL_SHA256=$(shasum -a 256 "${BACKUP_FILE}" | awk '{print $1}')
+  if [ "${ACTUAL_SHA256}" != "${EXPECTED_SHA256}" ]; then
+    echo "Error: Backup checksum mismatch. Restore failed closed."
+    exit 1
+  fi
 else
   if [ "${FORCE}" = "--skip-checksum-emergency-override" ] || [ "${3:-}" = "--skip-checksum-emergency-override" ]; then
     echo "AUDIT WARNING: Emergency checksum override activated. Restoring without SHA-256 verification."
@@ -66,6 +77,6 @@ psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d postgres -c \
   "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
 
 echo "Restoring database from ${BACKUP_FILE}..."
-gunzip -c "${BACKUP_FILE}" | psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" --single-transaction
+gunzip -c "${BACKUP_FILE}" | psql -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" --single-transaction --set=ON_ERROR_STOP=on
 
 echo "Database restore completed successfully."
