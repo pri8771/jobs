@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
 import os
+import re
 import uuid
 from collections.abc import Callable
 from http import HTTPStatus
@@ -846,8 +848,9 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
         1. If DASHBOARD_WRITE_TOKEN environment variable is set:
            Request must provide matching 'X-Operator-Token' or 'Authorization: Bearer <token>' header.
         2. If DASHBOARD_WRITE_TOKEN is not set:
-           Request must originate from a trusted local loopback address ('127.0.0.1', '::1', 'localhost')
-           AND DASHBOARD_ALLOW_LOCAL_WRITE must not be explicitly disabled ('false').
+           Request must have a loopback TCP peer and strict loopback Host authority,
+           matching HTTP Origin when present, and safe fetch metadata.
+           DASHBOARD_ALLOW_LOCAL_WRITE must be enabled.
         3. All other requests fail closed with 401 Unauthorized or 403 Forbidden.
         """
         configured_token = os.getenv("DASHBOARD_WRITE_TOKEN")
@@ -867,11 +870,67 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
             )
             return False
 
-        # If no token configured, check for local trusted loopback mode
-        allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in ("true", "1", "yes")
-        client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else "127.0.0.1"
+        # Tokenless local tools and the same-origin dashboard share this boundary.
+        def local_authority(value: str | None) -> tuple[str, int] | None:
+            if value is None:
+                return None
+            match = re.fullmatch(
+                r"(localhost|127\.0\.0\.1|\[[0-9a-f:]+\])(?::([0-9]+))?",
+                value,
+                flags=re.IGNORECASE | re.ASCII,
+            )
+            if match is None:
+                return None
+            host, raw_port = match.groups()
+            host = host.lower()
+            if host.startswith("["):
+                try:
+                    address = ipaddress.IPv6Address(host[1:-1])
+                except ValueError:
+                    return None
+                if address != ipaddress.IPv6Address("::1"):
+                    return None
+                host = str(address)
+            # Bound conversion as well as the valid TCP port range.
+            port_text = raw_port.lstrip("0") if raw_port is not None else "80"
+            if len(port_text) > 5:
+                return None
+            port = int(port_text or "0")
+            return (host, port) if 1 <= port <= 65535 else None
 
-        if allow_local and client_ip in ("127.0.0.1", "::1", "localhost", "testclient"):
+        allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        client_ip = (
+            self.client_address[0]
+            if hasattr(self, "client_address") and self.client_address
+            else ""
+        )
+        try:
+            local_peer = ipaddress.ip_address(client_ip).is_loopback
+        except ValueError:
+            local_peer = False
+
+        # HTTPMessage retains duplicate fields; a single origin/authority is required.
+        duplicate_authority = hasattr(self.headers, "get_all") and any(
+            len(self.headers.get_all(name, [])) > 1 for name in ("Host", "Origin", "Sec-Fetch-Site")
+        )
+        host_authority = local_authority(self.headers.get("Host"))
+        origin = self.headers.get("Origin")
+        origin_matches = origin is None or (
+            origin.startswith("http://") and local_authority(origin[7:]) == host_authority
+        )
+        fetch_site = self.headers.get("Sec-Fetch-Site")
+        if (
+            allow_local
+            and local_peer
+            and not duplicate_authority
+            and host_authority is not None
+            and origin_matches
+            and fetch_site in (None, "same-origin", "none")
+        ):
             return True
 
         self._send_json(

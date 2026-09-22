@@ -168,7 +168,12 @@ def test_config_status_has_no_post_mutation_route(monkeypatch: pytest.MonkeyPatc
             raise AssertionError("POST must not construct ConfigLoader")
 
     monkeypatch.setattr(dashboard_server, "ConfigLoader", Loader, raising=False)
-    handler = DummyRequestHandler("POST", "/api/config-status", session_factory=_NoDatabase())
+    handler = DummyRequestHandler(
+        "POST",
+        "/api/config-status",
+        headers={"Host": "localhost"},
+        session_factory=_NoDatabase(),
+    )
     handler.do_POST()
     assert handler.status_code == 404
     assert handler.mock_wfile.getvalue() == b""

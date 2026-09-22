@@ -239,7 +239,7 @@ def test_dashboard_server_endpoints() -> None:
         "POST",
         f"/api/reviews/{task_id}/resolve",
         body=resolve_body,
-        headers={"Content-Length": str(len(resolve_body))},
+        headers={"Content-Length": str(len(resolve_body)), "Host": "127.0.0.1"},
         session_factory=session_factory,
     )
     h_resolve.do_POST()
@@ -839,6 +839,7 @@ def test_dashboard_write_safety_loopback_and_token(
         method="POST",
         path=f"/api/reviews/{task2_id}/resolve",
         body=resolve_body,
+        headers={"Host": "127.0.0.1"},
         session_factory=db_session_factory,
         client_address=("127.0.0.1", 12345),
     )
