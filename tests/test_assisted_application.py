@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from jobs_automation.browser.assisted_engine import (
     AssistedApplicationEngine,
 )
+from jobs_automation.browser.base import FormField
 from jobs_automation.browser.mock_runner import MockBrowserRunner
 from jobs_automation.core import CandidateProfileConfig, ConfigLoader
 from jobs_automation.core.policy_registry import (
@@ -17,7 +18,7 @@ from jobs_automation.core.policy_registry import (
     PolicyEntryConfig,
     PolicyRegistryConfig,
 )
-from jobs_automation.db.base import Base
+from jobs_automation.db.base import Base, utc_now
 from jobs_automation.db.models import (
     ApplicationEventModel,
     ApplicationModel,
@@ -177,37 +178,58 @@ def test_assisted_application_manual_only(
     # Verify browser runner was NOT called to prefill form
     assert len(runner.prefilled_calls) == 0
 
-    # Step 2: With user confirmation that native submission succeeded
+    # Step 2: A-R15-01 — auto_confirm=True with receipt_text only (no runner evidence)
+    # must yield SUBMISSION_UNCONFIRMED, not SUBMITTED/MANUAL_RECORDED.
     res_confirmed = engine.execute(
         job_id=job.id,
         auto_confirm=True,
         receipt_text="LinkedIn confirmation email received",
     )
-    assert res_confirmed.status == "MANUAL_RECORDED"
+    # Contract: caller-supplied receipt text is NOT external evidence.
+    assert res_confirmed.status == "SUBMISSION_UNCONFIRMED"
 
     app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).first()
     assert app is not None
-    assert app.status == "SUBMITTED"
+    assert app.status == "SUBMISSION_UNCONFIRMED"
     assert app.application_mode == "manual"
-    assert app.applied_at is not None
-
-    event = (
-        db_session.query(ApplicationEventModel)
-        .filter(ApplicationEventModel.application_id == app.id)
-        .first()
-    )
-    assert event is not None
-    assert event.event_type == "APPLICATION_SUBMITTED"
-    assert event.source == "manual_native"
 
 
-def test_assisted_application_prefill_and_confirm(
+def test_assisted_application_prefill_stops_at_review_even_with_auto_confirm(
     db_session: Session,
     candidate_profile: CandidateProfileConfig,
     policy_config: PolicyRegistryConfig,
 ) -> None:
     evaluator = PolicyEvaluator(policy_config)
-    runner = MockBrowserRunner(interactive_submitted=True)
+    runner = MockBrowserRunner(
+        interactive_submitted=True,
+        custom_fields=[
+            FormField(name="first_name", selector="#first_name", required=True, label="First Name"),
+            FormField(name="last_name", selector="#last_name", required=True, label="Last Name"),
+            FormField(
+                name="email", selector="#email", field_type="email", required=True, label="Email"
+            ),
+            FormField(
+                name="phone", selector="#phone", field_type="tel", required=True, label="Phone"
+            ),
+            FormField(
+                name="linkedin", selector="#linkedin", required=False, label="LinkedIn Profile"
+            ),
+            FormField(name="github", selector="#github", required=False, label="GitHub Profile"),
+            FormField(
+                name="resume",
+                selector="#resume",
+                field_type="file",
+                required=True,
+                label="Resume/CV",
+            ),
+            FormField(
+                name="years_of_experience",
+                selector="#years_of_experience",
+                required=False,
+                label="Years of Experience",
+            ),
+        ],
+    )
     engine = AssistedApplicationEngine(
         session=db_session,
         policy_evaluator=evaluator,
@@ -263,14 +285,21 @@ def test_assisted_application_prefill_and_confirm(
     db_session.add(review_task)
     db_session.commit()
 
-    # Execute assisted apply
-    res = engine.execute(job_id=job.id, auto_confirm=True)
+    # Execute assisted apply. auto_confirm is a caller claim, never authority (F145-10).
+    res = engine.execute(
+        job_id=job.id,
+        packet_id=packet.id,
+        auto_confirm=True,
+        allow_simulation=True,
+    )
 
-    assert res.status == "SUBMITTED"
+    assert res.status == "REVIEW_REQUIRED"
     assert res.policy_decision == "assisted"
     assert res.prefilled_count > 0
+    assert "no submission was performed" in res.message
+    assert "security_warning:auto_confirm_ignored_prefill_only" in res.security_warnings
 
-    # Verify form was prefilled with candidate facts and answers
+    # Verify form was prefilled with candidate facts and answers through inspected locators
     assert len(runner.prefilled_calls) == 1
     call_url, prefilled_dict = runner.prefilled_calls[0]
     assert call_url == job.apply_url
@@ -278,34 +307,43 @@ def test_assisted_application_prefill_and_confirm(
     assert prefilled_dict["last_name"] == "Chordia"
     assert prefilled_dict["email"] == "priyansh.chordia@gmail.com"
     assert prefilled_dict["years_of_experience"] == "12"
+    assert runner.prefill_targets[0]["first_name"] == "#first_name"
+    assert runner.prefill_targets[0]["years_of_experience"] == "#years_of_experience"
 
-    # Verify application recorded in database
+    # Application stays at prefill/review; it is never promoted to SUBMITTED here
     app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).first()
     assert app is not None
-    assert app.status == "SUBMITTED"
+    assert app.status.startswith("ASSISTED_PREFILL")
     assert app.application_mode == "assisted"
     assert app.destination_domain == "boards.greenhouse.io"
-    assert app.applied_at is not None
+    assert app.applied_at is None
 
-    # Verify event and audit log
-    event = (
+    events = (
         db_session.query(ApplicationEventModel)
         .filter(ApplicationEventModel.application_id == app.id)
-        .first()
+        .all()
     )
-    assert event is not None
-    assert event.event_type == "APPLICATION_SUBMITTED"
-    assert event.source == "assisted_browser"
+    assert [e.event_type for e in events] == []
 
-    audit = db_session.query(AuditLogModel).filter(AuditLogModel.entity_id == app.id).first()
-    assert audit is not None
-    assert audit.result == "success"
-    assert audit.input_hash == "packet_hash_xyz_789"
+    audits = db_session.query(AuditLogModel).filter(AuditLogModel.entity_id == app.id).all()
+    completed = [a for a in audits if a.action_type == "assisted_prefill_completed"]
+    assert len(completed) == 1
+    assert completed[0].result == "review_required"
+    assert completed[0].input_hash == "packet_hash_xyz_789"
+    ignored_claims = {
+        a.metadata_json["claim"] for a in audits if a.action_type == "assisted_submit_claim_ignored"
+    }
+    # Both the caller flag and the mock's "submitted" report are recorded as ignored claims.
+    assert ignored_claims == {"auto_confirm", "runner_session_result"}
 
-    # Verify review task was completed
+    # The review task remains open: nothing was submitted
     db_session.refresh(review_task)
-    assert review_task.status == "completed"
-    assert review_task.application_id == app.id
+    assert review_task.status == "pending"
+
+    # Post-fill evidence records the actual outcome separately from the plan
+    assert res.postfill_evidence is not None
+    assert res.postfill_evidence.submit_performed is False
+    assert set(res.postfill_evidence.filled_fields) == set(prefilled_dict)
 
 
 def test_assisted_application_idempotency(
@@ -320,6 +358,7 @@ def test_assisted_application_idempotency(
         policy_evaluator=evaluator,
         browser_runner=runner,
         candidate_profile=candidate_profile,
+        allow_simulation=True,
     )
 
     company = CompanyModel(normalized_name="tech inc")
@@ -340,13 +379,50 @@ def test_assisted_application_idempotency(
         canonical_apply_url="https://boards.greenhouse.io/techinc/1001",
     )
     db_session.add(source)
+    db_session.flush()
+
+    resume_art = ArtifactModel(
+        type="resume_markdown",
+        storage_uri="/artifacts/resumes/techinc_resume.md",
+        sha256="techinc_resume_hash",
+    )
+    db_session.add(resume_art)
+    db_session.flush()
+
+    packet = ApplicationPacketModel(
+        job_id=job.id,
+        candidate_profile_version=1,
+        resume_artifact_id=resume_art.id,
+        answers_json={},
+        unresolved_questions_json=[],
+        packet_hash="packet_hash_idempotency_123",
+        is_live_ready=True,
+    )
+    db_session.add(packet)
     db_session.commit()
 
-    # First submission
-    res1 = engine.execute(job_id=job.id, auto_confirm=True)
-    assert res1.status == "SUBMITTED"
+    # An application already recorded as SUBMITTED by a separately scoped, evidence-backed
+    # workflow is never re-driven through the browser (idempotency guard).
+    db_session.add(
+        ApplicationModel(
+            job_id=job.id,
+            destination_domain="boards.greenhouse.io",
+            policy_decision="assisted",
+            application_mode="assisted",
+            status="SUBMITTED",
+            packet_id=packet.id,
+            applied_at=utc_now(),
+        )
+    )
+    db_session.commit()
 
-    # Second attempt must be rejected by idempotency check
-    res2 = engine.execute(job_id=job.id, auto_confirm=True)
-    assert res2.status == "ALREADY_SUBMITTED"
-    assert "was already submitted" in res2.message
+    res = engine.execute(
+        job_id=job.id,
+        packet_id=packet.id,
+        auto_confirm=True,
+        allow_simulation=True,
+    )
+    assert res.status == "ALREADY_SUBMITTED"
+    assert "was already submitted" in res.message
+    assert len(runner.prefilled_calls) == 0
+    assert len(runner.inspected_urls) == 0

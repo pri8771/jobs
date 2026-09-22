@@ -102,7 +102,10 @@ def test_screening_question_resolution_and_unresolved_flags(
     # Salary resolved from profile min target
     assert "What is your required salary?" in answers
     assert "$150,000 USD" in answers["What is your required salary?"]
-    assert "target.target_compensation_usd_min" in provenance["What is your required salary?"]["sources"]
+    assert (
+        "target.target_compensation_usd_min"
+        in provenance["What is your required salary?"]["sources"]
+    )
 
     # Demographic & Relocation MUST be unresolved
     assert len(unresolved) == 2
@@ -272,3 +275,76 @@ def test_packet_builder_flags_unresolved_to_review_queue(
     )
     assert len(tasks) == 1
     assert "unresolved question" in tasks[0].payload_json["reason"]
+
+
+def test_compute_canonical_packet_hash_matches_inline_formula_and_normalizes_none() -> None:
+    """The shared helper must reproduce the original inline digest and tolerate None inputs."""
+    import hashlib
+    import json
+    import uuid
+
+    from jobs_automation.preparation.packet_builder import compute_canonical_packet_hash
+
+    job_id = uuid.UUID("33333333-3333-3333-3333-333333333333")
+    variant_id = uuid.UUID("44444444-4444-4444-4444-444444444444")
+    answers = {"q1": "Authorized"}
+    provenance = {"q1": {"method": "deterministic"}}
+    inline_payload = {
+        "job_id": str(job_id),
+        "profile_version": 1,
+        "resume_variant_id": str(variant_id),
+        "resume_sha": "a" * 64,
+        "cover_letter_sha": "b" * 64,
+        "answers": answers,
+        "answer_provenance": provenance,
+    }
+    expected = hashlib.sha256(
+        json.dumps(inline_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+
+    assert (
+        compute_canonical_packet_hash(
+            job_id=str(job_id),
+            profile_version=1,
+            resume_variant_id=str(variant_id),
+            resume_sha="a" * 64,
+            cover_letter_sha="b" * 64,
+            answers=answers,
+            answer_provenance=provenance,
+        )
+        == expected
+    )
+    # UUID objects hash identically to their string forms.
+    assert (
+        compute_canonical_packet_hash(
+            job_id=job_id,
+            profile_version=1,
+            resume_variant_id=variant_id,
+            resume_sha="a" * 64,
+            cover_letter_sha="b" * 64,
+            answers=answers,
+            answer_provenance=provenance,
+        )
+        == expected
+    )
+
+    none_payload = dict(inline_payload)
+    none_payload.update(
+        {"resume_variant_id": "", "cover_letter_sha": None, "answers": {}, "answer_provenance": {}}
+    )
+    expected_none = hashlib.sha256(
+        json.dumps(none_payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
+    assert (
+        compute_canonical_packet_hash(
+            job_id=job_id,
+            profile_version=1,
+            resume_variant_id=None,
+            resume_sha="a" * 64,
+            cover_letter_sha=None,
+            answers=None,
+            answer_provenance=None,
+        )
+        == expected_none
+    )
+    assert expected_none != expected

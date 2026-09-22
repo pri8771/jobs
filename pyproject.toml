@@ -23,6 +23,10 @@ dependencies = [
     "google-api-python-client>=2.120.0",
     "google-auth-oauthlib>=1.2.0",
     "google-auth-httplib2>=0.2.0",
+    "jsonschema>=4.21.0",
+    # Executed JSON Schema format assertions for the real-proof verifier (date-time, uri).
+    "rfc3339-validator>=0.1.4",
+    "rfc3986-validator>=0.1.1",
 ]
 
 [project.optional-dependencies]
@@ -33,6 +37,7 @@ dev = [
     "mypy>=1.10.0",
     "types-pyyaml>=6.0.12",
     "types-beautifulsoup4>=4.12.0",
+    "types-jsonschema>=4.21.0",
 ]
 
 [project.scripts]

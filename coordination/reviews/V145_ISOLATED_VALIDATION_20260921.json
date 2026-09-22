@@ -1,0 +1,45 @@
+{
+  "evidence_class": "ISOLATED_SOURCE_EXCERPT_REPRODUCTION_AND_HELPER_UNIT_TESTS",
+  "review_date": "2026-09-21",
+  "reviewed_fable_commit": "3444076de27573ec57d9c8ae60876aece8e646d9",
+  "reviewed_v15_source_commit": "ddb4f848a97dec87033cfdef7ca33642480d99bc",
+  "python_version": "3.13.5",
+  "sqlalchemy_version": "2.0.50",
+  "full_application_tests_run": false,
+  "live_browser_run": false,
+  "private_candidate_proof_run": false,
+  "application_submitted": false,
+  "findings": [
+    {"id": "FR14-02", "method": "execute exact SQLAlchemy URL serialization expression from reviewed runner", "reproduced": true, "observed": "str(URL) masks password as ***, so it is not a credential-preserving connection roundtrip"},
+    {"id": "FR15-01", "method": "execute reviewed fingerprint algorithm with changed label/options", "reproduced": true, "observed": "same fingerprint despite semantic field mutation"},
+    {"id": "FR15-03", "method": "execute reviewed runner URL condition and confirmation consumer condition in isolation", "reproduced": true, "observed": "?next=confirmation causes submitted/confirmation-URL classification without a submit action"}
+  ],
+  "helper_validation": {
+    "command": "python -m pytest -q tests/test_proof_database_identity.py",
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "helper_sha256": "955703956495ea8a7502f542c6fd49d00a12aa8011358881adeebcce001a5304",
+    "test_file_sha256": "94897bb954102150f9c43ce459f67bb8114bbec2586d06d7dcc168fea5765188",
+    "compilation_passed": true,
+    "production_integration_complete": false
+  },
+  "worker_report_not_independently_repeated": {
+    "code_sha": "3444076de27573ec57d9c8ae60876aece8e646d9",
+    "pytest_passed": 205,
+    "environment": "Python 3.12.3 / SQLite",
+    "ruff": "worker reports clean",
+    "mypy": "worker reports clean",
+    "format": "worker reports changed files clean and 21 pre-existing unformatted files",
+    "extra_adversarial_probes": "worker reports 16 formerly-xfail cases passing"
+  },
+  "unavailable_lead_checks": [
+    "Full repository clone in this runtime: GitHub DNS resolution failed; connector code reads succeeded",
+    "Full Jobs pytest/Ruff/mypy suite",
+    "Actual PostgreSQL connection, migrations and end-to-end runner/verifier",
+    "Real Playwright/browser execution",
+    "Genuine candidate/resume/job proof"
+  ],
+  "decision": "REWORK_REQUIRED_NO_MILESTONE_ACCEPTANCE",
+  "limitations": "Isolated helper and expression tests are engineering evidence only. They are not a live proof and do not establish that the entire application passes. Required fixes must be integrated and validated on the real supported worker runtime."
+}

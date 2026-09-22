@@ -85,3 +85,13 @@ These residuals must not delay A-V14-REAL-PROOF, which is the owner-designated P
 - No live application/form execution is authorized by this engineering artifact.
 - External application content is attacker-controlled input from the agent perspective.
 - V1.4 REAL_PROOF is packet preparation only and does not authorize browser prefill/submission.
+
+## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+
+F145-07: the V1.5 browser code and adversarial tests from `worker/v15-assisted-application`
+`ddb4f84` were ported onto the single-worker branch `claude/serene-brown-g6uij0` without
+heartbeat/coordination churn. F145-08..11 (FR15-01..03 repairs, real local Playwright
+engineering-form tests, installed entrypoint test) are summarised in the addendum of
+`docs/V1_5_BROWSER_SAFETY_CONTRACT.md`. Exact SHA and independent check results are in the
+handoff and heartbeat. G15 (live visible prefill) remains blocked on this host: no accepted
+real packet, no owner browser grant, no owner machine.

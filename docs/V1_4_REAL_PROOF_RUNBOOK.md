@@ -129,8 +129,29 @@ python scripts/verify_v14_real_proof.py coordination/proofs/<proof-file>.json --
 
 The private full bundle remains ignored/uncommitted.
 
+Trusted runtime database (F145-02):
+- The private bundle records only the database *identity* (`proof_database`: driver,
+  host, port, database, username, route-options digest). It never contains a
+  connection string or credential.
+- The verifier connects exclusively to the database named by its own trusted runtime
+  configuration (`DATABASE_URL`, the same setting the runner used) and requires that
+  identity to match exactly. Run the verifier on the proof host with the same
+  `DATABASE_URL` as the runner; a different database, user, host or driver is a
+  `PROOF_DATABASE_TARGET_MISMATCH` rejection, and a password-masked legacy
+  `database_url` string is rejected (`MASKED_DATABASE_CREDENTIAL`) rather than reused.
+- Password rotation between the run and the verification is fine: the identity does not
+  include the password.
+
 Schema:
-- coordination/proofs/v14_real_proof.schema.json
+- coordination/proofs/v14_real_proof.schema.json (executed at verifier runtime with
+  Draft 2020-12 semantics and `date-time`/`uri` format checks; the receipt records the
+  SHA-256 of the schema that was enforced)
+
+Receipt (`v14_real_proof_receipt_<proof_run_id>.json`, schema version 2) fields:
+`result` (`REAL_PROOF_PASS`/`REAL_PROOF_FAIL`), `candidate_bundle_sha256`,
+`evidence_schema_sha256`, `schema_validated`, `local_full_bundle_verified`,
+`database_evidence_verified`, `rejection_reasons` (sanitized: no credentials, no absolute
+private paths). An untrusted `proof_run_id` never becomes a receipt path component.
 
 
 
@@ -142,7 +163,15 @@ Run a proof verifier that:
 - confirms source/job is non-fixture,
 - confirms evidence fields are runtime-derived,
 - confirms unresolved questions remain explicit,
-- confirms no private contents leaked to committed evidence.
+- confirms no private contents leaked to committed evidence,
+- re-derives the packet identity from the persisted answers, answer provenance,
+  unresolved list, profile version, variant id and artifact hashes and compares every
+  component with the manifest and the redacted evidence (F145-03),
+- parses the private profile as a canonical profile and binds its normalized
+  fingerprint and version to the persisted packet metadata and manifest, and binds the
+  production selector's variant, the profile's resume mapping, the exact resume bytes
+  and byte count, the variant version and the artifact types to the persisted rows
+  (F145-04).
 
 ## Acceptance result
 
