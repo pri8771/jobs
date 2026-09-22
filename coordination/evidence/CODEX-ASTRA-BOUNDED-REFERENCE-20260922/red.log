@@ -1,0 +1,143 @@
+F.FF                                                                     [100%]
+=================================== FAILURES ===================================
+______ test_proof_and_alert_scopes_are_distinct_and_batch_confined[False] ______
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10b450c20>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cb61f30>
+dry_run = False
+
+    @pytest.mark.parametrize("dry_run", [False, True])
+    def test_proof_and_alert_scopes_are_distinct_and_batch_confined(
+        db_session: Session, monkeypatch: pytest.MonkeyPatch, dry_run: bool
+    ) -> None:
+        messages = [
+            _message(db_session, "alert", job_alert=True),
+            _message(db_session, "lifecycle"),
+            _message(db_session, "runtime-canary"),
+            _message(db_session, "durable-canary", canary=True),
+            _message(db_session, "outside-batch"),
+        ]
+        apps = [_seed_application(db_session, f"Fixture {i}") for i in range(len(messages))]
+        for message, app in zip(messages, apps, strict=True):
+            _link(db_session, message, app)
+        db_session.commit()
+        _sweep(monkeypatch, messages[:4], [messages[2].provider_message_id])
+        observed: dict[str, Any] = {"lifecycle": [], "threads": None, "applications": None}
+    
+        def process(self: Any, message: InboundMessageModel) -> None:
+            observed["lifecycle"].append(message.id)
+    
+        def recruiters(self: Any, *, thread_ids: Any) -> list[Any]:
+            observed["threads"] = thread_ids
+            return []
+    
+        def stale(self: Any, *, application_ids: Any) -> list[Any]:
+            observed["applications"] = application_ids
+            return []
+    
+        monkeypatch.setattr(bounded.LifecycleEngine, "process_message", process)
+        monkeypatch.setattr(bounded.LifecycleAlertService, "check_unanswered_recruiters", recruiters)
+        monkeypatch.setattr(bounded.LifecycleAlertService, "check_stale_applications", stale)
+        result = _runner(db_session).run(_request(dry_run=dry_run))
+        assert result.status == ("DRY_RUN" if dry_run else "SUCCESS"), result.errors
+        assert result.provider_message_id_sha256 == sorted(_sha(m.provider_message_id) for m in messages[:2])
+        assert result.application_id_sha256 == sorted(_sha(a.id) for a in apps[:2])
+>       assert observed == {
+            "lifecycle": [] if dry_run else [messages[1].id],
+            "threads": None if dry_run else {messages[1].provider_thread_id},
+            "applications": None if dry_run else {apps[1].id},
+        }
+E       AssertionError: assert {'lifecycle':...16522f40ad')}} == {'lifecycle':...16522f40ad')}}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Differing items:
+E         {'applications': {UUID('4e1b80ad-6810-47ce-9b77-b617dab25dd6'), UUID('6a3f5f94-0c74-476e-8d3d-dd16522f40ad')}} != {'applications': {UUID('6a3f5f94-0c74-476e-8d3d-dd16522f40ad')}}
+E         {'threads': {'thread-alert', 'thread-lifecycle'}} != {'threads': {'thread-lifecycle'}}
+E         Use -v to get more diff
+
+tests/test_bounded_reference_scopes.py:106: AssertionError
+_ test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof[False] _
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10b452900>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10caa97f0>
+repair_existing = False
+
+    @pytest.mark.parametrize("repair_existing", [False, True])
+    def test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof(
+        db_session: Session, monkeypatch: pytest.MonkeyPatch, repair_existing: bool
+    ) -> None:
+        message = _message(db_session, "new-lifecycle-link")
+        app = _seed_application(db_session, "Lifecycle linked company")
+        link = _link(db_session, message, None) if repair_existing else None
+        db_session.commit()
+        _sweep(monkeypatch, [message], [])
+        observed: list[set[Any]] = []
+    
+        def process(self: Any, actual: InboundMessageModel) -> None:
+            assert actual.id == message.id
+            if link:
+                link.application_id = app.id
+            else:
+                _link(db_session, actual, app)
+            db_session.flush()
+    
+        def stale(self: Any, *, application_ids: set[Any]) -> list[Any]:
+            observed.append(application_ids)
+            return []
+    
+        monkeypatch.setattr(bounded.LifecycleEngine, "process_message", process)
+        monkeypatch.setattr(bounded.LifecycleAlertService, "check_stale_applications", stale)
+        result = _runner(db_session).run(_request())
+        assert result.status == "SUCCESS", result.errors
+>       assert observed == [{app.id}]
+E       AssertionError: assert [set()] == [{UUID('5d2aa...b1a62a7a62')}]
+E         
+E         At index 0 diff: set() != {UUID('5d2aae08-dcc8-40c3-934b-edb1a62a7a62')}
+E         Use -v to get more diff
+
+tests/test_bounded_reference_scopes.py:140: AssertionError
+_ test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof[True] __
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10b4534d0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b4aaad0>
+repair_existing = True
+
+    @pytest.mark.parametrize("repair_existing", [False, True])
+    def test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof(
+        db_session: Session, monkeypatch: pytest.MonkeyPatch, repair_existing: bool
+    ) -> None:
+        message = _message(db_session, "new-lifecycle-link")
+        app = _seed_application(db_session, "Lifecycle linked company")
+        link = _link(db_session, message, None) if repair_existing else None
+        db_session.commit()
+        _sweep(monkeypatch, [message], [])
+        observed: list[set[Any]] = []
+    
+        def process(self: Any, actual: InboundMessageModel) -> None:
+            assert actual.id == message.id
+            if link:
+                link.application_id = app.id
+            else:
+                _link(db_session, actual, app)
+            db_session.flush()
+    
+        def stale(self: Any, *, application_ids: set[Any]) -> list[Any]:
+            observed.append(application_ids)
+            return []
+    
+        monkeypatch.setattr(bounded.LifecycleEngine, "process_message", process)
+        monkeypatch.setattr(bounded.LifecycleAlertService, "check_stale_applications", stale)
+        result = _runner(db_session).run(_request())
+        assert result.status == "SUCCESS", result.errors
+>       assert observed == [{app.id}]
+E       AssertionError: assert [set()] == [{UUID('93a86...5d1eb5d542')}]
+E         
+E         At index 0 diff: set() != {UUID('93a86925-12a4-4fc2-952f-2d5d1eb5d542')}
+E         Use -v to get more diff
+
+tests/test_bounded_reference_scopes.py:140: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_bounded_reference_scopes.py::test_proof_and_alert_scopes_are_distinct_and_batch_confined[False]
+FAILED tests/test_bounded_reference_scopes.py::test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof[False]
+FAILED tests/test_bounded_reference_scopes.py::test_lifecycle_link_is_resolved_after_processing_for_alerts_and_proof[True]
+3 failed, 1 passed in 0.70s
