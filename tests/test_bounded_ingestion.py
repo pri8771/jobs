@@ -32,6 +32,7 @@ from jobs_automation.db.models import (
     CompanyModel,
     InboundMessageModel,
     JobModel,
+    MessageLinkModel,
     TaskModel,
 )
 from jobs_automation.db.session import get_engine, get_sessionmaker, init_db
@@ -209,6 +210,7 @@ def test_dry_run_persists_no_messages_but_records_the_attempt(db_session: Sessio
 
 def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: Session) -> None:
     app = _seed_application(db_session)
+    activity_before = app.last_activity_at
     # Treat the fixture recruiter as a canary alias: its mail must not move the application.
     result = _runner(db_session, canary_identities=["sarah.connor@viatris.com"]).run(_request())
     assert result.canary_messages == 2  # inbound recruiter + candidate reply in that thread
@@ -218,7 +220,26 @@ def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: S
     export = build_timeline_export(
         db_session, app.id, identity={"git_sha": "x", "package_version": "0"}
     )
-    assert export["genuine_evidence"]["canary_excluded_count"] >= 1
+    # Fresh canaries are quarantined before links or activity are created. They
+    # therefore have no association with this application-scoped timeline.
+    assert app.last_activity_at == activity_before
+    assert (
+        db_session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.application_id == app.id)
+        ).all()
+        == []
+    )
+    assert export["genuine_evidence"]["canary_excluded_count"] == 0
+    assert export["genuine_evidence"]["source_count"] == 0
+    canaries = db_session.scalars(
+        select(InboundMessageModel).where(
+            InboundMessageModel.provider_message_id.in_(
+                ["gmail_recruiter_001", "gmail_candidate_001"]
+            )
+        )
+    ).all()
+    assert len(canaries) == 2
+    assert all(message.headers_json["_provider"]["canary"] is True for message in canaries)
     assert all(
         not s["canary"] for s in export["sources"] if s["provider_message_id"] == "gmail_conf_001"
     )
