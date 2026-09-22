@@ -1,0 +1,61 @@
+Jobs Automation independent isolated checks
+Date: 2026-09-21 America/New_York / 2026-09-22 UTC
+Source worktree: <isolated-review-root>/jobs-source
+Exact detached HEAD: dd2e0deb15ce0ff8983c4ed502e3e17206db2e80
+Production commit under review: 113c584d731bee4c46e2d54d6048344991e6e16d
+No private inputs, shared database/service, Gmail/OAuth, remote model, or live service used.
+
+1. Environment setup
+Command: uv --version
+Exit: 0
+Result: uv 0.11.1 (a6042f67f 2026-03-24 aarch64-apple-darwin)
+
+Command: uv sync --extra dev
+Exit: 0
+Result: created project-local .venv with CPython 3.13.12; resolved 73 packages; installed project plus 70 packages. uv generated uv.lock; it was removed after checks because it was not part of the reviewed source.
+
+2. Focused new tests
+Command: uv run python -m pytest -q tests/test_bounded_ingestion.py tests/test_gmail_adapter_bounded.py tests/test_mailbox_readiness.py
+Exit: 0
+Result: 34 passed in 4.57s
+
+3. Relevant legacy tests
+Command: uv run python -m pytest -q tests/test_ingestion_engine.py tests/test_lifecycle.py tests/test_cli.py tests/test_health.py
+Exit: 0
+Result: 50 passed in 2.10s
+
+4. Static checks
+Command: uv run python -m ruff check src/jobs_automation tests
+Exit: 0
+Result: All checks passed!
+
+Command: uv run python -m mypy src/jobs_automation
+Exit: 0
+Result: Success: no issues found in 74 source files
+
+5. Diff hygiene
+Command: git diff 1a4efbb..HEAD --check
+Exit: 0
+Result: no output
+
+6. Replay mismatch reproducer (SQLite, existing synthetic fixtures)
+Command summary: create in-memory DB; seed the existing synthetic application; run the existing bounded fixture request; add one unrelated task to create logical-state drift; replay the recorded run; print status and replay flags.
+Exit: 0
+Result: {'status': 'SUCCESS', 'replay_identical': True, 'replay_matches_original': False}
+Finding: replay mismatch is reported but the run remains SUCCESS. src/jobs_automation/ingestion/bounded.py:321-343 derives SUCCESS before evaluating replay equality; src/jobs_automation/cli/main.py:1327-1342 displays false flags but exits successfully. This can make an automated G17 replay invocation look successful despite failing to reproduce the original logical state.
+
+One exploratory version of this reproducer exited 1 before product code ran because it supplied the nonexistent TaskModel keyword `title`; it was corrected to the actual model fields and produced the result above.
+
+7. Bounded-batch isolation reproducer (SQLite, empty mock adapter)
+Command summary: create in-memory DB; seed a SUBMITTED application; seed a linked REJECTION message dated 2019 outside the requested 2026 window; execute a bounded request whose mock adapter returns zero messages; inspect the application and event rows.
+Exit: 0
+Result: {'bounded_messages_polled': 0, 'run_status': 'SUCCESS', 'lifecycle_transitions': 1, 'unrelated_app_status_after': 'REJECTED', 'old_event_count': 1}
+Finding: a zero-message bounded run mutates an application from unrelated persisted evidence outside its requested query/window. src/jobs_automation/ingestion/bounded.py:299-315 selects and processes every persisted non-JOB_ALERT message and runs global alert sweeps, rather than restricting lifecycle work to messages admitted by this bounded run. This violates the bounded evidence-set isolation required for V17-M04/G17 and is a concrete production-path defect.
+
+Overall mechanical result
+- New focused tests: PASS (34/34)
+- Relevant legacy tests: PASS (50/50)
+- Ruff: PASS
+- mypy: PASS
+- Full suite: not run because the authorization requested avoiding suites that may reach configured PostgreSQL, Playwright, or other broader fixtures.
+- Review recommendation for 113c584/dd2e0de: REWORK_FOUND. The bounded-run isolation defect is acceptance-blocking; replay mismatch success semantics should be repaired or explicitly made a failing exit/proof state. G17 live proof remains unpassed regardless.
