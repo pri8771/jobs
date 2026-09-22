@@ -872,13 +872,6 @@ def _run_cli(args: list[str], env: dict[str, str]) -> subprocess.CompletedProces
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "HELD DEPENDENCY: installed ingest-mailbox replay needs the accepted eec0ae3 "
-        "cli/main.py ingest_mailbox --apply-replay/request port (CLI not released in COMP-3A)"
-    ),
-)
 def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
     """Separate processes: run, restart, replay, inspect — identical logical state."""
     config_dir = tmp_path / "config"
