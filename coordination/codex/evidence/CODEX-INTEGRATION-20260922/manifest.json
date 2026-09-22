@@ -1,0 +1,98 @@
+{
+  "checks.json": {
+    "bytes": 1498,
+    "sha256": "d7e7ca44c365f4ef4bb94ca11a3cbd8a31c3829f3e5e867baedaa8e7a9886ed0"
+  },
+  "jobs-integration-full.txt": {
+    "bytes": 602,
+    "sha256": "382551ab8f7a86dc8b84ac658ba166c3378cc7f1475da5d294249b3f54f0c906"
+  },
+  "jobs-integration-gmail-pg.log": {
+    "bytes": 2103,
+    "sha256": "f6de21bde3744f72d00b48771d41e732ea139cf8410637c95c402f89b8ac9323"
+  },
+  "jobs-integration-gmail-pg.py": {
+    "bytes": 6618,
+    "sha256": "d1a864007806e41aa46a0a9deb0f97fae12abfeaf95c249356e4945c5d523cbc"
+  },
+  "jobs-integration-health-begin-check.log": {
+    "bytes": 3442,
+    "sha256": "30268d2e20caf3afb43f93b6feaf2c8a478957860cc473b98239b73d527aa80b"
+  },
+  "jobs-integration-health-begin-check.sh": {
+    "bytes": 1860,
+    "sha256": "1ef3511457233b481db3d613297fbbbeae3f9c974df882f363169f9ed1abe0fc"
+  },
+  "jobs-integration-health-begin-failure.py": {
+    "bytes": 5539,
+    "sha256": "dc35bc61f5cf9cb9da6c9819351fbda4db0365bdafe3175a68942b268835544d"
+  },
+  "jobs-integration-health-errors-pg.log": {
+    "bytes": 1178,
+    "sha256": "6b425aab0d795025560fc062a4b2782e5f47c5da66e8fc07fb8793ae1f6fd8f1"
+  },
+  "jobs-integration-health-errors-pg.py": {
+    "bytes": 2341,
+    "sha256": "5c8a31d39ff9e688c44f57c8c47871721b93e6d4f98fb6a2d1015e519a5227e6"
+  },
+  "jobs-integration-health-leftover-dbs.txt": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "jobs-integration-health-remaining-check.sh": {
+    "bytes": 1028,
+    "sha256": "230e13a4cc5d5a5af99bf8b86cf07cefe1d98b78fbced09a90e45ec2be9fafab"
+  },
+  "jobs-integration-health-remaining-pg.log": {
+    "bytes": 5722,
+    "sha256": "7a0f077cab28a5396cab25facda4d28c6761ce7a6af99fe0c47a68defedd33fe"
+  },
+  "jobs-integration-health-remaining-pg.py": {
+    "bytes": 8040,
+    "sha256": "2bac4060ca470e42e4a057f1c4859a909b23e9c4c6d7a913641e076361ac9b6b"
+  },
+  "jobs-integration-health-summary.txt": {
+    "bytes": 2061,
+    "sha256": "e9ac624c55adfe5e6882ccccaa7c59d16d185cacf394636a1694617c848cb80b"
+  },
+  "jobs-integration-hosted-ci.json": {
+    "bytes": 174,
+    "sha256": "b864b60e52dc0a8d343d1bb71b0a9dd798f9db900e390fd826355c9a836b9254"
+  },
+  "jobs-integration-mypy.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "jobs-integration-pr.md": {
+    "bytes": 1400,
+    "sha256": "a5b9f081a7bb602c884472fa248bcdc581b4363cf6d99f3a8f45840d25835f47"
+  },
+  "jobs-integration-recovery-backup-restore-20260922.log": {
+    "bytes": 2690,
+    "sha256": "36f4aff5df05bab69e25420bb829ca1459dd7b21345569992c9324982b6cb5a4"
+  },
+  "jobs-integration-recovery-backup-restore-20260922.sh": {
+    "bytes": 5338,
+    "sha256": "e8e16f0adfa2ba89b7d63df053529d2490cb2634d800aacfd85eb717c9c47ed0"
+  },
+  "jobs-integration-recovery-migration-chain-20260922.log": {
+    "bytes": 2351,
+    "sha256": "47b1bf99d55deea150246beaa796c4e3a6af4b6b671b97723c89c5cf46a8617f"
+  },
+  "jobs-integration-recovery-migration-chain-20260922.sh": {
+    "bytes": 1888,
+    "sha256": "e05f30f820b81cf0c1a9c99f271b5b63aa00f9ef1086d4e5510a6a999b974c7c"
+  },
+  "jobs-integration-recovery-summary-20260922.log": {
+    "bytes": 342,
+    "sha256": "e129242c87fa503e197a1953e5c2df9e2e5f6670b590952a3514a314e4d18fba"
+  },
+  "jobs-integration-ruff.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "jobs-integration-tree-readback.json": {
+    "bytes": 473,
+    "sha256": "3d01fd8a27115cbc89d3c4e03e9f587070e4e52939ddbf8150f721046d7834d5"
+  }
+}

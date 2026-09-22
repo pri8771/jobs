@@ -1,0 +1,24 @@
+Jobs clean accepted-stack composition health validation
+Exact source: e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273
+Source path: /Users/pchordia/Downloads/swarm_codex/review/jobs-integration-source
+PostgreSQL: retained isolated server socket /var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd port 56422; unique temporary databases only.
+
+Retained harnesses were copied to /tmp and only source paths/script references/SHA labels were rebound. Assertions were unchanged.
+
+1. /tmp/jobs-integration-health-begin-check.sh
+   log: /tmp/jobs-integration-health-begin-check.log
+   exit 0; cleanup database count 0.
+   Demonstrated: begin-record first failure writes durable FAILED fallback; pipeline poll count 0; sanitized BEGIN_RECORD_FAILED; prior success preserved; fresh HealthCheckService and separate Python process both read DEGRADED/FAILED; begin+fallback double failure remains explicitly undurable FAILED, poll count 0, no durable row.
+
+2. /tmp/jobs-integration-health-errors-pg.py
+   log: /tmp/jobs-integration-health-errors-pg.log
+   exit 0; cleanup database count 0.
+   Demonstrated with actual PostgreSQL exceptions: database, policy_registry, worker and gmail health return only stable category details; injected password/token/Bearer/private-body markers absent. Normal Gmail remained non-PROVEN.
+
+3. /tmp/jobs-integration-health-remaining-check.sh
+   payload: /tmp/jobs-integration-health-remaining-pg.py
+   log: /tmp/jobs-integration-health-remaining-pg.log
+   exit 0; cleanup database count 0.
+   Demonstrated: WorkerDaemon timeout -> durable PARTIAL/GMAIL_API_ERROR and fresh-process DEGRADED health; incomplete Gmail poll -> PARTIAL/UNKNOWN_ERROR, no partial DB writes, sanitized persisted metadata, fresh-process health; adapter health reports greenhouse/lever as registered simulation-only and zero live-capable; direct selection seeds distinguish fresh RUNNING from stale RUNNING.
+
+Final source status remained clean. No real Gmail/provider/spend/external action, source/test/coordination write, or other database was touched.

@@ -1,0 +1,14 @@
+{
+  "integration_sha": "e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273",
+  "integration_tree": "e5409f04e15ca7d21dd2357c000c03e5c53ebd09",
+  "matches_preflight_tree": true,
+  "all_accepted_stack_paths_checked": 363,
+  "accepted_stack": "ed864cb5ac3eb806c91ef55d489fb6084da19fe0",
+  "backup_source": "d98b1ead3eb0bf15b88276f1f2cc844f846ab494",
+  "backup_override_paths": [
+    "docs/RECOVERY.md",
+    "scripts/backup_db.sh",
+    "scripts/restore_db.sh"
+  ],
+  "differences": []
+}

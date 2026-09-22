@@ -1,0 +1,48 @@
+{
+  "source_sha": "e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273",
+  "tree": "e5409f04e15ca7d21dd2357c000c03e5c53ebd09",
+  "base": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "lead_release": "081325b",
+  "history": {
+    "preserved_commits": [
+      "8631b3e",
+      "7345f1e",
+      "9e29a59",
+      "ed864cb"
+    ],
+    "cherry_pick": {
+      "from": "d98b1ea",
+      "to": "e1dbfeb"
+    },
+    "conflicts": []
+  },
+  "checks": [
+    {
+      "command": "PROOF_TEST_PG_ADMIN_URL='postgresql+psycopg:///postgres?host=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd&port=56422' PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q",
+      "exit": 0,
+      "result": "451 passed, 1 existing host skip"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff check src",
+      "exit": 0
+    },
+    {
+      "command": "../jobs-source/.venv/bin/mypy src",
+      "exit": 0,
+      "result": "74 files"
+    },
+    {
+      "command": "bash -n scripts/backup_db.sh scripts/restore_db.sh scripts/verify_migrations.sh",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    }
+  ],
+  "tree_verification": "all363trackedpaths exactly match accepteded864cb with only3acceptedbackuppathsfromd98b1ea",
+  "postgres_checks": "retained rebound Gmail/health/recovery harnesses all exit0 with cleanupcount0; no real mailbox/provider data",
+  "hosted_run": "35694192325",
+  "hosted_job": "106637356958",
+  "formal_acceptance": "requested only"
+}
