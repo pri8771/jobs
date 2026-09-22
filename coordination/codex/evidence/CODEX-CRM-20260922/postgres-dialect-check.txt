@@ -1,0 +1,4 @@
+PASS code_sha=10a3a23924fdde6b040082ef030ad1286591b9a9 schema=codex_crm_pg_5c68476c84da4c978188f1c2d2bce5b9 relink=1 aliases=1 json_event_ref=1 apps=2 timeline=2
+CLEANUP schema=codex_crm_pg_5c68476c84da4c978188f1c2d2bce5b9 dropped=true
+COMMAND=PYTHONPATH=/Users/pchordia/Downloads/swarm_codex/review/jobs-crm-source/src /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-crm-pg-dialect-check-20260922.py
+EXIT=0

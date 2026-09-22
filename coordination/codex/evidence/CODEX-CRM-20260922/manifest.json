@@ -1,0 +1,30 @@
+{
+  "source_sha": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "source_tree": "1b2ca067ce8abd74b06491bb6f6793b5a61ec3de",
+  "recorded_utc": "2026-09-22T04:37:25.408076+00:00",
+  "evidence_class": "synthetic_engineering_only",
+  "formal_acceptance": false,
+  "files": {
+    "full-tests.txt": {
+      "sha256": "8d25ffb442293f66479c225374bf8644c8f70ead6656845e99d13c9744851bb0"
+    },
+    "mypy.txt": {
+      "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+    },
+    "mechanical-review.txt": {
+      "sha256": "3a1428a7dd232eb16350f35e0fc4526db8e931bc9681a8197cb87cf681b9615a"
+    },
+    "postgres-dialect-check.txt": {
+      "sha256": "4f3985081341ffe4e53448134a784c6d1568cca23804befd0f3d66ccc8ada821"
+    },
+    "checks.json": {
+      "sha256": "c8c8e78d416cf416fd627e6d15afe026ec6702d5f2a2dae254f7de0722a25757"
+    },
+    "postgres-dialect-check.py": {
+      "sha256": "e00f152de05310eac174d1b710d46dfb343de460c343512c4639f9c2554028b1"
+    },
+    "original-reproduction.txt": {
+      "sha256": "4f6ac59c1128593ccfe9f00a8b1b6f638dd7d634082e438aba11221c9d4f6433"
+    }
+  }
+}

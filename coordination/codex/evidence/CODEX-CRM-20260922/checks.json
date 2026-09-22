@@ -1,0 +1,26 @@
+{
+  "source_sha": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "source_tree": "1b2ca067ce8abd74b06491bb6f6793b5a61ec3de",
+  "commands": [
+    {
+      "command": "PROOF_TEST_PG_ADMIN_URL=<dedicated Jobs Unix socket> PYTHONPATH=$PWD/src ../jobs-source/.venv/bin/python -m pytest -q",
+      "exit_code": 0,
+      "result": "446 passed, 1 existing Mac cross-host loopback skip"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff check src tests",
+      "exit_code": 0
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff format --check src/jobs_automation/lifecycle/crm.py tests/test_crm_corrections.py",
+      "exit_code": 0
+    },
+    {
+      "command": "PYTHONPATH=$PWD/src ../jobs-source/.venv/bin/mypy src",
+      "exit_code": 0,
+      "result": "74 source files"
+    }
+  ],
+  "evidence_class": "synthetic_engineering_only",
+  "formal_acceptance": false
+}
