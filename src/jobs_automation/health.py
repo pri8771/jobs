@@ -66,14 +66,14 @@ class HealthCheckService:
                 latency_ms=elapsed_ms,
                 details={"pending_tasks": pending_tasks},
             )
-        except Exception as exc:
+        except Exception:
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
             return ComponentHealth(
                 name="database",
                 status="UNHEALTHY",
-                message=f"Database connection failed: {exc}",
+                message="Database health check failed.",
                 latency_ms=elapsed_ms,
-                details={"error": str(exc)},
+                details={"error_category": "DATABASE_CHECK_FAILED"},
             )
 
     def check_kill_switches(self) -> ComponentHealth:
@@ -126,12 +126,12 @@ class HealthCheckService:
                     message=f"{len(policies)} platform policies verified and up to date.",
                     details={"total_policies": len(policies)},
                 )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="policy_registry",
                 status="UNHEALTHY",
-                message=f"Failed to query policy registry: {exc}",
-                details={"error": str(exc)},
+                message="Policy registry health check failed.",
+                details={"error_category": "POLICY_HEALTH_CHECK_FAILED"},
             )
 
     def check_adapters(self) -> ComponentHealth:
@@ -347,12 +347,12 @@ class HealthCheckService:
                         "metrics": fin_meta,
                     },
                 )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="worker",
                 status="UNHEALTHY",
-                message=f"Failed to inspect worker status: {exc}",
-                details={"error": str(exc)},
+                message="Worker health check failed.",
+                details={"error_category": "WORKER_HEALTH_CHECK_FAILED"},
             )
 
     def check_gmail(self, readiness_result: dict[str, Any] | None = None) -> ComponentHealth:
@@ -398,12 +398,12 @@ class HealthCheckService:
                 message=str(details["message"]),
                 details=details,
             )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="gmail",
                 status="UNHEALTHY",
-                message=f"Failed to check Gmail health: {exc}",
-                details={"error": str(exc)},
+                message="Gmail health check failed.",
+                details={"error_category": "GMAIL_HEALTH_CHECK_FAILED"},
             )
 
     def run_full_check(self) -> HealthReport:

@@ -381,3 +381,52 @@ def test_worker_health_reports_reconciliation_and_error_fields(
     assert health.status == "DEGRADED"
 
 
+@pytest.mark.parametrize(
+    ("check_name", "secret_marker", "expected_message", "expected_category"),
+    [
+        (
+            "check_database",
+            "password=hunter2-db",
+            "Database health check failed.",
+            "DATABASE_CHECK_FAILED",
+        ),
+        (
+            "check_policy_registry",
+            "access_token=policy-token-value",
+            "Policy registry health check failed.",
+            "POLICY_HEALTH_CHECK_FAILED",
+        ),
+        (
+            "check_worker",
+            "Authorization: Bearer worker-token-value",
+            "Worker health check failed.",
+            "WORKER_HEALTH_CHECK_FAILED",
+        ),
+        (
+            "check_gmail",
+            "email_body=private recruiter message",
+            "Gmail health check failed.",
+            "GMAIL_HEALTH_CHECK_FAILED",
+        ),
+    ],
+)
+def test_health_exception_details_are_redacted_and_stable(
+    check_name: str,
+    secret_marker: str,
+    expected_message: str,
+    expected_category: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def failing_session_factory() -> None:
+        raise RuntimeError(secret_marker)
+
+    checker = HealthCheckService(failing_session_factory)
+    health = getattr(checker, check_name)()
+    serialized = health.model_dump_json()
+
+    assert health.status == "UNHEALTHY"
+    assert health.message == expected_message
+    assert health.details == {"error_category": expected_category}
+    assert secret_marker not in serialized
+    assert secret_marker not in caplog.text
+
