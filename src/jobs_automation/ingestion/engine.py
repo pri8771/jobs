@@ -178,6 +178,15 @@ class EmailIngestionEngine:
             )
             summary.messages_polled = len(raw_messages)
             summary.poll_report = self.adapter.last_poll_report()
+            if summary.poll_report is not None and summary.poll_report.missing_message_ids:
+                # A listed message that could not be fetched invalidates the whole
+                # sweep. Stop before classification or writes; the existing error
+                # path rolls back and allows the overlap window to retry it.
+                summary.checkpoint_held_reason = (
+                    "poll_incomplete: "
+                    f"missing_messages={len(summary.poll_report.missing_message_ids)}"
+                )
+                raise RuntimeError(summary.checkpoint_held_reason)
 
             # Sort by received_at ascending to process chronologically
             raw_messages.sort(key=lambda m: m.received_at)
