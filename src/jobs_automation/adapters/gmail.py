@@ -155,11 +155,46 @@ class GmailAdapter(EmailAdapter):
                 request_kwargs["pageToken"] = page_token
             results = self.service.users().messages().list(**request_kwargs).execute()
             report.pages_fetched += 1
-            page = results.get("messages", []) or []
-            stubs.extend(item for item in page if isinstance(item, dict))
-            page_token = results.get("nextPageToken") or None
+            if not isinstance(results, dict):
+                report.missing_message_ids.append("<malformed-listing>")
+                break
+
+            raw_page = results.get("messages", [])
+            if raw_page is None:
+                raw_page = []
+            if not isinstance(raw_page, list):
+                report.missing_message_ids.append("<malformed-listing>")
+                break
+
+            page: list[dict[str, Any]] = []
+            for item in raw_page:
+                if not isinstance(item, dict):
+                    report.missing_message_ids.append("<malformed-listing>")
+                    continue
+                page.append(item)
+
+            remaining = cap - len(stubs)
+            if len(page) > remaining:
+                # Treat a provider response that exceeds the requested cap as a
+                # truncation too.  We must not ingest an arbitrary prefix as though
+                # it were a complete evidence set.
+                stubs.extend(page[:remaining])
+                report.truncated_by_cap = True
+                break
+            stubs.extend(page)
+
+            token_value = results.get("nextPageToken")
+            if token_value is not None and not isinstance(token_value, str):
+                report.missing_message_ids.append("<malformed-listing>")
+                break
+            page_token = token_value or None
             if not page_token:
                 more_available = False
+                break
+            if not page:
+                # A continuation token without any listed records cannot be safely
+                # interpreted and would otherwise risk an endless loop.
+                report.missing_message_ids.append("<malformed-listing>")
                 break
             more_available = True
         if more_available and len(stubs) >= cap:
@@ -175,6 +210,12 @@ class GmailAdapter(EmailAdapter):
             raw_msg = self.get_message(msg_id)
             if raw_msg is None:
                 report.missing_message_ids.append(msg_id)
+                continue
+            if raw_msg.provider_message_id != msg_id:
+                # The payload belongs to a different provider record than the one
+                # admitted by the listing.  Do not let it substitute for the listed
+                # evidence or enter the database under the wrong identifier.
+                report.missing_message_ids.append("<payload-id-mismatch>")
                 continue
             messages.append(raw_msg)
         report.fetched_count = len(messages)

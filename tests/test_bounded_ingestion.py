@@ -32,6 +32,7 @@ from jobs_automation.db.models import (
     CompanyModel,
     InboundMessageModel,
     JobModel,
+    MessageLinkModel,
     TaskModel,
 )
 from jobs_automation.db.session import get_engine, get_sessionmaker, init_db
@@ -155,10 +156,45 @@ def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
     metadata = audit.metadata_json
     assert metadata["run_id"] == result.run_id
     assert metadata["mailbox_domain"] == "gmail.com"
+    assert metadata["schema_version"] == 2
     assert MAILBOX not in json.dumps(metadata)
+    assert result.query not in json.dumps(metadata)
+    assert result.provider_query not in json.dumps(metadata)
+    assert "query" not in metadata and "provider_query" not in metadata
     assert metadata["digests_after"]["counts"]["messages"] == 7
     assert metadata["code_identity"]["git_sha"] == "engineering"
     assert metadata["poll"]["complete"] is True
+    assert metadata["provider_message_id_sha256"] == sorted(
+        hashlib.sha256(message_id.encode("utf-8")).hexdigest()
+        for message_id in (
+            "gmail_alert_linkedin_001",
+            "gmail_alert_indeed_001",
+            "gmail_alert_zip_001",
+            "gmail_alert_dice_001",
+            "gmail_recruiter_001",
+            "gmail_candidate_001",
+            "gmail_conf_001",
+        )
+    )
+    assert metadata["application_id_sha256"] == [
+        hashlib.sha256(str(app.id).encode("utf-8")).hexdigest()
+    ]
+    assert metadata["application_id_sha256"] == result.application_id_sha256
+    assert metadata["provider_message_id_sha256"] == result.provider_message_id_sha256
+    metadata_text = json.dumps(metadata, sort_keys=True)
+    assert str(app.id) not in metadata_text
+    assert all(
+        raw_message_id not in metadata_text
+        for raw_message_id in (
+            "gmail_alert_linkedin_001",
+            "gmail_alert_indeed_001",
+            "gmail_alert_zip_001",
+            "gmail_alert_dice_001",
+            "gmail_recruiter_001",
+            "gmail_candidate_001",
+            "gmail_conf_001",
+        )
+    )
 
 
 def test_replay_preserves_identical_logical_state(db_session: Session) -> None:
@@ -168,7 +204,7 @@ def test_replay_preserves_identical_logical_state(db_session: Session) -> None:
     events_before = db_session.scalars(select(ApplicationEventModel)).all()
     tasks_before = db_session.scalars(select(TaskModel)).all()
 
-    replay = runner.replay(first.run_id, MAILBOX)
+    replay = runner.replay(first.run_id, _request(), allow_stateful_replay=True)
     assert replay.status == "SUCCESS", replay.errors
     assert replay.replay_of_run_id == first.run_id
     assert replay.messages_ingested == 0
@@ -186,21 +222,49 @@ def test_replay_rejects_wrong_mailbox_or_unknown_run(db_session: Session) -> Non
     runner = _runner(db_session)
     first = runner.run(_request())
     with pytest.raises(BoundedIngestionError, match="REPLAY_MAILBOX_MISMATCH"):
-        runner.replay(first.run_id, "someone.else@gmail.com")
+        runner.replay(
+            first.run_id,
+            _request(mailbox="someone.else@gmail.com"),
+            allow_stateful_replay=True,
+        )
     with pytest.raises(BoundedIngestionError, match="REPLAY_RUN_NOT_FOUND"):
-        runner.replay("00000000-0000-0000-0000-000000000000", MAILBOX)
+        runner.replay(
+            "00000000-0000-0000-0000-000000000000",
+            _request(),
+            allow_stateful_replay=True,
+        )
+
+
+def test_replay_rejects_legacy_audit_rows_without_safe_request_schema(db_session: Session) -> None:
+    db_session.add(
+        AuditLogModel(
+            action_type=BOUNDED_RUN_ACTION,
+            entity_type="mailbox",
+            actor="legacy_test",
+            result="SUCCESS",
+            external_reference="legacy-run",
+            metadata_json={"run_id": "legacy-run", "query": "raw legacy query"},
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(BoundedIngestionError, match="REPLAY_EVIDENCE_SCHEMA_UNSUPPORTED"):
+        _runner(db_session).replay("legacy-run", _request(), allow_stateful_replay=True)
 
 
 def test_cap_smaller_than_evidence_is_incomplete_and_recorded(db_session: Session) -> None:
     result = _runner(db_session).run(_request(cap=3))
-    assert result.status == "INCOMPLETE"
+    assert result.status == "FAILED"
     assert result.complete is False
     assert result.poll is not None and result.poll.truncated_by_cap is True
-    assert result.messages_ingested == 3
+    assert result.messages_ingested == 0
+    assert result.errors == ["POLL_INCOMPLETE"]
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
     audit = db_session.scalar(
         select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
     )
-    assert audit is not None and audit.result == "INCOMPLETE"
+    assert audit is not None and audit.result == "FAILED"
+    assert audit.metadata_json["error_codes"] == ["POLL_INCOMPLETE"]
 
 
 def test_dry_run_persists_no_messages_but_records_the_attempt(db_session: Session) -> None:
@@ -211,6 +275,201 @@ def test_dry_run_persists_no_messages_but_records_the_attempt(db_session: Sessio
         select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
     )
     assert audit is not None and audit.result == "DRY_RUN"
+
+
+class _ExplodingAdapter:
+    """Deliberately emits sensitive-looking provider text to test audit redaction."""
+
+    def poll_messages(
+        self, query: str | None = None, since_timestamp: str | None = None, max_results: int = 100
+    ) -> list[object]:
+        raise RuntimeError("provider failure: token=not-for-audit; query=private recruiting")
+
+    def get_thread(self, thread_id: str) -> list[object]:
+        return []
+
+    def last_poll_report(self) -> None:
+        return None
+
+
+def test_audit_metadata_redacts_raw_queries_and_provider_exception_text(db_session: Session) -> None:
+    request = _request(query="from:private-recruiter@example.test")
+    result = _runner(db_session, adapter=_ExplodingAdapter()).run(request)
+
+    assert result.status == "FAILED"
+    assert result.errors == ["INGESTION_ERROR"]
+    audit = db_session.scalar(
+        select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+    )
+    assert audit is not None
+    metadata_text = json.dumps(audit.metadata_json, sort_keys=True)
+    assert request.query not in metadata_text
+    assert result.provider_query not in metadata_text
+    assert "token=not-for-audit" not in metadata_text
+    assert "errors" not in audit.metadata_json
+    assert audit.metadata_json["error_codes"] == ["INGESTION_ERROR"]
+    assert audit.metadata_json["query_sha256"] == hashlib.sha256(
+        request.query.encode("utf-8")
+    ).hexdigest()
+
+
+def test_replay_requires_explicit_stateful_authorization_but_allows_safe_dry_override(
+    db_session: Session,
+) -> None:
+    _seed_application(db_session)
+    runner = _runner(db_session)
+    first = runner.run(_request())
+
+    with pytest.raises(BoundedIngestionError, match="REPLAY_STATEFUL_REQUIRES_EXPLICIT_AUTHORIZATION"):
+        runner.replay(first.run_id, _request())
+
+    safe_replay = runner.replay(first.run_id, _request(dry_run=True))
+    assert safe_replay.status == "DRY_RUN", safe_replay.errors
+    assert safe_replay.dry_run is True
+    assert safe_replay.replay_identical is True
+    assert safe_replay.replay_matches_original is True
+
+
+def test_recorded_dry_run_cannot_be_promoted_to_mutation_by_replay_override(
+    db_session: Session,
+) -> None:
+    runner = _runner(db_session)
+    original = runner.run(_request(dry_run=True))
+    assert original.status == "DRY_RUN"
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+
+    replay = runner.replay(
+        original.run_id,
+        _request(dry_run=False),
+        allow_stateful_replay=True,
+    )
+    assert replay.status == "DRY_RUN", replay.errors
+    assert replay.dry_run is True
+    assert replay.replay_identical is True
+    assert replay.replay_matches_original is True
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+
+
+def test_replay_digest_mismatch_is_recorded_as_failed(db_session: Session) -> None:
+    _seed_application(db_session)
+    runner = _runner(db_session)
+    original = runner.run(_request())
+    db_session.add(
+        InboundMessageModel(
+            provider_message_id="unrelated-state-after-original",
+            provider_thread_id="unrelated-state-thread",
+            received_at=datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC),
+            sender="unrelated@example.test",
+            recipients_json=[MAILBOX],
+            direction="inbound",
+            subject="Unrelated state change",
+            headers_json={},
+            body_text="Not part of the replayed batch.",
+            classification="UNKNOWN_REVIEW_REQUIRED",
+            confidence=0.5,
+        )
+    )
+    db_session.commit()
+
+    replay = runner.replay(original.run_id, _request(), allow_stateful_replay=True)
+
+    assert replay.replay_identical is True
+    assert replay.replay_matches_original is False
+    assert replay.status == "FAILED"
+    assert "REPLAY_LOGICAL_STATE_MISMATCH" in replay.errors
+    audit = db_session.scalar(
+        select(AuditLogModel)
+        .where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+        .order_by(AuditLogModel.occurred_at.desc())
+    )
+    assert audit is not None and audit.result == "FAILED"
+
+
+def test_bounded_lifecycle_and_alerts_ignore_unrelated_historical_state(db_session: Session) -> None:
+    _seed_application(db_session)  # the fixture's admitted Viatris application
+    unrelated = _seed_application(db_session, company_name="Unrelated Employer")
+    unrelated.last_activity_at = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
+    old_rejection = InboundMessageModel(
+        provider_message_id="unrelated-old-rejection",
+        provider_thread_id="unrelated-rejection-thread",
+        received_at=datetime.datetime(2020, 1, 2, tzinfo=datetime.UTC),
+        sender="recruiter@unrelated.example.test",
+        recipients_json=[MAILBOX],
+        direction="inbound",
+        subject="Application update",
+        headers_json={},
+        body_text="We will not be moving forward.",
+        classification="REJECTION",
+        confidence=0.99,
+    )
+    unrelated_outreach = InboundMessageModel(
+        provider_message_id="unrelated-old-outreach",
+        provider_thread_id="unrelated-alert-thread",
+        received_at=datetime.datetime(2020, 1, 3, tzinfo=datetime.UTC),
+        sender="recruiter@unrelated.example.test",
+        recipients_json=[MAILBOX],
+        direction="inbound",
+        subject="Unrelated recruiter outreach",
+        headers_json={},
+        body_text="Would you like to talk?",
+        classification="RECRUITER_OUTREACH",
+        confidence=0.99,
+    )
+    unrelated_reply = InboundMessageModel(
+        provider_message_id="unrelated-old-reply",
+        provider_thread_id="unrelated-alert-thread",
+        received_at=datetime.datetime(2020, 1, 4, tzinfo=datetime.UTC),
+        sender=MAILBOX,
+        recipients_json=["recruiter@unrelated.example.test"],
+        direction="outbound",
+        subject="Re: Unrelated recruiter outreach",
+        headers_json={},
+        body_text="Thank you.",
+        classification="CANDIDATE_REPLY",
+        confidence=0.99,
+    )
+    db_session.add_all([old_rejection, unrelated_outreach, unrelated_reply])
+    db_session.flush()
+    db_session.add(
+        MessageLinkModel(
+            inbound_message_id=old_rejection.id,
+            application_id=unrelated.id,
+            job_id=unrelated.job_id,
+            confidence=0.99,
+            method="historical_test_link",
+        )
+    )
+    historical_alert = TaskModel(
+        application_id=unrelated.id,
+        job_id=unrelated.job_id,
+        task_type="UNANSWERED_RECRUITER",
+        status="pending",
+        payload_json={
+            "thread_id": unrelated_outreach.provider_thread_id,
+            "message_id": str(unrelated_outreach.id),
+        },
+    )
+    db_session.add(historical_alert)
+    db_session.commit()
+
+    result = _runner(db_session).run(_request())
+
+    assert result.status == "SUCCESS", result.errors
+    db_session.refresh(unrelated)
+    db_session.refresh(historical_alert)
+    assert unrelated.status == "SUBMITTED"
+    assert historical_alert.status == "pending"
+    assert db_session.scalars(
+        select(ApplicationEventModel).where(
+            ApplicationEventModel.source_reference == old_rejection.provider_message_id
+        )
+    ).all() == []
+    assert hashlib.sha256(old_rejection.provider_message_id.encode("utf-8")).hexdigest() not in (
+        result.provider_message_id_sha256
+    )
+    assert hashlib.sha256(str(unrelated.id).encode("utf-8")).hexdigest() not in (
+        result.application_id_sha256
+    )
 
 
 def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: Session) -> None:

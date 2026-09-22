@@ -18,7 +18,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
-from jobs_automation.db.models import InboundMessageModel, TaskModel
+from jobs_automation.db.models import InboundMessageModel, MessageLinkModel, TaskModel
 from jobs_automation.db.session import init_db
 from jobs_automation.ingestion.engine import EmailIngestionEngine
 from jobs_automation.ingestion.models import RawEmailMessage
@@ -199,21 +199,93 @@ def test_incomplete_poll_cannot_advance_checkpoint_past_lost_evidence(db_session
     engine = EmailIngestionEngine(db_session, adapter, candidate_emails=[CANDIDATE])
 
     summary = engine.run_sweep(max_messages=10)
-    assert summary.messages_ingested == 4
+    assert summary.messages_ingested == 0
+    assert summary.errors == ["POLL_INCOMPLETE"]
+    assert summary.batch_message_ids == []
     assert summary.checkpoint_advanced_to is None
     assert summary.checkpoint_held_reason is not None
     assert "missing_messages=1" in summary.checkpoint_held_reason
     assert engine.get_last_checkpoint() is None
     assert summary.poll_report is not None and summary.poll_report.complete is False
+    for model in (InboundMessageModel, MessageLinkModel, TaskModel):
+        assert db_session.scalars(select(model)).all() == []
 
-    # The truncated-by-cap case holds the checkpoint too.
+    # A cap-truncated prefix is also an atomic failure, not a partial ingest.
     capped = EmailIngestionEngine(
         db_session,
         GmailAdapter(service=FakeGmailService(_five_messages(), page_size=5)),
     )
     capped_summary = capped.run_sweep(max_messages=2)
+    assert capped_summary.messages_ingested == 0
+    assert capped_summary.errors == ["POLL_INCOMPLETE"]
+    assert capped_summary.batch_message_ids == []
     assert capped_summary.checkpoint_advanced_to is None
     assert "truncated_by_cap=True" in (capped_summary.checkpoint_held_reason or "")
+    for model in (InboundMessageModel, MessageLinkModel, TaskModel):
+        assert db_session.scalars(select(model)).all() == []
+
+    # A complete retry sees every listed message exactly once because no prefix survived.
+    service._failing_ids.clear()
+    retry = engine.run_sweep(max_messages=10)
+    assert retry.errors == []
+    assert retry.messages_ingested == 5
+    assert retry.messages_skipped_duplicate == 0
+    assert retry.checkpoint_advanced_to is not None
+    assert sorted(db_session.scalars(select(InboundMessageModel.provider_message_id))) == [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+    ]
+
+
+class _MalformedListingService(FakeGmailService):
+    def list(self, **kwargs: Any) -> _Executable:  # noqa: A003
+        self.list_calls.append(dict(kwargs))
+        # One valid stub plus a malformed listing item proves that a partial prefix is
+        # rejected before it can be persisted.
+        return _Executable({"messages": [{"id": "m1"}, "not-a-message-stub"]})
+
+
+class _PayloadMismatchService(FakeGmailService):
+    def get(self, userId: str, id: str, format: str = "full") -> _Executable:  # noqa: A002
+        self.get_calls.append(id)
+        for message in self._messages:
+            if message["id"] == id:
+                mismatched = dict(message)
+                mismatched["id"] = "unexpected-provider-id"
+                return _Executable(mismatched)
+        return _Executable(RuntimeError("message not found"))
+
+
+@pytest.mark.parametrize(
+    ("service_factory", "expected_marker"),
+    [
+        (_MalformedListingService, "<malformed-listing>"),
+        (_PayloadMismatchService, "<payload-id-mismatch>"),
+    ],
+)
+def test_malformed_or_mismatched_gmail_evidence_aborts_before_all_writes(
+    db_session: Session,
+    service_factory: type[FakeGmailService],
+    expected_marker: str,
+) -> None:
+    adapter = GmailAdapter(service=service_factory(_five_messages(), page_size=5))
+    engine = EmailIngestionEngine(db_session, adapter, candidate_emails=[CANDIDATE])
+
+    summary = engine.run_sweep(max_messages=10)
+
+    assert summary.errors == ["POLL_INCOMPLETE"]
+    assert summary.messages_ingested == 0
+    assert summary.batch_message_ids == []
+    assert summary.checkpoint_advanced_to is None
+    assert engine.get_last_checkpoint() is None
+    assert summary.poll_report is not None
+    assert expected_marker in summary.poll_report.missing_message_ids
+    assert summary.poll_report.complete is False
+    for model in (InboundMessageModel, MessageLinkModel, TaskModel):
+        assert db_session.scalars(select(model)).all() == []
 
 
 def test_complete_poll_persists_query_window_count_and_completeness(db_session: Session) -> None:
