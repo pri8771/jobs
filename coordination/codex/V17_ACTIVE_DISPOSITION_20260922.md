@@ -818,3 +818,164 @@ Do not open:
 - live G14-G17 execution.
 
 No Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or main merge.
+
+
+## 15. COMP-2 engine verdict and COMP-3A bounded.py activation
+
+### COMP-2 ENGINE
+
+**ACCEPTED** exact source:
+- SHA `0a319d07df4d679de7b32f84fbd9faf215037881`
+- tree `f98b225bceb687238a8bbea59ce08934750cf7f5`
+- parent `bfc507903452d32d979cfb7b8c78f5ac916fa305`
+
+Accepted scope only:
+- `src/jobs_automation/ingestion/engine.py`
+- `tests/test_bounded_ingestion.py`
+- `tests/test_gmail_adapter_bounded.py`
+
+Preserved control behavior:
+- incomplete-poll guard before writes/checkpoint advancement;
+- rollback/checkpoint hold semantics;
+- ordinary deduplication/discovery;
+- outbound candidate-reply attribution via `_link_candidate_reply`;
+- `thread_reply_attribution` semantics;
+- existing recruiting-message attribution.
+
+Integrated accepted canary behavior:
+- canonical exact-address helpers;
+- durable canary detection/tagging/reclassification;
+- runtime canary membership;
+- dry-run/duplicate canary membership;
+- fresh canary quarantine before ordinary links/tasks/activity;
+- opt-in `safe_errors` categories.
+
+Evidence:
+- 56 focused pass;
+- full 545 pass / 1 existing host skip;
+- owned PostgreSQL proof integration cleanup0;
+- Ruff clean;
+- full `mypy src tests` clean, 118 files;
+- format/diff clean;
+- independent exact-tree review recommends acceptance.
+
+Hosted status: **NO MATCHING RUN / NOT HOSTED GREEN** for the stacked target. No workflow was weakened or modified.
+
+## COMP-3A-BOUNDED — ACTIVE
+
+Current direct integrator: **Codex**.
+
+Starting integration parent:
+`0a319d07df4d679de7b32f84fbd9faf215037881`
+
+Accepted bounded/V3 source reference:
+`eec0ae3d9b50979b74294dd9ee0561172eff54b0`
+
+Accepted reference-semantics patch:
+`2969ac28364e9c39bbaf5c94b4c7cfe97ca5699a`
+(REFERENCE_ONLY, exact bounded semantics accepted previously)
+
+Allowed production file only:
+- `src/jobs_automation/ingestion/bounded.py`
+
+Allowed focused tests:
+- `tests/test_bounded_ingestion.py`
+- `tests/test_bounded_ingestion_scope.py`
+- `tests/test_bounded_reference_scopes.py` (may be added/ported as focused test-only reference coverage)
+- at most one additional bounded-specific test file if strictly necessary to prove replay contract behavior without modifying another production conflict.
+
+Do **not** modify:
+- `src/jobs_automation/db/canary_provenance.py`;
+- lifecycle/alerts/CRM;
+- worker/dashboard/CLI;
+- engine.py;
+- Gmail/config;
+- migrations/CI.
+
+### Required V3/replay composition
+
+Port the accepted canary bounded contract deliberately, not wholesale if it would regress control behavior:
+- strict bounded audit schema v3;
+- secret-safe request/query/provider-query hashes;
+- canary policy fingerprint;
+- strict persisted audit validator;
+- replay capability gate;
+- replay request/mailbox/adapter/policy matching;
+- current-canary/reclassified-canary preflight;
+- **reclassified canary replay must reject before any new adapter poll/list call**;
+- error-first replay status semantics;
+- provider/application hash evidence;
+- exact current-batch confinement.
+
+### Required frozen reference semantics
+
+Implement the already accepted PR27 behavior exactly:
+
+1. **Genuine/proof batch set**
+   - exact current batch only;
+   - exclude runtime/durable canaries;
+   - include genuine `JOB_ALERT`.
+
+2. **Lifecycle set**
+   - genuine/proof set minus `JOB_ALERT`;
+   - only this set enters `LifecycleEngine.process_message()`.
+
+3. **Unanswered-recruiter alert scope**
+   - thread IDs only from lifecycle-eligible messages.
+
+4. **Stale-application alert scope**
+   - resolve application IDs **after lifecycle processing**;
+   - only from links attached to lifecycle-eligible message IDs.
+
+5. **Proof application attribution**
+   - resolve separately after lifecycle from all genuine/proof message IDs, including genuine `JOB_ALERT`;
+   - never reuse proof IDs as alert eligibility.
+
+6. **Provider-message proof**
+   - all genuine/proof current-batch messages including JOB_ALERT, excluding canaries.
+
+### Preserve control-side safety
+
+Do not regress:
+- bounded runs never advance the ordinary worker checkpoint;
+- incomplete poll evidence remains fail-closed;
+- dry-run behavior;
+- lifecycle exceptions roll back safely;
+- existing logical-state digest/replay intent where not superseded by the accepted V3 contract.
+
+### Required regressions
+
+At minimum:
+1. JOB_ALERT included in provider/application proof but excluded from lifecycle and both alert scopes;
+2. lifecycle-created/repaired link is visible to post-lifecycle stale-alert scope;
+3. proof application IDs remain separate from alert application IDs;
+4. runtime/durable canaries excluded from proof/lifecycle/alerts;
+5. outside-batch messages/links excluded;
+6. dry-run remains non-mutating while proof selection semantics stay truthful;
+7. reclassified-canary replay => `REPLAY_EVIDENCE_CANARY_RECLASSIFIED` with **0 new polls/list calls**;
+8. malformed/legacy V3 evidence fails before replay poll;
+9. policy fingerprint mismatch fails before poll;
+10. ordinary successful bounded run still records strict valid V3 audit metadata.
+
+### Validation
+
+Run:
+- focused bounded/replay/reference tests;
+- full pytest;
+- Ruff;
+- `mypy src tests`;
+- format/diff check;
+- owned PostgreSQL proof integration if the bounded suite exercises it;
+- no hosted-green claim unless an exact-head workflow actually runs.
+
+Return exact SHA/tree and `READY_FOR_LEAD_REVIEW` or `COMP-3A_REWORK_FOUND`.
+
+### Still held
+
+Do not open:
+- `db/canary_provenance.py`;
+- lifecycle/alerts/CRM composition;
+- worker/dashboard/CLI composition;
+- G14-G17 live execution.
+
+No Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or main merge.
