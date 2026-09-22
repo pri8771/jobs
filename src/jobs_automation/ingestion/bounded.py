@@ -786,6 +786,12 @@ class BoundedIngestionRunner:
         if request.dry_run:
             return
         if reclassify_persisted_canary_messages(self.session, self.canary_identities):
+            try:
+                # A run the bound adapter cannot serve must not leave durable tags behind.
+                self._verify_mailbox(request)
+            except BoundedIngestionError:
+                self.session.rollback()
+                raise
             self.session.commit()
 
     def _run(self, request: BoundedIngestionRequest) -> BoundedIngestionResult:

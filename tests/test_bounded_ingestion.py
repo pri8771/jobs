@@ -710,6 +710,27 @@ def test_preexisting_canary_duplicates_are_reclassified_before_bounded_proof(
 
 @pytest.mark.xfail(
     strict=True,
+    raises=AssertionError,
+    reason=(
+        "HELD DEPENDENCY: application-bound timeline replay selection needs the canary-side "
+        "lifecycle/timeline.py + db/canary_provenance.py composition (not released in COMP-3A)"
+    ),
+)
+def test_fresh_canary_run_is_not_application_timeline_replay(db_session: Session) -> None:
+    app = _seed_application(db_session)
+    result = _runner(db_session, canary_identities=["sarah.connor@viatris.com"]).run(_request())
+    assert result.status == "SUCCESS", result.errors
+    assert result.application_id_sha256 == []
+    export = build_timeline_export(
+        db_session, app.id, identity={"git_sha": "x", "package_version": "0"}
+    )
+    # A canary-only run never binds to this application, so it is not its replay evidence.
+    assert export["replay"] is None
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
     reason=(
         "HELD DEPENDENCY: reclassified-canary timeline exclusion needs the canary-side "
         "lifecycle/timeline.py + db/canary_provenance.py composition (not released in COMP-3A)"
@@ -822,6 +843,33 @@ def test_live_adapter_must_be_bound_to_the_named_mailbox(db_session: Session) ->
     assert result.messages_ingested == 5
 
 
+def test_mailbox_mismatch_leaves_no_durable_canary_reclassification(db_session: Session) -> None:
+    """A run the bound adapter cannot serve must not commit historical canary tags."""
+    _seed_application(db_session)
+    assert _runner(db_session).run(_request()).status == "SUCCESS"
+    service = FakeGmailService(_five_messages(), profile_address=CANDIDATE)
+    adapter = GmailAdapter(service=service, verified_identities=[CANDIDATE])
+    runner = _runner(
+        db_session,
+        adapter=adapter,
+        adapter_kind="gmail",
+        synthetic=False,
+        canary_identities=["sarah.connor@viatris.com"],
+    )
+    with pytest.raises(BoundedIngestionError, match="MAILBOX_MISMATCH"):
+        runner.run(_request(mailbox="other.person@invalid"))
+    assert service.list_calls == []
+    db_session.expire_all()
+    for provider_message_id in ("gmail_recruiter_001", "gmail_candidate_001"):
+        message = db_session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == provider_message_id
+            )
+        )
+        assert message is not None
+        assert not (message.headers_json or {}).get("_provider", {}).get("canary")
+
+
 def test_timeline_export_is_redacted_and_digest_stable(db_session: Session) -> None:
     app = _seed_application(db_session)
     _runner(db_session).run(_request())
@@ -872,15 +920,10 @@ def _run_cli(args: list[str], env: dict[str, str]) -> subprocess.CompletedProces
     )
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "HELD DEPENDENCY: installed ingest-mailbox replay needs the accepted eec0ae3 "
-        "cli/main.py ingest_mailbox --apply-replay/request port (CLI not released in COMP-3A)"
-    ),
-)
-def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
-    """Separate processes: run, restart, replay, inspect — identical logical state."""
+def _installed_bounded_setup(
+    tmp_path: Path,
+) -> tuple[Path, str, dict[str, str], str, list[str]]:
+    """Private config + sqlite DB + seeded application for installed entrypoint runs."""
     config_dir = tmp_path / "config"
     config_dir.mkdir()
     resume = tmp_path / "resume_ai_software_engineer.md"
@@ -918,12 +961,82 @@ def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) 
         "--config-dir",
         str(config_dir),
     ]
+    return config_dir, db_url, env, app_id, common
+
+
+def _installed_first_run(common: list[str], env: dict[str, str]) -> str:
     first = _run_cli(common, env)
     assert first.returncode == 0, first.stdout + first.stderr
     assert "SYNTHETIC ENGINEERING RUN" in first.stdout
     run_id_match = re.search(r"Run ID\s*│?\s*([0-9a-f-]{36})", first.stdout)
     assert run_id_match is not None, first.stdout
-    run_id = run_id_match.group(1)
+    return run_id_match.group(1)
+
+
+def test_installed_entrypoints_run_restart_and_timeline_bounded_batch(tmp_path: Path) -> None:
+    """Enforced legs: installed run, then separate-process DB readback and timeline CLI."""
+    _, db_url, env, app_id, common = _installed_bounded_setup(tmp_path)
+    run_id = _installed_first_run(common, env)
+
+    engine = get_engine(db_url)
+    try:
+        with get_sessionmaker(engine)() as session:
+            runs = session.scalars(
+                select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+            ).all()
+            assert len(runs) == 1
+            assert is_valid_bounded_audit_metadata(
+                runs[0].metadata_json, external_reference=runs[0].metadata_json["run_id"]
+            )
+            events = session.scalars(select(ApplicationEventModel)).all()
+            event_types = [event.event_type for event in events]
+            assert sorted(event_types) == ["CANDIDATE_REPLIED", "INTERVIEW_REQUESTED"]
+            application = session.get(ApplicationModel, uuid.UUID(app_id))
+            assert application is not None and application.status == "INTERVIEWING"
+            _bind_bounded_audits_to_application(session, app_id)
+    finally:
+        engine.dispose()
+
+    export_path = tmp_path / "timeline.json"
+    timeline = _run_cli(
+        ["lifecycle-timeline", "--application-id", app_id, "--json-output", str(export_path)], env
+    )
+    assert timeline.returncode == 0, timeline.stdout + timeline.stderr
+    assert "INTERVIEWING" in timeline.stdout
+    export = json.loads(export_path.read_text(encoding="utf-8"))
+    assert export["application"]["id"] == app_id
+    assert export["application"]["status"] == "INTERVIEWING"
+    assert export["genuine_evidence"]["source_count"] == 2
+    assert "sarah.connor" not in export_path.read_text(encoding="utf-8")
+
+    # The held CLI still offers mailbox-only replay; query-free V3 evidence cannot be
+    # reconstructed from it, so the installed entrypoint must fail closed without a new run.
+    legacy_replay = _run_cli([*common, "--replay-run", run_id], env)
+    assert legacy_replay.returncode == 1, legacy_replay.stdout + legacy_replay.stderr
+    assert "REPLAY_REQUEST_REQUIRED" in legacy_replay.stdout + legacy_replay.stderr
+    engine = get_engine(db_url)
+    try:
+        with get_sessionmaker(engine)() as session:
+            audits = session.scalars(
+                select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+            ).all()
+            assert len(audits) == 1
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason=(
+        "HELD DEPENDENCY: installed ingest-mailbox replay needs the accepted eec0ae3 "
+        "cli/main.py ingest_mailbox --apply-replay/request port (CLI not released in COMP-3A)"
+    ),
+)
+def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
+    """Separate processes: run, restart, replay, inspect — identical logical state."""
+    config_dir, db_url, env, app_id, common = _installed_bounded_setup(tmp_path)
+    run_id = _installed_first_run(common, env)
 
     replay = _run_cli(
         [
