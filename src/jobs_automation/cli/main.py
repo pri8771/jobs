@@ -1298,9 +1298,7 @@ def ingest_mailbox(
             adapter = MockEmailAdapter(get_sample_email_fixtures())
             adapter_kind, synthetic = "mock_fixtures", True
         else:
-            readiness = assess_gmail_readiness(
-                settings, session, expected_mailbox=request.mailbox
-            )
+            readiness = assess_gmail_readiness(settings, session)
             if not readiness.live_capable or not readiness.scope_is_readonly_only:
                 console.print(
                     f"[bold red]Read-only Gmail grant not established (state={readiness.state}, "
@@ -1463,4 +1461,3 @@ def lifecycle_timeline(application_id: str, json_output: str | None) -> None:
 
 if __name__ == "__main__":
     cli()
-
