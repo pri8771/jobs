@@ -1,0 +1,25 @@
+{
+  "database_entries": 0,
+  "http_status": 200,
+  "sanitized_projection": {
+    "error_count": 0,
+    "loaded_config_count": 5,
+    "loaded_config_names": [
+      "candidate_profile",
+      "job_search",
+      "model_routing",
+      "platforms",
+      "policy_registry"
+    ],
+    "state": "VALID",
+    "unresolved_fact_counts": {
+      "experience_dates": 1,
+      "identity": 2,
+      "target": 4,
+      "work_authorization": 3
+    },
+    "warning_count": 5
+  },
+  "source_sha": "413a18ee13ee049f57651ddd7060fd98fafad5f9",
+  "source_tree": "f40e443a084e4a2e5c6a4ac7cbc4f6dcf791cfa6"
+}

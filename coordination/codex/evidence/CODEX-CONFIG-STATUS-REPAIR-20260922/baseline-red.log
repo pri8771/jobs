@@ -1,0 +1,342 @@
+FFFFFFFF.                                                                [100%]
+=================================== FAILURES ===================================
+________ test_config_status_valid_exact_allowlist_and_single_validation ________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c601220>
+
+    def test_config_status_valid_exact_allowlist_and_single_validation(
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        calls = {"construct": 0, "validate": 0}
+        report = SimpleNamespace(
+            success=True,
+            errors=[],
+            warnings=["review required"],
+            loaded_files={
+                "platforms": "/private/config/platforms.yaml",
+                "candidate_profile": "/private/config/candidate_profile.yaml",
+                "job_search": "/private/config/job_search.yaml",
+            },
+            unresolved_facts={"work_authorization": [], "compensation": ["private fact"]},
+        )
+    
+        class Loader:
+            def __init__(self) -> None:
+                calls["construct"] += 1
+    
+            def validate_all(self) -> Any:
+                calls["validate"] += 1
+                return report
+    
+>       status, raw, body = _get(monkeypatch, Loader)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c674050>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+___________ test_config_status_is_valid_only_for_literal_true[False] ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c601a70>
+success = False
+
+    @pytest.mark.parametrize("success", [False, 1, "true", None])
+    def test_config_status_is_valid_only_for_literal_true(
+        monkeypatch: pytest.MonkeyPatch, success: Any
+    ) -> None:
+        report = SimpleNamespace(
+            success=success,
+            errors=[],
+            warnings=[],
+            loaded_files={},
+            unresolved_facts={},
+        )
+    
+        class Loader:
+            def validate_all(self) -> Any:
+                return report
+    
+>       status, _raw, body = _get(monkeypatch, Loader)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c5d20d0>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+_____________ test_config_status_is_valid_only_for_literal_true[1] _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c61a7b0>
+success = 1
+
+    @pytest.mark.parametrize("success", [False, 1, "true", None])
+    def test_config_status_is_valid_only_for_literal_true(
+        monkeypatch: pytest.MonkeyPatch, success: Any
+    ) -> None:
+        report = SimpleNamespace(
+            success=success,
+            errors=[],
+            warnings=[],
+            loaded_files={},
+            unresolved_facts={},
+        )
+    
+        class Loader:
+            def validate_all(self) -> Any:
+                return report
+    
+>       status, _raw, body = _get(monkeypatch, Loader)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c5d2490>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+___________ test_config_status_is_valid_only_for_literal_true[true] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c6a4050>
+success = 'true'
+
+    @pytest.mark.parametrize("success", [False, 1, "true", None])
+    def test_config_status_is_valid_only_for_literal_true(
+        monkeypatch: pytest.MonkeyPatch, success: Any
+    ) -> None:
+        report = SimpleNamespace(
+            success=success,
+            errors=[],
+            warnings=[],
+            loaded_files={},
+            unresolved_facts={},
+        )
+    
+        class Loader:
+            def validate_all(self) -> Any:
+                return report
+    
+>       status, _raw, body = _get(monkeypatch, Loader)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c600e90>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+___________ test_config_status_is_valid_only_for_literal_true[None] ____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c6a4c00>
+success = None
+
+    @pytest.mark.parametrize("success", [False, 1, "true", None])
+    def test_config_status_is_valid_only_for_literal_true(
+        monkeypatch: pytest.MonkeyPatch, success: Any
+    ) -> None:
+        report = SimpleNamespace(
+            success=success,
+            errors=[],
+            warnings=[],
+            loaded_files={},
+            unresolved_facts={},
+        )
+    
+        class Loader:
+            def validate_all(self) -> Any:
+                return report
+    
+>       status, _raw, body = _get(monkeypatch, Loader)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c6023f0>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+_______ test_config_status_invalid_exposes_counts_and_logical_names_only _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c56b450>
+
+    def test_config_status_invalid_exposes_counts_and_logical_names_only(
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        markers = (
+            "gmail-secret-abc",
+            "/Users/private/candidate.yaml",
+            "postgresql://user:password@private/jobs",
+            "candidate@example.test",
+            "https://apply.private.test/job",
+        )
+        report = SimpleNamespace(
+            success=False,
+            errors=[markers[0], markers[1]],
+            warnings=[markers[2], markers[3]],
+            loaded_files={"policy_registry": markers[1], "model_routing": "/secret/model.yaml"},
+            unresolved_facts={"identity": [markers[3]], "source": [markers[4], "token-raw"]},
+        )
+    
+        class Loader:
+            def validate_all(self) -> Any:
+                return report
+    
+>       status, raw, body = _get(monkeypatch, Loader)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:120: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c61ac30>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+______ test_config_status_unexpected_exception_is_sanitized[constructor] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c56ad50>
+failure_at = 'constructor'
+
+    @pytest.mark.parametrize("failure_at", ["constructor", "validation"])
+    def test_config_status_unexpected_exception_is_sanitized(
+        monkeypatch: pytest.MonkeyPatch, failure_at: str
+    ) -> None:
+        marker = "Bearer private-token from /Users/private/config body=candidate-secret"
+    
+        class Loader:
+            def __init__(self) -> None:
+                if failure_at == "constructor":
+                    raise RuntimeError(marker)
+    
+            def validate_all(self) -> Any:
+                raise RuntimeError(marker)
+    
+>       status, raw, body = _get(monkeypatch, Loader)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:157: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c64b350>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+_______ test_config_status_unexpected_exception_is_sanitized[validation] _______
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c556c60>
+failure_at = 'validation'
+
+    @pytest.mark.parametrize("failure_at", ["constructor", "validation"])
+    def test_config_status_unexpected_exception_is_sanitized(
+        monkeypatch: pytest.MonkeyPatch, failure_at: str
+    ) -> None:
+        marker = "Bearer private-token from /Users/private/config body=candidate-secret"
+    
+        class Loader:
+            def __init__(self) -> None:
+                if failure_at == "constructor":
+                    raise RuntimeError(marker)
+    
+            def validate_all(self) -> Any:
+                raise RuntimeError(marker)
+    
+>       status, raw, body = _get(monkeypatch, Loader)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:157: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:32: in _get
+    handler.do_GET()
+/tmp/jobs-config-status-base1e54.8aEEbG/src/jobs_automation/dashboard/server.py:532: in do_GET
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <test_dashboard_config_status._NoDatabase object at 0x10c6a4050>
+
+    def __call__(self) -> Any:
+>       raise AssertionError("config_status_must_not_open_database")
+E       AssertionError: config_status_must_not_open_database
+
+/tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py:26: AssertionError
+=========================== short test summary info ============================
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_valid_exact_allowlist_and_single_validation
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_is_valid_only_for_literal_true[False]
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_is_valid_only_for_literal_true[1]
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_is_valid_only_for_literal_true[true]
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_is_valid_only_for_literal_true[None]
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_invalid_exposes_counts_and_logical_names_only
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_unexpected_exception_is_sanitized[constructor]
+FAILED ../../tmp/jobs-config-status-redtests.1koJ5H/test_dashboard_config_status.py::test_config_status_unexpected_exception_is_sanitized[validation]
+8 failed, 1 passed in 0.22s
+pytest_exit=1
+run_dir=/tmp/jobs-config-status-redtests.1koJ5H
