@@ -178,6 +178,16 @@ class EmailIngestionEngine:
             )
             summary.messages_polled = len(raw_messages)
             summary.poll_report = self.adapter.last_poll_report()
+            if summary.poll_report is not None and not summary.poll_report.complete:
+                # Incomplete evidence invalidates the whole sweep, including a
+                # cap-truncated poll. Stop before classification or writes; the
+                # existing error path rolls back for a later complete retry.
+                summary.checkpoint_held_reason = (
+                    "poll_incomplete: "
+                    f"truncated_by_cap={summary.poll_report.truncated_by_cap}, "
+                    f"missing_messages={len(summary.poll_report.missing_message_ids)}"
+                )
+                raise RuntimeError(summary.checkpoint_held_reason)
 
             # Sort by received_at ascending to process chronologically
             raw_messages.sort(key=lambda m: m.received_at)

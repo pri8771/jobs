@@ -177,14 +177,16 @@ def test_replay_rejects_wrong_mailbox_or_unknown_run(db_session: Session) -> Non
 
 def test_cap_smaller_than_evidence_is_incomplete_and_recorded(db_session: Session) -> None:
     result = _runner(db_session).run(_request(cap=3))
-    assert result.status == "INCOMPLETE"
+    assert result.status == "FAILED"
     assert result.complete is False
     assert result.poll is not None and result.poll.truncated_by_cap is True
-    assert result.messages_ingested == 3
+    assert result.messages_ingested == 0
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+    assert db_session.scalars(select(TaskModel)).all() == []
     audit = db_session.scalar(
         select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
     )
-    assert audit is not None and audit.result == "INCOMPLETE"
+    assert audit is not None and audit.result == "FAILED"
 
 
 def test_dry_run_persists_no_messages_but_records_the_attempt(db_session: Session) -> None:

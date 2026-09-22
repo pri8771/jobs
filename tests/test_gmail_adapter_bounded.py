@@ -18,7 +18,7 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
 from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
-from jobs_automation.db.models import InboundMessageModel, TaskModel
+from jobs_automation.db.models import InboundMessageModel, MessageLinkModel, TaskModel
 from jobs_automation.db.session import init_db
 from jobs_automation.ingestion.engine import EmailIngestionEngine
 from jobs_automation.ingestion.models import RawEmailMessage
@@ -194,26 +194,61 @@ def test_poll_marks_missing_message_instead_of_silently_dropping_it() -> None:
 
 
 def test_incomplete_poll_cannot_advance_checkpoint_past_lost_evidence(db_session: Session) -> None:
-    service = FakeGmailService(_five_messages(), page_size=5, failing_ids={"m2"})
+    failing_ids = {"m2"}
+    service = FakeGmailService(_five_messages(), page_size=5, failing_ids=failing_ids)
     adapter = GmailAdapter(service=service, verified_identities=[CANDIDATE])
     engine = EmailIngestionEngine(db_session, adapter, candidate_emails=[CANDIDATE])
 
     summary = engine.run_sweep(max_messages=10)
-    assert summary.messages_ingested == 4
+    assert summary.messages_ingested == 0
+    assert summary.errors == ["poll_incomplete: truncated_by_cap=False, missing_messages=1"]
+    assert summary.batch_message_ids == []
+    for model in (InboundMessageModel, MessageLinkModel, TaskModel):
+        assert db_session.scalars(select(model)).all() == []
     assert summary.checkpoint_advanced_to is None
     assert summary.checkpoint_held_reason is not None
     assert "missing_messages=1" in summary.checkpoint_held_reason
     assert engine.get_last_checkpoint() is None
     assert summary.poll_report is not None and summary.poll_report.complete is False
 
-    # The truncated-by-cap case holds the checkpoint too.
+    # The current lead contract treats cap truncation as an atomic failure too.
     capped = EmailIngestionEngine(
         db_session,
         GmailAdapter(service=FakeGmailService(_five_messages(), page_size=5)),
     )
     capped_summary = capped.run_sweep(max_messages=2)
+    assert capped_summary.errors == ["poll_incomplete: truncated_by_cap=True, missing_messages=0"]
+    assert capped_summary.messages_ingested == 0
+    assert capped_summary.batch_message_ids == []
+    for model in (InboundMessageModel, MessageLinkModel, TaskModel):
+        assert db_session.scalars(select(model)).all() == []
     assert capped_summary.checkpoint_advanced_to is None
     assert "truncated_by_cap=True" in (capped_summary.checkpoint_held_reason or "")
+
+    # A successful retry ingests every listed message once, including the one
+    # lost during the earlier fetch.
+    failing_ids.clear()
+    retry = engine.run_sweep(max_messages=10)
+    assert retry.errors == []
+    assert retry.messages_ingested == 5
+    assert retry.messages_skipped_duplicate == 0
+    assert retry.checkpoint_advanced_to is not None
+    assert sorted(db_session.scalars(select(InboundMessageModel.provider_message_id))) == [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5",
+    ]
+    checkpoint = engine.get_last_checkpoint()
+    tasks_before = db_session.scalars(select(TaskModel.id)).all()
+    failing_ids.add("m2")
+    failed_again = engine.run_sweep(max_messages=10)
+    assert failed_again.errors == ["poll_incomplete: truncated_by_cap=False, missing_messages=1"]
+    assert failed_again.batch_message_ids == []
+    assert engine.get_last_checkpoint() == checkpoint
+    assert db_session.scalars(select(TaskModel.id)).all() == tasks_before
+    assert len(db_session.scalars(select(InboundMessageModel)).all()) == 5
 
 
 def test_complete_poll_persists_query_window_count_and_completeness(db_session: Session) -> None:
