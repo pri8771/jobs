@@ -1,0 +1,43 @@
+{
+  "source_sha": "1011f1953bd14c77da56a3aea413b9d9d645b829",
+  "tree_sha": "763d9037390e96f6acea2c5d71a1b80376f45c16",
+  "evidence_class": "engineering_only",
+  "environment": "dedicated Jobs PostgreSQL Unix socket port56422; admin local trust, test roles scram; local Chromium fixtures",
+  "runs": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src",
+        "tests"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "src"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0
+    }
+  ],
+  "completed_utc": "2026-09-22T03:50:25.856272+00:00"
+}

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "recorded_utc": "2026-09-22T03:10:47.738305+00:00",
+  "recorded_utc": "2026-09-22T03:56:26.690315+00:00",
   "evidence_class": "engineering_only",
-  "source_sha": "3d9cc95d03b0b8c146d10423060d97ee9736212c",
+  "source_sha": "6ae659f1cec35fc3d20f2a28dce0ce7868f314af",
   "dispatched": false,
   "formal_acceptance": false,
   "files": {
@@ -23,6 +23,31 @@
     },
     "jobs-playwright-install.txt": {
       "sha256": "4d1eecc1a820ed46c27078a23c3b1a76b2d47f4ebcc45e619a62222be53b1cdc"
+    },
+    "jobs-safety-checks.txt": {
+      "sha256": "e5863ba776fda502b5cdbba5594ae80476891edaf64c47f09521d6d4997a8eb6",
+      "source_sha": "1011f1953bd14c77da56a3aea413b9d9d645b829"
+    },
+    "jobs-safety-checks.json": {
+      "sha256": "3fcd281c30619d57af9b94caaa5add0682e96cbc35804783b47b7dd824d66d7d",
+      "source_sha": "1011f1953bd14c77da56a3aea413b9d9d645b829"
+    },
+    "jobs-safety-baseline-red.txt": {
+      "sha256": "c0993943635f572c212aa26e56159795bb57de12eb1eea7ed66edac4467fdf2b",
+      "source_sha": "3d9cc95d03b0b8c146d10423060d97ee9736212c"
+    },
+    "jobs-final-safety-checks.txt": {
+      "sha256": "9d8ec7667a0d6d18c3ba72c1aeb0a99fe9662666f6dc08d035ef9e1399cb3bc8",
+      "source_sha": "6ae659f1cec35fc3d20f2a28dce0ce7868f314af"
+    },
+    "jobs-final-safety-checks.json": {
+      "sha256": "bd4ef57766b220c41d1c1d1e68ba0cb51c8abdbb40a535e72eb3423391bfed20",
+      "source_sha": "6ae659f1cec35fc3d20f2a28dce0ce7868f314af"
+    },
+    "jobs-next-baseline-red.txt": {
+      "sha256": "4abc43dbff16fac9241a0c24eff2f8c303bf4b3fededad501478c68ad629c6cc",
+      "source_sha": "1011f1953bd14c77da56a3aea413b9d9d645b829"
     }
-  }
+  },
+  "original_source_sha": "3d9cc95d03b0b8c146d10423060d97ee9736212c"
 }

@@ -1,0 +1,148 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+__________ test_explicit_packet_for_another_job_never_reaches_adapter __________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x108523a10>
+candidate_profile = CandidateProfileConfig(version=1, identity=IdentityConfig(full_name='Priyansh Chordia', preferred_name='Priyansh', ema...'Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.'])
+policy_config = PolicyRegistryConfig(version=1, default=DefaultPolicyConfig(capability='submit_application', decision=<PolicyDecision....L_ONLY: 'manual_only'>, reviewed_at='2026-09-20', review_due_at=None, evidence=['LinkedIn User Agreement'], notes=[])])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108729810>
+
+    def test_explicit_packet_for_another_job_never_reaches_adapter(db_session, candidate_profile, policy_config, monkeypatch):
+        jobs, packet = _bound_packet_fixture(db_session)
+        calls = []
+        def forbidden(*args, **kwargs):
+            calls.append(True)
+            pytest.fail("wrong-job packet reached adapter")
+        monkeypatch.setattr(GreenhouseATSAdapter, "validate_packet", forbidden)
+        engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+>       result = engine.execute_auto_apply(jobs[0].id, packet_id=packet.id, mock_mode=True)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_auto_application.py:529: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/jobs_automation/automation/auto_engine.py:211: in execute_auto_apply
+    validation = adapter.validate_packet(packet, self.candidate)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+args = (<jobs_automation.automation.adapters.greenhouse.GreenhouseATSAdapter object at 0x1087e5940>, <jobs_automation.db.mode...Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.']))
+kwargs = {}
+
+    def forbidden(*args, **kwargs):
+        calls.append(True)
+>       pytest.fail("wrong-job packet reached adapter")
+E       Failed: wrong-job packet reached adapter
+
+tests/test_auto_application.py:526: Failed
+_ test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SUBMITTED-None-None] _
+
+db_session = <sqlalchemy.orm.session.Session object at 0x1087e6270>
+candidate_profile = CandidateProfileConfig(version=1, identity=IdentityConfig(full_name='Priyansh Chordia', preferred_name='Priyansh', ema...'Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.'])
+policy_config = PolicyRegistryConfig(version=1, default=DefaultPolicyConfig(capability='submit_application', decision=<PolicyDecision....L_ONLY: 'manual_only'>, reviewed_at='2026-09-20', review_due_at=None, evidence=['LinkedIn User Agreement'], notes=[])])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108728510>
+adapter_status = 'SUBMITTED', receipt = None, confirmation = None
+
+    @pytest.mark.parametrize("adapter_status,receipt,confirmation", [
+        ("SUBMITTED", None, None),
+        ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
+        ("SIMULATED", "SIM-CLAIM", None),
+    ])
+    def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session, candidate_profile, policy_config, monkeypatch, adapter_status, receipt, confirmation):
+        from jobs_automation.automation.base import SubmissionResult
+        from jobs_automation.db.base import utc_now
+        jobs, packet = _bound_packet_fixture(db_session)
+        job = jobs[1]
+        task = TaskModel(job_id=job.id, task_type="NEEDS_REVIEW", status="pending", payload_json={})
+        db_session.add(task)
+        db_session.commit()
+        calls = []
+        def claimed_success(*args, **kwargs):
+            calls.append(True)
+            return SubmissionResult(success=True, status=adapter_status, receipt_id=receipt, confirmation_url=confirmation, response_payload={"independently_validated": True}, submitted_at=utc_now(), message="uncorroborated adapter claim")
+        monkeypatch.setattr(GreenhouseATSAdapter, "submit_application", claimed_success)
+        engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+        result = engine.execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+>       assert result.status == "SUBMISSION_UNCONFIRMED"
+E       AssertionError: assert 'SUBMITTED' == 'SUBMISSION_UNCONFIRMED'
+E         
+E         - SUBMISSION_UNCONFIRMED
+E         + SUBMITTED
+
+tests/test_auto_application.py:555: AssertionError
+_ test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SUBMITTED-unverified-receipt-https://example.invalid/thanks] _
+
+db_session = <sqlalchemy.orm.session.Session object at 0x1087e6f90>
+candidate_profile = CandidateProfileConfig(version=1, identity=IdentityConfig(full_name='Priyansh Chordia', preferred_name='Priyansh', ema...'Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.'])
+policy_config = PolicyRegistryConfig(version=1, default=DefaultPolicyConfig(capability='submit_application', decision=<PolicyDecision....L_ONLY: 'manual_only'>, reviewed_at='2026-09-20', review_due_at=None, evidence=['LinkedIn User Agreement'], notes=[])])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1089c3890>
+adapter_status = 'SUBMITTED', receipt = 'unverified-receipt'
+confirmation = 'https://example.invalid/thanks'
+
+    @pytest.mark.parametrize("adapter_status,receipt,confirmation", [
+        ("SUBMITTED", None, None),
+        ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
+        ("SIMULATED", "SIM-CLAIM", None),
+    ])
+    def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session, candidate_profile, policy_config, monkeypatch, adapter_status, receipt, confirmation):
+        from jobs_automation.automation.base import SubmissionResult
+        from jobs_automation.db.base import utc_now
+        jobs, packet = _bound_packet_fixture(db_session)
+        job = jobs[1]
+        task = TaskModel(job_id=job.id, task_type="NEEDS_REVIEW", status="pending", payload_json={})
+        db_session.add(task)
+        db_session.commit()
+        calls = []
+        def claimed_success(*args, **kwargs):
+            calls.append(True)
+            return SubmissionResult(success=True, status=adapter_status, receipt_id=receipt, confirmation_url=confirmation, response_payload={"independently_validated": True}, submitted_at=utc_now(), message="uncorroborated adapter claim")
+        monkeypatch.setattr(GreenhouseATSAdapter, "submit_application", claimed_success)
+        engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+        result = engine.execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+>       assert result.status == "SUBMISSION_UNCONFIRMED"
+E       AssertionError: assert 'SUBMITTED' == 'SUBMISSION_UNCONFIRMED'
+E         
+E         - SUBMISSION_UNCONFIRMED
+E         + SUBMITTED
+
+tests/test_auto_application.py:555: AssertionError
+_ test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SIMULATED-SIM-CLAIM-None] _
+
+db_session = <sqlalchemy.orm.session.Session object at 0x1087e7620>
+candidate_profile = CandidateProfileConfig(version=1, identity=IdentityConfig(full_name='Priyansh Chordia', preferred_name='Priyansh', ema...'Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.'])
+policy_config = PolicyRegistryConfig(version=1, default=DefaultPolicyConfig(capability='submit_application', decision=<PolicyDecision....L_ONLY: 'manual_only'>, reviewed_at='2026-09-20', review_due_at=None, evidence=['LinkedIn User Agreement'], notes=[])])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1087fbdf0>
+adapter_status = 'SIMULATED', receipt = 'SIM-CLAIM', confirmation = None
+
+    @pytest.mark.parametrize("adapter_status,receipt,confirmation", [
+        ("SUBMITTED", None, None),
+        ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
+        ("SIMULATED", "SIM-CLAIM", None),
+    ])
+    def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session, candidate_profile, policy_config, monkeypatch, adapter_status, receipt, confirmation):
+        from jobs_automation.automation.base import SubmissionResult
+        from jobs_automation.db.base import utc_now
+        jobs, packet = _bound_packet_fixture(db_session)
+        job = jobs[1]
+        task = TaskModel(job_id=job.id, task_type="NEEDS_REVIEW", status="pending", payload_json={})
+        db_session.add(task)
+        db_session.commit()
+        calls = []
+        def claimed_success(*args, **kwargs):
+            calls.append(True)
+            return SubmissionResult(success=True, status=adapter_status, receipt_id=receipt, confirmation_url=confirmation, response_payload={"independently_validated": True}, submitted_at=utc_now(), message="uncorroborated adapter claim")
+        monkeypatch.setattr(GreenhouseATSAdapter, "submit_application", claimed_success)
+        engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+        result = engine.execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+>       assert result.status == "SUBMISSION_UNCONFIRMED"
+E       AssertionError: assert 'SIMULATED' == 'SUBMISSION_UNCONFIRMED'
+E         
+E         - SUBMISSION_UNCONFIRMED
+E         + SIMULATED
+
+tests/test_auto_application.py:555: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_auto_application.py::test_explicit_packet_for_another_job_never_reaches_adapter
+FAILED tests/test_auto_application.py::test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SUBMITTED-None-None]
+FAILED tests/test_auto_application.py::test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SUBMITTED-unverified-receipt-https://example.invalid/thanks]
+FAILED tests/test_auto_application.py::test_adapter_claim_cannot_confirm_live_submission_or_close_tasks[SIMULATED-SIM-CLAIM-None]
+4 failed, 7 deselected in 0.23s
