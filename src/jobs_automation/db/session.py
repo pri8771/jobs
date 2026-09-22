@@ -6,20 +6,30 @@ import time
 from collections.abc import Generator
 
 from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session, sessionmaker
 
 from jobs_automation.core.config import AppSettings
 from jobs_automation.db.base import Base
 
 
-def get_engine(database_url: str | None = None, echo: bool = False) -> Engine:
-    """Create a SQLAlchemy engine supporting PostgreSQL and SQLite."""
+def get_engine(database_url: str | URL | None = None, echo: bool = False) -> Engine:
+    """Create a SQLAlchemy engine supporting PostgreSQL and SQLite.
+
+    Accepts a ``sqlalchemy.engine.URL`` object as well as a string so callers that
+    resolved credentials from trusted runtime configuration never have to render the
+    password into a string (``str(URL)`` masks it; rendering it unmasked would put a
+    secret into logs or evidence).
+    """
     if database_url is None:
         settings = AppSettings()
         database_url = settings.database_url
 
+    drivername = (
+        database_url.drivername if isinstance(database_url, URL) else database_url.split(":", 1)[0]
+    )
     # Handle SQLite connect_args if testing with sqlite
-    if database_url.startswith("sqlite"):
+    if drivername.startswith("sqlite"):
         return create_engine(
             database_url,
             echo=echo,

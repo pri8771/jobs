@@ -25,7 +25,9 @@ class PlaywrightBrowserRunner(BrowserRunner):
 
     def _ensure_playwright(self) -> Any:
         try:
-            import playwright.sync_api as p_sync  # type: ignore[import-not-found]
+            # Playwright is an optional runtime dependency: the ignore must stay valid
+            # both when it is absent (CI) and when it is installed (engineering hosts).
+            import playwright.sync_api as p_sync  # type: ignore[import-not-found,unused-ignore]
 
             return p_sync
         except ImportError as e:

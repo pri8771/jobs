@@ -33,7 +33,8 @@ RUNNER_PATH = REPO_ROOT / "scripts" / "run_v14_real_proof.py"
 
 
 def _schema() -> dict[str, Any]:
-    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    data: dict[str, Any] = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    return data
 
 
 def _runner_emitted_keys() -> set[str]:
