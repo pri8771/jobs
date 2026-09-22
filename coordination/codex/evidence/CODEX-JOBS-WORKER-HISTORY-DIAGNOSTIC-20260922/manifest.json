@@ -1,0 +1,67 @@
+{
+  "artifact": "CODEX-JOBS-WORKER-HISTORY-DIAGNOSTIC-20260922",
+  "files": [
+    {
+      "bytes": 1380,
+      "path": "checks.json",
+      "sha256": "087bccd025b8b26b203d33198835a359ecf6bbcc7655ffa7b58e90825a159d5a"
+    },
+    {
+      "bytes": 906,
+      "path": "commands.txt",
+      "sha256": "a7e6d11ddac274251d020e51df4228d18b5122d69012a7305bf9cfbd5d2fbb02"
+    },
+    {
+      "bytes": 6723,
+      "path": "jobs-control-center-inventory-20260922.md",
+      "sha256": "6b7ea4e54a6bb20eb70ea60839396d9e9a98376be9fd6547bd84f73920ac2066"
+    },
+    {
+      "bytes": 2437,
+      "path": "jobs-control-center-worker-pg-run.py",
+      "sha256": "3c2dcac1edeeefce9ca2895136ea539db135456f09decadfddd1db3bf7613249"
+    },
+    {
+      "bytes": 1517,
+      "path": "jobs-control-center-worker-pg.py",
+      "sha256": "7beb1ed2b64da6f84ac3abe93919e2ee2094f2572be414b53c43e23e3e7faabe"
+    },
+    {
+      "bytes": 676,
+      "path": "jobs-control-center-worker-repro.log",
+      "sha256": "003b50bed00a7c82d461882440f4b1c5973fe720634f8aa705e8ae146a5a5657"
+    },
+    {
+      "bytes": 2010,
+      "path": "jobs-control-center-worker-repro.py",
+      "sha256": "9db9c50d6eaa49f636073599a6f84407af4f4393b1cf06ade717d783f5c286ed"
+    },
+    {
+      "bytes": 3918,
+      "path": "review.md",
+      "sha256": "4f30c563a0fac9501641866c13cb39d00752428eeabb04bee7edc4cc0652b884"
+    },
+    {
+      "bytes": 541,
+      "path": "root-result/migration.log",
+      "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+    },
+    {
+      "bytes": 1803,
+      "path": "root-result/report.json",
+      "sha256": "fee425f384eb866d11fa274b1dd6d583dc9b8df7e5a63e09ceb092c79f755f01"
+    },
+    {
+      "bytes": 242,
+      "path": "root-result/run.json",
+      "sha256": "c334cc6a67becc320498c73a11be0d3bd47f0365c0ace3dec418bd48f477afbb"
+    },
+    {
+      "bytes": 1904,
+      "path": "root-result/workflow.log",
+      "sha256": "77b5b92da4997888d5ec67c8f88d6eb29577e797b795b6c5657ae84cfc767437"
+    }
+  ],
+  "source_sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+  "source_tree": "047eb8501e562cbbca450e946e260a1b8454f74b"
+}

@@ -1,0 +1,18 @@
+Source working directory:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source
+
+SQLite diagnostic (command reconstructed from retained script/log):
+PYTHONPATH=/Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source/src /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-worker-repro.py
+
+Independent PostgreSQL wrapper:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-worker-pg-run.py
+
+Wrapper-internal commands, with a unique owned disposable database:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/alembic upgrade head
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-worker-pg.py
+
+Observed PostgreSQL exits/results:
+migration_exit=0
+workflow_exit=0
+result=REPRODUCED_WORKER_HISTORY_GAP
+remaining_database_count=0

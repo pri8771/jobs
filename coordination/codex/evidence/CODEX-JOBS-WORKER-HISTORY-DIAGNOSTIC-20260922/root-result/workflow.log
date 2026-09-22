@@ -1,0 +1,63 @@
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{
+  "actual_worker_run": {
+    "errors": [],
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "messages_ingested": 0,
+    "messages_polled": 0,
+    "reconciliation_performed": true,
+    "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+    "stale_alerts": 0,
+    "unanswered_alerts": 0,
+    "warnings": []
+  },
+  "api_worker": [],
+  "durable_records": [
+    {
+      "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+      "status": "RUNNING",
+      "type": "worker_run"
+    },
+    {
+      "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+      "status": "SUCCESS",
+      "type": "worker_run_finished"
+    }
+  ],
+  "http_status": 200,
+  "result": "REPRODUCED_WORKER_HISTORY_GAP",
+  "source_sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+  "worker_health": {
+    "details": {
+      "age_seconds": 0.0,
+      "last_attempt_at": "2026-09-22T03:39:34.555842-04:00",
+      "last_attempt_status": "SUCCESS",
+      "last_error_at": null,
+      "last_error_category": null,
+      "last_reconciliation_at": "2026-09-22T03:39:34.555842-04:00",
+      "last_success_at": "2026-09-22T03:39:34.555842-04:00",
+      "metrics": {
+        "error_categories": [],
+        "error_count": 0,
+        "final_status": "SUCCESS",
+        "finished_at": "2026-09-22T07:39:34.555706+00:00",
+        "jobs_discovered": 0,
+        "lifecycle_transitions": 0,
+        "messages_ingested": 0,
+        "messages_polled": 0,
+        "reconciliation_performed": true,
+        "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+        "sample_errors": [],
+        "stale_alerts": 0,
+        "unanswered_alerts": 0
+      },
+      "stale_run_id": null,
+      "stale_running_run": false
+    },
+    "latency_ms": 0.0,
+    "message": "Last worker run 0.0m ago (SUCCESS).",
+    "name": "worker",
+    "status": "HEALTHY"
+  }
+}
