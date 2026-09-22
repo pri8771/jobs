@@ -410,3 +410,115 @@ Owner clarification in `DYNAMIC_RESUME_CLARIFICATION_20260922.md` is acknowledge
 - automatic JD-to-resume generation is not currently implemented.
 
 This clarification does not authorize model/private-data work and does not expand COMP-2.
+
+
+## 11. COMP-2 dependency disposition — prerequisite split
+
+**COMP-2_REWORK_FOUND confirmed** from native diagnostic `824f240` / `coordination/codex/COMP2_DEPENDENCY_REWORK_20260922.md`.
+
+The clean control composition base remains:
+`b67fc523863babd3e195ee71a05f00fa0f2f7e79`
+
+No source/index edits from the failed COMP-2 attempt are accepted.
+
+### Confirmed dependency blockers
+
+Engine-only integration cannot satisfy the released malformed-neighbor and policy requirements because:
+
+1. `src/jobs_automation/adapters/gmail.py` on the control line parses To/Cc in a combined strict call. A malformed Cc can erase a valid To alias, and a malformed To can erase a valid Cc alias before `EmailIngestionEngine` receives the recipients.
+2. `src/jobs_automation/core/platforms.py` on the control line does not define `email.canary_identities`; the strict model rejects even a valid alias as `extra_forbidden`.
+3. Full canary provenance/V3/reference tests additionally depend on held `bounded.py` and `db/canary_provenance.py` behavior. Those are **not** opened by this prerequisite.
+4. Wholesale copying canary `engine.py` is prohibited because it would drop accepted control-line candidate-reply/outbound attribution behavior, including `_link_candidate_reply`.
+
+## COMP-2A — ACTIVE prerequisite: Gmail parser + canary config schema only
+
+**State: RELEASED TO CODEX / OFFLINE ENGINEERING ONLY.**
+
+Starting base:
+`b67fc523863babd3e195ee71a05f00fa0f2f7e79`
+
+Reference behavior source:
+`eec0ae3d9b50979b74294dd9ee0561172eff54b0`
+
+Allowed production files only:
+- `src/jobs_automation/adapters/gmail.py`
+- `src/jobs_automation/core/platforms.py`
+
+Allowed focused tests:
+- `tests/test_gmail_adapter_bounded.py`
+- `tests/test_config.py`
+- at most one new/adjacent focused test file if needed solely to prove these two production contracts.
+
+### Required Gmail behavior
+
+Port only the accepted recipient-header parsing behavior needed for this dependency:
+- parse `To` and `Cc` **independently**;
+- one malformed header must not erase valid addresses from the other header;
+- preserve provider-observed time vs claimed Date separation;
+- preserve existing SENT/verified-identity outbound direction semantics;
+- preserve all control-line pagination/completeness behavior;
+- no mailbox/network access in tests.
+
+Required regressions:
+- malformed Cc + valid To canary alias => valid To survives;
+- malformed To + valid Cc canary alias => valid Cc survives;
+- malformed From does not erase valid recipient aliases;
+- ordinary valid multi-recipient parsing unchanged;
+- no direction/time regression.
+
+### Required config behavior
+
+Port only the accepted canary policy schema:
+- add `EmailPollingConfig.canary_identities: list[str]` defaulting to empty;
+- each configured entry must parse to exactly one email address;
+- malformed/multiple-address identity fails validation;
+- preserve `extra="forbid"` and all existing provider/polling validation;
+- do not add runtime Gmail access, OAuth, or worker behavior.
+
+Required regressions:
+- valid single alias accepted;
+- display-name single alias accepted if it resolves to exactly one address;
+- malformed identity rejected;
+- multiple-address single entry rejected;
+- unrelated unknown config keys remain rejected.
+
+### Explicit non-scope
+
+Do **not** modify:
+- `src/jobs_automation/ingestion/engine.py`;
+- `src/jobs_automation/ingestion/bounded.py`;
+- `src/jobs_automation/db/canary_provenance.py`;
+- lifecycle/alerts/CRM/worker/dashboard/CLI;
+- migrations;
+- CI configuration.
+
+This prerequisite does not claim:
+- COMP-2 engine resolution;
+- V3 bounded/replay integration;
+- durable provenance composition;
+- reference-patch integration;
+- G14-G17 progress.
+
+### Validation
+
+Run:
+- focused Gmail/config tests;
+- full pytest;
+- Ruff;
+- `mypy src tests`;
+- diff/format check;
+- hosted CI on exact candidate if a PR/head is used.
+
+Return exact SHA/tree and READY_FOR_LEAD_REVIEW or COMP-2A_REWORK_FOUND.
+
+## Queued after COMP-2A acceptance — COMP-2 engine API preparation
+
+If and only if COMP-2A is accepted, reactivate the engine-only conflict with:
+- production file `src/jobs_automation/ingestion/engine.py`;
+- preserve control candidate-reply/outbound attribution;
+- add accepted canary engine helpers/runtime membership/safe_errors/reclassification;
+- preserve incomplete-poll atomicity/checkpoint semantics.
+
+At that stage, integrated V3/reference claims remain deferred until their own explicit `bounded.py`/provenance scope is opened. Engine acceptance must not claim full composition.
+
+No Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or main merge.
