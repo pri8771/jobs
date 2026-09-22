@@ -2,55 +2,42 @@
 
 - Type: proof tooling / integrity
 - Phase: V1.4
-- Status: IN_PROGRESS
-- Owner: Antigravity
+- Status: **ACCEPTED (engineering)**
+- Owner: Fable/Claude
 - Reviewer: ChatGPT
 - Dependencies: A-V14-PACKET-SAFETY ACCEPTED
-- Downstream: A-V14-CLEAN-INTEGRATION, A-V14-REAL-PROOF
+- Downstream: A-V14-REAL-PROOF
 
 ## Purpose
-Make the proof verifier fail closed against forged/local-only evidence before any private proof run.
 
-## Current source
-Latest reviewed repair source:
-- `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+Make the real-proof verifier fail closed against forged/local-only evidence before any genuine private proof run.
 
-## Remaining worker tasks
-- R14-P01 SP1 — bind persisted JobSource attestation to local source_attestation.
-- R14-P02 SP1 — adversarial JobSource mismatch/omission tests.
-- R14-P03 SP1 — targeted + full local checks.
-- R14-P04 SP1 — exact-head CI or CI_BLOCKED_ACCOUNT + independent validation request.
+## Accepted source
 
-## Acceptance
-- verifier independently validates Job/JobSource/packet/resume/artifact runtime truth,
-- structural/local forged evidence cannot PASS,
-- all targeted/full checks pass,
-- ChatGPT lead accepts before private proof use.
+- Exact P0A implementation: `8491dd98154ff750f49cbb64d2a79eca5cb06069`.
+- Consolidated PR #12 exact head including V1.5: `47fefd1b0ca354360353577685f6619a94f00f42`.
+- Integrated to `main` through PR #12 as `7c0fa73bf350392a88b47442455359a43cf926b0`.
+- Lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+## Lead acceptance evidence
 
-Frozen queue `docs/FABLE_FINAL_V145.md` F145-01..05 against the capsule review
-`coordination/reviews/V145_FINAL_REVIEW_20260921.md` (FR14-01..03). Branch
-`claude/serene-brown-g6uij0`; exact SHA in the heartbeat/handoff.
+Lead reviewed the actual implementation and accepted the P0A engineering contract for:
+- closed runtime evidence schema with `REAL_PROOF_CANDIDATE` separated from verifier-owned PASS/FAIL receipts;
+- runtime schema execution and schema-hash binding;
+- credential-safe proof-database identity with mandatory runtime-target reconciliation;
+- independent persisted Job/JobSource/packet/answer/provenance/artifact/profile/resume validation;
+- canonical Greenhouse source/question identity binding;
+- canonical candidate-profile fingerprint plus exact selected resume mapping/bytes/hash/version/source binding;
+- generation-origin truth and fail-closed missing/tampered evidence handling;
+- sanitized failure receipts and path-safe handling of untrusted proof IDs;
+- positive and adversarial importer -> runner -> verifier integration coverage on SQLite and password-protected PostgreSQL, including password rotation, stale/mismatched runtime targets and persisted-data mutations.
 
-- F145-01 (FR14-01): `scripts/verify_v14_real_proof.py` executes the closed evidence schema
-  at runtime (Draft 2020-12, `date-time`/`uri` format checkers required to exist, schema
-  SHA bound into the receipt) before the semantic allowlist; `jsonschema`,
-  `rfc3339-validator`, `rfc3986-validator` are runtime dependencies; schema tests hard-import.
-- F145-02 (FR14-02): `jobs_automation.proof.database_identity` (moved from the capsule
-  helper, shim kept); the runner records `proof_database` identity, never a URL; the
-  verifier reconciles it with `AppSettings().database_url` and connects with the URL
-  object; masked legacy URLs, mismatched or missing runtime targets are rejections.
-- F145-03 (FR14-03): packet identity recomputed from persisted answers/provenance/artifact
-  hashes/profile version/variant id and compared with stored hash, manifest and redacted
-  evidence; unresolved list, counts, question membership, provenance method and
-  live-ready invariant bound.
-- F145-04: parsed canonical profile fingerprint (`jobs_automation.proof.profile_fingerprint`,
-  also persisted by the production packet builder in `generation_metadata_json` and the
-  manifest), version, unresolved-fact categories, selector variant, profile resume mapping,
-  exact bytes/byte count, variant version, `source_reference`, artifact types and sizes.
-- F145-05: sanitized reasons (no credentials, no absolute private paths), untrusted
-  `proof_run_id` never used as a receipt path component, every malformed input ends in a
-  bound `REAL_PROOF_FAIL` receipt rather than a traceback.
+Fable's P0A handoff reported 323 tests at the P0A commit; the later consolidated exact-head handoff reported 395 tests including real PostgreSQL proof-path tests, with Ruff and mypy green.
 
-Worker claims are evidence inputs only; acceptance remains with the lead.
+Hosted GitHub Actions were blocked before executable steps by the observed account/runner startup condition and are **not** called green. A bounded `worker-pc` exact-head validation independently confirmed the consolidated SHA but could not run Python because of its harness approval policy, so it contributes zero test counts. The lead applied the documented `CI_BLOCKED_ACCOUNT` engineering exception in `coordination/V17_LEAD_HANDOFF.md`.
+
+## Boundary
+
+This acceptance is **engineering acceptance only**. It does not constitute G14, does not authorize use of private candidate material on an ineligible host, and does not make V1.4 COMPLETE.
+
+G14 remains unpassed until an approved genuine private profile, exact selected real resume and current real job run through the production packet path and produce a runtime candidate plus independently validated receipt. Private inputs stay local; committed evidence remains sanitized hashes/provenance only.
