@@ -1,0 +1,16 @@
+3d9cc95d03b0b8c146d10423060d97ee9736212c fix: confine bounded ingestion and fail invalid replay proof
+1011f1953bd14c77da56a3aea413b9d9d645b829 fix: reject cross-job packets and retain unconfirmed adapter outcomes
+6ae659f1cec35fc3d20f2a28dce0ce7868f314af fix: exclude unconfirmed applications from automatic queue selection
+10a3a23924fdde6b040082ef030ad1286591b9a9 fix: preserve CRM relationships through manual corrections
+8631b3edf15cdaa11eefbd6edffb1038bdbc5433 Abort incomplete Gmail fetch sweeps before ingestion writes
+7345f1e0fc7153ba40c3628910ebd58266635421 Apply lead atomic-failure contract to cap-truncated polls
+9e29a59b729deb8f925121c70b90498794b55519 fix(worker): persist failed attempt when begin audit fails
+ed864cb5ac3eb806c91ef55d489fb6084da19fe0 fix(health): return stable secret-free inspection errors
+e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273 Make backup restore portable and fail on SQL errors
+832d85f5177ca82564c9d0b6c168790f26ea1dc3 fix: attribute candidate replies using trusted prior thread evidence
+b462e17b48c286dc4bdee5b958217b42da8e701e fix: expose current durable worker attempts in dashboard history
+b5d5ce206142642fa39fc4e836e69e069d70bf8e fix: derive dashboard status badge from current health
+1e54aafa61ef06ed2ef8a7a681c806ba89ef3268 style: format dashboard badge regression cases
+a17fa1e883508587d436d71e4d06b437f006c34f fix: expose sanitized read-only configuration status
+413a18ee13ee049f57651ddd7060fd98fafad5f9 test: use package-qualified dashboard harness import
+b67fc523863babd3e195ee71a05f00fa0f2f7e79 fix: require matching local authority for tokenless dashboard writes
