@@ -372,8 +372,33 @@ def mailbox_status() -> None:
     from sqlalchemy import distinct, func, select
 
     from jobs_automation.db.models import InboundMessageModel, JobModel, TaskModel
+    from jobs_automation.ingestion.readiness import assess_gmail_readiness
 
     with session_factory() as session:
+        # V17-M03: secret-safe readiness (no OAuth launch, no mailbox access)
+        readiness = assess_gmail_readiness(settings, session)
+        readiness_table = Table(title="Gmail Readiness (secret-free)", show_header=False)
+        readiness_table.add_column("Property", style="bold cyan")
+        readiness_table.add_column("Value")
+        readiness_table.add_row("State", readiness.state)
+        readiness_table.add_row("Client configured", str(readiness.configured))
+        readiness_table.add_row(
+            "Token present / parseable",
+            f"{readiness.token_present} / {readiness.credentials_parseable}",
+        )
+        readiness_table.add_row(
+            "Scope is gmail.readonly only", str(readiness.scope_is_readonly_only)
+        )
+        readiness_table.add_row(
+            "Mailbox identity hint", readiness.mailbox_identity_hint or "unknown"
+        )
+        readiness_table.add_row("Last proven real run", readiness.last_proven_run_id or "none")
+        readiness_table.add_row("Error category", readiness.error_category or "none")
+        console.print(readiness_table)
+        for note in readiness.notes:
+            console.print(f"  [dim]• {note}[/dim]")
+        console.print()
+
         # Checkpoint
         chk_stmt = (
             select(TaskModel)
@@ -804,7 +829,8 @@ def auto_apply(
                 .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
                 .where(
                     JobModel.status.in_(["shortlisted", "packet_prepared"]),
-                    (ApplicationModel.status.is_(None)) | (ApplicationModel.status != "SUBMITTED"),
+                    (ApplicationModel.status.is_(None))
+                    | ApplicationModel.status.not_in(["SUBMITTED", "SUBMISSION_UNCONFIRMED"]),
                 )
                 .order_by(ApplicationPacketModel.created_at.desc())
                 .limit(1)
@@ -858,6 +884,9 @@ def auto_apply(
             console.print(
                 "  [dim]Note: External submission was NOT performed and cannot masquerade as real submission.[/dim]"
             )
+        elif res.status == "SUBMISSION_UNCONFIRMED":
+            console.print("[bold yellow]Outcome unconfirmed; automatic redispatch blocked[/bold yellow]")
+            console.print(f"  Message: {res.message}")
         elif res.status == "NOT_IMPLEMENTED":
             console.print(
                 f"[bold yellow]⚠️  Live submission not yet implemented:[/bold yellow] {res.message}"
@@ -1154,6 +1183,255 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
         console.print(f"[green]Sweep finished:[/green] {res}")
     else:
         daemon.start()
+
+
+@cli.command(name="ingest-mailbox")
+@click.option("--mailbox", required=True, help="Authorized mailbox address this run is bound to.")
+@click.option(
+    "--query",
+    required=True,
+    help="Gmail search query bounding the evidence set (e.g. 'label:recruiting').",
+)
+@click.option("--window-start", required=True, help="ISO-8601 window start (UTC if no offset).")
+@click.option("--window-end", required=True, help="ISO-8601 window end, exclusive.")
+@click.option("--cap", required=True, type=int, help="Maximum messages to ingest (1-500).")
+@click.option(
+    "--dry-run", is_flag=True, default=False, help="Poll and classify without persisting."
+)
+@click.option(
+    "--mock-fixtures",
+    is_flag=True,
+    default=False,
+    help="ENGINEERING ONLY: synthetic fixtures adapter; never genuine recruiting evidence.",
+)
+@click.option("--replay-run", default=None, help="Replay the recorded parameters of a run id.")
+@click.option(
+    "--canary-identity",
+    "canary_identities",
+    multiple=True,
+    help="Owner-controlled test alias whose mail is tagged as canary and excluded from evidence.",
+)
+@click.option("--config-dir", default="config", help="Path to config directory.")
+def ingest_mailbox(
+    mailbox: str,
+    query: str,
+    window_start: str,
+    window_end: str,
+    cap: int,
+    dry_run: bool,
+    mock_fixtures: bool,
+    replay_run: str | None,
+    canary_identities: tuple[str, ...],
+    config_dir: str,
+) -> None:
+    """Run one bounded, replayable mailbox ingestion (V17-M04): mailbox, query, window, cap.
+
+    Enforces the read-only grant and the mailbox identity before touching the mailbox,
+    never advances the incremental worker checkpoint, and records secret-free run
+    evidence with logical-state digests so the run can be replayed and compared.
+    """
+    import datetime
+
+    from jobs_automation.ingestion.bounded import (
+        BoundedIngestionError,
+        BoundedIngestionRequest,
+        BoundedIngestionRunner,
+    )
+    from jobs_automation.ingestion.readiness import assess_gmail_readiness
+
+    console.print(Panel.fit("[bold blue]Jobs Automation — Bounded Mailbox Ingestion[/bold blue]"))
+
+    def _parse_window(value: str, label: str) -> datetime.datetime:
+        try:
+            parsed = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise click.ClickException(f"{label} must be ISO-8601: {exc}") from exc
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.UTC)
+
+    loader = ConfigLoader(config_dir)
+    profile, _ = loader.load_candidate_profile()
+    candidate_emails = [profile.identity.email] if profile.identity.email else []
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+
+    with session_factory() as session:
+        adapter: Any
+        if mock_fixtures:
+            from jobs_automation.adapters.gmail import MockEmailAdapter
+            from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+
+            console.print(
+                "[bold yellow]SYNTHETIC ENGINEERING RUN: offline fixtures adapter; this is never "
+                "genuine recruiting evidence.[/bold yellow]"
+            )
+            adapter = MockEmailAdapter(get_sample_email_fixtures())
+            adapter_kind, synthetic = "mock_fixtures", True
+        else:
+            readiness = assess_gmail_readiness(settings, session)
+            if not readiness.live_capable or not readiness.scope_is_readonly_only:
+                console.print(
+                    f"[bold red]Read-only Gmail grant not established (state={readiness.state}, "
+                    f"error={readiness.error_category}). No OAuth flow was launched and the "
+                    "mailbox was not accessed.[/bold red]"
+                )
+                raise click.ClickException("GMAIL_READONLY_GRANT_REQUIRED")
+            from jobs_automation.adapters.gmail import GmailAdapter
+
+            adapter = GmailAdapter(verified_identities=candidate_emails)
+            adapter_kind, synthetic = "gmail", False
+
+        runner = BoundedIngestionRunner(
+            session,
+            adapter,
+            candidate_emails=candidate_emails,
+            canary_identities=list(canary_identities),
+            adapter_kind=adapter_kind,
+            synthetic=synthetic,
+        )
+        try:
+            if replay_run:
+                result = runner.replay(replay_run, mailbox)
+            else:
+                request = BoundedIngestionRequest(
+                    mailbox=mailbox,
+                    query=query,
+                    window_start=_parse_window(window_start, "--window-start"),
+                    window_end=_parse_window(window_end, "--window-end"),
+                    cap=cap,
+                    dry_run=dry_run,
+                )
+                result = runner.run(request)
+        except BoundedIngestionError as exc:
+            raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
+
+    table = Table(title="Bounded Ingestion Result", header_style="bold green")
+    table.add_column("Metric", style="bold")
+    table.add_column("Value")
+    table.add_row("Run ID", result.run_id)
+    table.add_row("Status", result.status)
+    table.add_row("Adapter / synthetic", f"{result.adapter} / {result.synthetic}")
+    table.add_row("Mailbox (sha256 prefix)", result.mailbox_sha256[:16])
+    table.add_row("Window", f"{result.window_start} -> {result.window_end}")
+    table.add_row("Cap", str(result.cap))
+    table.add_row("Poll complete", str(result.complete))
+    table.add_row(
+        "Messages polled / ingested / duplicates",
+        f"{result.messages_polled} / {result.messages_ingested} / {result.messages_skipped_duplicate}",
+    )
+    table.add_row("Canary messages tagged", str(result.canary_messages))
+    table.add_row(
+        "Lifecycle transitions / interviews",
+        f"{result.lifecycle_transitions} / {result.interviews_scheduled}",
+    )
+    table.add_row(
+        "Alerts (unanswered / stale)", f"{result.unanswered_alerts} / {result.stale_alerts}"
+    )
+    if result.replay_of_run_id:
+        table.add_row("Replay of", result.replay_of_run_id)
+        table.add_row("Replay identical", str(result.replay_identical))
+        table.add_row("Replay matches original", str(result.replay_matches_original))
+    table.add_row("Events digest", result.digests_after.events[:16])
+    table.add_row("Tasks digest", result.digests_after.tasks[:16])
+    console.print(table)
+    for error in result.errors:
+        console.print(f"  [red]• {error}[/red]")
+    if result.status == "FAILED":
+        sys.exit(1)
+    if result.status == "INCOMPLETE":
+        console.print(
+            "[yellow]Poll was incomplete; evidence is partial and no checkpoint moved.[/yellow]"
+        )
+        sys.exit(2)
+
+
+@cli.command(name="lifecycle-timeline")
+@click.option("--application-id", required=True, help="Application UUID to inspect.")
+@click.option(
+    "--json-output",
+    type=click.Path(dir_okay=False),
+    default=None,
+    help="Also write the redacted timeline export JSON to this path.",
+)
+def lifecycle_timeline(application_id: str, json_output: str | None) -> None:
+    """Inspect one application's evidence timeline, due actions and replay status (V17-R05)."""
+    import json as _json
+    from pathlib import Path as _Path
+
+    from jobs_automation.lifecycle.timeline import build_timeline_export
+
+    console.print(Panel.fit("[bold blue]Jobs Automation — Application Timeline[/bold blue]"))
+    try:
+        target = uuid.UUID(application_id)
+    except ValueError as exc:
+        raise click.ClickException("--application-id must be a UUID") from exc
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    session_factory = get_sessionmaker(engine)
+    with session_factory() as session:
+        try:
+            export = build_timeline_export(session, target)
+        except ValueError as exc:
+            raise click.ClickException(str(exc)) from exc
+
+    app = export["application"]
+    console.print(
+        f"Application [bold]{app['id']}[/bold]: {app['company']} — {app['job_title']} — "
+        f"status [bold]{app['status']}[/bold] ({app['application_mode']})"
+    )
+    sources = Table(title="Source messages (redacted)", header_style="bold cyan")
+    for column in ("provider id", "provider time", "direction", "classification", "canary"):
+        sources.add_column(column)
+    for source in export["sources"]:
+        sources.add_row(
+            source["provider_message_id"],
+            source["provider_received_at"] or "",
+            f"{source['direction']} ({source['direction_basis'] or 'n/a'})",
+            source["classification"],
+            "yes" if source["canary"] else "no",
+        )
+    console.print(sources)
+    events = Table(title="Lifecycle events", header_style="bold green")
+    for column in ("event", "occurred", "source ref", "regression prevented"):
+        events.add_column(column)
+    for event in export["events"]:
+        events.add_row(
+            event["event_type"],
+            event["occurred_at"] or "",
+            event["source_reference"] or "",
+            str(event["regression_prevented"]),
+        )
+    console.print(events)
+    if export["interviews"]:
+        interviews = Table(title="Interviews", header_style="bold magenta")
+        for column in ("round", "start", "end", "tz", "status"):
+            interviews.add_column(column)
+        for interview in export["interviews"]:
+            interviews.add_row(
+                interview["round_type"],
+                interview["scheduled_start"] or "",
+                interview["scheduled_end"] or "",
+                interview["timezone"],
+                interview["status"],
+            )
+        console.print(interviews)
+    due = [t for t in export["tasks"] if t["status"] == "pending"]
+    console.print(
+        f"Due actions (pending tasks): [bold]{len(due)}[/bold] "
+        + ", ".join(t["task_type"] for t in due)
+    )
+    console.print(f"Uncertainty: {export['uncertainty']}")
+    console.print(f"Genuine evidence: {export['genuine_evidence']}")
+    console.print(f"Latest bounded run / replay: {export['replay']}")
+    console.print(f"Export digest: {export['export_sha256']}")
+    if json_output:
+        _Path(json_output).parent.mkdir(parents=True, exist_ok=True)
+        _Path(json_output).write_text(
+            _json.dumps(export, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+        )
+        console.print(f"Redacted timeline export written to {json_output}")
 
 
 if __name__ == "__main__":

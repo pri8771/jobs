@@ -61,7 +61,7 @@ What it does:
 ### 3.2 Backup Verification
 Verify backup archive integrity:
 ```bash
-shasum -a 256 -c backups/jobs_backup_20260920_140000Z.sql.gz.sha256
+(cd backups && shasum -a 256 -c jobs_backup_20260920_140000Z.sql.gz.sha256)
 ```
 
 ---
@@ -81,9 +81,12 @@ pg_isready -h localhost -p 5433 -U jobs
 ./scripts/restore_db.sh backups/jobs_backup_20260920_140000Z.sql.gz --force
 ```
 The script will:
-- Verify the SHA-256 checksum.
+- Verify the supplied archive against its SHA-256 sidecar, even after the pair
+  has moved to another directory or host. Older path-bearing sidecars remain supported.
 - Terminate existing database connections.
-- Execute the restore in a single transaction.
+- Execute the restore in a single transaction and fail on the first SQL error.
+  A SQL error rolls back the transaction, returns a nonzero exit, and never
+  prints the successful completion message.
 
 ### 4.3 Step 3: Run Database Migrations
 ```bash

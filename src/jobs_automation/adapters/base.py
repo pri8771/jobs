@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from jobs_automation.ingestion.models import RawEmailMessage
+    from jobs_automation.ingestion.models import PollReport, RawEmailMessage
 
 
 class EmailMessagePayload(ABC):
@@ -29,6 +29,10 @@ class EmailAdapter(ABC):
     @abstractmethod
     def get_thread(self, thread_id: str) -> list[RawEmailMessage]:
         """Fetch complete chronological thread history."""
+
+    def last_poll_report(self) -> PollReport | None:
+        """Completeness accounting for the most recent ``poll_messages`` call, if tracked."""
+        return None
 
 
 class ModelGateway(ABC):

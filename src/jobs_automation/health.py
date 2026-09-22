@@ -53,9 +53,7 @@ class HealthCheckService:
                 session.execute(text("SELECT 1"))
                 pending_tasks = (
                     session.scalar(
-                        select(func.count(TaskModel.id)).where(
-                            TaskModel.status == "pending"
-                        )
+                        select(func.count(TaskModel.id)).where(TaskModel.status == "pending")
                     )
                     or 0
                 )
@@ -68,14 +66,14 @@ class HealthCheckService:
                 latency_ms=elapsed_ms,
                 details={"pending_tasks": pending_tasks},
             )
-        except Exception as exc:
+        except Exception:
             elapsed_ms = round((time.perf_counter() - start) * 1000, 2)
             return ComponentHealth(
                 name="database",
                 status="UNHEALTHY",
-                message=f"Database connection failed: {exc}",
+                message="Database health check failed.",
                 latency_ms=elapsed_ms,
-                details={"error": str(exc)},
+                details={"error_category": "DATABASE_CHECK_FAILED"},
             )
 
     def check_kill_switches(self) -> ComponentHealth:
@@ -128,12 +126,12 @@ class HealthCheckService:
                     message=f"{len(policies)} platform policies verified and up to date.",
                     details={"total_policies": len(policies)},
                 )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="policy_registry",
                 status="UNHEALTHY",
-                message=f"Failed to query policy registry: {exc}",
-                details={"error": str(exc)},
+                message="Policy registry health check failed.",
+                details={"error_category": "POLICY_HEALTH_CHECK_FAILED"},
             )
 
     def check_adapters(self) -> ComponentHealth:
@@ -151,7 +149,9 @@ class HealthCheckService:
         # In current release, greenhouse and lever return NOT_IMPLEMENTED for live external submission unless mock_mode is active.
         live_capable: list[str] = []
         for name in adapters:
-            adp = registry.find_adapter(f"boards.{name}.io") or registry.find_adapter(f"jobs.{name}.co")
+            adp = registry.find_adapter(f"boards.{name}.io") or registry.find_adapter(
+                f"jobs.{name}.co"
+            )
             if hasattr(adp, "is_live_capable") and getattr(adp, "is_live_capable"):
                 live_capable.append(name)
 
@@ -251,7 +251,9 @@ class HealthCheckService:
                         last_reconciliation_at = f.occurred_at.isoformat()
 
                 # Determine true latest attempt
-                if last_begin and (not last_finish or last_begin.occurred_at > last_finish.occurred_at):
+                if last_begin and (
+                    not last_finish or last_begin.occurred_at > last_finish.occurred_at
+                ):
                     # True newest attempt is the begin record (RUNNING or interrupted)
                     last_attempt_at = last_begin.occurred_at.isoformat()
                     last_attempt_status = "RUNNING"
@@ -320,7 +322,9 @@ class HealthCheckService:
                 else:
                     status = "HEALTHY"
 
-                stale_note = f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                stale_note = (
+                    f" STALE_RUNNING run_id={stale_run_id} detected." if stale_running else ""
+                )
                 running_note = " [RUNNING in progress]" if is_currently_running else ""
 
                 return ComponentHealth(
@@ -343,12 +347,12 @@ class HealthCheckService:
                         "metrics": fin_meta,
                     },
                 )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="worker",
                 status="UNHEALTHY",
-                message=f"Failed to inspect worker status: {exc}",
-                details={"error": str(exc)},
+                message="Worker health check failed.",
+                details={"error_category": "WORKER_HEALTH_CHECK_FAILED"},
             )
 
     def check_gmail(self, readiness_result: dict[str, Any] | None = None) -> ComponentHealth:
@@ -363,17 +367,14 @@ class HealthCheckService:
         try:
             with self.session_factory() as session:
                 last_msg = session.scalar(
-                    select(InboundMessageModel)
-                    .order_by(InboundMessageModel.received_at.desc())
+                    select(InboundMessageModel).order_by(InboundMessageModel.received_at.desc())
                 )
                 last_received_at = last_msg.received_at.isoformat() if last_msg else None
 
             if readiness_result is not None:
                 # Typed readiness result supplied (e.g. from Lane C's diagnostic service)
                 status = readiness_result.get("status", "DEGRADED")
-                message = readiness_result.get(
-                    "message", f"Gmail readiness verified: {status}"
-                )
+                message = readiness_result.get("message", f"Gmail readiness verified: {status}")
                 details = dict(readiness_result)
                 details["last_message_received_at"] = last_received_at
                 return ComponentHealth(
@@ -383,24 +384,26 @@ class HealthCheckService:
                     details=details,
                 )
 
-            # Default fail-safe without false credential heuristic
+            # Secret-free, non-interactive readiness assessment (V17-M03). It never
+            # launches OAuth or touches the mailbox; PROVEN requires a recorded real run.
+            from jobs_automation.ingestion.readiness import assess_gmail_readiness
+
+            with self.session_factory() as session:
+                readiness = assess_gmail_readiness(session=session)
+            details = readiness.to_health_result()
+            details["last_message_received_at"] = last_received_at
             return ComponentHealth(
                 name="gmail",
-                status="DEGRADED",
-                message="Gmail integration status: NOT_INTEGRATED (awaiting typed OAuth readiness provider).",
-                details={
-                    "status": "NOT_INTEGRATED",
-                    "live_capable": False,
-                    "last_message_received_at": last_received_at,
-                    "diagnostic": "Awaiting Lane C J20G-03 typed readiness integration; no mock/heuristic assumed.",
-                },
+                status=str(details["status"]),
+                message=str(details["message"]),
+                details=details,
             )
-        except Exception as exc:
+        except Exception:
             return ComponentHealth(
                 name="gmail",
                 status="UNHEALTHY",
-                message=f"Failed to check Gmail health: {exc}",
-                details={"error": str(exc)},
+                message="Gmail health check failed.",
+                details={"error_category": "GMAIL_HEALTH_CHECK_FAILED"},
             )
 
     def run_full_check(self) -> HealthReport:

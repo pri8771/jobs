@@ -35,6 +35,7 @@ class RawEmailMessage(BaseModel):
 
     provider_message_id: str
     provider_thread_id: str | None = None
+    # Provider-observed time (Gmail internalDate). Never the sender-claimed Date header.
     received_at: datetime.datetime
     sender: str
     recipients: list[str] = Field(default_factory=list)
@@ -44,6 +45,32 @@ class RawEmailMessage(BaseModel):
     body_text: str = ""
     body_html: str | None = None
     raw_reference: str | None = None
+    # Non-secret provider facts kept separate from the claimed headers: label ids,
+    # internal date, claimed Date header, how direction was derived, sender address.
+    provider_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class PollReport(BaseModel):
+    """Completeness accounting for one adapter poll (V17-M01).
+
+    A poll is complete only when every listed message was fetched and the result was not
+    truncated by the caller's cap. An incomplete poll must never let a checkpoint advance
+    past evidence that was listed but not ingested.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    query: str | None = None
+    since_timestamp: str | None = None
+    max_results: int
+    pages_fetched: int = 0
+    listed_count: int = 0
+    fetched_count: int = 0
+    missing_message_ids: list[str] = Field(default_factory=list)
+    truncated_by_cap: bool = False
+    complete: bool = True
+    adapter: str = "unknown"
+    synthetic: bool = False
 
 
 class ExtractedJobPosting(BaseModel):

@@ -13,7 +13,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from jobs_automation.adapters.base import EmailAdapter
 from jobs_automation.adapters.gmail import MockEmailAdapter
 from jobs_automation.db.base import Base
-from jobs_automation.db.models import ApplicationModel, CompanyModel, InboundMessageModel, JobModel
+from jobs_automation.db.models import (
+    ApplicationModel,
+    AuditLogModel,
+    CompanyModel,
+    InboundMessageModel,
+    JobModel,
+)
+from jobs_automation.health import HealthCheckService
 from jobs_automation.ingestion.models import RawEmailMessage
 from jobs_automation.worker import WorkerDaemon
 
@@ -255,8 +262,41 @@ def test_worker_reconciliation_remains_due_when_polling_fails(
 
 def test_worker_begin_persistence_failure_fails_closed(
     db_session_factory: sessionmaker[Session],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """B-R20-05: Worker fails closed and does not execute pipeline if begin record cannot be persisted."""
+    """A transient begin failure persists one safe FAILED record and never runs work."""
+    now = datetime.datetime.now(datetime.UTC)
+    with db_session_factory() as session:
+        session.add_all(
+            [
+                AuditLogModel(
+                    action_type="worker_run",
+                    entity_type="worker",
+                    actor="worker_daemon",
+                    result="RUNNING",
+                    external_reference="prior-success",
+                    occurred_at=now - datetime.timedelta(minutes=11),
+                    metadata_json={"run_id": "prior-success"},
+                ),
+                AuditLogModel(
+                    action_type="worker_run_finished",
+                    entity_type="worker",
+                    actor="worker_daemon",
+                    result="SUCCESS",
+                    external_reference="prior-success",
+                    occurred_at=now - datetime.timedelta(minutes=10),
+                    metadata_json={
+                        "run_id": "prior-success",
+                        "final_status": "SUCCESS",
+                        "error_count": 0,
+                        "error_categories": [],
+                        "sample_errors": [],
+                    },
+                ),
+            ]
+        )
+        session.commit()
+
     class FailingSessionFactory:
         def __init__(self, real_factory: sessionmaker[Session]) -> None:
             self.real_factory = real_factory
@@ -266,11 +306,25 @@ def test_worker_begin_persistence_failure_fails_closed(
             self.calls += 1
             # First call is for begin record: simulate DB failure
             if self.calls == 1:
-                raise RuntimeError("Database disk full during begin record commit")
+                raise RuntimeError("Database password=raw-secret-value during begin commit")
             return self.real_factory()
 
+    class CountingAdapter(MockEmailAdapter):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.poll_calls = 0
+
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            self.poll_calls += 1
+            return super().poll_messages(query, since_timestamp, max_results)
+
     failing_factory = FailingSessionFactory(db_session_factory)
-    adapter = MockEmailAdapter([])
+    adapter = CountingAdapter()
     daemon = WorkerDaemon(
         session_factory=failing_factory,
         poll_interval_seconds=60,
@@ -282,8 +336,96 @@ def test_worker_begin_persistence_failure_fails_closed(
     assert results["messages_polled"] == 0
     assert results["messages_ingested"] == 0
     assert results["jobs_discovered"] == 0
-    # Pipeline did not execute further
-    assert failing_factory.calls == 1
+    assert results["final_status"] == "FAILED"
+    assert results["operational_evidence_durable"] is True
+    assert results["warnings"] == []
+    assert failing_factory.calls == 2
+    assert adapter.poll_calls == 0
+
+    with db_session_factory() as session:
+        failed_finishes = session.scalars(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run_finished")
+            .where(AuditLogModel.external_reference == results["run_id"])
+        ).all()
+        fabricated_begins = session.scalars(
+            select(AuditLogModel)
+            .where(AuditLogModel.action_type == "worker_run")
+            .where(AuditLogModel.external_reference == results["run_id"])
+        ).all()
+        assert len(failed_finishes) == 1
+        assert fabricated_begins == []
+        failed = failed_finishes[0]
+        assert failed.result == "FAILED"
+        assert failed.metadata_json["run_id"] == results["run_id"]
+        assert failed.metadata_json["started_at"]
+        datetime.datetime.fromisoformat(failed.metadata_json["started_at"])
+        assert failed.metadata_json["final_status"] == "FAILED"
+        assert failed.metadata_json["error_count"] == 1
+        assert failed.metadata_json["error_categories"] == ["BEGIN_RECORD_FAILED"]
+        assert failed.metadata_json["sample_errors"] == [
+            "begin_record_failed: operational evidence store unavailable"
+        ]
+        serialized = str(failed.metadata_json)
+        assert "raw-secret-value" not in serialized
+        assert "password=" not in serialized.lower()
+
+    # A new health service reads only durable records after the failed process returns.
+    health = HealthCheckService(db_session_factory).check_worker()
+    assert health.status == "DEGRADED"
+    assert health.details["last_attempt_status"] == "FAILED"
+    assert health.details["last_error_category"] == "BEGIN_RECORD_FAILED"
+    assert health.details["last_success_at"] is not None
+    assert "raw-secret-value" not in caplog.text
+
+
+def test_worker_begin_and_fallback_write_failure_is_explicitly_undurable(
+    db_session_factory: sessionmaker[Session],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Two evidence-write failures stop after one fallback and report undurable truth."""
+
+    class TwoWriteFailures:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def __call__(self) -> Session:
+            self.calls += 1
+            if self.calls <= 2:
+                raise RuntimeError("session access_token=raw-secret-value unavailable")
+            return db_session_factory()
+
+    class ForbiddenAdapter(MockEmailAdapter):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.poll_calls = 0
+
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
+            self.poll_calls += 1
+            pytest.fail("pipeline must not poll after begin evidence failure")
+
+    failing_factory = TwoWriteFailures()
+    adapter = ForbiddenAdapter()
+    results = WorkerDaemon(failing_factory, email_adapter=adapter).run_sweep(reconcile=False)
+
+    assert results["final_status"] == "FAILED"
+    assert results["operational_evidence_durable"] is False
+    assert any("begin_record_failed" in error for error in results["errors"])
+    assert results["warnings"]
+    assert any("durable" in warning.lower() for warning in results["warnings"])
+    assert failing_factory.calls == 2
+    assert adapter.poll_calls == 0
+    assert "raw-secret-value" not in str(results)
+    assert "access_token=" not in str(results).lower()
+    assert "raw-secret-value" not in caplog.text
+
+    with db_session_factory() as session:
+        assert session.scalars(select(AuditLogModel)).all() == []
 
 
 def test_worker_distinct_run_ids_per_sweep(
@@ -319,6 +461,7 @@ def test_worker_pipeline_rollback_preserves_run_evidence(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Pipeline exception and rollback cannot erase operational begin and finish audit evidence."""
+
     class CrashingEmailAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -365,6 +508,7 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Raw secrets, OAuth tokens, and passwords are sanitized in finalize records."""
+
     class SecretLeakingAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -405,4 +549,3 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
         assert "Bearer my-secret-jwt-token" not in sample_errors_str
         assert "[REDACTED_SECRET]" in sample_errors_str
         assert "GMAIL_AUTH_ERROR" in meta.get("error_categories", [])
-

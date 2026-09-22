@@ -7,7 +7,7 @@ import logging
 import uuid
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from jobs_automation.db.models import (
@@ -107,20 +107,62 @@ class RecruiterCRMService:
             )
         return timeline
 
+    def _contact_emails(self, contact: ContactModel) -> set[str]:
+        """Retain merged sender aliases in the existing correction audit trail."""
+        emails = {contact.email.lower()} if contact.email else set()
+        audits = self.session.scalars(
+            select(AuditLogModel).where(
+                AuditLogModel.action_type == "merge_contacts",
+                AuditLogModel.result == "success",
+                AuditLogModel.entity_type == "contact",
+                AuditLogModel.entity_id == contact.id,
+            )
+        )
+        for audit in audits:
+            metadata = audit.metadata_json or {}
+            inherited = metadata.get("secondary_emails", [])
+            aliases = [metadata.get("secondary_email")]
+            if isinstance(inherited, list):
+                aliases.extend(inherited)
+            emails.update(value.lower() for value in aliases if isinstance(value, str) and value)
+        return emails
+
+    def _contact_message_ids(self, contact: ContactModel) -> list[uuid.UUID]:
+        emails = self._contact_emails(contact)
+        references = set(
+            self.session.scalars(
+                select(ApplicationEventModel.source_reference).where(
+                    ApplicationEventModel.source == "email_lifecycle",
+                    ApplicationEventModel.payload_json["contact_id"].as_string() == str(contact.id),
+                )
+            )
+        )
+        predicates = [
+            InboundMessageModel.sender.icontains(address, autoescape=True) for address in emails
+        ]
+        if references:
+            predicates.append(InboundMessageModel.provider_message_id.in_(references))
+        if not predicates:
+            return []
+        messages = self.session.scalars(select(InboundMessageModel).where(or_(*predicates)))
+        # A substring match alone must not conflate two distinct mailboxes.
+        return [
+            message.id
+            for message in messages
+            if message.provider_message_id in references
+            or self.parse_sender(message.sender)[1] in emails
+        ]
+
     def get_applications_for_contact(
         self,
         contact_id: uuid.UUID,
     ) -> list[ApplicationModel]:
         """Finds all applications associated with this recruiter contact across multiple roles."""
         contact = self.session.get(ContactModel, contact_id)
-        if not contact or not contact.email:
+        if not contact:
             return []
 
-        # Find messages from or to this contact
-        msg_stmt = select(InboundMessageModel.id).where(
-            InboundMessageModel.sender.ilike(f"%{contact.email}%")
-        )
-        msg_ids = self.session.scalars(msg_stmt).all()
+        msg_ids = self._contact_message_ids(contact)
         if not msg_ids:
             return []
 
@@ -138,7 +180,7 @@ class RecruiterCRMService:
     ) -> list[dict[str, Any]]:
         """Returns chronological communication timeline across all roles/applications for a contact."""
         contact = self.session.get(ContactModel, contact_id)
-        if not contact or not contact.email:
+        if not contact:
             return []
 
         stmt = (
@@ -146,7 +188,8 @@ class RecruiterCRMService:
             .outerjoin(
                 MessageLinkModel, MessageLinkModel.inbound_message_id == InboundMessageModel.id
             )
-            .where(InboundMessageModel.sender.ilike(f"%{contact.email}%"))
+            .where(InboundMessageModel.id.in_(self._contact_message_ids(contact)))
+            .distinct()
             .order_by(InboundMessageModel.received_at.asc())
         )
         results = self.session.execute(stmt).all()
@@ -213,34 +256,42 @@ class RecruiterCRMService:
         notes: str | None = None,
     ) -> MessageLinkModel:
         """Manually corrects a message link to point to the intended application, recording an audit event."""
-        link = self.session.scalar(
-            select(MessageLinkModel).where(
-                MessageLinkModel.inbound_message_id == inbound_message_id
+        msg = self.session.get(InboundMessageModel, inbound_message_id)
+        app = self.session.get(ApplicationModel, new_application_id)
+        if msg is None:
+            raise ValueError(f"Inbound message {inbound_message_id} not found")
+        if app is None:
+            raise ValueError(f"Application {new_application_id} not found")
+
+        links = list(
+            self.session.scalars(
+                select(MessageLinkModel)
+                .where(
+                    MessageLinkModel.inbound_message_id == inbound_message_id,
+                    MessageLinkModel.application_id.is_not(None),
+                )
+                .order_by(MessageLinkModel.id)
             )
         )
-        old_app_id = link.application_id if link else None
-
-        if link:
-            link.application_id = new_application_id
-            link.method = "manual_correction"
-            link.confidence = 1.0
-        else:
-            msg = self.session.get(InboundMessageModel, inbound_message_id)
-            if not msg:
-                raise ValueError(f"Inbound message {inbound_message_id} not found")
-            link = MessageLinkModel(
-                inbound_message_id=inbound_message_id,
-                application_id=new_application_id,
-                confidence=1.0,
-                method="manual_correction",
-            )
+        old_app_ids = sorted({str(item.application_id) for item in links})
+        link = next(
+            (item for item in links if item.application_id == new_application_id),
+            links[0] if links else None,
+        )
+        if link is None:
+            link = MessageLinkModel(inbound_message_id=inbound_message_id)
             self.session.add(link)
-
-        # Update last activity on target application
-        app = self.session.get(ApplicationModel, new_application_id)
-        msg_obj = self.session.get(InboundMessageModel, inbound_message_id)
-        if app and msg_obj:
-            app.last_activity_at = msg_obj.received_at
+        for redundant in links:
+            if redundant is not link:
+                self.session.delete(redundant)
+        link.application_id = new_application_id
+        link.job_id = app.job_id
+        link.company_id = app.job.company_id if app.job else None
+        link.method = "manual_correction"
+        link.confidence = 1.0
+        if app.last_activity_at is None or msg.received_at > app.last_activity_at:
+            app.last_activity_at = msg.received_at
+        self.session.flush()
 
         audit = AuditLogModel(
             action_type="manual_message_relink",
@@ -250,7 +301,8 @@ class RecruiterCRMService:
             result="success",
             metadata_json={
                 "inbound_message_id": str(inbound_message_id),
-                "previous_application_id": str(old_app_id) if old_app_id else None,
+                "previous_application_id": old_app_ids[0] if len(old_app_ids) == 1 else None,
+                "previous_application_ids": old_app_ids,
                 "new_application_id": str(new_application_id),
                 "notes": notes,
             },
@@ -302,6 +354,8 @@ class RecruiterCRMService:
         merged_by: str = "operator",
     ) -> ContactModel:
         """Merges two duplicate contacts, preserves earliest/latest timestamps, and logs an audit record."""
+        if primary_contact_id == secondary_contact_id:
+            raise ValueError("Cannot merge a contact into itself")
         primary = self.session.get(ContactModel, primary_contact_id)
         secondary = self.session.get(ContactModel, secondary_contact_id)
 
@@ -337,6 +391,7 @@ class RecruiterCRMService:
             ev.payload_json = updated_payload
 
         secondary_email = secondary.email
+        secondary_emails = sorted(self._contact_emails(secondary))
         self.session.delete(secondary)
 
         audit = AuditLogModel(
@@ -349,6 +404,7 @@ class RecruiterCRMService:
                 "primary_contact_id": str(primary_contact_id),
                 "merged_secondary_contact_id": str(secondary_contact_id),
                 "secondary_email": secondary_email,
+                "secondary_emails": secondary_emails,
             },
         )
         self.session.add(audit)
