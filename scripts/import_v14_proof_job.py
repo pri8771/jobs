@@ -25,11 +25,15 @@ from sqlalchemy import select
 
 from jobs_automation.db.models import CompanyModel, JobModel, JobSourceModel
 from jobs_automation.db.session import get_sessionmaker
+from jobs_automation.ingestion.parsers.base import detect_remote_type
 from jobs_automation.preparation.packet_builder import compute_questions_sha256
 
 DEFAULT_BOARD_TOKEN = "opensesame"
 DEFAULT_JOB_ID = "7967740"
 DEFAULT_JOB_URL = "https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740"
+DEFAULT_EXPECTED_TITLE = "AI Automation Engineer"
+DEFAULT_COMPANY_NAME = "OpenSesame"
+DEFAULT_COMPANY_DOMAIN = "opensesame.com"
 
 STANDARD_LABEL_PREFIXES = (
     "first name",
@@ -133,11 +137,49 @@ def _source_payload(job_payload: dict[str, Any], api_url: str) -> dict[str, Any]
     }
 
 
+def _validated_job_fields(
+    payload: dict[str, Any], *, job_id: str, expected_title: str
+) -> tuple[str, str, str]:
+    """Return (title, location, content text) only for the exact expected public posting."""
+    returned_id = str(payload.get("id", ""))
+    if returned_id != str(job_id):
+        raise ProofJobImportError(
+            f"Greenhouse returned job ID {returned_id!r}, expected {job_id!r}"
+        )
+
+    title = str(payload.get("title") or "").strip()
+    if not title:
+        raise ProofJobImportError("Greenhouse job has no title")
+
+    expected = expected_title.strip()
+    if not expected:
+        raise ProofJobImportError("An expected proof-job title is required")
+    if title.casefold() != expected.casefold():
+        raise ProofJobImportError(f"Unexpected proof-job title: {title!r}; expected {expected!r}")
+
+    location_obj = payload.get("location")
+    location = ""
+    if isinstance(location_obj, dict):
+        location = str(location_obj.get("name") or "").strip()
+
+    content_text = _html_to_text(payload.get("content"))
+    if len(content_text) < 500:
+        raise ProofJobImportError("Greenhouse job content is unexpectedly short")
+    return title, location, content_text
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--board-token", default=DEFAULT_BOARD_TOKEN)
     parser.add_argument("--job-id", default=DEFAULT_JOB_ID)
     parser.add_argument("--job-url", default=DEFAULT_JOB_URL)
+    parser.add_argument(
+        "--expected-title",
+        default=DEFAULT_EXPECTED_TITLE,
+        help="Exact public posting title the operator selected (case-insensitive match).",
+    )
+    parser.add_argument("--company-name", default=DEFAULT_COMPANY_NAME)
+    parser.add_argument("--company-domain", default=DEFAULT_COMPANY_DOMAIN)
     parser.add_argument(
         "--questions-output",
         type=Path,
@@ -153,29 +195,9 @@ def main() -> int:
     try:
         payload = _fetch_json(api_url)
 
-        returned_id = str(payload.get("id", ""))
-        if returned_id != str(args.job_id):
-            raise ProofJobImportError(
-                f"Greenhouse returned job ID {returned_id!r}, expected {args.job_id!r}"
-            )
-
-        title = str(payload.get("title") or "").strip()
-        if not title:
-            raise ProofJobImportError("Greenhouse job has no title")
-
-        if title.casefold() != "ai automation engineer":
-            raise ProofJobImportError(
-                f"Unexpected proof-job title: {title!r}; expected 'AI Automation Engineer'"
-            )
-
-        location_obj = payload.get("location")
-        location = ""
-        if isinstance(location_obj, dict):
-            location = str(location_obj.get("name") or "").strip()
-
-        content_text = _html_to_text(payload.get("content"))
-        if len(content_text) < 500:
-            raise ProofJobImportError("Greenhouse job content is unexpectedly short")
+        title, location, content_text = _validated_job_fields(
+            payload, job_id=str(args.job_id), expected_title=args.expected_title
+        )
 
         questions = _extract_screening_questions(payload)
         description_hash = hashlib.sha256(content_text.encode("utf-8")).hexdigest()
@@ -184,12 +206,12 @@ def main() -> int:
         session_factory = get_sessionmaker()
         with session_factory() as session:
             company = session.scalar(
-                select(CompanyModel).where(CompanyModel.normalized_name == "OpenSesame")
+                select(CompanyModel).where(CompanyModel.normalized_name == args.company_name)
             )
             if company is None:
                 company = CompanyModel(
-                    normalized_name="OpenSesame",
-                    domain="opensesame.com",
+                    normalized_name=args.company_name,
+                    domain=args.company_domain,
                 )
                 session.add(company)
                 session.flush()
@@ -225,7 +247,9 @@ def main() -> int:
                     company_id=company.id,
                     normalized_title=title,
                     location_text=location or "Remote, US",
-                    remote_type="remote",
+                    # Unstated location keeps the historical remote default; otherwise
+                    # classify the posted location instead of asserting remote.
+                    remote_type=detect_remote_type(location) if location else "remote",
                     description_text=content_text,
                     description_hash=description_hash,
                     first_seen_at=now,
