@@ -1,0 +1,66 @@
+==========================================================
+Jobs Automation OS — Database Backup Utility
+Target DB: pchordia@/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd:56422/jobs_bak_src_20260922052409_32504
+Destination: /tmp/jobs-v20-bak-repaired.kACrZD/original/jobs_backup_20260922_052409Z.sql.gz
+==========================================================
+Dumping PostgreSQL schema and data...
+Generating SHA-256 integrity checksum...
+Backup successfully created: /tmp/jobs-v20-bak-repaired.kACrZD/original/jobs_backup_20260922_052409Z.sql.gz (660B)
+SHA-256 Checksum: b4cc2793cc3e69c5966d80d8cce105107756204428aa2528e742b7d0a21b903a  jobs_backup_20260922_052409Z.sql.gz
+Pruning backups older than 14 days...
+Backup workflow completed successfully.
+Verifying SHA-256 integrity checksum...
+==========================================================
+Jobs Automation OS — Database Restore Utility
+Target DB: pchordia@/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd:56422/jobs_bak_dst_20260922052409_32504
+Source: /tmp/jobs-v20-bak-repaired.kACrZD/moved/jobs_backup_20260922_052409Z.sql.gz
+==========================================================
+Terminating existing database connections...
+Restoring database from /tmp/jobs-v20-bak-repaired.kACrZD/moved/jobs_backup_20260922_052409Z.sql.gz...
+SET
+SET
+SET
+SET
+SET
+ set_config 
+------------
+ 
+(1 row)
+
+SET
+SET
+SET
+SET
+ALTER TABLE
+DROP TABLE
+SET
+SET
+CREATE TABLE
+COPY 2
+ALTER TABLE
+Database restore completed successfully.
+corrupt_EXIT=1 corrupt_SENTINEL99=0
+malformed_EXIT=1 malformed_SENTINEL99=0
+multirecord_EXIT=1 multirecord_SENTINEL99=0
+SOURCE_SHA=10a3a23924fdde6b040082ef030ad1286591b9a9
+DIFF_SHA256=6dafeb8ca80ca1c938334be880b361489bbed7b224353d8f7c895899415ceac1
+SIDECAR_RECORD=b4cc2793cc3e69c5966d80d8cce105107756204428aa2528e742b7d0a21b903a  jobs_backup_20260922_052409Z.sql.gz
+RESTORED_ROWS=1:alpha,2:beta
+SQL_ERROR_EXIT=3 SQL_ERROR_TABLE=ABSENT SQL_ERROR_SUCCESS_COUNT=0
+SQL_ERROR_OUTPUT_BEGIN
+Verifying SHA-256 integrity checksum...
+==========================================================
+Jobs Automation OS — Database Restore Utility
+Target DB: pchordia@/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd:56422/jobs_bak_dst_20260922052409_32504
+Source: /tmp/jobs-v20-bak-repaired.kACrZD/bad.sql.gz
+==========================================================
+Terminating existing database connections...
+Restoring database from /tmp/jobs-v20-bak-repaired.kACrZD/bad.sql.gz...
+CREATE TABLE
+ERROR:  syntax error at or near "THIS"
+LINE 1: THIS IS INVALID SQL;
+        ^
+SQL_ERROR_OUTPUT_END
+CLEANUP_SOURCE_COUNT=0 CLEANUP_TARGET_COUNT=0
+COMMAND=/tmp/jobs-v20-backup-restore-repaired-check-20260922.sh
+HARNESS_EXIT=0

@@ -1,0 +1,46 @@
+{
+  "source_sha": "d98b1ead3eb0bf15b88276f1f2cc844f846ab494",
+  "tree": "4c2ea8cb1f78331da89d49344ae68cfdb937de64",
+  "base": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "canonical_assignment": "75c37aba14ae6581277162f1ca65bfb5ee508f25",
+  "evidence_class": "ENGINEERING",
+  "checks": [
+    {
+      "command": "bash /tmp/jobs-v20-backup-restore-repaired-check-20260922.sh",
+      "exit": 0,
+      "result": "real disposable PostgreSQL backup/move/restore readback; SQL error exit3 rollback/no success; corrupt/malformed/multirecord checksum exit1; source/target cleanup counts0",
+      "log": "pg-verification.txt"
+    },
+    {
+      "command": "bash -n scripts/backup_db.sh scripts/restore_db.sh",
+      "exit": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit": 0
+    },
+    {
+      "command": "PROOF_TEST_PG_ADMIN_URL=<owned Jobs Unix socket56422> PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q",
+      "exit": 0,
+      "result": "446 passed / 1 existing Mac host skip",
+      "log": "full.txt"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff check src tests",
+      "exit": 0,
+      "log": "ruff.txt"
+    },
+    {
+      "command": "PYTHONPATH=$PWD/src ../jobs-source/.venv/bin/mypy src",
+      "exit": 0,
+      "result": "74 files",
+      "log": "mypy.txt"
+    }
+  ],
+  "notes": [
+    "Mechanical harness used real unchanged production scripts on exact working tree subsequently committed; no source edit after verification.",
+    "Temporary DBs only on already-owned Jobs PG; synthetic rows1:alpha,2:beta. Cleanup verified absent; original services/data untouched.",
+    "No Python implementation/test change. Automated real-PG harness retained natively instead of adding implementation-mirroring tests.",
+    "Historical source SHA in cwd-baseline8631b3e is byte-identical for these scripts to accepted10a3a23; SQL baseline directly uses10a3a23."
+  ]
+}

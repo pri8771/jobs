@@ -1,0 +1,26 @@
+SOURCE_SHA=10a3a23924fdde6b040082ef030ad1286591b9a9
+SCRIPT_SHA256=72c207670a0f40195f4f1854ba9c4b12b621fb35fcb86cf385091f2b2f739f5c
+DATABASE=jobs_restore_probe_20260922052119_31865
+ARCHIVE_HASH=b094a2bcc823ff9eca2ba0c1d12088d42c68abe251a48d1aa619d4d29151b280
+Verifying SHA-256 integrity checksum...
+/tmp/jobs-v20-restore-on-error.KGnWSm/malformed.sql.gz: OK
+==========================================================
+Jobs Automation OS — Database Restore Utility
+Target DB: pchordia@/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd:56422/jobs_restore_probe_20260922052119_31865
+Source: /tmp/jobs-v20-restore-on-error.KGnWSm/malformed.sql.gz
+==========================================================
+Terminating existing database connections...
+Restoring database from /tmp/jobs-v20-restore-on-error.KGnWSm/malformed.sql.gz...
+CREATE TABLE
+INSERT 0 1
+ERROR:  syntax error at or near "THIS"
+LINE 1: THIS IS DELIBERATELY INVALID SQL;
+        ^
+ERROR:  current transaction is aborted, commands ignored until end of transaction block
+Database restore completed successfully.
+RESTORE_EXIT=0
+RESTORE_PROBE_TABLE=ABSENT
+CLEANUP_DATABASE_COUNT=0
+OBSERVED=restore reported success although malformed SQL aborted and rolled back the transaction
+COMMAND=/tmp/jobs-v20-restore-on-error-repro-20260922.sh
+HARNESS_EXIT=0
