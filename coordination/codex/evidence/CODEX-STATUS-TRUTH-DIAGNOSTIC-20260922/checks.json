@@ -1,0 +1,35 @@
+{
+  "artifact": "A-V20-CONTROL-CENTER/status-truth-diagnostic",
+  "formal_acceptance": false,
+  "independent": {
+    "ats_live_capable": [],
+    "cleanup": 0,
+    "gmail_readiness": "NOT_CONFIGURED",
+    "header_claim": "System Live",
+    "migration_exit": 0,
+    "overall_health": "DEGRADED",
+    "result": "REPRODUCED_STATIC_LIVE_BADGE_MISMATCH",
+    "workflow_exit": 0
+  },
+  "not_run": [
+    "full pytest",
+    "Ruff",
+    "mypy"
+  ],
+  "original": {
+    "ats_live_capable": [],
+    "cleanup": 0,
+    "gmail_readiness": "NOT_CONFIGURED",
+    "header_claim": "System Live",
+    "migration_exit": 0,
+    "overall_health": "DEGRADED",
+    "result": "REPRODUCED_STATIC_LIVE_BADGE_MISMATCH",
+    "workflow_exit": 0
+  },
+  "recommendation": "REWORK_FOUND",
+  "release_ref": "9e1723c118d521870f877df3fcee775d89b0e396",
+  "source": {
+    "sha": "b462e17b48c286dc4bdee5b958217b42da8e701e",
+    "tree": "f0694f58e4feef9846c21a608dc7bbdeca4be39d"
+  }
+}
