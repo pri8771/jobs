@@ -7,10 +7,10 @@ mode: ACTIVE_5M
 interval_minutes: 5
 heartbeat_count: 33
 last_check_in_utc: 2026-09-22T01:20:43Z
-current_task: V1.7-live scope (docs/FABLE_V17_LIVE.md): P0A F145-01..06, V1.5 F145-07..11, V1.6/V1.7 engineering; code branch claude/serene-brown-g6uij0 (capsule 2615f6b adopted)
-progress_note: Single Fable session resumed on same host; prior watcher process confirmed dead (last #22 21:31:56Z, no newer commits); readiness report in progress; no private inputs, mailbox, browser or submission actions
-review_state: WORKING
-lead_action_requested: NONE
+current_task: V1.7-live scope (docs/FABLE_V17_LIVE.md): P0A F145-01..06 READY_FOR_LEAD_REVIEW; continuing V1.5 F145-07..11 while review pends; code branch claude/serene-brown-g6uij0
+progress_note: P0A batch F145-01..06 pushed at claude/serene-brown-g6uij0 8491dd98154ff750f49cbb64d2a79eca5cb06069 (readiness report + transport memo at a6b5ba3); 323 tests incl. producer-to-consumer on SQLite + real PostgreSQL, ruff, mypy green on this host; CI_BLOCKED_ACCOUNT; no private inputs, mailbox, browser or submission actions
+review_state: READY_FOR_LEAD_REVIEW
+lead_action_requested: REVIEW
 
 ## Entries
 
