@@ -7,10 +7,10 @@ mode: ACTIVE_5M
 interval_minutes: 5
 heartbeat_count: 22
 last_check_in_utc: 2026-09-21T21:31:56Z
-current_task: V1.4 P0A rework: clean port onto latest main + adapt support 062ca92 + runtime-contract fixes (implementation branch claude/serene-brown-g6uij0)
-progress_note: P0A + clean port READY_FOR_LEAD_REVIEW at claude/serene-brown-g6uij0 3444076de27573ec57d9c8ae60876aece8e646d9; 205 tests, ruff, mypy green locally; CI_BLOCKED_ACCOUNT; no private inputs used; awaiting ChatGPT review before any proof run
-review_state: READY_FOR_LEAD_REVIEW
-lead_action_requested: REVIEW
+current_task: V1.7-live scope (docs/FABLE_V17_LIVE.md): P0A F145-01..06, V1.5 F145-07..11, V1.6/V1.7 engineering; code branch claude/serene-brown-g6uij0 (capsule 2615f6b adopted)
+progress_note: Single Fable session resumed on same host; prior watcher process confirmed dead (last #22 21:31:56Z, no newer commits); readiness report in progress; no private inputs, mailbox, browser or submission actions
+review_state: WORKING
+lead_action_requested: NONE
 
 ## Entries
 
