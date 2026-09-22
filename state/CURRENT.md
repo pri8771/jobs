@@ -1,42 +1,54 @@
-# Current Jobs state — scope reset to V1.7 live
+# Current Jobs state — V1.7 live campaign
 
-Owner scope: **get V1.7 live and stop**. One Fable implementation worker and one owned five-minute heartbeat. ChatGPT remains lead/acceptor. This owner change supersedes old three-lane and V2/V3 target prose; it grants no milestone acceptance or consequential live-action authority.
+Owner scope: **get V1.7 live and stop**. One Fable implementation worker/session and one owned five-minute heartbeat. ChatGPT remains lead/acceptor. Old three-lane and V2/V3 execution prose is superseded; no live-action authority is implied by engineering scope.
 
-Audit baseline: main `e87b2efd3018d5d54510cbe2897d3ee7331c936b`.
+Reviewed main before this lead write: `3c34f9161b5149dba882e5cc7cd910a7104f8834`.
 
-## Verified source snapshot
+## Active worker and review surface
 
-- Fable implementation remains `3444076de27573ec57d9c8ae60876aece8e646d9`. Its 205-test SQLite result is worker-reported historical evidence, not a new independent full run.
-- Candidate PR #11 remains open/draft/unmerged at preparation head `2615f6b5b2a7eab9b98ef3f4e3b50eeb55c8e298`, branch `lead/jobs-v145-final-campaign-20260921`.
-- P0A verdict remains REWORK. The capsule's consolidated review covers schema/runtime parity, credential-safe DB identity, persisted answers/provenance/profile/selected-resume linkage and real PostgreSQL compatibility. Its helper still needs integration.
-- V1.5 code remains historical `ddb4f848a97dec87033cfdef7ca33642480d99bc`; clean port plus semantic form/upload/no-false-submission corrections remain.
-- Current `automation/auto_engine.py` still has latest-packet fallback, narrow submitted duplicate guard, broad retries after exceptions and adapter-success-to-SUBMITTED promotion. V1.6 is not safe-submit accepted.
-- Current Gmail parser still hard-codes inbound and replaces provider time with Date header. The actual bounded complete-ingestion path needs validation before real V1.7 evidence.
-- V1.7 CRM/interview/reliability batch PR #3 is merged at `be765ea42856bc695fc1eece9c1da396b4f162d4`; preserve and reconcile, do not rebuild.
+- Active implementation branch: `claude/serene-brown-g6uij0`.
+- Latest reviewed worker code head: `a6b5ba34eface2cb205e3d9e3809c339d38b06b7` (2026-09-22T00:42:05Z), one commit beyond the PR #11 capsule head `2615f6b5b2a7eab9b98ef3f4e3b50eeb55c8e298`.
+- Draft review container: PR #12, **Fable — V1.7 live implementation**. It is not accepted or merge-authorized.
+- PR #11 remains unaccepted source/support for the V1.4/V1.5 capsule. PR #10 is inactive future inventory.
+- New phase-0 commit adds the consolidated readiness report, V1.6 transport research, runtime `jsonschema`, credential-safe SQLAlchemy `URL` handling, and small mypy/Playwright/schema-test hygiene changes.
+
+## Lead review verdict for phase 0
+
+- `coordination/reviews/V17_READINESS_20260922.md` is accepted as the current **operational readiness inventory** only. It is not engineering or live-gate acceptance.
+- V17-T01 transport research is useful support evidence: employer-credentialed ATS submit APIs are not a candidate transport. The browser-hosted form remains only a **candidate transport under policy/owner gating**; `A-V16-TRANSPORT` is not live-ready and G16 remains blocked until an exact job/packet/method is approved and destination policy permits it.
+- The code hygiene changes at `a6b5ba34...` are **not engineering-accepted yet**. There are no exact-head GitHub checks/workflow runs for this code head, and the worker has not returned a coherent `READY_FOR_LEAD_REVIEW` batch with exact-head full validation. Worker-reported 253 passing tests apply to capsule baseline `2615f6b...`, not this head.
 
 ## Formal evidence state
 
-V1.4: P0A not accepted; no accepted genuine packet-proof receipt.
-V1.5: no accepted genuine visible-browser prefill proof.
-V1.6: engineering incomplete; no accepted actual system-submit/external-confirmation proof.
-V1.7: substantial merged code; no accepted genuine production lifecycle proof.
+- **G14 / V1.4:** P0A remains REWORK/IN_PROGRESS; no accepted genuine packet proof or independently validated receipt. `coordination/proofs/` on main still contains only README + schema.
+- **G15 / V1.5:** engineering not accepted; no scoped genuine visible-browser prefill/upload proof.
+- **G16 / V1.6:** engineering incomplete; no exact approved real system submission or correlated external confirmation. Candidate-hosted browser transport remains policy/authorization gated.
+- **G17 / V1.7:** merged PR #3 lifecycle/CRM code is preserved, but no accepted genuine bounded recruiting-ingestion/lifecycle/replay proof.
 
-None of V1.4–V1.7 is COMPLETE on this reviewed evidence. This documentation-only scope update does not change that.
+None of V1.4–V1.7 is COMPLETE on current reviewed evidence. V1.7 requires accepted engineering plus genuine G14, G15, G16 and G17.
 
-## Next delivery
+## Runtime/readiness evidence from active worker
 
-Execution contract: `docs/FABLE_V17_LIVE.md`.
-Active queue: `coordination/WORK_QUEUE.md`.
-New lead handoff: `coordination/V17_LEAD_HANDOFF.md`.
+- Fable reports local PostgreSQL 16.13 engineering availability, `postgresql+psycopg://` app connectivity, and full migration upgrade → downgrade → re-upgrade on its sandbox; this is useful worker evidence and is not the owner's production DB.
+- Fable reports Playwright headless and headed-under-Xvfb engineering availability; this is not G15 evidence on the owner's real application page.
+- This worker host does **not** have the private candidate profile, exact selected `resume_ai_software_engineer` bytes, owner browser session, Gmail OAuth/token, or bounded genuine recruiting thread set. None was accessed.
+- Public Greenhouse egress is blocked on the worker sandbox, so the current proof job must be revalidated from an eligible host when G14 opens.
 
-Immediate work: consolidate readiness/actual submit route/mailbox scope early, finish complete P0A review findings, then allowed V1.5 engineering and four genuine gates through V1.7. Later independent engineering may advance behind an external gate, never formal completion.
+## Heartbeat / CI
 
-## Operations
+- Single owned worker watcher is active on `worker/v14-real-proof` solely as the heartbeat publication branch for this Fable session.
+- Latest verified heartbeat at this lead sync: #27, `773da18a0a7aceb5d5d2c752c187cff2ffa15ebd`, `2026-09-22T00:50:27Z`, five minutes after #26. Task text points to the active V1.7 branch above.
+- Heartbeat issue-posting and hosted CI are still infrastructure-blocked: the latest heartbeat progress job failed before any step (`steps: []`, `runner_id: 0`). Do not call this green CI or a code-test failure.
 
-Last observed historical heartbeat #22 at `2026-09-21T21:31:56Z` reports READY_FOR_LEAD_REVIEW. Verify whether it was an intentional pause before calling it a crash. Do not resume three lanes.
+## Immediate next action
 
-Hosted runner blockage was reported in prior lead records; current exact-code CI must be checked anew. No new application tests, PostgreSQL runtime, mailbox access, private proof, browser prefill, submission or account creation were performed by this scope-planning update.
+Fable continues one session only:
+1. Complete F145-01..06 as one coherent P0A/integration batch on the active branch, preserving the consolidated PR #11 review criteria.
+2. Run targeted proof tests, full pytest, Ruff and mypy on the exact code head plus real PostgreSQL production-path validation available on the worker host.
+3. Return `READY_FOR_LEAD_REVIEW`; ChatGPT reviews the actual diff/evidence and either accepts P0A or issues one smallest bounded repair.
+4. While a lead/live gate is blocked, Fable may continue specifically permitted independent V1.5 engineering F145-07..11; it must not self-open private/browser/mailbox/submission gates.
+5. After accepted P0A, move immediately to genuine G14 input readiness/proof on an eligible host. G15/G16/G17 follow only with their actual scoped grants.
 
-Historical worker-pc clean-sync task produced no commit because checkout/fetch/test access was denied. Do not redispatch unchanged support as though it supplies independent validation.
+`worker-pc` is online infrastructure but no new task is warranted: the active Fable host already has PostgreSQL/test capability, and the prior clean-sync task failed because fetch/test permissions were denied. Do not repeat it unchanged.
 
-At accepted G14/G15/G16/G17 and V1.7 engineering completion: STOP. V2.0/V2.3/V3 remains out of scope.
+At accepted G14/G15/G16/G17 and V1.7 engineering completion: **STOP** and await new owner scope. No V2/V3 assignment.
