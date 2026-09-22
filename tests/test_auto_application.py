@@ -561,3 +561,34 @@ def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session,
     db_session.expire_all()
     replay = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile).execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
     assert replay.status == "SUBMISSION_UNCONFIRMED" and calls == [True]
+
+
+
+def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(db_session, candidate_profile, policy_config, monkeypatch):
+    import datetime
+    import importlib
+
+    from click.testing import CliRunner
+
+    from jobs_automation.automation.auto_engine import ControlledAutoApplicationResult
+    from jobs_automation.db.base import utc_now
+    cli_module = importlib.import_module("jobs_automation.cli.main")
+    jobs, blocked_packet = _bound_packet_fixture(db_session)
+    eligible = ApplicationPacketModel(job_id=jobs[0].id, candidate_profile_version=1, resume_artifact_id=blocked_packet.resume_artifact_id, answers_json={}, unresolved_questions_json=[], packet_hash="eligible-fixture", created_at=utc_now()-datetime.timedelta(days=1))
+    db_session.add(eligible)
+    db_session.add(ApplicationModel(job_id=jobs[1].id, packet_id=blocked_packet.id, status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", policy_decision="auto_allowed", application_mode="auto"))
+    db_session.commit()
+    expected_id = jobs[0].id
+    monkeypatch.setattr(cli_module, "get_engine", lambda *_: db_session.get_bind())
+    monkeypatch.setattr(cli_module, "get_sessionmaker", lambda *_: lambda: db_session)
+    monkeypatch.setattr(ConfigLoader, "load_candidate_profile", lambda _: (candidate_profile, {}))
+    monkeypatch.setattr(ConfigLoader, "load_policy_registry", lambda _: (policy_config, {}))
+    seen = []
+    def record_selection(self, job_id, **kwargs):
+        seen.append(job_id)
+        return ControlledAutoApplicationResult(job_id=str(job_id), status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", message="Requires confirmation")
+    monkeypatch.setattr(ControlledAutoApplicationEngine, "execute_auto_apply", record_selection)
+    result = CliRunner().invoke(cli_module.cli, ["auto-apply", "--next"])
+    assert result.exit_code == 0, result.output
+    assert seen == [expected_id]
+    assert "Outcome unconfirmed" in result.output

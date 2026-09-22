@@ -829,7 +829,8 @@ def auto_apply(
                 .outerjoin(ApplicationModel, ApplicationModel.job_id == JobModel.id)
                 .where(
                     JobModel.status.in_(["shortlisted", "packet_prepared"]),
-                    (ApplicationModel.status.is_(None)) | (ApplicationModel.status != "SUBMITTED"),
+                    (ApplicationModel.status.is_(None))
+                    | ApplicationModel.status.not_in(["SUBMITTED", "SUBMISSION_UNCONFIRMED"]),
                 )
                 .order_by(ApplicationPacketModel.created_at.desc())
                 .limit(1)
@@ -883,6 +884,9 @@ def auto_apply(
             console.print(
                 "  [dim]Note: External submission was NOT performed and cannot masquerade as real submission.[/dim]"
             )
+        elif res.status == "SUBMISSION_UNCONFIRMED":
+            console.print("[bold yellow]Outcome unconfirmed; automatic redispatch blocked[/bold yellow]")
+            console.print(f"  Message: {res.message}")
         elif res.status == "NOT_IMPLEMENTED":
             console.print(
                 f"[bold yellow]⚠️  Live submission not yet implemented:[/bold yellow] {res.message}"
