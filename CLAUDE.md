@@ -1,68 +1,15 @@
-# Claude / Fable Entry Point
+# Jobs Automation — Fable entry point
 
-This repository is the durable project memory for Jobs Automation.
+User is owner. ChatGPT is lead/acceptor. You are the implementation worker.
 
-## Roles
+**Current assignment: V1.7 live, then STOP.** Do not implement V2.0/V2.3/V3. One worker session and one owned five-minute heartbeat.
 
-- User = product owner and final authority.
-- ChatGPT = engineering/product lead, architect, reviewer, prioritizer, integration owner, and acceptance gate.
-- Claude/Fable = worker or planner only as explicitly assigned.
-- Git = current project evidence; explicit owner instructions and `AGENTS.md` have higher precedence than lower-level coordination/docs.
+Start: fetch live Git; read `AGENTS.md`, `state/CURRENT.md`, `coordination/WORK_QUEUE.md`, then `docs/FABLE_V17_LIVE.md`. Inspect latest worker code/PR/review and heartbeat. Use the active artifact's code/tests, not every roadmap. Prior project memory is useful for intent only.
 
-Claude/Fable must never self-mark a milestone/artifact `ACCEPTED`, `REAL_PROVEN`, or `COMPLETE`.
+PR #11 / `lead/jobs-v145-final-campaign-20260921` is a candidate V1.4/V1.5 code capsule, not accepted production. Read its consolidated review and reuse absent source changes; the new V1.7 assignment supersedes only its stop-at-V1.5 restriction.
 
-## Active execution model
+No fake completion: four genuine live gates G14/G15/G16/G17 plus engineering and ChatGPT acceptance. Do not self-accept, bypass a live/privacy/approval gate, fabricate answers, or turn fixture/canary evidence into real hiring evidence.
 
-Exactly three implementation lanes are active in parallel:
-- Lane 1 — `worker/v14-real-proof` — P0 V1.4 real-proof critical path.
-- Lane 2 — `worker/v15-assisted-application` — V1.5 assisted-application safety.
-- Lane 3 — `worker/recruiting-ops` — recruiting/reliability verification and bounded repair.
+Use cheaper capable subagents for bounded mechanical work, not separate workers/watchers. Preserve strong review for proof/permissions/idempotency/browser safety. Follow the existing token-efficiency policy where consistent with this scope.
 
-Old Lane C, old Lane D, and old Scout are paused/superseded. `worker-pc` is independent support infrastructure, not a fourth Jobs implementation lane.
-
-## Near-term product direction
-
-The implementation critical path remains the owner-directed lane work above, with Lane 1 P0A and genuine V1.4 proof first. Future V2.3 planning may continue safely in parallel as planning, but it does not collapse, replace, or reprioritize the three active implementation lanes without explicit owner/lead authorization.
-
-## Minimal startup
-
-Do not read the whole repository.
-
-1. Read `AGENTS.md`.
-2. Read `coordination/SESSION_START.md`.
-3. Read `state/CURRENT.md`.
-4. Read `coordination/WORK_QUEUE.md` and `coordination/TEAM_LANES.md`.
-5. Read `coordination/HEARTBEAT_PROTOCOL.md` and the assigned lane file.
-6. Check the assigned branch/PR, current heartbeat, latest ChatGPT lead review, diff, and CI.
-7. Read only the artifact card/docs/code/tests required for the current task.
-8. Use `coordination/CONTEXT_ROUTER.md` for deeper material when needed.
-
-If explicitly assigned a V2.3 planning pass, read the corresponding planning brief, but treat it as planning rather than a replacement implementation operating model.
-
-## Context / memory
-
-Relevant prior Claude/Fable conversations or memory may explain owner intent and rejected approaches, but cannot override current owner instructions or Git evidence. Persist durable decisions in Git.
-
-Precedence:
-explicit user instruction > `AGENTS.md` > `coordination/WORK_QUEUE.md` / active lane contracts > other coordination/state/artifact files > current code/tests > old conversation memory.
-
-## Execution rules
-
-- Artifact-oriented work.
-- Stay inside the assigned lane/task boundary.
-- Prefer SP1/SP2 bounded work and brownfield repair.
-- Reuse/repair existing code before rebuilding.
-- Each active Lane 1/2/3 worker owns exactly one heartbeat watcher for its lane.
-- Canonical heartbeat epoch is `FIVE_MIN_2026_09_21`, mode `ACTIVE_5M`, interval 5 minutes, with no cadence transitions.
-- Worker claims are evidence inputs; ChatGPT owns acceptance and integration truth.
-- Tests/mocks/fixtures never count as live proof.
-- Never fabricate candidate facts.
-- Never bypass CAPTCHA, MFA, anti-bot controls, or rate limits.
-- Consequential external actions follow `docs/AUTHORIZATION_GATES.md` and explicit owner authorization.
-- No live Gmail OAuth/mailbox access, browser application submission, external messaging, spending, or MFA/CAPTCHA handling without explicit scoped authorization.
-
-## Efficiency
-
-Follow `docs/MODEL_ROUTING_AND_TOKEN_EFFICIENCY.md` where it does not conflict with the active lane contracts. Use the cheapest capable model/subagent for bounded mechanical work; reserve top reasoning models for architecture, safety, difficult debugging, consequential state semantics, and synthesis.
-
-Before finishing a meaningful implementation artifact: verify, commit/push, produce an evidence handoff, set `READY_FOR_LEAD_REVIEW`, and stop at the review boundary unless explicitly authorized to continue.
+Finish coherent artifacts with exact-code tests/evidence, push and READY_FOR_LEAD_REVIEW. Continue safe dependency-ready work automatically. Stop at V1.7 or report the exact remaining external gate after completing all permitted work.

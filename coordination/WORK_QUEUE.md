@@ -1,132 +1,33 @@
-# Active Work Queue
+# Active queue — V1.7 live only
 
-Owner completion rule:
-No version is COMPLETE until engineering acceptance and at least one genuine non-mock production-path example both pass.
+Latest owner scope: **get V1.7 live and stop**. One Fable implementation session, one five-minute watcher. ChatGPT is lead and sole acceptance authority.
 
-Authoritative execution model: **exactly three active implementation lanes**.
+Canonical execution: `docs/FABLE_V17_LIVE.md`.
+Lead handoff: `coordination/V17_LEAD_HANDOFF.md`.
+All V2.0/V2.3/V3 queues are inactive future inventory. Older three-lane directives are superseded.
 
-- Lane 1 — `worker/v14-real-proof` — P0 V1.4 proof-tool integrity, then genuine real proof.
-- Lane 2 — `worker/v15-assisted-application` — preserve accepted A-R15-01..05; current A-R15-06..09; no V1.6 until gates pass.
-- Lane 3 — `worker/recruiting-ops` — preserve accepted B repair batch; verify integrated baseline and repair only evidence-backed regressions.
+## P0: A-V14-P0A-INTEGRITY remains REWORK
 
-Old Lane C/D/Scout remain paused/superseded. `worker-pc` is bounded support infrastructure only.
+Start by reconciling current live Git with the prepared candidate capsule:
+- PR #11 / `lead/jobs-v145-final-campaign-20260921`
+- preparation SHA `2615f6b5b2a7eab9b98ef3f4e3b50eeb55c8e298`
+- Fable source `3444076de27573ec57d9c8ae60876aece8e646d9`
+- schema support `70ef7adc62ab2e9846721e8174a306273f28cbaa`
 
-## P0 — Lane 1 / A-V14-P0A-INTEGRITY
+Do not reduce the remaining task to schema cleanup. The consolidated review includes masked DB URL handoff, persisted answers/provenance/profile/selected-resume binding, production PostgreSQL compatibility and browser safety defects. Preserve verified fixes; no auto-merge or private proof before P0A acceptance.
 
-Status: **REWORK**.
-V1.4 is **NOT COMPLETE**.
+## Current execution sequence
 
-Latest reviewed implementation evidence:
-- clean branch `claude/serene-brown-g6uij0`
-- substantive commit `3444076de27573ec57d9c8ae60876aece8e646d9`
-- direct parent `927b33c0f523950ca206ead1cc2912e19a018184`
-- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, then became stale
-- draft PR #8 remains a review container but carries historical heartbeat/coordination divergence; review the clean implementation commit for code truth.
+1. One consolidated readiness/access report. Research actual permitted submission route and Gmail scope early, without accessing private contents or taking external actions without authority.
+2. Complete capsule F145-00..06 P0A/integration fixes; exact-code review handoff.
+3. While that review is pending, complete permitted non-private F145-07..11 V1.5 engineering. Do not stop all useful work after the first schema fix.
+4. G14 real packet proof and G15 real visible prefill when their actual lead/private/browser gates open.
+5. V1.6 child artifacts: AUTHORIZATION, IDEMPOTENCY, PREFLIGHT, CONFIRMATION, HYGIENE, TRANSPORT; task IDs V17-T01/A01/A02/I01/I02/P01/P02/D01/C01/C02/H01/T02/X01 in the execution contract. Start implementation after V1.5 engineering acceptance or explicit bounded lead advancement.
+6. G16 one exactly approved desired-job system submission and independent external confirmation. Never silently substitute a manual report or dummy employer test.
+7. Reuse merged V1.7 CRM/interview code; V17-R01/M01..M04/R02..R05 close only demonstrated ingestion/lifecycle/replay gaps. Isolated tests/read-only code review may be prepared earlier.
+8. G17 genuine bounded recruiting evidence through production ingestion/lifecycle, meaningful timeline/outcome, restart/replay, independent review.
+9. A-V17-MILESTONE-GATE: all four live gates and engineering accepted; STOP.
 
-Lead review confirms the clean-port materially closes the previously identified runtime verifier gaps: candidate/receipt separation, local/candidate SHA binding, mandatory persisted DB evidence, Greenhouse persisted-source binding, copied-example-profile rejection, production `generation_origin`, driver-qualified PostgreSQL URL handling, and re-derived packet/manifest/resume/artifact/DB links.
+Safe work may move ahead of an external gate; formal completion does not. No permission is granted by a task's place in the queue. Worker states are WORKER_REPORTED_DONE/READY_FOR_LEAD_REVIEW/BLOCKED; lead accepts.
 
-Worker-reported local validation at `3444076...`: pytest 205 passed; Ruff clean; mypy `src tests` clean; 16 formerly-xfail adversarial probes reported passing. These claims do not equal acceptance.
-
-### Remaining blocker — stale proof schema in the clean-port
-
-At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` still has:
-- `additionalProperties: true`, and
-- `result.const: REAL_PROOF_PASS`.
-
-This directly violates RP14-T1/RP14-T5. Runtime evidence is a `REAL_PROOF_CANDIDATE`; committed candidate evidence must be closed/allowlisted.
-
-### Reviewed worker-pc schema support
-
-Task `jobs-v14-p0a-schema-gate-20260921-1748` completed successfully and returned:
-- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`,
-- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`,
-- parent `3444076...`.
-
-Lead inspected the actual support diff. It changes only the proof schema, new schema regression tests, and the dev dependency needed to execute JSON-schema semantics. Structurally it:
-- closes the top-level allowlist (`additionalProperties: false`),
-- pins candidate `result` to `REAL_PROOF_CANDIDATE`,
-- pins schema keys to runner-emitted keys and verifier `ALLOWED_TOP_LEVEL_KEYS`,
-- includes the current candidate fact/question/generation fields,
-- adds tests for production-shape acceptance, extra-field rejection, self-declared PASS rejection, required fields, and invalid deterministic-generation values.
-
-**Support verdict: useful, not accepted/merge-ready.** The worker environment did not execute the test suite and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or faithfully reimplement the patch in its coherent current-main batch and prove it with focused/full validation. No support branch auto-merges.
-
-### Immediate Lane 1 assignment
-
-1. Verify the stale Lane 1 watcher is dead.
-2. Pull latest `main` and start exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher.
-3. Clean-sync the reviewed implementation with latest `main` coordination truth; avoid importing historical heartbeat churn into the implementation diff.
-4. Adopt or faithfully reimplement reviewed support `70ef7adc...`.
-5. Run focused schema/importer/runner/verifier tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
-6. Push one coherent current-main `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
-7. Obtain exact-head GitHub CI when hosted Actions execute. If jobs still fail before steps with `runner_id: 0` / `steps: []`, record `CI_BLOCKED_ACCOUNT`; never call that green.
-8. Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
-
-## Lane 2 — V1.5 assisted application
-
-Branch `worker/v15-assisted-application`, head `ddb4f848a97dec87033cfdef7ca33642480d99bc`, PR #2 draft/non-mergeable.
-
-Scope:
-- preserve lead-accepted A-R15-01..05,
-- current A-R15-06..09 only,
-- no V1.6 until gates pass or owner/lead explicitly authorizes it.
-
-Current heartbeat remains obsolete:
-- `DAYWATCH_2026_09_21`
-- `WATCH_15M_24H`
-- last check-in `2026-09-21T17:39:16Z`.
-
-Immediate assignment:
-1. stop/verify stopped the old watcher once,
-2. sync/rebase latest main,
-3. start exactly one Lane 2 `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
-4. run focused assisted-safety adversarial tests + full pytest/Ruff/mypy,
-5. request lead review on one coherent A-R15-06..09 batch.
-
-Historical head checks only validate the old heartbeat/progress workflows; they do not establish current-main implementation CI.
-
-Known V1.4 proof blocker on this machine remains the missing genuine selected `resume_ai_software_engineer` mapping. Never substitute another resume.
-
-## Lane 3 — recruiting/reliability
-
-PR #3 is merged. Accepted/integrated scope includes B-R17-03, B-R20-07, B-R20-08, B-R20-05/J20-14, B-R20-01, and B-R20-02.
-
-Worker head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b` is 0 commits ahead and stale/behind main.
-
-Current heartbeat remains obsolete:
-- `DAYWATCH_2026_09_21`
-- `PROVING_5M`
-- last check-in `2026-09-21T16:44:37Z`.
-
-Immediate assignment:
-1. stop/verify stopped the old watcher once,
-2. sync latest main,
-3. start exactly one Lane 3 `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
-4. run targeted worker/health/dashboard tests plus full pytest/Ruff/mypy,
-5. verify integrated accepted semantics,
-6. repair only a real evidence-backed regression,
-7. if new worker commits become ahead of main and no PR exists, ChatGPT creates a draft PR automatically.
-
-## Heartbeat standard
-
-For Lane 1/2/3:
-- epoch `FIVE_MIN_2026_09_21`,
-- mode `ACTIVE_5M`,
-- interval 5 minutes,
-- exactly one watcher per active lane,
-- no cadence transitions.
-
-Issue #7 is the user-visible progress surface. Worker heartbeat Git commits remain authoritative liveness evidence when hosted Actions cannot post comments. ChatGPT posts one concise lead comment every hourly run.
-
-Current Actions diagnosis remains `CI_BLOCKED_ACCOUNT`: current Lane 1 heartbeat jobs and latest main CI fail before steps execute with `runner_id: 0` / `steps: []`. Do not rewrite heartbeat semantics merely to create visible activity.
-
-## Real-proof sequence after P0A
-
-1. Lane 1 validates genuine private candidate profile + exact real resume mappings locally.
-2. Lane 1 imports the current real OpenSesame AI Automation Engineer job/questions.
-3. First genuinely eligible Lane 1 or Lane 2 machine runs importer → production packet runner → verifier.
-4. Commit only runtime-generated redacted evidence plus separately generated verifier receipt.
-5. ChatGPT accepts only a genuine `REAL_PROOF_PASS`.
-6. Only then may V1.4 be marked COMPLETE.
-
-No browser application submission is authorized by this proof.
+The old P0A full test result is worker-reported, not newly rerun by this scope update. No live proof or code acceptance was created by this documentation change.
