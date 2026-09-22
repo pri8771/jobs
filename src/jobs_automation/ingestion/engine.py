@@ -265,6 +265,13 @@ class EmailIngestionEngine:
                         )
                         self.session.add(link)
 
+                # Candidate replies use prior thread evidence, never company-name matching.
+                elif (
+                    msg_model.direction == "outbound"
+                    and classification_res.classification == EmailClassification.CANDIDATE_REPLY
+                ):
+                    self._link_candidate_reply(msg_model, summary)
+
                 # 5. Handle Recruiting / Application lifecycle messages
                 elif classification_res.classification in {
                     EmailClassification.APPLICATION_CONFIRMATION,
@@ -331,6 +338,88 @@ class EmailIngestionEngine:
 
         summary.completed_at = datetime.datetime.now(datetime.UTC)
         return summary
+
+    def _link_candidate_reply(
+        self, msg: InboundMessageModel, summary: IngestionSweepSummary
+    ) -> None:
+        """Attribute an outbound reply only to consistent, trusted prior thread links."""
+        if (
+            msg.direction != "outbound"
+            or msg.classification != EmailClassification.CANDIDATE_REPLY.value
+            or not msg.provider_thread_id
+            or (msg.headers_json or {}).get("_provider", {}).get("canary")
+        ):
+            return
+        if self.session.scalar(
+            select(MessageLinkModel.id).where(MessageLinkModel.inbound_message_id == msg.id)
+        ):
+            return
+        rows = self.session.execute(
+            select(MessageLinkModel, InboundMessageModel)
+            .join(
+                InboundMessageModel, InboundMessageModel.id == MessageLinkModel.inbound_message_id
+            )
+            .where(
+                InboundMessageModel.provider_thread_id == msg.provider_thread_id,
+                InboundMessageModel.received_at < msg.received_at,
+                MessageLinkModel.application_id.is_not(None),
+            )
+        ).all()
+        links = [
+            link
+            for link, prior in rows
+            if not (prior.headers_json or {}).get("_provider", {}).get("canary")
+        ]
+        if not links:
+            return
+        identities = {(link.application_id, link.job_id, link.company_id) for link in links}
+        confidence = min(link.confidence for link in links)
+        app = self.session.get(ApplicationModel, links[0].application_id)
+        if (
+            len(identities) != 1
+            or confidence < 0.8  # Same minimum as LifecycleEngine.process_message.
+            or app is None
+            or app.job is None
+            or identities != {(app.id, app.job_id, app.job.company_id)}
+        ):
+            existing_review = self.session.scalar(
+                select(TaskModel.id).where(
+                    TaskModel.task_type == "NEEDS_REVIEW",
+                    TaskModel.payload_json["reason_code"].as_string()
+                    == "candidate_reply_attribution",
+                    TaskModel.payload_json["provider_message_id"].as_string()
+                    == msg.provider_message_id,
+                )
+            )
+            if existing_review is None:
+                self.session.add(
+                    TaskModel(
+                        task_type="NEEDS_REVIEW",
+                        status="pending",
+                        payload_json={
+                            "reason_code": "candidate_reply_attribution",
+                            "reason": "Prior thread application evidence is ambiguous or below lifecycle confidence",
+                            "provider_message_id": msg.provider_message_id,
+                            "inbound_message_id": str(msg.id),
+                            "matched_application_ids": sorted(
+                                {str(link.application_id) for link in links}
+                            ),
+                        },
+                    )
+                )
+                summary.review_tasks_created += 1
+            return
+        proven = links[0]
+        self.session.add(
+            MessageLinkModel(
+                inbound_message_id=msg.id,
+                application_id=proven.application_id,
+                job_id=proven.job_id,
+                company_id=proven.company_id,
+                confidence=confidence,
+                method="thread_reply_attribution",
+            )
+        )
 
     def _link_recruiting_message(
         self,

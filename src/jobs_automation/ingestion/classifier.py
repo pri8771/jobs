@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import re
+from email import utils as email_utils
 
 from jobs_automation.ingestion.models import (
     EmailClassification,
@@ -35,11 +36,10 @@ class EmailClassifier:
         subject_lower = email.subject.lower()
         body_lower = email.body_text.lower()
 
-        # 1. Outbound / Candidate reply detection
-        is_candidate_sender = bool(
-            self.candidate_emails and any(cand in sender_lower for cand in self.candidate_emails)
-        )
-        if email.direction == "outbound" or is_candidate_sender:
+        # 1. Only adapter-observed outbound direction proves candidate ownership.
+        # Sender text cannot promote inbound mail; identity matching affects confidence only.
+        if email.direction == "outbound":
+            is_candidate_sender = email_utils.parseaddr(email.sender)[1].lower() in self.candidate_emails
             confidence = 0.95 if is_candidate_sender else 0.70
             return EmailClassificationResult(
                 classification=EmailClassification.CANDIDATE_REPLY,
