@@ -38,7 +38,7 @@ pg_dump -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USER}" -d "${DB_NAME}" \
   --clean --if-exists --no-owner --no-privileges | gzip -9 > "${BACKUP_FILE}"
 
 echo "Generating SHA-256 integrity checksum..."
-shasum -a 256 "${BACKUP_FILE}" > "${CHECKSUM_FILE}"
+(cd "${BACKUP_DIR}" && shasum -a 256 "$(basename "${BACKUP_FILE}")") > "${CHECKSUM_FILE}"
 
 BACKUP_SIZE=$(ls -lh "${BACKUP_FILE}" | awk '{print $5}')
 echo "Backup successfully created: ${BACKUP_FILE} (${BACKUP_SIZE})"
