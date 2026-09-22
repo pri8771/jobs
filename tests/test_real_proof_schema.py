@@ -18,12 +18,14 @@ import json
 from pathlib import Path
 from typing import Any
 
+import jsonschema
 import pytest
 
 from scripts.verify_v14_real_proof import (
     ALLOWED_TOP_LEVEL_KEYS,
     ProofValidationError,
     validate_redacted_bundle,
+    validate_redacted_bundle_schema,
 )
 from tests.test_real_proof_verifier import _valid_bundle
 
@@ -64,13 +66,12 @@ def _production_candidate() -> dict[str, Any]:
     return _valid_bundle()
 
 
-def _validator() -> Any:
-    # jsonschema is a dev-only dependency; without it the structural and
-    # verifier-parity tests above still hold the contract.
-    jsonschema = pytest.importorskip("jsonschema")
+def _validator() -> jsonschema.Draft202012Validator:
+    # jsonschema is a runtime dependency of the verifier (F145-01): these tests must
+    # execute, never skip, and they run with the same format checker the verifier uses.
     schema = _schema()
     jsonschema.Draft202012Validator.check_schema(schema)
-    return jsonschema.Draft202012Validator(schema)
+    return jsonschema.Draft202012Validator(schema, format_checker=jsonschema.FormatChecker())
 
 
 # --- Structural contract (no third-party dependency) ---------------------------------
@@ -193,3 +194,58 @@ def test_schema_rejects_out_of_contract_values(key: str, bad_value: Any) -> None
     bundle = _production_candidate()
     bundle[key] = bad_value
     assert not _validator().is_valid(bundle)
+
+
+# --- The verifier's own runtime schema gate agrees with the executed schema -----------
+
+
+def test_verifier_runtime_schema_gate_accepts_production_shape_candidate() -> None:
+    digest = validate_redacted_bundle_schema(_production_candidate())
+    assert len(digest) == 64
+
+
+@pytest.mark.parametrize(
+    ("key", "bad_value", "pointer"),
+    [
+        ("run_timestamp_utc", "yesterday", "/run_timestamp_utc"),
+        ("job_url", "https://job-boards.greenhouse.io/opensesame/jobs/79 67740", "/job_url"),
+        ("packet_id", "not-a-uuid", "/packet_id"),
+        ("questions_count", "3", "/questions_count"),
+        ("result", "REAL_PROOF_PASS", "/result"),
+        ("mock_or_fixture_inputs_present", True, "/mock_or_fixture_inputs_present"),
+    ],
+)
+def test_verifier_runtime_schema_gate_rejects_with_bound_location(
+    key: str, bad_value: Any, pointer: str
+) -> None:
+    bundle = _production_candidate()
+    bundle[key] = bad_value
+    with pytest.raises(ProofValidationError, match=f"schema violation at #{pointer}"):
+        validate_redacted_bundle_schema(bundle)
+
+
+def test_verifier_runtime_schema_gate_reports_missing_required_and_extra_fields() -> None:
+    bundle = _production_candidate()
+    del bundle["questions_count"]
+    with pytest.raises(
+        ProofValidationError, match=r"missing required field\(s\) \['questions_count'\]"
+    ):
+        validate_redacted_bundle_schema(bundle)
+
+    bundle = _production_candidate()
+    bundle["candidate_email"] = "private@example.invalid"
+    with pytest.raises(ProofValidationError) as excinfo:
+        validate_redacted_bundle_schema(bundle)
+    assert "disallowed extra field(s) ['candidate_email']" in str(excinfo.value)
+    assert "private@example.invalid" not in str(excinfo.value)
+
+
+def test_verifier_format_checker_covers_every_declared_schema_format() -> None:
+    """Formats the schema declares must actually be checked, not silently skipped."""
+    declared = {
+        value["format"]
+        for value in _schema()["properties"].values()
+        if isinstance(value, dict) and "format" in value
+    }
+    assert declared == {"date-time", "uri"}
+    assert declared <= set(jsonschema.FormatChecker().checkers)

@@ -1,23 +1,62 @@
 #!/usr/bin/env python3
-"""Validate a redacted V1.4 real-proof evidence bundle and generate verification receipt.
+"""Validate a redacted V1.4 real-proof evidence bundle and generate a verification receipt.
 
-This verifies evidence structure, strict allowlists, and anti-mock/anti-fixture invariants.
-When a local full bundle is provided, it cross-binds local artifacts, hashes, and manifest content.
+This verifies evidence structure (executed JSON Schema plus semantic allowlists), the
+anti-mock/anti-fixture invariants, and, when the private full bundle is provided, the
+complete cross-binding of local artifacts, the parsed canonical candidate profile, the
+selected resume mapping, and the persisted database rows the proof claims to describe.
+
+Trust boundaries:
+
+* The redacted bundle and the private bundle are untrusted inputs. Nothing in them
+  chooses which database the verifier connects to: the private bundle carries only a
+  database *identity* and the verifier connects to the trusted runtime database
+  (``DATABASE_URL`` via ``AppSettings``) after proving that identity matches.
+* Rejection reasons written into the committed receipt are sanitized: URL credentials
+  and absolute filesystem paths are never copied into evidence.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import datetime
 import hashlib
 import json
 import re
 import subprocess
 import sys
+import uuid
 from pathlib import Path
 from typing import Any
 
+import jsonschema
+from sqlalchemy.engine import URL
+from sqlalchemy.exc import SQLAlchemyError
+
+from jobs_automation.core.candidate_profile import CandidateProfileConfig
+from jobs_automation.core.config import AppSettings, ConfigLoader
+from jobs_automation.db.models import (
+    ApplicationPacketModel,
+    ArtifactModel,
+    JobModel,
+    ResumeVariantModel,
+)
+from jobs_automation.db.session import get_engine, get_sessionmaker
+from jobs_automation.preparation.packet_builder import compute_canonical_packet_hash
+from jobs_automation.preparation.tailoring import ResumeVariantSelector
+from jobs_automation.proof.database_identity import (
+    ProofDatabaseIdentityError,
+    database_identity,
+    resolve_runtime_database,
+)
+from jobs_automation.proof.profile_fingerprint import candidate_profile_fingerprint
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+EVIDENCE_SCHEMA_PATH = REPO_ROOT / "coordination" / "proofs" / "v14_real_proof.schema.json"
+
 HEX64 = re.compile(r"^[0-9a-fA-F]{64}$")
+UUID_TEXT = re.compile(r"^[0-9a-fA-F-]{36}$")
 FORBIDDEN_TOKENS = (
     "mock",
     "fixture",
@@ -116,6 +155,13 @@ def _require_sha(data: dict[str, Any], key: str) -> str:
     if not HEX64.fullmatch(value):
         raise ProofValidationError(f"{key} must be a 64-character SHA-256 hex digest")
     return value.lower()
+
+
+def _require_uuid_text(data: dict[str, Any], key: str) -> str:
+    value = str(data.get(key, "")).strip()
+    if not value or not UUID_TEXT.fullmatch(value):
+        raise ProofValidationError(f"local bundle missing mandatory valid UUID {key}")
+    return value
 
 
 def _walk_forbidden_private_keys(value: Any, path: str = "") -> None:
@@ -241,6 +287,148 @@ def validate_redacted_bundle(data: dict[str, Any]) -> None:
     _assert_no_fixture_markers(data)
 
 
+# ---------------------------------------------------------------------------
+# F145-01: executed evidence schema validation (Draft 2020-12 with format checks)
+# ---------------------------------------------------------------------------
+
+
+def load_evidence_schema(schema_path: Path = EVIDENCE_SCHEMA_PATH) -> dict[str, Any]:
+    if not schema_path.is_file():
+        raise ProofValidationError(
+            "evidence schema file is missing; the redacted bundle cannot be validated"
+        )
+    try:
+        data = json.loads(schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProofValidationError(
+            f"evidence schema could not be read ({type(exc).__name__})"
+        ) from None
+    if not isinstance(data, dict):
+        raise ProofValidationError("evidence schema must be a JSON object")
+    return data
+
+
+def _collect_schema_formats(node: Any) -> set[str]:
+    formats: set[str] = set()
+    if isinstance(node, dict):
+        declared = node.get("format")
+        if isinstance(declared, str):
+            formats.add(declared)
+        for child in node.values():
+            formats |= _collect_schema_formats(child)
+    elif isinstance(node, list):
+        for child in node:
+            formats |= _collect_schema_formats(child)
+    return formats
+
+
+def _describe_schema_error(error: Any) -> str:
+    """Describe a schema violation by location and constraint, never by instance value.
+
+    The location is a JSON pointer in ``#/a/b`` fragment form; the ``#`` prefix keeps it
+    distinct from a filesystem path for the reason sanitizer.
+    """
+    pointer = "#/" + "/".join(str(part) for part in error.absolute_path)
+    keyword = str(error.validator)
+    instance = error.instance if isinstance(error.instance, dict) else {}
+    if keyword == "required":
+        required = error.validator_value if isinstance(error.validator_value, list) else []
+        missing = sorted(str(key) for key in required if key not in instance)
+        return f"schema violation at {pointer}: missing required field(s) {missing}"
+    if keyword == "additionalProperties":
+        properties = error.schema.get("properties", {}) if isinstance(error.schema, dict) else {}
+        extra = sorted(str(key) for key in instance if key not in properties)
+        return f"schema violation at {pointer}: disallowed extra field(s) {extra}"
+    if keyword in {
+        "type",
+        "format",
+        "const",
+        "enum",
+        "pattern",
+        "minimum",
+        "maximum",
+        "minLength",
+        "maxLength",
+        "minItems",
+        "maxItems",
+    }:
+        expected = json.dumps(error.validator_value, sort_keys=True, default=str)
+        return f"schema violation at {pointer}: {keyword} constraint failed (expected {expected})"
+    return f"schema violation at {pointer}: {keyword} constraint failed"
+
+
+def validate_redacted_bundle_schema(
+    data: dict[str, Any], schema_path: Path = EVIDENCE_SCHEMA_PATH
+) -> str:
+    """Validate the redacted bundle against the closed evidence schema.
+
+    Format assertions (``date-time``, ``uri``) must actually execute: if the installed
+    format checker cannot check a format the schema declares, validation fails closed
+    instead of silently skipping the assertion. Returns the SHA-256 of the schema file
+    so the receipt is bound to the exact schema that was enforced.
+    """
+    schema = load_evidence_schema(schema_path)
+    try:
+        jsonschema.Draft202012Validator.check_schema(schema)
+    except jsonschema.exceptions.SchemaError as exc:
+        raise ProofValidationError(
+            f"evidence schema is itself invalid ({type(exc).__name__})"
+        ) from None
+
+    format_checker = jsonschema.FormatChecker()
+    unavailable = sorted(_collect_schema_formats(schema) - set(format_checker.checkers))
+    if unavailable:
+        raise ProofValidationError(
+            f"evidence schema format checker unavailable for {unavailable}; install the "
+            "verifier runtime dependencies (rfc3339-validator, rfc3986-validator)"
+        )
+
+    validator = jsonschema.Draft202012Validator(schema, format_checker=format_checker)
+    errors = sorted(
+        validator.iter_errors(data),
+        key=lambda error: ([str(part) for part in error.absolute_path], str(error.validator)),
+    )
+    if errors:
+        raise ProofValidationError(_describe_schema_error(errors[0]))
+    return sha256_file(schema_path)
+
+
+# ---------------------------------------------------------------------------
+# F145-05: sanitized rejection reasons and receipt naming
+# ---------------------------------------------------------------------------
+
+_URL_CREDENTIALS = re.compile(r"(?P<scheme>[A-Za-z][A-Za-z0-9+.\-]*://)[^/@\s]+@")
+# Local-file URLs carry an absolute path right after the scheme (sqlite:////home/x.db).
+_LOCAL_FILE_URL_PATH = re.compile(
+    r"(?P<scheme>(?:sqlite|file)(?:\+[A-Za-z0-9_]+)?://)(?P<path>/[^\s'\"`,()\[\]{}<>]+)"
+)
+# Two or more slash-delimited segments not preceded by a word/URL character, another
+# slash (HTTP URL paths), or the "#" that marks a JSON pointer.
+_ABSOLUTE_PATH = re.compile(r"(?<![\w\-.:#/])(?:/[^\s/'\"`:;,()\[\]{}<>]+){2,}")
+_SAFE_RECEIPT_COMPONENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]{0,63}$")
+MAX_REASON_LENGTH = 400
+
+
+def sanitize_reason(text: str) -> str:
+    """Strip credentials and absolute private paths from a reason before it is recorded."""
+    text = _URL_CREDENTIALS.sub(lambda match: f"{match.group('scheme')}***@", text)
+    text = _LOCAL_FILE_URL_PATH.sub(
+        lambda match: f"{match.group('scheme')}<path:{Path(match.group('path')).name}>", text
+    )
+    text = _ABSOLUTE_PATH.sub(lambda match: f"<path:{Path(match.group(0)).name}>", text)
+    text = " ".join(text.split())
+    if len(text) > MAX_REASON_LENGTH:
+        text = text[: MAX_REASON_LENGTH - 3] + "..."
+    return text
+
+
+def receipt_filename(proof_run_id: str, candidate_bundle_sha: str) -> str:
+    """Never build a receipt path from an untrusted proof_run_id."""
+    if _SAFE_RECEIPT_COMPONENT.fullmatch(proof_run_id) and ".." not in proof_run_id:
+        return f"v14_real_proof_receipt_{proof_run_id}.json"
+    return f"v14_real_proof_receipt_unbound_{candidate_bundle_sha[:16]}.json"
+
+
 def compute_questions_sha256(questions: list[str]) -> str:
     """Compute canonical SHA-256 hash of application questions list."""
     serialized = json.dumps(questions, sort_keys=True, separators=(",", ":"))
@@ -268,12 +456,28 @@ def verify_local_artifact(path: Path, expected_sha: str) -> None:
         )
 
 
+def load_canonical_profile(path: Path) -> CandidateProfileConfig:
+    """Parse the private profile with the production loader; never echo its contents."""
+    try:
+        profile, _ = ConfigLoader(REPO_ROOT / "config").load_candidate_profile(path)
+    except Exception as exc:  # YAML, pydantic and OS errors carry private content
+        raise ProofValidationError(
+            "candidate profile on disk does not parse as a canonical candidate profile "
+            f"({type(exc).__name__})"
+        ) from None
+    return profile
+
+
+def _resolved(path_value: Any) -> Path:
+    return Path(str(path_value)).expanduser().resolve()
+
+
 def validate_local_bundle(
     local_data: dict[str, Any],
     redacted_data: dict[str, Any],
     candidate_bundle_sha: str | None = None,
 ) -> None:
-    """RP14-T2, RP14-T3, RP14-T4 & RP14-T7: Validate local artifacts, Greenhouse source attestation, and cross-bind."""
+    """RP14-T2/T3/T4/T7 and F145-02..04: cross-bind every claim to independent evidence."""
     local_proof_id = local_data.get("proof_run_id")
     redacted_proof_id = redacted_data.get("proof_run_id")
     if not local_proof_id or local_proof_id != redacted_proof_id:
@@ -287,7 +491,7 @@ def validate_local_bundle(
         raise ProofValidationError("local bundle missing mandatory candidate_bundle_sha256")
     if (
         candidate_bundle_sha
-        and local_data["candidate_bundle_sha256"].lower() != candidate_bundle_sha.lower()
+        and str(local_data["candidate_bundle_sha256"]).lower() != candidate_bundle_sha.lower()
     ):
         raise ProofValidationError(
             f"candidate_bundle_sha256 in local bundle does not match computed candidate SHA: "
@@ -322,9 +526,8 @@ def validate_local_bundle(
             f"candidate profile file name indicates test/example fixture: {cand_profile_path.name}"
         )
 
-    repo_root = Path(__file__).resolve().parent.parent
-    example_files = list(repo_root.glob("config/*example*")) + list(
-        repo_root.glob("tests/fixtures/*example*")
+    example_files = list(REPO_ROOT.glob("config/*example*")) + list(
+        REPO_ROOT.glob("tests/fixtures/*example*")
     )
     for eg in example_files:
         if eg.is_file() and sha256_file(eg).lower() == actual_profile_sha:
@@ -340,6 +543,35 @@ def validate_local_bundle(
     if redacted_data.get("candidate_profile_source_class") != "PRIVATE_LOCAL":
         raise ProofValidationError(
             f"candidate_profile_source_class in redacted bundle must be 'PRIVATE_LOCAL', got {redacted_data.get('candidate_profile_source_class')!r}"
+        )
+
+    # F145-04: the profile must parse as a canonical profile and bind by normalized
+    # fingerprint and version, not merely by the existence of a file plus a digest.
+    profile = load_canonical_profile(cand_profile_path)
+    profile_fingerprint = candidate_profile_fingerprint(profile)
+    attested_fingerprint = _require_sha(local_data, "candidate_profile_fingerprint_sha256")
+    if attested_fingerprint != profile_fingerprint:
+        raise ProofValidationError(
+            "candidate_profile_fingerprint_sha256 in local bundle does not match the "
+            "fingerprint of the parsed canonical profile on disk"
+        )
+    if str(local_data.get("candidate_profile_version")) != str(profile.version):
+        raise ProofValidationError(
+            f"local bundle candidate_profile_version ({local_data.get('candidate_profile_version')!r}) "
+            f"does not match the parsed candidate profile version ({profile.version})"
+        )
+    if str(redacted_data.get("candidate_profile_version")) != str(profile.version):
+        raise ProofValidationError(
+            f"redacted candidate_profile_version ({redacted_data.get('candidate_profile_version')!r}) "
+            f"does not match the parsed candidate profile version ({profile.version})"
+        )
+    expected_unresolved_categories = {
+        key: len(values) for key, values in profile.check_unresolved_facts().items() if values
+    }
+    if redacted_data.get("candidate_unresolved_fact_categories") != expected_unresolved_categories:
+        raise ProofValidationError(
+            "redacted candidate_unresolved_fact_categories do not match the unresolved-fact "
+            "categories derived from the parsed candidate profile"
         )
 
     # RP14-T3: Source attestation validation
@@ -400,8 +632,8 @@ def validate_local_bundle(
         questions_data = json.loads(questions_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ProofValidationError(
-            f"could not parse questions JSON from {questions_path}: {exc}"
-        ) from exc
+            f"could not parse questions JSON from {questions_path}: {type(exc).__name__}"
+        ) from None
     if not isinstance(questions_data, list) or not all(isinstance(q, str) for q in questions_data):
         raise ProofValidationError(f"questions JSON in {questions_path} must be a list of strings")
 
@@ -463,6 +695,56 @@ def validate_local_bundle(
             "resume_source_sha256 does not match resume_artifact_sha256 for copied deterministic packet"
         )
 
+    # F145-04: the selected variant must be the one the profile maps to the verified
+    # resume bytes, with the exact byte count and the family the profile derives.
+    selected_variant = str(local_data.get("selected_resume_variant") or "").strip()
+    if not selected_variant:
+        raise ProofValidationError("local bundle missing mandatory selected_resume_variant")
+    if selected_variant != str(redacted_data.get("resume_variant")):
+        raise ProofValidationError(
+            f"local bundle selected_resume_variant ({selected_variant}) does not match "
+            f"redacted resume_variant ({redacted_data.get('resume_variant')})"
+        )
+    mapped_source_raw = profile.resume.resolve_source_path(selected_variant)
+    if not mapped_source_raw:
+        raise ProofValidationError(
+            f"candidate profile does not map the selected resume variant {selected_variant} "
+            "to any resume source"
+        )
+    mapped_source = _resolved(mapped_source_raw)
+    resume_source_entry = artifact_map["resume_source"]
+    if _resolved(resume_source_entry["path"]) != mapped_source:
+        raise ProofValidationError(
+            "resume_source artifact does not match the resume file the candidate profile maps "
+            f"to the selected variant {selected_variant}"
+        )
+    if _resolved(local_data.get("resume_source_path", "")) != mapped_source:
+        raise ProofValidationError(
+            "local bundle resume_source_path does not match the resume file the candidate "
+            f"profile maps to the selected variant {selected_variant}"
+        )
+    if str(local_data.get("resume_source_sha256", "")).lower() != resume_source_entry["sha256"]:
+        raise ProofValidationError(
+            "local bundle resume_source_sha256 does not match the verified resume_source artifact"
+        )
+    mapped_byte_count = mapped_source.stat().st_size
+    if int(redacted_data.get("resume_source_byte_count", -1)) != mapped_byte_count:
+        raise ProofValidationError(
+            f"redacted resume_source_byte_count ({redacted_data.get('resume_source_byte_count')}) "
+            f"does not match the byte count of the mapped resume file ({mapped_byte_count})"
+        )
+    if int(local_data.get("resume_source_byte_count", -1)) != mapped_byte_count:
+        raise ProofValidationError(
+            f"local bundle resume_source_byte_count ({local_data.get('resume_source_byte_count')}) "
+            f"does not match the byte count of the mapped resume file ({mapped_byte_count})"
+        )
+    expected_family = ResumeVariantSelector.get_resume_family(selected_variant, profile)
+    if str(redacted_data.get("resume_family")) != expected_family:
+        raise ProofValidationError(
+            f"redacted resume_family ({redacted_data.get('resume_family')!r}) does not match the "
+            f"family the candidate profile derives for {selected_variant} ({expected_family!r})"
+        )
+
     # Manifest content, local JobModel link, and canonical packet hash recomputation (RP14-T7)
     manifest_info = artifact_map.get("manifest")
     if not manifest_info:
@@ -472,21 +754,19 @@ def validate_local_bundle(
     try:
         manifest_json = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
-        raise ProofValidationError(f"could not read manifest JSON: {exc}") from exc
+        raise ProofValidationError(f"could not read manifest JSON ({type(exc).__name__})") from None
+    if not isinstance(manifest_json, dict):
+        raise ProofValidationError("manifest JSON must be an object")
 
     # Mandatory job_id
-    local_job_id = str(local_data.get("job_id", "")).strip()
-    if not local_job_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_job_id):
-        raise ProofValidationError("local bundle missing mandatory valid UUID job_id")
+    local_job_id = _require_uuid_text(local_data, "job_id")
     if str(manifest_json.get("job_id")) != local_job_id:
         raise ProofValidationError(
             f"manifest job_id ({manifest_json.get('job_id')}) does not match local job_id ({local_job_id})"
         )
 
     # Mandatory packet_id, resume_variant_id, and artifact IDs
-    local_packet_id = str(local_data.get("packet_id", "")).strip()
-    if not local_packet_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_packet_id):
-        raise ProofValidationError("local bundle missing mandatory valid UUID packet_id")
+    local_packet_id = _require_uuid_text(local_data, "packet_id")
     if local_packet_id != str(redacted_data.get("packet_id")) or local_packet_id != str(
         manifest_json.get("packet_id")
     ):
@@ -494,25 +774,12 @@ def validate_local_bundle(
             "packet_id mismatch across local bundle, redacted bundle, and manifest"
         )
 
-    local_resume_variant_id = str(local_data.get("resume_variant_id", "")).strip()
-    if not local_resume_variant_id or not re.fullmatch(
-        r"^[0-9a-fA-F-]{36}$", local_resume_variant_id
-    ):
-        raise ProofValidationError("local bundle missing mandatory valid UUID resume_variant_id")
+    local_resume_variant_id = _require_uuid_text(local_data, "resume_variant_id")
     if local_resume_variant_id != str(manifest_json.get("resume_variant_id")):
         raise ProofValidationError("resume_variant_id mismatch between local bundle and manifest")
 
-    local_resume_artifact_id = str(local_data.get("resume_artifact_id", "")).strip()
-    if not local_resume_artifact_id or not re.fullmatch(
-        r"^[0-9a-fA-F-]{36}$", local_resume_artifact_id
-    ):
-        raise ProofValidationError("local bundle missing mandatory valid UUID resume_artifact_id")
-
-    local_cl_artifact_id = str(local_data.get("cover_letter_artifact_id", "")).strip()
-    if not local_cl_artifact_id or not re.fullmatch(r"^[0-9a-fA-F-]{36}$", local_cl_artifact_id):
-        raise ProofValidationError(
-            "local bundle missing mandatory valid UUID cover_letter_artifact_id"
-        )
+    _require_uuid_text(local_data, "resume_artifact_id")
+    _require_uuid_text(local_data, "cover_letter_artifact_id")
 
     if str(manifest_json.get("resume_family")) != str(redacted_data.get("resume_family")):
         raise ProofValidationError("manifest resume_family does not match redacted resume_family")
@@ -544,6 +811,67 @@ def validate_local_bundle(
     if manifest_json.get("is_live_ready") != redacted_data.get("is_live_ready"):
         raise ProofValidationError("manifest is_live_ready does not match redacted is_live_ready")
 
+    # F145-03/04: manifest identity fields bind to the parsed profile and the resume mapping.
+    manifest_fingerprint = str(
+        manifest_json.get("candidate_profile_fingerprint_sha256") or ""
+    ).lower()
+    if not manifest_fingerprint:
+        raise ProofValidationError(
+            "manifest is missing candidate_profile_fingerprint_sha256; regenerate the packet "
+            "with the current packet builder"
+        )
+    if manifest_fingerprint != profile_fingerprint:
+        raise ProofValidationError(
+            "manifest candidate_profile_fingerprint_sha256 does not match the fingerprint of "
+            "the parsed candidate profile on disk"
+        )
+    if str(manifest_json.get("candidate_profile_version")) != str(profile.version):
+        raise ProofValidationError(
+            f"manifest candidate_profile_version ({manifest_json.get('candidate_profile_version')!r}) "
+            f"does not match the parsed candidate profile version ({profile.version})"
+        )
+    manifest_source_reference = manifest_json.get("resume_source_reference")
+    if not manifest_source_reference or _resolved(manifest_source_reference) != mapped_source:
+        raise ProofValidationError(
+            "manifest resume_source_reference does not match the resume file the candidate "
+            f"profile maps to the selected variant {selected_variant}"
+        )
+    manifest_answers = manifest_json.get("answers")
+    manifest_provenance = manifest_json.get("answer_provenance")
+    manifest_unresolved = manifest_json.get("unresolved_questions")
+    if (
+        not isinstance(manifest_answers, dict)
+        or not isinstance(manifest_provenance, dict)
+        or not isinstance(manifest_unresolved, list)
+    ):
+        raise ProofValidationError(
+            "manifest answers, answer_provenance and unresolved_questions must all be present"
+        )
+    if manifest_unresolved != list(redacted_data.get("unresolved_questions", [])):
+        raise ProofValidationError(
+            "manifest unresolved_questions do not match redacted unresolved_questions"
+        )
+    if len(manifest_answers) != int(redacted_data.get("resolved_answers_count", -1)):
+        raise ProofValidationError(
+            f"redacted resolved_answers_count ({redacted_data.get('resolved_answers_count')}) does "
+            f"not match the number of manifest answers ({len(manifest_answers)})"
+        )
+    if len(manifest_answers) + len(manifest_unresolved) != len(questions_data):
+        raise ProofValidationError(
+            f"manifest answers ({len(manifest_answers)}) plus unresolved questions "
+            f"({len(manifest_unresolved)}) do not account for the {len(questions_data)} "
+            "attested questions"
+        )
+    attested_questions = {question.strip() for question in questions_data}
+    if not set(manifest_answers) <= attested_questions:
+        raise ProofValidationError(
+            "manifest answers include a question that is not in the attested question list"
+        )
+    if set(manifest_provenance) != set(manifest_answers):
+        raise ProofValidationError(
+            "manifest answer_provenance keys do not match the manifest answers"
+        )
+
     # Recompute canonical packet hash from manifest components
     canonical_payload = {
         "job_id": str(manifest_json.get("job_id")),
@@ -551,8 +879,8 @@ def validate_local_bundle(
         "resume_variant_id": str(manifest_json.get("resume_variant_id")),
         "resume_sha": str(manifest_json.get("resume_artifact_sha256")),
         "cover_letter_sha": str(manifest_json.get("cover_letter_artifact_sha256")),
-        "answers": manifest_json.get("answers", {}),
-        "answer_provenance": manifest_json.get("answer_provenance", {}),
+        "answers": manifest_answers,
+        "answer_provenance": manifest_provenance,
     }
     recomputed_packet_hash = hashlib.sha256(
         json.dumps(canonical_payload, sort_keys=True).encode("utf-8")
@@ -569,13 +897,17 @@ def validate_local_bundle(
             f"{manifest_json.get('packet_hash')} != {recomputed_packet_hash}"
         )
 
-    # RP14-T7/RP14-T8: persisted DB rows, artifact rows, and the independent
-    # Greenhouse source binding are mandatory for REAL_PROOF_PASS.
+    # RP14-T7/RP14-T8 and F145-02/03/04: persisted DB rows, artifact rows, the independent
+    # Greenhouse source binding, and the profile/variant binding are mandatory for PASS.
     verify_database_linkage(
         local_data,
         redacted_data,
         questions=questions_data,
         artifact_map=artifact_map,
+        manifest=manifest_json,
+        profile=profile,
+        profile_fingerprint=profile_fingerprint,
+        mapped_resume_source=mapped_source,
     )
 
 
@@ -608,8 +940,8 @@ def _require_readable_sqlite_file(db_path: Path) -> None:
             header = handle.read(len(SQLITE_FILE_MAGIC))
     except OSError as exc:
         raise ProofValidationError(
-            f"proof database file could not be opened for reading: {db_path}: {exc}"
-        ) from exc
+            f"proof database file could not be opened for reading: {db_path} ({type(exc).__name__})"
+        ) from None
     if header != SQLITE_FILE_MAGIC:
         raise ProofValidationError(
             f"proof database file is not an openable SQLite database: {db_path}"
@@ -656,17 +988,20 @@ def _require_persisted_sqlite_target(db_str: str, driver: str) -> None:
 
 
 def resolve_proof_db_url(db_target: str | Path) -> str:
-    """Normalize a declared proof-database target, failing closed on unusable evidence.
+    """Normalize a legacy declared proof-database target, failing closed on unusable evidence.
 
     Accepts the SQLAlchemy URL forms the application itself produces, including the
     driver-qualified ``postgresql+psycopg://`` URL that ``AppSettings.database_url``
-    defaults to and that ``scripts/run_v14_real_proof.py`` records as ``database_url``.
-    Also accepts a persisted SQLite URL or a bare SQLite file path.
+    defaults to. Also accepts a persisted SQLite URL or a bare SQLite file path.
 
     Everything else is a rejection, never a silent pass: async drivers the verifier
     cannot open a blocking session with, non-PostgreSQL/non-SQLite backends,
     PostgreSQL URLs that name no database, in-memory SQLite, and SQLite files that
     are absent, unreadable, or not real SQLite databases.
+
+    The returned string is a *target description* only. The verifier never connects
+    to it directly: it is reduced to a database identity and reconciled with the
+    trusted runtime configuration by ``resolve_verification_database``.
     """
     db_str = str(db_target).strip()
     if not db_str:
@@ -696,6 +1031,63 @@ def resolve_proof_db_url(db_target: str | Path) -> str:
         f"unsupported proof database backend {backend!r}: only PostgreSQL and persisted "
         f"SQLite proof databases can be verified ({_redact_db_url(db_str)})"
     )
+
+
+def resolve_verification_database(
+    local_data: dict[str, Any], runtime_url: str | URL | None = None
+) -> URL:
+    """F145-02: connect only to the trusted runtime database, after proving identity.
+
+    The private bundle declares the database *identity* the runner persisted into
+    (``proof_database``). Credentials come exclusively from trusted runtime
+    configuration (``AppSettings.database_url``, i.e. ``DATABASE_URL``); the identity
+    must match that runtime target exactly or verification fails. A legacy
+    ``database_url``/``db_path`` string is reduced to an identity the same way, and a
+    password-masked legacy URL is rejected rather than reconstructed.
+    """
+    reference = local_data.get("proof_database")
+    legacy_target = local_data.get("database_url") or local_data.get("db_path")
+    if reference is None and (legacy_target is None or not str(legacy_target).strip()):
+        raise ProofValidationError(
+            "local full bundle must explicitly configure a proof database target "
+            "(proof_database identity, or legacy database_url/db_path); REAL_PROOF_PASS "
+            "requires persisted DB evidence"
+        )
+
+    if reference is not None:
+        if not isinstance(reference, dict):
+            raise ProofValidationError(
+                "proof_database must be a database identity object, not a connection string"
+            )
+    else:
+        resolved_legacy = resolve_proof_db_url(str(legacy_target))
+        try:
+            reference = database_identity(resolved_legacy)
+        except ProofDatabaseIdentityError as exc:
+            raise ProofValidationError(
+                f"legacy proof database target rejected: {exc}; regenerate the private bundle "
+                "with the current runner"
+            ) from None
+
+    if runtime_url is None:
+        try:
+            runtime_url = AppSettings().database_url
+        except Exception as exc:
+            raise ProofValidationError(
+                f"trusted runtime database configuration could not be loaded ({type(exc).__name__})"
+            ) from None
+
+    try:
+        url = resolve_runtime_database(reference, runtime_url)
+    except ProofDatabaseIdentityError as exc:
+        raise ProofValidationError(
+            "proof database identity could not be reconciled with the trusted runtime "
+            f"database (DATABASE_URL): {exc}"
+        ) from None
+
+    if url.drivername.startswith("sqlite"):
+        _require_readable_sqlite_file(Path(str(url.database)).expanduser())
+    return url
 
 
 def verify_source_attestation_against_db(
@@ -953,53 +1345,239 @@ def verify_persisted_job_identity(job: Any, redacted_data: dict[str, Any]) -> No
         )
 
 
+def verify_persisted_packet_components(
+    packet: Any,
+    resume_art: Any,
+    cl_art: Any,
+    manifest: dict[str, Any],
+    redacted_data: dict[str, Any],
+    questions: list[str],
+) -> None:
+    """F145-03: re-derive packet identity from persisted answers/provenance, not stored hashes.
+
+    The stored ``packet_hash`` is only a claim. The packet identity is recomputed from
+    the persisted answers, answer provenance, unresolved list, profile version, variant
+    id and artifact hashes, and every component is compared with the manifest and the
+    redacted evidence.
+    """
+    db_answers = packet.answers_json
+    db_provenance = packet.answer_provenance_json
+    db_unresolved = packet.unresolved_questions_json
+    if (
+        not isinstance(db_answers, dict)
+        or not isinstance(db_provenance, dict)
+        or not isinstance(db_unresolved, list)
+    ):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel answers_json, answer_provenance_json and "
+            "unresolved_questions_json must all be present"
+        )
+
+    recomputed = compute_canonical_packet_hash(
+        job_id=packet.job_id,
+        profile_version=packet.candidate_profile_version,
+        resume_variant_id=packet.resume_variant_id,
+        resume_sha=str(resume_art.sha256),
+        cover_letter_sha=str(cl_art.sha256),
+        answers=db_answers,
+        answer_provenance=db_provenance,
+    ).lower()
+    if recomputed != str(packet.packet_hash or "").lower():
+        raise ProofValidationError(
+            "packet hash recomputed from persisted DB components (answers, provenance, artifact "
+            f"hashes, profile version, variant id) is {recomputed}, which does not match the "
+            f"stored ApplicationPacketModel.packet_hash ({packet.packet_hash})"
+        )
+    if recomputed != str(redacted_data.get("packet_hash", "")).lower():
+        raise ProofValidationError(
+            f"packet hash recomputed from persisted DB components ({recomputed}) does not match "
+            f"redacted packet_hash ({redacted_data.get('packet_hash')})"
+        )
+    if db_answers != manifest.get("answers"):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel answers_json does not match the manifest answers"
+        )
+    if db_provenance != manifest.get("answer_provenance"):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel answer_provenance_json does not match the manifest "
+            "answer_provenance"
+        )
+    if list(db_unresolved) != list(manifest.get("unresolved_questions", [])):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel unresolved_questions_json does not match the manifest "
+            "unresolved_questions"
+        )
+    if list(db_unresolved) != list(redacted_data.get("unresolved_questions", [])):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel unresolved_questions_json does not match redacted "
+            "unresolved_questions"
+        )
+    if len(db_answers) != int(redacted_data.get("resolved_answers_count", -1)):
+        raise ProofValidationError(
+            f"redacted resolved_answers_count ({redacted_data.get('resolved_answers_count')}) does "
+            f"not match the number of persisted answers ({len(db_answers)})"
+        )
+    if len(db_answers) + len(db_unresolved) != len(questions):
+        raise ProofValidationError(
+            f"persisted answers ({len(db_answers)}) plus unresolved questions "
+            f"({len(db_unresolved)}) do not account for the {len(questions)} attested questions"
+        )
+    attested_questions = {question.strip() for question in questions}
+    if not set(db_answers) <= attested_questions:
+        raise ProofValidationError(
+            "persisted answers include a question that is not in the attested question list"
+        )
+    if set(db_provenance) != set(db_answers):
+        raise ProofValidationError(
+            "persisted answer_provenance keys do not match the persisted answers"
+        )
+    for record in db_provenance.values():
+        method = str(record.get("method", "")).lower() if isinstance(record, dict) else ""
+        if method != "deterministic":
+            raise ProofValidationError(
+                f"persisted answer provenance method must be deterministic, got {method!r}"
+            )
+    if db_unresolved and bool(packet.is_live_ready):
+        raise ProofValidationError(
+            "DB ApplicationPacketModel is marked live-ready despite persisted unresolved questions"
+        )
+
+
+def verify_persisted_profile_and_variant_binding(
+    job: Any,
+    packet: Any,
+    resume_variant: Any,
+    resume_art: Any,
+    cl_art: Any,
+    local_data: dict[str, Any],
+    redacted_data: dict[str, Any],
+    profile: CandidateProfileConfig,
+    profile_fingerprint: str,
+    mapped_resume_source: Path,
+) -> None:
+    """F145-04: bind the parsed profile and selected genuine resume mapping to the DB rows."""
+    generation_metadata = packet.generation_metadata_json
+    persisted_fingerprint = str(
+        generation_metadata.get("candidate_profile_fingerprint_sha256") or ""
+    ).lower()
+    if not persisted_fingerprint:
+        raise ProofValidationError(
+            "DB ApplicationPacketModel generation_metadata_json is missing the production "
+            "candidate_profile_fingerprint_sha256 key"
+        )
+    if persisted_fingerprint != profile_fingerprint:
+        raise ProofValidationError(
+            "persisted candidate_profile_fingerprint_sha256 does not match the fingerprint of "
+            "the parsed candidate profile on disk"
+        )
+    if int(packet.candidate_profile_version) != int(profile.version):
+        raise ProofValidationError(
+            f"DB ApplicationPacketModel candidate_profile_version ({packet.candidate_profile_version}) "
+            f"does not match the parsed candidate profile version ({profile.version})"
+        )
+
+    expected_variant = ResumeVariantSelector.select_variant(job)
+    if str(resume_variant.name) != expected_variant:
+        raise ProofValidationError(
+            f"persisted ResumeVariantModel.name ({resume_variant.name!r}) is not the variant the "
+            f"production selector derives for the persisted job ({expected_variant!r})"
+        )
+    if str(local_data.get("selected_resume_variant")) != expected_variant:
+        raise ProofValidationError(
+            f"local bundle selected_resume_variant ({local_data.get('selected_resume_variant')!r}) "
+            f"is not the variant the production selector derives ({expected_variant!r})"
+        )
+    expected_family = ResumeVariantSelector.get_resume_family(expected_variant, profile)
+    if str(resume_variant.resume_family) != expected_family:
+        raise ProofValidationError(
+            f"persisted ResumeVariantModel.resume_family ({resume_variant.resume_family!r}) does "
+            f"not match the family derived from the candidate profile ({expected_family!r})"
+        )
+    if int(resume_variant.version) != int(redacted_data.get("resume_version", -1)):
+        raise ProofValidationError(
+            f"persisted ResumeVariantModel.version ({resume_variant.version}) does not match "
+            f"redacted resume_version ({redacted_data.get('resume_version')})"
+        )
+    if int(local_data.get("resume_variant_version", -1)) != int(resume_variant.version):
+        raise ProofValidationError(
+            f"local bundle resume_variant_version ({local_data.get('resume_variant_version')}) "
+            f"does not match persisted ResumeVariantModel.version ({resume_variant.version})"
+        )
+    source_reference = resume_variant.source_reference
+    if not source_reference or _resolved(source_reference) != mapped_resume_source:
+        raise ProofValidationError(
+            "persisted ResumeVariantModel.source_reference does not point at the resume file "
+            "the candidate profile maps to the selected variant"
+        )
+
+    if str(resume_art.type) != "resume":
+        raise ProofValidationError(
+            f"persisted resume ArtifactModel.type is {resume_art.type!r}, expected 'resume'"
+        )
+    if str(cl_art.type) != "cover_letter":
+        raise ProofValidationError(
+            f"persisted cover letter ArtifactModel.type is {cl_art.type!r}, expected 'cover_letter'"
+        )
+    artifact_metadata = resume_art.metadata_json
+    if not isinstance(artifact_metadata, dict):
+        raise ProofValidationError("persisted resume ArtifactModel.metadata_json is missing")
+    if str(artifact_metadata.get("variant")) != expected_variant:
+        raise ProofValidationError(
+            f"persisted resume artifact metadata variant ({artifact_metadata.get('variant')!r}) "
+            f"does not match the selected variant ({expected_variant!r})"
+        )
+    size_bytes = artifact_metadata.get("size_bytes")
+    expected_size = int(redacted_data.get("resume_source_byte_count", -1))
+    if size_bytes is None or int(size_bytes) != expected_size:
+        raise ProofValidationError(
+            f"persisted resume artifact size_bytes ({size_bytes}) does not match redacted "
+            f"resume_source_byte_count ({expected_size})"
+        )
+    artifact_source_path = artifact_metadata.get("source_path")
+    if not artifact_source_path or _resolved(artifact_source_path) != mapped_resume_source:
+        raise ProofValidationError(
+            "persisted resume artifact metadata source_path does not match the resume file the "
+            "candidate profile maps to the selected variant"
+        )
+
+
+def _resolve_storage_path(uri: str) -> Path | None:
+    value = uri.strip()
+    if not value:
+        return None
+    if value.startswith("file://"):
+        value = value[len("file://") :]
+    return Path(value).expanduser().resolve()
+
+
 def verify_database_linkage(
     local_data: dict[str, Any],
     redacted_data: dict[str, Any],
-    db_target: str | Path | None = None,
-    questions: list[str] | None = None,
-    artifact_map: dict[str, dict[str, Any]] | None = None,
+    *,
+    questions: list[str],
+    artifact_map: dict[str, dict[str, Any]],
+    manifest: dict[str, Any],
+    profile: CandidateProfileConfig,
+    profile_fingerprint: str,
+    mapped_resume_source: Path,
+    runtime_url: str | URL | None = None,
 ) -> None:
     """RP14-T7: Verify persisted DB records against local bundle and redacted proof.
 
-    Fails closed: REAL_PROOF_PASS requires an explicitly configured proof database
-    target that opens and validates the persisted packet/resume/artifact rows and
-    their relationships. Missing, unopenable, unrelated, or tampered DB evidence
-    is a rejection, never a silent skip.
+    Fails closed: REAL_PROOF_PASS requires the trusted runtime database to carry the
+    identity the private bundle declares and to hold packet/resume/artifact rows whose
+    recomputed identity matches the manifest and the redacted evidence. Missing,
+    unopenable, unrelated, or tampered DB evidence is a rejection, never a silent skip.
     """
-    if db_target is None:
-        db_target = local_data.get("database_url") or local_data.get("db_path")
-    if not db_target or not str(db_target).strip():
-        raise ProofValidationError(
-            "local full bundle must explicitly configure a proof database target "
-            "(database_url or db_path); REAL_PROOF_PASS requires persisted DB evidence"
-        )
-
-    import uuid
+    url = resolve_verification_database(local_data, runtime_url=runtime_url)
 
     try:
-        from sqlalchemy.exc import SQLAlchemyError
-
-        from jobs_automation.db.models import (
-            ApplicationPacketModel,
-            ArtifactModel,
-            JobModel,
-            ResumeVariantModel,
-        )
-        from jobs_automation.db.session import get_engine, get_sessionmaker
-    except ImportError as exc:  # pragma: no cover - environment defect, not proof defect
-        raise ProofValidationError(f"proof database evidence cannot be verified: {exc}") from exc
-
-    db_url = resolve_proof_db_url(db_target)
-    safe_db_url = _redact_db_url(db_url)
-
-    try:
-        engine = get_engine(db_url)
-    except (SQLAlchemyError, ImportError) as exc:
+        engine = get_engine(url)
+    except (SQLAlchemyError, ImportError, ValueError) as exc:
         raise ProofValidationError(
-            f"proof database target could not be opened as a SQLAlchemy engine "
-            f"({safe_db_url}): {exc}"
-        ) from exc
+            "proof database target could not be opened as a SQLAlchemy engine "
+            f"({type(exc).__name__})"
+        ) from None
     session_factory = get_sessionmaker(engine)
     try:
         with session_factory() as session:
@@ -1050,7 +1628,9 @@ def verify_database_linkage(
                 raise ProofValidationError(
                     f"DB ApplicationPacketModel packet_hash mismatch: {packet.packet_hash} != {redacted_data.get('packet_hash')}"
                 )
-            if packet.candidate_profile_version != redacted_data.get("candidate_profile_version"):
+            if str(packet.candidate_profile_version) != str(
+                redacted_data.get("candidate_profile_version")
+            ):
                 raise ProofValidationError(
                     f"DB ApplicationPacketModel candidate_profile_version ({packet.candidate_profile_version}) "
                     f"does not match redacted candidate_profile_version ({redacted_data.get('candidate_profile_version')})"
@@ -1138,26 +1718,49 @@ def verify_database_linkage(
                 )
 
             # Bind persisted artifact rows to the hash-verified bytes on disk.
-            if artifact_map:
-                for art_type, artifact_row in (
-                    ("resume_artifact", resume_art),
-                    ("cover_letter_artifact", cl_art),
-                ):
-                    local_entry = artifact_map.get(art_type)
-                    if not local_entry:
-                        continue
-                    stored = _resolve_storage_path(str(artifact_row.storage_uri or ""))
-                    if stored is None:
-                        raise ProofValidationError(
-                            f"DB {art_type} ArtifactModel storage_uri is empty; "
-                            "persisted artifact bytes are unbound"
-                        )
-                    local_path = Path(local_entry["path"]).expanduser().resolve()
-                    if stored != local_path:
-                        raise ProofValidationError(
-                            f"DB {art_type} ArtifactModel storage_uri ({stored}) does not point at "
-                            f"the verified local artifact ({local_path})"
-                        )
+            for art_type, artifact_row in (
+                ("resume_artifact", resume_art),
+                ("cover_letter_artifact", cl_art),
+            ):
+                local_entry = artifact_map.get(art_type)
+                if not local_entry:
+                    raise ProofValidationError(f"local artifact map is missing {art_type}")
+                stored = _resolve_storage_path(str(artifact_row.storage_uri or ""))
+                if stored is None:
+                    raise ProofValidationError(
+                        f"DB {art_type} ArtifactModel storage_uri is empty; "
+                        "persisted artifact bytes are unbound"
+                    )
+                local_path = Path(local_entry["path"]).expanduser().resolve()
+                if stored != local_path:
+                    raise ProofValidationError(
+                        f"DB {art_type} ArtifactModel storage_uri ({stored}) does not point at "
+                        f"the verified local artifact ({local_path})"
+                    )
+
+            # F145-03: packet identity recomputed from persisted components.
+            verify_persisted_packet_components(
+                packet=packet,
+                resume_art=resume_art,
+                cl_art=cl_art,
+                manifest=manifest,
+                redacted_data=redacted_data,
+                questions=questions,
+            )
+
+            # F145-04: parsed profile, selector and genuine resume mapping bound to rows.
+            verify_persisted_profile_and_variant_binding(
+                job=job,
+                packet=packet,
+                resume_variant=resume_variant,
+                resume_art=resume_art,
+                cl_art=cl_art,
+                local_data=local_data,
+                redacted_data=redacted_data,
+                profile=profile,
+                profile_fingerprint=profile_fingerprint,
+                mapped_resume_source=mapped_resume_source,
+            )
 
             # RP14-T8: source_attestation must be corroborated by persisted evidence.
             attestation = local_data.get("source_attestation")
@@ -1178,19 +1781,29 @@ def verify_database_linkage(
             verify_persisted_job_identity(job, redacted_data)
     except SQLAlchemyError as exc:
         raise ProofValidationError(
-            f"proof database evidence could not be read from {safe_db_url}: {exc}"
-        ) from exc
+            "proof database evidence could not be read from the configured runtime database "
+            f"({type(exc).__name__})"
+        ) from None
     finally:
         engine.dispose()
 
 
-def _resolve_storage_path(uri: str) -> Path | None:
-    value = uri.strip()
-    if not value:
-        return None
-    if value.startswith("file://"):
-        value = value[len("file://") :]
-    return Path(value).expanduser().resolve()
+# ---------------------------------------------------------------------------
+# Receipt generation and entry point
+# ---------------------------------------------------------------------------
+
+
+@dataclasses.dataclass
+class VerificationOutcome:
+    candidate_bundle_sha: str = "unknown"
+    proof_run_id: str = "unknown"
+    passed: bool = False
+    structural_only: bool = False
+    local_verified: bool = False
+    schema_validated: bool = False
+    database_evidence_verified: bool = False
+    evidence_schema_sha256: str = "unknown"
+    reasons: list[str] = dataclasses.field(default_factory=list)
 
 
 def generate_receipt(
@@ -1199,17 +1812,75 @@ def generate_receipt(
     passed: bool,
     local_verified: bool,
     reasons: list[str] | None = None,
+    *,
+    evidence_schema_sha256: str = "unknown",
+    schema_validated: bool = False,
+    database_evidence_verified: bool = False,
 ) -> dict[str, Any]:
     return {
-        "receipt_schema_version": 1,
-        "proof_run_id": proof_run_id,
+        "receipt_schema_version": 2,
+        "proof_run_id": proof_run_id[:128],
         "candidate_bundle_sha256": candidate_bundle_sha,
         "verifier_code_commit_sha": get_git_sha(),
         "verification_timestamp_utc": datetime.datetime.now(datetime.UTC).isoformat(),
         "result": "REAL_PROOF_PASS" if passed else "REAL_PROOF_FAIL",
+        "evidence_schema_sha256": evidence_schema_sha256,
+        "schema_validated": schema_validated,
         "local_full_bundle_verified": local_verified,
-        "rejection_reasons": reasons or [],
+        "database_evidence_verified": database_evidence_verified,
+        "rejection_reasons": [sanitize_reason(reason) for reason in (reasons or [])],
     }
+
+
+def run_verification(redacted_bundle: Path, local_full_bundle: Path | None) -> VerificationOutcome:
+    """Run every gate and return a bound outcome; malformed inputs never escape as tracebacks."""
+    outcome = VerificationOutcome()
+    try:
+        raw_bundle_bytes = redacted_bundle.read_bytes()
+        outcome.candidate_bundle_sha = sha256_bytes(raw_bundle_bytes)
+        redacted = json.loads(raw_bundle_bytes.decode("utf-8"))
+        if not isinstance(redacted, dict):
+            raise ProofValidationError("redacted bundle must be a JSON object")
+
+        proof_run_id = redacted.get("proof_run_id")
+        if isinstance(proof_run_id, str) and proof_run_id:
+            outcome.proof_run_id = proof_run_id
+
+        # F145-01: executed schema (types, required fields, formats) before semantics.
+        outcome.evidence_schema_sha256 = validate_redacted_bundle_schema(redacted)
+        outcome.schema_validated = True
+        validate_redacted_bundle(redacted)
+
+        # RP14-T1 & RP14-T2: PASS requires local full bundle verification
+        if local_full_bundle is None:
+            outcome.structural_only = True
+            outcome.reasons.append(
+                "local full bundle required for REAL_PROOF_PASS; structural check only"
+            )
+            return outcome
+
+        local_data = json.loads(local_full_bundle.read_text(encoding="utf-8"))
+        if not isinstance(local_data, dict):
+            raise ProofValidationError("local full bundle must be a JSON object")
+        validate_local_bundle(
+            local_data,
+            redacted,
+            candidate_bundle_sha=outcome.candidate_bundle_sha,
+        )
+        outcome.local_verified = True
+        outcome.database_evidence_verified = True
+        outcome.passed = True
+    except (
+        OSError,
+        json.JSONDecodeError,
+        UnicodeDecodeError,
+        ValueError,
+        ProofValidationError,
+    ) as exc:
+        outcome.reasons.append(sanitize_reason(str(exc)))
+    except Exception as exc:  # defensive: a malformed input must fail closed, not crash
+        outcome.reasons.append(f"internal verifier error: {type(exc).__name__}")
+    return outcome
 
 
 def main() -> int:
@@ -1225,113 +1896,54 @@ def main() -> int:
         "--receipt-output",
         type=Path,
         default=None,
-        help="Path to write the verification receipt JSON. Defaults to v14_real_proof_receipt_<proof_run_id>.json.",
+        help="Path to write the verification receipt JSON. Defaults to v14_real_proof_receipt_<proof_run_id>.json next to the redacted bundle.",
     )
     args = parser.parse_args()
 
-    rejection_reasons: list[str] = []
-    candidate_bundle_sha = "unknown"
-    proof_run_id = "unknown"
-    local_verified = False
+    outcome = run_verification(args.redacted_bundle, args.local_full_bundle)
 
-    try:
-        raw_bundle_bytes = args.redacted_bundle.read_bytes()
-        candidate_bundle_sha = sha256_bytes(raw_bundle_bytes)
-        redacted = json.loads(raw_bundle_bytes.decode("utf-8"))
-        if not isinstance(redacted, dict):
-            raise ProofValidationError("redacted bundle must be a JSON object")
-
-        proof_run_id = str(redacted.get("proof_run_id", "unknown"))
-        validate_redacted_bundle(redacted)
-
-        # RP14-T1 & RP14-T2: PASS requires local full bundle verification
-        if args.local_full_bundle is None:
-            rejection_reasons.append(
-                "local full bundle required for REAL_PROOF_PASS; structural check only"
-            )
-            receipt = generate_receipt(
-                candidate_bundle_sha=candidate_bundle_sha,
-                proof_run_id=proof_run_id,
-                passed=False,
-                local_verified=False,
-                reasons=rejection_reasons,
-            )
-            receipt_path = args.receipt_output
-            if receipt_path is None:
-                receipt_path = (
-                    args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
-                )
-            receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            receipt_path.write_text(
-                json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
-            print(
-                "REAL_PROOF_VALIDATION_STRUCTURAL_ONLY: PASS requires --local-full-bundle",
-                file=sys.stderr,
-            )
-            print(f"receipt_output={receipt_path}")
-            print(f"candidate_bundle_sha256={candidate_bundle_sha}")
-            print("local_full_bundle_verified=False")
-            return 1
-
-        local_data = json.loads(args.local_full_bundle.read_text(encoding="utf-8"))
-        if not isinstance(local_data, dict):
-            raise ProofValidationError("local full bundle must be a JSON object")
-        validate_local_bundle(
-            local_data,
-            redacted,
-            candidate_bundle_sha=candidate_bundle_sha,
+    receipt = generate_receipt(
+        candidate_bundle_sha=outcome.candidate_bundle_sha,
+        proof_run_id=outcome.proof_run_id,
+        passed=outcome.passed,
+        local_verified=outcome.local_verified,
+        reasons=outcome.reasons,
+        evidence_schema_sha256=outcome.evidence_schema_sha256,
+        schema_validated=outcome.schema_validated,
+        database_evidence_verified=outcome.database_evidence_verified,
+    )
+    receipt_path = args.receipt_output
+    if receipt_path is None:
+        receipt_path = args.redacted_bundle.parent / receipt_filename(
+            outcome.proof_run_id, outcome.candidate_bundle_sha
         )
-        local_verified = True
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(
+        json.dumps(receipt, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
 
-        receipt = generate_receipt(
-            candidate_bundle_sha=candidate_bundle_sha,
-            proof_run_id=proof_run_id,
-            passed=True,
-            local_verified=True,
-        )
-
-        receipt_path = args.receipt_output
-        if receipt_path is None:
-            receipt_path = (
-                args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
-            )
-
-        receipt_path.parent.mkdir(parents=True, exist_ok=True)
-        receipt_path.write_text(
-            json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-
+    if outcome.passed:
         print("REAL_PROOF_VALIDATION_PASS")
         print(f"receipt_output={receipt_path}")
-        print(f"candidate_bundle_sha256={candidate_bundle_sha}")
-        print(f"local_full_bundle_verified={local_verified}")
+        print(f"candidate_bundle_sha256={outcome.candidate_bundle_sha}")
+        print(f"local_full_bundle_verified={outcome.local_verified}")
         return 0
 
-    except (OSError, json.JSONDecodeError, ValueError, ProofValidationError) as exc:
-        rejection_reasons.append(str(exc))
-        receipt = generate_receipt(
-            candidate_bundle_sha=candidate_bundle_sha,
-            proof_run_id=proof_run_id,
-            passed=False,
-            local_verified=local_verified,
-            reasons=rejection_reasons,
+    if outcome.structural_only:
+        print(
+            "REAL_PROOF_VALIDATION_STRUCTURAL_ONLY: PASS requires --local-full-bundle",
+            file=sys.stderr,
         )
-        receipt_path = args.receipt_output
-        if receipt_path is None:
-            receipt_path = (
-                args.redacted_bundle.parent / f"v14_real_proof_receipt_{proof_run_id}.json"
-            )
-        receipt_path.parent.mkdir(parents=True, exist_ok=True)
-        receipt_path.write_text(
-            json.dumps(receipt, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        print(f"REAL_PROOF_VALIDATION_FAIL: {exc}", file=sys.stderr)
-        print(f"receipt_output={receipt_path}", file=sys.stderr)
+        print(f"receipt_output={receipt_path}")
+        print(f"candidate_bundle_sha256={outcome.candidate_bundle_sha}")
+        print("local_full_bundle_verified=False")
         return 1
+
+    for reason in receipt["rejection_reasons"]:
+        print(f"REAL_PROOF_VALIDATION_FAIL: {reason}", file=sys.stderr)
+    print(f"receipt_output={receipt_path}", file=sys.stderr)
+    return 1
 
 
 if __name__ == "__main__":

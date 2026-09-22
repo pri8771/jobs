@@ -20,3 +20,14 @@ Move V1.4 proof tooling onto a clean branch based on current main without draggi
 
 ## Acceptance
 Small reviewable diff on current main with equivalent proof behavior.
+
+## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+
+F145-06 (FR14-04): `tests/test_real_proof_integration.py` drives the production importer
+(Greenhouse fetch stubbed with a canonical engineering payload), the runner and the
+verifier as installed entry points on SQLite and on a throwaway password-protected
+PostgreSQL role/database created from `PROOF_TEST_PG_ADMIN_URL` (wired in CI to the
+existing postgres service), including password rotation between run and verification,
+runtime-target mismatch, missing runtime configuration, stale credential, and single-field
+DB mutations. Evidence stays under gitignored `.local/engineering_proof_<id>/` and is
+never published as REAL_PROOF. Independent execution results are in the handoff.

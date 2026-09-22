@@ -25,6 +25,7 @@ from jobs_automation.preparation.tailoring import (
     ResumeVariantSelector,
     ScreeningQuestionAnsweringService,
 )
+from jobs_automation.proof.profile_fingerprint import candidate_profile_fingerprint
 from jobs_automation.storage.artifact_store import ArtifactStore
 
 
@@ -239,6 +240,11 @@ class ApplicationPacketBuilder:
             answer_provenance=answer_provenance,
         )
 
+        # The parsed-profile fingerprint binds this packet to the exact candidate
+        # facts it was generated from; the real-proof verifier recomputes it from the
+        # profile file and compares it with this persisted value.
+        profile_fingerprint = candidate_profile_fingerprint(self.profile)
+
         # 8. Persist ApplicationPacketModel with ResumeVariant Linkage and Readiness
         packet = ApplicationPacketModel(
             job_id=job.id,
@@ -255,6 +261,7 @@ class ApplicationPacketBuilder:
                 "generation_origin": generation_origin,
                 "cover_letter_origin": cl_origin,
                 "cover_letter_model": cl_metadata.get("model"),
+                "candidate_profile_fingerprint_sha256": profile_fingerprint,
             },
         )
         self.session.add(packet)
@@ -267,6 +274,7 @@ class ApplicationPacketBuilder:
             "company": job.company.normalized_name if job.company else "Unknown",
             "title": job.normalized_title,
             "candidate_profile_version": self.profile.version,
+            "candidate_profile_fingerprint_sha256": profile_fingerprint,
             "resume_family": resume_family,
             "resume_variant_id": str(resume_variant.id),
             "resume_variant_name": variant_name,

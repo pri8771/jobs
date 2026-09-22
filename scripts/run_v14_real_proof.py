@@ -9,6 +9,11 @@ It requires:
 
 Private artifacts are written under .local/proofs/ (gitignored).
 A redacted evidence candidate bundle is written under coordination/proofs/.
+
+The private bundle never contains a database credential: it records the database
+*identity* (driver, host, port, database, username, route options) produced by
+``jobs_automation.proof.database_identity``. The verifier reconciles that identity
+with its own trusted runtime configuration (``DATABASE_URL``) before connecting.
 """
 
 from __future__ import annotations
@@ -21,17 +26,22 @@ import uuid
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from jobs_automation.adapters.models import DeterministicModelGateway
+from jobs_automation.core.candidate_profile import CandidateProfileConfig
 from jobs_automation.core.config import ConfigLoader
-from jobs_automation.db.models import ArtifactModel, JobModel
+from jobs_automation.db.models import ApplicationPacketModel, ArtifactModel, JobModel
 from jobs_automation.db.session import get_sessionmaker
 from jobs_automation.preparation.packet_builder import (
     ApplicationPacketBuilder,
+    PacketBuildResult,
     compute_questions_sha256,
 )
 from jobs_automation.preparation.tailoring import ResumeVariantSelector
+from jobs_automation.proof.database_identity import database_identity
+from jobs_automation.proof.profile_fingerprint import candidate_profile_fingerprint
 from jobs_automation.storage.artifact_store import ArtifactStore
 
 
@@ -195,6 +205,184 @@ def get_artifact(session: Session, artifact_id: uuid.UUID | None, label: str) ->
     return artifact
 
 
+def serialize_redacted_bundle(redacted: dict[str, Any]) -> str:
+    """Canonical byte form of the redacted candidate bundle.
+
+    ``candidate_bundle_sha256`` in the private bundle and in the verifier receipt is
+    the SHA-256 of exactly these bytes, so producer and consumer share this function.
+    """
+    return json.dumps(redacted, indent=2, sort_keys=True) + "\n"
+
+
+def resolve_resume_source(profile: CandidateProfileConfig, variant_name: str) -> Path:
+    """Resolve the exact genuine resume file the profile maps to the selected variant."""
+    source_path_raw = profile.resume.resolve_source_path(variant_name)
+    if not source_path_raw:
+        raise RealProofError(
+            f"Real profile cannot resolve resume source for selected variant {variant_name}"
+        )
+    source_path = Path(source_path_raw).expanduser().resolve()
+    source_lower = str(source_path).lower()
+    if not source_path.exists() or not source_path.is_file():
+        raise RealProofError(f"Real resume source not found: {source_path}")
+    if "test_resume" in source_lower or "pytest" in source_lower:
+        raise RealProofError("Test/fixture resume source is forbidden for REAL_PROOF")
+    return source_path
+
+
+def assemble_proof_bundles(
+    *,
+    session: Session,
+    job: JobModel,
+    profile: CandidateProfileConfig,
+    profile_path: Path,
+    questions: list[str],
+    questions_path: Path,
+    packet: ApplicationPacketModel,
+    result: PacketBuildResult,
+    resume_source_path: Path,
+    proof_run_id: str,
+    code_sha: str,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Build the redacted candidate bundle and the private full bundle for one packet.
+
+    This is the single producer of both evidence shapes; the engineering fixtures in
+    ``tests/`` call it too, so the verifier is always exercised against exactly what the
+    runner emits.
+    """
+    if result.generation_origin.lower() in {"mock", "test", "adversarial_mock"}:
+        raise RealProofError(
+            f"Packet generation origin is not real/deterministic: {result.generation_origin}"
+        )
+
+    resume_artifact = get_artifact(session, packet.resume_artifact_id, "resume")
+    cover_letter_artifact = get_artifact(session, packet.cover_letter_artifact_id, "cover-letter")
+    manifest_path = resolve_storage_path(result.manifest_artifact_uri)
+    if not manifest_path.exists():
+        raise RealProofError("Packet manifest bytes are missing")
+    manifest_sha = sha256_file(manifest_path)
+
+    resume_source_sha = sha256_file(resume_source_path)
+    resume_source_byte_count = resume_source_path.stat().st_size
+
+    snapshot = job_snapshot(job)
+    snapshot_json = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
+    job_snapshot_sha = sha256_bytes(snapshot_json.encode("utf-8"))
+
+    unresolved = list(result.unresolved_questions)
+    resume_variant_version = packet.resume_variant.version if packet.resume_variant else 1
+
+    # RP14-T1: Runner outputs REAL_PROOF_CANDIDATE.
+    # RP14-T6: Unambiguous deterministic generation labeling.
+    redacted: dict[str, Any] = {
+        "result": "REAL_PROOF_CANDIDATE",
+        "proof_run_id": proof_run_id,
+        "run_timestamp_utc": packet.created_at.isoformat(),
+        "code_commit_sha": code_sha,
+        "job_url": job.apply_url,
+        "job_title": job.normalized_title,
+        "company": job.company.normalized_name if job.company else "Unknown",
+        "job_snapshot_sha256": job_snapshot_sha,
+        "candidate_profile_source_class": "PRIVATE_LOCAL",
+        "candidate_profile_version": profile.version,
+        "candidate_unresolved_fact_categories": {
+            key: len(values) for key, values in profile.check_unresolved_facts().items() if values
+        },
+        "resume_family": result.resume_family,
+        "resume_variant": result.resume_variant_name,
+        "resume_version": resume_variant_version,
+        "resume_source_sha256": resume_source_sha,
+        "resume_source_byte_count": resume_source_byte_count,
+        "model_provider": None,
+        "model_name": "DeterministicModelGateway",
+        "model_origin": "deterministic",
+        "generation_origin": result.generation_origin,
+        "generation_engine": "deterministic-canonical-renderer",
+        "packet_id": str(packet.id),
+        "packet_hash": packet.packet_hash,
+        "resume_artifact_sha256": resume_artifact.sha256,
+        "cover_letter_artifact_sha256": cover_letter_artifact.sha256,
+        "manifest_sha256": manifest_sha,
+        "is_live_ready": packet.is_live_ready,
+        "resolved_answers_count": result.resolved_answers_count,
+        "unresolved_questions": unresolved,
+        "questions_count": len(questions),
+        "read_back_verification": True,
+        "mock_or_fixture_inputs_present": False,
+    }
+
+    candidate_bundle_sha = sha256_bytes(serialize_redacted_bundle(redacted).encode("utf-8"))
+
+    gh_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
+    gh_source = gh_sources[0] if gh_sources else None
+    gh_payload = (gh_source.source_payload_json or {}) if gh_source else {}
+
+    # FR14-02: record the database *identity*, never a connection string. SQLAlchemy
+    # masks passwords in str(URL), and an unmasked URL would put a secret into evidence.
+    bind = session.get_bind()
+    engine_url = bind.url if isinstance(bind, Engine) else bind.engine.url
+    proof_database = database_identity(engine_url)
+
+    private_bundle: dict[str, Any] = {
+        "private_bundle_schema_version": 2,
+        "proof_run_id": proof_run_id,
+        "candidate_bundle_sha256": candidate_bundle_sha,
+        "candidate_profile_sha256": sha256_file(profile_path),
+        "candidate_profile_fingerprint_sha256": candidate_profile_fingerprint(profile),
+        "candidate_profile_version": profile.version,
+        "candidate_profile_path": str(profile_path.resolve()),
+        "candidate_profile_source_class": "PRIVATE_LOCAL",
+        "proof_database": proof_database,
+        "job_id": str(job.id),
+        "packet_id": str(packet.id),
+        "resume_variant_id": str(packet.resume_variant_id),
+        "resume_artifact_id": str(packet.resume_artifact_id),
+        "cover_letter_artifact_id": str(packet.cover_letter_artifact_id),
+        "selected_resume_variant": result.resume_variant_name,
+        "resume_variant_version": resume_variant_version,
+        "resume_source_path": str(resume_source_path),
+        "resume_source_sha256": resume_source_sha,
+        "resume_source_byte_count": resume_source_byte_count,
+        "questions_json_path": str(questions_path.resolve()),
+        "source_attestation": {
+            "provider": gh_source.provider if gh_source else "GREENHOUSE",
+            "source_kind": gh_payload.get("source_kind", "greenhouse_public_job_board_api"),
+            "public_job_id": str(gh_source.source_job_id) if gh_source else "",
+            "api_url": gh_payload.get("api_url", ""),
+            "fetched_at_utc": gh_payload.get("fetched_at_utc", ""),
+            "description_sha256": gh_payload.get(
+                "content_sha256",
+                sha256_bytes((job.description_text or "").encode("utf-8")),
+            ),
+            "question_list_sha256": gh_payload.get("question_list_sha256", ""),
+            "canonical_apply_url": gh_source.canonical_apply_url if gh_source else job.apply_url,
+        },
+        "local_artifacts": [
+            {
+                "type": "resume_source",
+                "path": str(resume_source_path),
+                "sha256": resume_source_sha,
+            },
+            {
+                "type": "resume_artifact",
+                "path": str(resolve_storage_path(resume_artifact.storage_uri)),
+                "sha256": resume_artifact.sha256,
+            },
+            {
+                "type": "cover_letter_artifact",
+                "path": str(resolve_storage_path(cover_letter_artifact.storage_uri)),
+                "sha256": cover_letter_artifact.sha256,
+            },
+            {
+                "type": "manifest",
+                "path": str(manifest_path),
+                "sha256": manifest_sha,
+            },
+        ],
+    }
+    return redacted, private_bundle
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--job-id", required=True, help="Existing real JobModel UUID")
@@ -246,20 +434,7 @@ def main() -> int:
             validate_job(job, questions=questions)
 
             variant_name = ResumeVariantSelector.select_variant(job)
-            source_path_raw = profile.resume.resolve_source_path(variant_name)
-            if not source_path_raw:
-                raise RealProofError(
-                    f"Real profile cannot resolve resume source for selected variant {variant_name}"
-                )
-            source_path = Path(source_path_raw).expanduser().resolve()
-            source_lower = str(source_path).lower()
-            if not source_path.exists() or not source_path.is_file():
-                raise RealProofError(f"Real resume source not found: {source_path}")
-            if "test_resume" in source_lower or "pytest" in source_lower:
-                raise RealProofError("Test/fixture resume source is forbidden for REAL_PROOF")
-
-            resume_source_sha = sha256_file(source_path)
-            resume_source_byte_count = source_path.stat().st_size
+            source_path = resolve_resume_source(profile, variant_name)
 
             proof_run_id = str(uuid.uuid4())
             artifact_root = args.private_output_dir / "artifacts" / proof_run_id
@@ -275,140 +450,24 @@ def main() -> int:
             packet, result = builder.build_packet(job=job, questions=questions)
             session.commit()
 
-            if result.generation_origin.lower() in {"mock", "test", "adversarial_mock"}:
-                raise RealProofError(
-                    f"Packet generation origin is not real/deterministic: {result.generation_origin}"
-                )
-
-            resume_artifact = get_artifact(session, packet.resume_artifact_id, "resume")
-            cover_letter_artifact = get_artifact(
-                session, packet.cover_letter_artifact_id, "cover-letter"
+            redacted, private_bundle = assemble_proof_bundles(
+                session=session,
+                job=job,
+                profile=profile,
+                profile_path=args.candidate_profile,
+                questions=questions,
+                questions_path=args.questions_json,
+                packet=packet,
+                result=result,
+                resume_source_path=source_path,
+                proof_run_id=proof_run_id,
+                code_sha=get_git_sha(),
             )
-            manifest_path = resolve_storage_path(result.manifest_artifact_uri)
-            if not manifest_path.exists():
-                raise RealProofError("Packet manifest bytes are missing")
-            manifest_sha = sha256_file(manifest_path)
-
-            snapshot = job_snapshot(job)
-            snapshot_json = json.dumps(snapshot, sort_keys=True, separators=(",", ":"))
-            job_snapshot_sha = sha256_bytes(snapshot_json.encode("utf-8"))
-
-            code_sha = get_git_sha()
-            unresolved = list(result.unresolved_questions)
-
-            # RP14-T1: Runner outputs REAL_PROOF_CANDIDATE.
-            # RP14-T6: Unambiguous deterministic generation labeling.
-            redacted: dict[str, Any] = {
-                "result": "REAL_PROOF_CANDIDATE",
-                "proof_run_id": proof_run_id,
-                "run_timestamp_utc": packet.created_at.isoformat(),
-                "code_commit_sha": code_sha,
-                "job_url": job.apply_url,
-                "job_title": job.normalized_title,
-                "company": job.company.normalized_name if job.company else "Unknown",
-                "job_snapshot_sha256": job_snapshot_sha,
-                "candidate_profile_source_class": "PRIVATE_LOCAL",
-                "candidate_profile_version": profile.version,
-                "candidate_unresolved_fact_categories": {
-                    key: len(values)
-                    for key, values in profile.check_unresolved_facts().items()
-                    if values
-                },
-                "resume_family": result.resume_family,
-                "resume_variant": result.resume_variant_name,
-                "resume_version": (
-                    packet.resume_variant.version if packet.resume_variant is not None else 1
-                ),
-                "resume_source_sha256": resume_source_sha,
-                "resume_source_byte_count": resume_source_byte_count,
-                "model_provider": None,
-                "model_name": "DeterministicModelGateway",
-                "model_origin": "deterministic",
-                "generation_origin": result.generation_origin,
-                "generation_engine": "deterministic-canonical-renderer",
-                "packet_id": str(packet.id),
-                "packet_hash": packet.packet_hash,
-                "resume_artifact_sha256": resume_artifact.sha256,
-                "cover_letter_artifact_sha256": cover_letter_artifact.sha256,
-                "manifest_sha256": manifest_sha,
-                "is_live_ready": packet.is_live_ready,
-                "resolved_answers_count": result.resolved_answers_count,
-                "unresolved_questions": unresolved,
-                "questions_count": len(questions),
-                "read_back_verification": True,
-                "mock_or_fixture_inputs_present": False,
-            }
 
             args.private_output_dir.mkdir(parents=True, exist_ok=True)
             args.redacted_output_dir.mkdir(parents=True, exist_ok=True)
 
-            redacted_content = json.dumps(redacted, indent=2, sort_keys=True) + "\n"
-            candidate_bundle_sha = sha256_bytes(redacted_content.encode("utf-8"))
-
-            gh_sources = [s for s in job.sources if s.provider == "GREENHOUSE"]
-            gh_source = gh_sources[0] if gh_sources else None
-            gh_payload = (gh_source.source_payload_json or {}) if gh_source else {}
-
-            bind = session.get_bind()
-            db_url = (
-                str(bind.engine.url)
-                if hasattr(bind, "engine")
-                else (str(bind.url) if hasattr(bind, "url") else None)
-            )
-
-            private_bundle = {
-                "proof_run_id": proof_run_id,
-                "candidate_bundle_sha256": candidate_bundle_sha,
-                "candidate_profile_sha256": sha256_file(args.candidate_profile),
-                "candidate_profile_path": str(args.candidate_profile.resolve()),
-                "candidate_profile_source_class": "PRIVATE_LOCAL",
-                "database_url": db_url,
-                "job_id": str(job.id),
-                "packet_id": str(packet.id),
-                "resume_variant_id": str(packet.resume_variant_id),
-                "resume_artifact_id": str(packet.resume_artifact_id),
-                "cover_letter_artifact_id": str(packet.cover_letter_artifact_id),
-                "resume_source_path": str(source_path),
-                "questions_json_path": str(args.questions_json.resolve()),
-                "source_attestation": {
-                    "provider": gh_source.provider if gh_source else "GREENHOUSE",
-                    "source_kind": gh_payload.get("source_kind", "greenhouse_public_job_board_api"),
-                    "public_job_id": str(gh_source.source_job_id) if gh_source else "",
-                    "api_url": gh_payload.get("api_url", ""),
-                    "fetched_at_utc": gh_payload.get("fetched_at_utc", ""),
-                    "description_sha256": gh_payload.get(
-                        "content_sha256",
-                        sha256_bytes((job.description_text or "").encode("utf-8")),
-                    ),
-                    "question_list_sha256": gh_payload.get("question_list_sha256", ""),
-                    "canonical_apply_url": gh_source.canonical_apply_url
-                    if gh_source
-                    else job.apply_url,
-                },
-                "local_artifacts": [
-                    {
-                        "type": "resume_source",
-                        "path": str(source_path),
-                        "sha256": resume_source_sha,
-                    },
-                    {
-                        "type": "resume_artifact",
-                        "path": str(resolve_storage_path(resume_artifact.storage_uri)),
-                        "sha256": resume_artifact.sha256,
-                    },
-                    {
-                        "type": "cover_letter_artifact",
-                        "path": str(resolve_storage_path(cover_letter_artifact.storage_uri)),
-                        "sha256": cover_letter_artifact.sha256,
-                    },
-                    {
-                        "type": "manifest",
-                        "path": str(manifest_path),
-                        "sha256": manifest_sha,
-                    },
-                ],
-            }
-
+            redacted_content = serialize_redacted_bundle(redacted)
             redacted_path = args.redacted_output_dir / f"v14_real_proof_{proof_run_id}.json"
             private_path = args.private_output_dir / f"v14_real_proof_{proof_run_id}_private.json"
 
@@ -418,9 +477,10 @@ def main() -> int:
                 encoding="utf-8",
             )
 
+            unresolved = list(result.unresolved_questions)
             print("REAL_PROOF_RUN_COMPLETE")
             print(f"candidate_bundle={redacted_path}")
-            print(f"candidate_bundle_sha256={candidate_bundle_sha}")
+            print(f"candidate_bundle_sha256={private_bundle['candidate_bundle_sha256']}")
             print(f"private_bundle={private_path}")
             print(f"packet_id={packet.id}")
             print(f"packet_hash={packet.packet_hash}")
