@@ -77,6 +77,40 @@ class RecruiterCRMService:
         if contact.last_contact_at is None or ts > contact.last_contact_at:
             contact.last_contact_at = ts
 
+    def prior_thread_contact(
+        self, application_id: uuid.UUID, message: InboundMessageModel
+    ) -> ContactModel | None:
+        """Reuse only one contact proven by prior lifecycle evidence in this thread."""
+        rows = self.session.execute(
+            select(ApplicationEventModel, InboundMessageModel)
+            .join(
+                InboundMessageModel,
+                InboundMessageModel.provider_message_id == ApplicationEventModel.source_reference,
+            )
+            .join(MessageLinkModel, MessageLinkModel.inbound_message_id == InboundMessageModel.id)
+            .where(
+                ApplicationEventModel.application_id == application_id,
+                ApplicationEventModel.source == "email_lifecycle",
+                MessageLinkModel.application_id == application_id,
+                MessageLinkModel.confidence >= 0.8,
+                InboundMessageModel.provider_thread_id == message.provider_thread_id,
+                InboundMessageModel.received_at < message.received_at,
+            )
+        ).all()
+        contact_ids: set[uuid.UUID] = set()
+        for event, prior in rows:
+            if (prior.headers_json or {}).get("_provider", {}).get("canary"):
+                continue
+            raw_id = (event.payload_json or {}).get("contact_id")
+            if raw_id is not None:
+                try:
+                    contact_ids.add(uuid.UUID(str(raw_id)))
+                except ValueError:
+                    return None
+        if len(contact_ids) != 1:
+            return None
+        return self.session.get(ContactModel, next(iter(contact_ids)))
+
     def get_timeline_for_application(
         self,
         application_id: uuid.UUID,

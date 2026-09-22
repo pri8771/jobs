@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 import uuid
+from datetime import UTC
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
@@ -146,6 +147,36 @@ class LifecycleEngine:
                 app.id,
             )
             return None
+
+        if message.classification == "CANDIDATE_REPLY":
+            if message.direction != "outbound" or (message.headers_json or {}).get(
+                "_provider", {}
+            ).get("canary"):
+                return None
+            # Reply evidence records candidate activity, never an employer response or stage change.
+            reply_contact = self.crm.prior_thread_contact(app.id, message)
+            current = app.last_activity_at
+            reply_time = message.received_at
+            if current is None or reply_time.replace(
+                tzinfo=reply_time.tzinfo or UTC
+            ) > current.replace(tzinfo=current.tzinfo or UTC):
+                app.last_activity_at = reply_time
+            self._record_event_and_audit(
+                app=app,
+                message=message,
+                event_type="CANDIDATE_REPLIED",
+                previous_status=app.status,
+                new_status=app.status,
+                contact=reply_contact,
+            )
+            return LifecycleTransitionResult(
+                application_id=str(app.id),
+                previous_status=app.status,
+                new_status=app.status,
+                event_type="CANDIDATE_REPLIED",
+                contact_name=reply_contact.name if reply_contact else None,
+                message=f"Candidate reply recorded; application stage preserved at {app.status}",
+            )
 
         # Check for thread-role divergence (e.g. recruiter reuses thread for a different requisition)
         if self._detect_thread_role_divergence(message, app, link):

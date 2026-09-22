@@ -98,6 +98,7 @@ def test_classifier_identifies_outbound_candidate_reply() -> None:
         provider_message_id="msg_reply_01",
         provider_thread_id="thread_openai",
         received_at=datetime.datetime.now(datetime.UTC),
+        direction="outbound",
         sender="candidate@gmail.com",
         recipients=["sarah.recruiter@openai.com"],
         subject="Re: Exciting role at OpenAI - Staff Infrastructure Engineer",

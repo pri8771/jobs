@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import sys
+import uuid
 from collections.abc import Generator
 from pathlib import Path
 from typing import Any
@@ -114,7 +115,7 @@ def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
     assert result.status == "SUCCESS", result.errors
     assert result.complete is True
     assert result.messages_ingested == 7
-    assert result.lifecycle_transitions == 1  # the recruiter's call request moves the seeded app
+    assert result.lifecycle_transitions == 2
     assert result.synthetic is True and result.adapter == "mock_fixtures"
     assert result.provider_query.startswith("label:recruiting before:")
 
@@ -122,6 +123,13 @@ def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
     # The production classifier reads "available for a brief introductory call" as an
     # INTERVIEW_REQUEST; without an explicit schedule that also opens a human review task.
     assert app.status == "INTERVIEWING"
+    events = db_session.scalars(
+        select(ApplicationEventModel).where(ApplicationEventModel.application_id == app.id)
+    ).all()
+    event_types = [event.event_type for event in events]
+    assert sorted(event_types) == ["CANDIDATE_REPLIED", "INTERVIEW_REQUESTED"]
+    assert event_types.count("INTERVIEW_REQUESTED") == 1
+    assert event_types.count("CANDIDATE_REPLIED") == 1
     review_tasks = db_session.scalars(
         select(TaskModel).where(TaskModel.task_type == "NEEDS_REVIEW")
     ).all()
@@ -270,10 +278,12 @@ def test_timeline_export_is_redacted_and_digest_stable(db_session: Session) -> N
     assert set(by_id) == {"gmail_recruiter_001", "gmail_candidate_001"}
     assert by_id["gmail_recruiter_001"]["link_method"] == "company_match"
     assert by_id["gmail_recruiter_001"]["direction"] == "inbound"
-    # The candidate's own reply is not linked by the engine but shares the thread.
-    assert by_id["gmail_candidate_001"]["link_method"] == "thread_sibling"
+    assert by_id["gmail_candidate_001"]["link_method"] == "thread_reply_attribution"
     assert by_id["gmail_candidate_001"]["direction"] == "outbound"
-    assert export["events"][0]["event_type"] == "INTERVIEW_REQUESTED"
+    assert {event["event_type"] for event in export["events"]} == {
+        "INTERVIEW_REQUESTED",
+        "CANDIDATE_REPLIED",
+    }
     assert export["uncertainty"]["pending_review_tasks"] == 1
     assert export["genuine_evidence"] == {
         "source_count": 2,
@@ -381,7 +391,12 @@ def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) 
             assert replay_meta["replay_matches_original"] is True
             assert replay_meta["messages_ingested"] == 0
             events = session.scalars(select(ApplicationEventModel)).all()
-            assert len(events) == 1  # one INTERVIEW_REQUESTED, not duplicated by replay
+            event_types = [event.event_type for event in events]
+            assert sorted(event_types) == ["CANDIDATE_REPLIED", "INTERVIEW_REQUESTED"]
+            assert event_types.count("INTERVIEW_REQUESTED") == 1
+            assert event_types.count("CANDIDATE_REPLIED") == 1
+            application = session.get(ApplicationModel, uuid.UUID(app_id))
+            assert application is not None and application.status == "INTERVIEWING"
     finally:
         engine.dispose()
 
