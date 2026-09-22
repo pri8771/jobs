@@ -1,0 +1,8 @@
+Source: 3d9cc95d03b0b8c146d10423060d97ee9736212c
+Dedicated Jobs PostgreSQL cluster; synthetic roles; Chromium local form only. No employer action.
+$ .venv/bin/python -m pytest -q -rs tests/test_real_proof_integration.py tests/test_assisted_playwright_engineering_form.py
+.........s.                                                              [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_assisted_playwright_engineering_form.py:472: loopback alias 127.0.0.2 is not bindable on this host
+10 passed, 1 skipped in 21.71s
+EXIT=0
