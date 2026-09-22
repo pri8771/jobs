@@ -308,3 +308,105 @@ Expected next state:
 `READY_FOR_LEAD_REVIEW` with a new exact PR26 head SHA/tree and hosted CI evidence.
 
 COMP-2 remains queued and becomes executable only after the typing candidate receives a lead disposition.
+
+
+## 10. PR26 typing repair verdict and COMP-2 activation
+
+### PR26 typing repair
+
+**ACCEPTED** exact source:
+- SHA `eec0ae3d9b50979b74294dd9ee0561172eff54b0`
+- tree `b41f35ff4e816c3df52521e328d60d598a4bc408`
+
+Changed files only:
+- `tests/test_cli.py`
+- `tests/test_worker.py`
+
+Hosted validation:
+- run `35771627731`
+- job `106894485077`
+- Ruff: PASS
+- `mypy src tests`: PASS
+- Alembic migration chain: PASS
+- Pytest: PASS
+- job conclusion: SUCCESS
+
+Local source-bound validation:
+- baseline 22 mypy errors reproduced;
+- candidate `mypy src tests`: clean, 113 files;
+- 26 focused tests pass;
+- full 490 pass / 1 existing host-specific skip;
+- owned PostgreSQL proof integration cleanup0;
+- Ruff/format/diff clean;
+- independent non-implementer AST review retained 26 tests / 125 assertions.
+
+No production behavior or CI strictness was changed.
+
+### COMP-2 is now ACTIVE
+
+Current direct integrator: **Codex**.
+
+Starting composition inputs:
+- control/local-origin accepted line: `b67fc523863babd3e195ee71a05f00fa0f2f7e79`
+- accepted canary/CLI/replay line now with typing-only successor: `eec0ae3d9b50979b74294dd9ee0561172eff54b0`
+- reference-only bounded semantics: `2969ac28364e9c39bbaf5c94b4c7cfe97ca5699a`
+- common ancestor for control/canary source lineage: `dd2e0deb15ce0ff8983c4ed502e3e17206db2e80`
+
+**Active scope: resolve only COMP-2, the `src/jobs_automation/ingestion/engine.py` composition dependency conflict.**
+
+Expected production file:
+- `src/jobs_automation/ingestion/engine.py`
+
+Expected focused tests:
+- `tests/test_gmail_adapter_bounded.py`
+- `tests/test_bounded_ingestion.py`
+- `tests/test_canary_provenance.py`
+- at most one additional directly affected existing test file if strictly required by an engine API behavior.
+
+Required integrated engine behavior:
+1. preserve accepted control-line incomplete-poll atomicity/checkpoint behavior;
+2. preserve canonical per-field email parsing from the accepted canary line;
+3. preserve `canonical_email_addresses`;
+4. preserve `persisted_message_matches_canary_policy`;
+5. preserve `reclassify_persisted_canary_messages`;
+6. preserve `IngestionSweepSummary.batch_canary_provider_message_ids`;
+7. preserve the accepted `safe_errors` constructor/behavior required by bounded execution;
+8. malformed independent From/To/Cc fields cannot suppress a valid canary alias;
+9. invalid configured canary identities remain fail-closed through the existing config contract;
+10. genuine ingestion/checkpoint/deduplication behavior must not regress.
+
+Composition rule:
+- start in an isolated integration worktree from the accepted control line;
+- import/resolve only the engine dependency closure required by the accepted canary bounded/V3 API;
+- do not resolve lifecycle/alerts/CRM/worker/dashboard conflicts in this pass;
+- if preserving both accepted engine behaviors requires modifying another held production conflict file, STOP and return `COMP-2_REWORK_FOUND` with the exact dependency instead of broadening scope.
+
+V1.7-only validation:
+- focused engine/Gmail/bounded/canary tests;
+- malformed-header regression;
+- incomplete-poll/missing-message/cap-truncation atomicity;
+- historical canary reclassification behavior that is engine-owned;
+- full pytest;
+- Ruff;
+- `mypy src tests`;
+- affected PostgreSQL/migration checks when needed;
+- no V2.0-only control-center acceptance matrix required for this task.
+
+Return:
+- exact base/input SHAs;
+- exact conflict resolution diff;
+- source SHA/tree;
+- commands/exits;
+- any conflicts/dependencies encountered;
+- `READY_FOR_LEAD_REVIEW` or `COMP-2_REWORK_FOUND`.
+
+No main merge, Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or other live action.
+
+### Dynamic resume clarification
+
+Owner clarification in `DYNAMIC_RESUME_CLARIFICATION_20260922.md` is acknowledged as current product intent:
+- resumes may be tailored per job from verified candidate facts;
+- exact generated resume bytes must be bound to each application/packet;
+- automatic JD-to-resume generation is not currently implemented.
+
+This clarification does not authorize model/private-data work and does not expand COMP-2.
