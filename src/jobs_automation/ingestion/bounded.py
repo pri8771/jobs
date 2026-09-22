@@ -15,11 +15,13 @@ import datetime
 import hashlib
 import json
 import logging
+import re
 import subprocess
 import uuid
+from dataclasses import dataclass
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -34,7 +36,13 @@ from jobs_automation.db.models import (
     MessageLinkModel,
     TaskModel,
 )
-from jobs_automation.ingestion.engine import EmailIngestionEngine, IngestionSweepSummary
+from jobs_automation.ingestion.engine import (
+    EmailIngestionEngine,
+    IngestionSweepSummary,
+    canonical_email_addresses,
+    persisted_message_matches_canary_policy,
+    reclassify_persisted_canary_messages,
+)
 from jobs_automation.ingestion.models import PollReport
 from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.engine import LifecycleEngine
@@ -42,12 +50,85 @@ from jobs_automation.lifecycle.engine import LifecycleEngine
 logger = logging.getLogger(__name__)
 
 BOUNDED_RUN_ACTION = "mailbox_ingestion_run"
+BOUNDED_AUDIT_SCHEMA_VERSION = 3
 MAX_BOUNDED_CAP = 500
 RunStatus = Literal["SUCCESS", "INCOMPLETE", "FAILED", "DRY_RUN"]
+_SHA256_RE = re.compile(r"[0-9a-f]{64}\Z")
+_SAFE_REPLAY_ERROR_RE = re.compile(r"REPLAY_[A-Z0-9_]+\Z")
+_LOGICAL_DIGEST_FIELDS = (
+    "messages",
+    "links",
+    "events",
+    "tasks",
+    "interviews",
+    "contacts",
+)
+_RESULT_COUNT_FIELDS = (
+    "messages_polled",
+    "messages_ingested",
+    "messages_skipped_duplicate",
+    "canary_messages",
+    "review_tasks_created",
+    "lifecycle_transitions",
+    "interviews_scheduled",
+    "unanswered_alerts",
+    "stale_alerts",
+)
+_POLL_METADATA_FIELDS = {
+    "adapter",
+    "synthetic",
+    "max_results",
+    "pages_fetched",
+    "listed_count",
+    "fetched_count",
+    "missing_message_count",
+    "truncated_by_cap",
+    "complete",
+}
+_BOUNDED_AUDIT_METADATA_FIELDS = {
+    "schema_version",
+    "run_id",
+    "status",
+    "adapter",
+    "synthetic",
+    "mailbox_sha256",
+    "mailbox_domain",
+    "request_sha256",
+    "query_sha256",
+    "provider_query_sha256",
+    "window_start",
+    "window_end",
+    "cap",
+    "dry_run",
+    "run_label_sha256",
+    "replay_of_run_id",
+    "started_at",
+    "finished_at",
+    "poll",
+    "complete",
+    *_RESULT_COUNT_FIELDS,
+    "digests_before",
+    "digests_after",
+    "replay_identical",
+    "replay_matches_original",
+    "error_codes",
+    "canary_policy_sha256",
+    "code_identity",
+    "application_id_sha256",
+    "provider_message_id_sha256",
+}
 
 
 class BoundedIngestionError(ValueError):
     """Raised for a request that violates the bounded-run contract."""
+
+
+@dataclass(frozen=True)
+class _ValidatedReplay:
+    """Private capability produced only after the public replay authorization gate."""
+
+    run_id: str
+    metadata: dict[str, Any]
 
 
 def code_identity() -> dict[str, Any]:
@@ -70,6 +151,27 @@ def mailbox_fingerprint(mailbox: str) -> dict[str, str]:
         "mailbox_sha256": hashlib.sha256(normalized.encode("utf-8")).hexdigest(),
         "mailbox_domain": domain,
     }
+
+
+def _sha256_text(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _is_sha256(value: Any) -> bool:
+    """Return whether a persisted value is one canonical SHA-256 hex digest."""
+    return isinstance(value, str) and _SHA256_RE.fullmatch(value) is not None
+
+
+def _canary_policy_fingerprint(identities: list[str]) -> str:
+    """Bind replay eligibility to the normalized, owner-controlled canary policy."""
+    return _sha256_text(
+        json.dumps(sorted(canonical_email_addresses(identities)), separators=(",", ":"))
+    )
+
+
+def _utc_iso(value: datetime.datetime) -> str:
+    """Canonical, non-secret representation used for replay request matching."""
+    return value.astimezone(datetime.UTC).isoformat()
 
 
 class BoundedIngestionRequest(BaseModel):
@@ -101,6 +203,59 @@ class BoundedIngestionRequest(BaseModel):
         return f"{self.query.strip()} before:{before_epoch}".strip()
 
 
+def _safe_request_metadata(request: BoundedIngestionRequest) -> dict[str, Any]:
+    """Return the persisted replay contract without retaining a mailbox or query string."""
+    fingerprint = mailbox_fingerprint(request.mailbox)
+    immutable = {
+        "mailbox_sha256": fingerprint["mailbox_sha256"],
+        "query_sha256": _sha256_text(request.query.strip()),
+        "provider_query_sha256": _sha256_text(request.provider_query()),
+        "window_start": _utc_iso(request.window_start),
+        "window_end": _utc_iso(request.window_end),
+        "cap": request.cap,
+    }
+    request_sha256 = _sha256_text(json.dumps(immutable, sort_keys=True, separators=(",", ":")))
+    return {
+        **immutable,
+        "request_sha256": request_sha256,
+        "dry_run": request.dry_run,
+    }
+
+
+def _safe_poll_metadata(poll: PollReport | None) -> dict[str, Any] | None:
+    """Persist completeness accounting without query text or provider identifiers."""
+    if poll is None:
+        return None
+    return {
+        "adapter": poll.adapter,
+        "synthetic": poll.synthetic,
+        "max_results": poll.max_results,
+        "pages_fetched": poll.pages_fetched,
+        "listed_count": poll.listed_count,
+        "fetched_count": poll.fetched_count,
+        "missing_message_count": len(poll.missing_message_ids),
+        "truncated_by_cap": poll.truncated_by_cap,
+        "complete": poll.complete,
+    }
+
+
+def _safe_error_codes(errors: list[str]) -> list[str]:
+    """Map possibly provider-derived error text to fixed, non-sensitive audit categories."""
+    codes: set[str] = set()
+    for error in errors:
+        if error in {"POLL_INCOMPLETE", "INGESTION_ERROR", "LIFECYCLE_PASS_FAILED"}:
+            codes.add(error)
+        elif error.startswith("poll_incomplete:"):
+            codes.add("POLL_INCOMPLETE")
+        elif error.startswith("lifecycle_pass_failed:"):
+            codes.add("LIFECYCLE_PASS_FAILED")
+        elif error.startswith("REPLAY_"):
+            codes.add(error.split(":", maxsplit=1)[0])
+        else:
+            codes.add("INGESTION_ERROR")
+    return sorted(codes)
+
+
 class LogicalStateDigests(BaseModel):
     """Order-independent digests of the logical recruiting state (no private content)."""
 
@@ -113,6 +268,239 @@ class LogicalStateDigests(BaseModel):
     interviews: str
     contacts: str
     counts: dict[str, int] = Field(default_factory=dict)
+
+
+def _valid_logical_state_digests(value: Any) -> bool:
+    """Reject incomplete or malformed persisted state digests before provider access."""
+    if not isinstance(value, dict):
+        return False
+    try:
+        parsed = LogicalStateDigests.model_validate(value, strict=True)
+    except ValidationError:
+        return False
+    expected_counts = set(_LOGICAL_DIGEST_FIELDS)
+    return (
+        all(_is_sha256(getattr(parsed, field)) for field in _LOGICAL_DIGEST_FIELDS)
+        and set(parsed.counts) == expected_counts
+        and all(type(count) is int and count >= 0 for count in parsed.counts.values())
+    )
+
+
+def _valid_canonical_sha256_list(value: Any) -> bool:
+    """Check a writer-canonical, secret-safe association list."""
+    return (
+        isinstance(value, list)
+        and all(_is_sha256(provider_hash) for provider_hash in value)
+        and value == sorted(set(value))
+    )
+
+
+def _valid_provider_message_hashes(value: Any) -> bool:
+    """Check the secret-safe provider source association shape before replay polling."""
+    return _valid_canonical_sha256_list(value)
+
+
+def _is_canonical_utc_iso(value: Any) -> bool:
+    """Accept only the UTC ISO representation emitted by the bounded-run writer."""
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = datetime.datetime.fromisoformat(value)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None and _utc_iso(parsed) == value
+
+
+def _is_non_negative_int(value: Any) -> bool:
+    """Avoid accepting booleans where persisted accounting requires an integer."""
+    return type(value) is int and value >= 0
+
+
+def _valid_poll_metadata(value: Any, *, complete: bool) -> bool:
+    """Validate the redacted poll shape emitted by :func:`_safe_poll_metadata`."""
+    if value is None:
+        return complete is False
+    if not isinstance(value, dict) or set(value) != _POLL_METADATA_FIELDS:
+        return False
+    if not isinstance(value["adapter"], str) or not isinstance(value["synthetic"], bool):
+        return False
+    if not isinstance(value["truncated_by_cap"], bool) or not isinstance(value["complete"], bool):
+        return False
+    if any(
+        not _is_non_negative_int(value[field])
+        for field in (
+            "max_results",
+            "pages_fetched",
+            "listed_count",
+            "fetched_count",
+            "missing_message_count",
+        )
+    ):
+        return False
+    if value["fetched_count"] > value["listed_count"]:
+        return False
+    if value["complete"] != complete:
+        return False
+    if value["complete"] and (
+        value["truncated_by_cap"]
+        or value["missing_message_count"] != 0
+        or value["fetched_count"] != value["listed_count"]
+    ):
+        return False
+    return True
+
+
+def _valid_error_codes(value: Any) -> bool:
+    """Only writer-sanitized, canonical error categories may enter evidence."""
+    if not isinstance(value, list) or value != sorted(set(value)):
+        return False
+    return all(
+        isinstance(code, str)
+        and (
+            code in {"POLL_INCOMPLETE", "INGESTION_ERROR", "LIFECYCLE_PASS_FAILED"}
+            or _SAFE_REPLAY_ERROR_RE.fullmatch(code) is not None
+        )
+        for code in value
+    )
+
+
+def is_valid_bounded_audit_metadata(
+    metadata: Any, *, external_reference: str | None = None
+) -> bool:
+    """Return whether a V3 bounded audit is complete, canonical writer-shaped evidence.
+
+    This is intentionally shared by replay preflight and timeline export.  A timeline is
+    evidence, so it must apply the same strict contract that protects replay before a
+    mailbox poll.  The validator only inspects redacted metadata; it never needs raw
+    mailbox, query, application, or provider identifiers.
+    """
+    if not isinstance(metadata, dict) or set(metadata) != _BOUNDED_AUDIT_METADATA_FIELDS:
+        return False
+    if (
+        type(metadata.get("schema_version")) is not int
+        or metadata["schema_version"] != BOUNDED_AUDIT_SCHEMA_VERSION
+    ):
+        return False
+
+    run_id = metadata.get("run_id")
+    if not isinstance(run_id, str) or not run_id:
+        return False
+    if external_reference is not None and run_id != external_reference:
+        return False
+    if metadata.get("status") not in {"SUCCESS", "INCOMPLETE", "FAILED", "DRY_RUN"}:
+        return False
+    if not isinstance(metadata.get("adapter"), str) or not metadata["adapter"]:
+        return False
+    if not isinstance(metadata.get("synthetic"), bool):
+        return False
+    if (
+        not isinstance(metadata.get("mailbox_domain"), str)
+        or metadata["mailbox_domain"] != metadata["mailbox_domain"].strip().lower()
+    ):
+        return False
+    if not all(
+        _is_sha256(metadata.get(field))
+        for field in (
+            "mailbox_sha256",
+            "request_sha256",
+            "query_sha256",
+            "provider_query_sha256",
+            "canary_policy_sha256",
+        )
+    ):
+        return False
+    run_label_sha256 = metadata.get("run_label_sha256")
+    if run_label_sha256 is not None and not _is_sha256(run_label_sha256):
+        return False
+    if not isinstance(metadata.get("dry_run"), bool) or not isinstance(
+        metadata.get("complete"), bool
+    ):
+        return False
+    if not _is_non_negative_int(metadata.get("cap")) or not (
+        1 <= metadata["cap"] <= MAX_BOUNDED_CAP
+    ):
+        return False
+    if not _is_canonical_utc_iso(metadata.get("window_start")) or not _is_canonical_utc_iso(
+        metadata.get("window_end")
+    ):
+        return False
+    if not _is_canonical_utc_iso(metadata.get("started_at")) or not _is_canonical_utc_iso(
+        metadata.get("finished_at")
+    ):
+        return False
+    window_start = datetime.datetime.fromisoformat(metadata["window_start"])
+    window_end = datetime.datetime.fromisoformat(metadata["window_end"])
+    started_at = datetime.datetime.fromisoformat(metadata["started_at"])
+    finished_at = datetime.datetime.fromisoformat(metadata["finished_at"])
+    if window_start >= window_end or started_at > finished_at:
+        return False
+    immutable_request = {
+        "mailbox_sha256": metadata["mailbox_sha256"],
+        "query_sha256": metadata["query_sha256"],
+        "provider_query_sha256": metadata["provider_query_sha256"],
+        "window_start": metadata["window_start"],
+        "window_end": metadata["window_end"],
+        "cap": metadata["cap"],
+    }
+    if metadata["request_sha256"] != _sha256_text(
+        json.dumps(immutable_request, sort_keys=True, separators=(",", ":"))
+    ):
+        return False
+    if not _valid_poll_metadata(metadata.get("poll"), complete=metadata["complete"]):
+        return False
+    if any(not _is_non_negative_int(metadata.get(field)) for field in _RESULT_COUNT_FIELDS):
+        return False
+    if any(
+        metadata[field] > metadata["messages_polled"]
+        for field in (
+            "messages_ingested",
+            "messages_skipped_duplicate",
+            "canary_messages",
+        )
+    ):
+        return False
+    if not _valid_logical_state_digests(
+        metadata.get("digests_before")
+    ) or not _valid_logical_state_digests(metadata.get("digests_after")):
+        return False
+    if not _valid_canonical_sha256_list(
+        metadata.get("application_id_sha256")
+    ) or not _valid_canonical_sha256_list(metadata.get("provider_message_id_sha256")):
+        return False
+    replay_of_run_id = metadata.get("replay_of_run_id")
+    replay_flags = (metadata.get("replay_identical"), metadata.get("replay_matches_original"))
+    if replay_of_run_id is None:
+        if replay_flags != (None, None):
+            return False
+    elif (
+        not isinstance(replay_of_run_id, str)
+        or not replay_of_run_id
+        or not all(isinstance(flag, bool) for flag in replay_flags)
+    ):
+        return False
+    if not _valid_error_codes(metadata.get("error_codes")):
+        return False
+    code_identity_value = metadata.get("code_identity")
+    if (
+        not isinstance(code_identity_value, dict)
+        or set(code_identity_value)
+        != {
+            "git_sha",
+            "package_version",
+        }
+        or not all(isinstance(value, str) and value for value in code_identity_value.values())
+    ):
+        return False
+
+    errors = metadata["error_codes"]
+    status = metadata["status"]
+    if status == "SUCCESS":
+        return not metadata["dry_run"] and metadata["complete"] and not errors
+    if status == "DRY_RUN":
+        return metadata["dry_run"] and not errors
+    if status == "INCOMPLETE":
+        return not metadata["dry_run"] and not metadata["complete"] and not errors
+    return bool(errors)  # FAILED
 
 
 def _digest(rows: list[tuple[Any, ...]]) -> str:
@@ -128,6 +516,7 @@ def compute_logical_state_digests(session: Session) -> LogicalStateDigests:
             m.received_at.isoformat(),
             m.direction,
             m.classification,
+            bool((m.headers_json or {}).get("_provider", {}).get("canary")),
         )
         for m in session.scalars(select(InboundMessageModel)).all()
     ]
@@ -204,6 +593,9 @@ class BoundedIngestionResult(BaseModel):
     mailbox_domain: str
     query: str
     provider_query: str
+    request_sha256: str
+    query_sha256: str
+    provider_query_sha256: str
     window_start: str
     window_end: str
     cap: int
@@ -228,12 +620,61 @@ class BoundedIngestionResult(BaseModel):
     replay_identical: bool | None = None
     replay_matches_original: bool | None = None
     errors: list[str] = Field(default_factory=list)
+    canary_policy_sha256: str
     code_identity: dict[str, Any] = Field(default_factory=dict)
+    application_id_sha256: list[str] = Field(default_factory=list)
+    provider_message_id_sha256: list[str] = Field(default_factory=list)
 
     def audit_metadata(self) -> dict[str, Any]:
-        """Secret-free metadata persisted on the audit row (no address, no bodies)."""
-        payload: dict[str, Any] = json.loads(self.model_dump_json())
-        return payload
+        """Secret-free, schema-versioned evidence used for replay and timeline binding.
+
+        The result object can retain a query for its immediate caller, but persistence must
+        never retain raw search text, provider query text, message identifiers, application
+        identifiers, mailboxes, bodies, or provider exception text.
+        """
+        return {
+            "schema_version": BOUNDED_AUDIT_SCHEMA_VERSION,
+            "run_id": self.run_id,
+            "status": self.status,
+            "adapter": self.adapter,
+            "synthetic": self.synthetic,
+            "mailbox_sha256": self.mailbox_sha256,
+            "mailbox_domain": self.mailbox_domain,
+            "request_sha256": self.request_sha256,
+            "query_sha256": self.query_sha256,
+            "provider_query_sha256": self.provider_query_sha256,
+            "window_start": self.window_start,
+            "window_end": self.window_end,
+            "cap": self.cap,
+            "dry_run": self.dry_run,
+            "run_label_sha256": _sha256_text(self.run_label) if self.run_label else None,
+            "replay_of_run_id": self.replay_of_run_id,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+            "poll": _safe_poll_metadata(self.poll),
+            "complete": self.complete,
+            "messages_polled": self.messages_polled,
+            "messages_ingested": self.messages_ingested,
+            "messages_skipped_duplicate": self.messages_skipped_duplicate,
+            "canary_messages": self.canary_messages,
+            "review_tasks_created": self.review_tasks_created,
+            "lifecycle_transitions": self.lifecycle_transitions,
+            "interviews_scheduled": self.interviews_scheduled,
+            "unanswered_alerts": self.unanswered_alerts,
+            "stale_alerts": self.stale_alerts,
+            "digests_before": self.digests_before.model_dump(),
+            "digests_after": self.digests_after.model_dump(),
+            "replay_identical": self.replay_identical,
+            "replay_matches_original": self.replay_matches_original,
+            "error_codes": _safe_error_codes(self.errors),
+            "canary_policy_sha256": self.canary_policy_sha256,
+            "code_identity": {
+                "git_sha": str(self.code_identity.get("git_sha") or "unknown"),
+                "package_version": str(self.code_identity.get("package_version") or "unknown"),
+            },
+            "application_id_sha256": sorted(set(self.application_id_sha256)),
+            "provider_message_id_sha256": sorted(set(self.provider_message_id_sha256)),
+        }
 
 
 class BoundedIngestionRunner:
@@ -253,10 +694,15 @@ class BoundedIngestionRunner:
         self.session = session
         self.adapter = adapter
         self.candidate_emails = list(candidate_emails or [])
-        self.canary_identities = list(canary_identities or [])
+        self.canary_identities = sorted(canonical_email_addresses(canary_identities or []))
+        self.canary_policy_sha256 = _canary_policy_fingerprint(self.canary_identities)
         self.adapter_kind = adapter_kind
         self.synthetic = synthetic
         self.identity = identity or code_identity()
+        # This capability is set only across the public ``replay`` call.  Keeping it on
+        # the runner (rather than accepting a keyword on ``_run``) prevents ordinary
+        # direct callers of the implementation method from smuggling in a replay id.
+        self._active_replay: _ValidatedReplay | None = None
 
     def _verify_mailbox(self, request: BoundedIngestionRequest) -> None:
         """The live adapter must be bound to exactly the mailbox named in the request."""
@@ -267,12 +713,105 @@ class BoundedIngestionRunner:
         if actual != request.mailbox.strip().lower():
             raise BoundedIngestionError("MAILBOX_MISMATCH")
 
+    @staticmethod
+    def _is_canary(message: InboundMessageModel) -> bool:
+        return bool((message.headers_json or {}).get("_provider", {}).get("canary"))
+
+    def _audit_references_current_canary(self, metadata: dict[str, Any]) -> bool:
+        """Reject malformed or reclassified evidence before it can certify a replay.
+
+        The persisted audit retains only hashes.  Compare those to the current durable
+        canary tags rather than attempting to rewrite historical proof records.
+        """
+        provider_hashes = metadata.get("provider_message_id_sha256")
+        if not _valid_provider_message_hashes(provider_hashes):
+            return True
+        assert isinstance(provider_hashes, list)
+        current_canary_hashes = {
+            _sha256_text(message.provider_message_id)
+            for message in self.session.scalars(select(InboundMessageModel)).all()
+            if self._is_canary(message)
+            or persisted_message_matches_canary_policy(message, self.canary_identities)
+        }
+        return not set(provider_hashes).isdisjoint(current_canary_hashes)
+
+    def _batch_messages(self, summary: IngestionSweepSummary) -> list[InboundMessageModel]:
+        """Load only durable rows admitted by this exact sweep, in chronological order."""
+        message_ids = list(dict.fromkeys(summary.batch_message_ids))
+        if not message_ids:
+            return []
+        messages = self.session.scalars(
+            select(InboundMessageModel).where(InboundMessageModel.id.in_(message_ids))
+        ).all()
+        return sorted(messages, key=lambda message: (message.received_at, str(message.id)))
+
+    def _batch_application_ids(self, message_ids: list[uuid.UUID]) -> set[uuid.UUID]:
+        if not message_ids:
+            return set()
+        return {
+            application_id
+            for application_id in self.session.scalars(
+                select(MessageLinkModel.application_id)
+                .where(
+                    MessageLinkModel.inbound_message_id.in_(message_ids),
+                    MessageLinkModel.application_id.is_not(None),
+                )
+                .distinct()
+            )
+            if application_id is not None
+        }
+
+    @staticmethod
+    def _digests_match(recorded: Any, observed: LogicalStateDigests) -> bool:
+        if not _valid_logical_state_digests(recorded):
+            return False
+        return (
+            all(
+                recorded.get(key) == getattr(observed, key)
+                for key in ("messages", "links", "events", "tasks", "interviews", "contacts")
+            )
+            and recorded.get("counts") == observed.counts
+        )
+
     def run(self, request: BoundedIngestionRequest) -> BoundedIngestionResult:
+        """Run a new bounded ingestion; replays must use :meth:`replay`."""
         request = request.validated()
+        if request.replay_of_run_id is not None:
+            raise BoundedIngestionError("REPLAY_MUST_USE_REPLAY_API")
+        self._reconcile_persisted_canaries(request)
+        return self._run(request)
+
+    def _reconcile_persisted_canaries(self, request: BoundedIngestionRequest) -> None:
+        """Commit current policy reclassification before a mutating bounded path starts."""
+        if request.dry_run:
+            return
+        if reclassify_persisted_canary_messages(self.session, self.canary_identities):
+            try:
+                # A run the bound adapter cannot serve must not leave durable tags behind.
+                self._verify_mailbox(request)
+            except Exception:
+                self.session.rollback()
+                raise
+            self.session.commit()
+
+    def _run(self, request: BoundedIngestionRequest) -> BoundedIngestionResult:
+        """Execute a new run or a replay after the caller has established authorization."""
+        request = request.validated()
+        validated_replay = self._active_replay
+        if request.replay_of_run_id is not None:
+            if validated_replay is None or validated_replay.run_id != request.replay_of_run_id:
+                raise BoundedIngestionError("REPLAY_MUST_USE_REPLAY_API")
+            original_replay_metadata: dict[str, Any] | None = validated_replay.metadata
+        elif validated_replay is not None:
+            raise BoundedIngestionError("REPLAY_MUST_USE_REPLAY_API")
+        else:
+            original_replay_metadata = None
+
         self._verify_mailbox(request)
         started = datetime.datetime.now(datetime.UTC)
         run_id = str(uuid.uuid4())
         fingerprint = mailbox_fingerprint(request.mailbox)
+        request_metadata = _safe_request_metadata(request)
         digests_before = compute_logical_state_digests(self.session)
 
         engine = EmailIngestionEngine(
@@ -280,6 +819,7 @@ class BoundedIngestionRunner:
             adapter=self.adapter,
             candidate_emails=self.candidate_emails,
             canary_identities=self.canary_identities,
+            safe_errors=True,
         )
         summary: IngestionSweepSummary = engine.run_sweep(
             query=request.provider_query(),
@@ -289,6 +829,21 @@ class BoundedIngestionRunner:
             advance_checkpoint=False,
         )
 
+        batch_messages = self._batch_messages(summary)
+        runtime_canary_provider_message_ids = set(summary.batch_canary_provider_message_ids)
+        genuine_messages = [
+            message
+            for message in batch_messages
+            if message.provider_message_id not in runtime_canary_provider_message_ids
+            and not self._is_canary(message)
+        ]
+        genuine_ids = [message.id for message in genuine_messages]
+        # Proof includes genuine job alerts; operational lifecycle/alerts do not.
+        lifecycle_messages = [
+            message for message in genuine_messages if message.classification != "JOB_ALERT"
+        ]
+        lifecycle_message_ids = [message.id for message in lifecycle_messages]
+
         lifecycle_transitions = 0
         interviews_scheduled = 0
         unanswered_alerts = 0
@@ -297,70 +852,65 @@ class BoundedIngestionRunner:
         if not request.dry_run and not errors:
             try:
                 lifecycle = LifecycleEngine(self.session)
-                messages = self.session.scalars(
-                    select(InboundMessageModel)
-                    .where(
-                        InboundMessageModel.id.in_(summary.batch_message_ids),
-                        InboundMessageModel.classification != "JOB_ALERT",
-                    )
-                    .order_by(InboundMessageModel.received_at.asc())
-                ).all()
-                genuine_ids: list[uuid.UUID] = []
-                thread_ids: set[str] = set()
-                for message in messages:
-                    if (message.headers_json or {}).get("_provider", {}).get("canary"):
-                        continue  # canary mail never drives genuine lifecycle state
-                    genuine_ids.append(message.id)
-                    thread_ids.add(message.provider_thread_id or message.provider_message_id)
+                for message in lifecycle_messages:
                     transition = lifecycle.process_message(message)
                     if transition:
                         lifecycle_transitions += 1
                         if transition.interview_scheduled:
                             interviews_scheduled += 1
-                alerts = LifecycleAlertService(self.session)
-                application_ids = {
-                    app_id for app_id in self.session.scalars(
-                        select(MessageLinkModel.application_id).where(
-                            MessageLinkModel.inbound_message_id.in_(genuine_ids),
-                            MessageLinkModel.application_id.is_not(None),
-                        )
-                    ) if app_id is not None
+
+                admitted_thread_ids = {
+                    message.provider_thread_id or message.provider_message_id
+                    for message in lifecycle_messages
                 }
-                unanswered_alerts = len(alerts.check_unanswered_recruiters(thread_ids=thread_ids))
-                stale_alerts = len(alerts.check_stale_applications(application_ids=application_ids))
+                # Lifecycle may create or repair links; resolve alert scope afterward.
+                alert_application_ids = self._batch_application_ids(lifecycle_message_ids)
+                alerts = LifecycleAlertService(self.session)
+                unanswered_alerts = len(
+                    alerts.check_unanswered_recruiters(thread_ids=admitted_thread_ids)
+                )
+                stale_alerts = len(
+                    alerts.check_stale_applications(application_ids=alert_application_ids)
+                )
                 self.session.commit()
             except Exception as exc:  # pragma: no cover - defensive; surfaced as FAILED
                 self.session.rollback()
-                errors.append(f"lifecycle_pass_failed: {type(exc).__name__}")
+                logger.warning("Bounded lifecycle pass failed with %s", type(exc).__name__)
+                errors.append("LIFECYCLE_PASS_FAILED")
 
+        # Keep proof attribution separate from operational alert eligibility. This
+        # also reads post-lifecycle links, including genuine job-alert associations.
+        proof_application_ids = self._batch_application_ids(genuine_ids)
         digests_after = compute_logical_state_digests(self.session)
         poll = summary.poll_report
         complete = bool(poll and poll.complete)
-        if request.dry_run:
-            status: RunStatus = "DRY_RUN"
-        elif errors:
-            status = "FAILED"
-        elif not complete:
-            status = "INCOMPLETE"
-        else:
-            status = "SUCCESS"
 
         replay_identical: bool | None = None
         replay_matches_original: bool | None = None
         if request.replay_of_run_id:
             replay_identical = digests_after == digests_before
-            original = self._load_run(request.replay_of_run_id)
-            if original is not None:
-                recorded = original.get("digests_after") or {}
-                replay_matches_original = all(
-                    recorded.get(key) == getattr(digests_after, key)
-                    for key in ("messages", "links", "events", "tasks", "interviews", "contacts")
-                )
+            # ``_run`` validates this before polling. The defensive branch remains
+            # fail-closed if an unexpected internal caller bypasses that invariant.
+            original = original_replay_metadata
+            if original is None:
+                errors.append("REPLAY_EVIDENCE_SCHEMA_UNSUPPORTED")
             else:
-                errors.append("REPLAY_ORIGINAL_NOT_FOUND")
+                replay_matches_original = self._digests_match(
+                    original.get("digests_after"), digests_after
+                )
+                if self._audit_references_current_canary(original):
+                    errors.append("REPLAY_EVIDENCE_CANARY_RECLASSIFIED")
             if replay_identical is not True or replay_matches_original is not True:
                 errors.append("REPLAY_LOGICAL_STATE_MISMATCH")
-                status = "FAILED"
+
+        if errors:
+            status: RunStatus = "FAILED"
+        elif request.dry_run:
+            status = "DRY_RUN"
+        elif not complete:
+            status = "INCOMPLETE"
+        else:
+            status = "SUCCESS"
 
         result = BoundedIngestionResult(
             run_id=run_id,
@@ -371,8 +921,11 @@ class BoundedIngestionRunner:
             mailbox_domain=fingerprint["mailbox_domain"],
             query=request.query,
             provider_query=request.provider_query(),
-            window_start=request.window_start.isoformat(),
-            window_end=request.window_end.isoformat(),
+            request_sha256=str(request_metadata["request_sha256"]),
+            query_sha256=str(request_metadata["query_sha256"]),
+            provider_query_sha256=str(request_metadata["provider_query_sha256"]),
+            window_start=str(request_metadata["window_start"]),
+            window_end=str(request_metadata["window_end"]),
             cap=request.cap,
             dry_run=request.dry_run,
             run_label=request.run_label,
@@ -395,7 +948,14 @@ class BoundedIngestionRunner:
             replay_identical=replay_identical,
             replay_matches_original=replay_matches_original,
             errors=errors,
+            canary_policy_sha256=self.canary_policy_sha256,
             code_identity=dict(self.identity),
+            application_id_sha256=sorted(
+                _sha256_text(str(application_id)) for application_id in proof_application_ids
+            ),
+            provider_message_id_sha256=sorted(
+                _sha256_text(message.provider_message_id) for message in genuine_messages
+            ),
         )
         self._record(result)
         return result
@@ -406,6 +966,7 @@ class BoundedIngestionRunner:
             action_type=BOUNDED_RUN_ACTION,
             entity_type="mailbox",
             actor="bounded_ingestion",
+            input_hash=result.request_sha256,
             result=result.status,
             external_reference=result.run_id,
             metadata_json=result.audit_metadata(),
@@ -422,25 +983,84 @@ class BoundedIngestionRunner:
         )
         return dict(row.metadata_json) if row is not None else None
 
-    def replay(
-        self, run_id: str, mailbox: str, run_label: str | None = None
-    ) -> BoundedIngestionResult:
-        """Re-run the exact recorded parameters of a previous run against the same mailbox."""
+    def _validate_replay_contract(
+        self, run_id: str, request: BoundedIngestionRequest
+    ) -> dict[str, Any]:
+        """Validate every persisted replay boundary before mailbox polling begins."""
         original = self._load_run(run_id)
         if original is None:
             raise BoundedIngestionError("REPLAY_RUN_NOT_FOUND")
-        if original.get("mailbox_sha256") != mailbox_fingerprint(mailbox)["mailbox_sha256"]:
+        if not is_valid_bounded_audit_metadata(original, external_reference=run_id):
+            raise BoundedIngestionError("REPLAY_EVIDENCE_SCHEMA_UNSUPPORTED")
+
+        expected = _safe_request_metadata(request)
+        if original.get("mailbox_sha256") != expected["mailbox_sha256"]:
             raise BoundedIngestionError("REPLAY_MAILBOX_MISMATCH")
-        if bool(original.get("synthetic")) != self.synthetic:
+        if (
+            original.get("adapter") != self.adapter_kind
+            or bool(original.get("synthetic")) != self.synthetic
+        ):
             raise BoundedIngestionError("REPLAY_ADAPTER_KIND_MISMATCH")
-        request = BoundedIngestionRequest(
-            mailbox=mailbox,
-            query=str(original["query"]),
-            window_start=datetime.datetime.fromisoformat(str(original["window_start"])),
-            window_end=datetime.datetime.fromisoformat(str(original["window_end"])),
-            cap=int(original["cap"]),
-            dry_run=False,
-            run_label=run_label or f"replay:{run_id}",
-            replay_of_run_id=run_id,
+        if any(
+            original.get(field) != expected[field]
+            for field in (
+                "query_sha256",
+                "provider_query_sha256",
+                "window_start",
+                "window_end",
+                "cap",
+                "request_sha256",
+            )
+        ):
+            raise BoundedIngestionError("REPLAY_REQUEST_MISMATCH")
+        if original.get("canary_policy_sha256") != self.canary_policy_sha256:
+            raise BoundedIngestionError("REPLAY_CANARY_POLICY_MISMATCH")
+        if self._audit_references_current_canary(original):
+            raise BoundedIngestionError("REPLAY_EVIDENCE_CANARY_RECLASSIFIED")
+        return original
+
+    def replay(
+        self,
+        run_id: str,
+        request: BoundedIngestionRequest | str,
+        *,
+        allow_stateful_replay: bool = False,
+        run_label: str | None = None,
+    ) -> BoundedIngestionResult:
+        """Replay a caller-supplied request only when it matches safe recorded evidence.
+
+        The caller supplies the complete request because raw query text is intentionally
+        absent from the audit row.  A stateful replay needs an explicit authorization;
+        a recorded dry-run is permanently replayed as dry-run even if a caller asks to
+        apply it.
+        """
+        if not isinstance(request, BoundedIngestionRequest):
+            # A legacy caller that passes only a mailbox cannot be reconstructed from
+            # query-free evidence, so it fails before any poll instead of guessing.
+            raise BoundedIngestionError("REPLAY_REQUEST_REQUIRED")
+        request = request.validated()
+        original = self._validate_replay_contract(run_id, request)
+
+        recorded_dry_run = bool(original["dry_run"])
+        effective_dry_run = True if recorded_dry_run else request.dry_run
+        if not effective_dry_run and not allow_stateful_replay:
+            raise BoundedIngestionError("REPLAY_STATEFUL_REQUIRES_EXPLICIT_AUTHORIZATION")
+        replay_request = request.model_copy(
+            update={
+                "dry_run": effective_dry_run,
+                "run_label": run_label or request.run_label or f"replay:{run_id}",
+                "replay_of_run_id": run_id,
+            }
         )
-        return self.run(request)
+        if self._active_replay is not None:  # pragma: no cover - runner is not re-entrant
+            raise BoundedIngestionError("REPLAY_MUST_USE_REPLAY_API")
+        # Authorization has been established above. Persist any historical policy
+        # reclassification before the provider can be polled; the preflight already
+        # evaluates untagged rows against the current policy, so this cannot turn a
+        # rejected original into a valid replay.
+        self._reconcile_persisted_canaries(replay_request)
+        self._active_replay = _ValidatedReplay(run_id=run_id, metadata=original)
+        try:
+            return self._run(replay_request)
+        finally:
+            self._active_replay = None
