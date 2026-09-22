@@ -1,0 +1,9 @@
+{
+  "source_sha": "7345f1e0fc7153ba40c3628910ebd58266635421",
+  "authority": "bae0d9fde0b9158253226f4c8b07abc35c9cb743",
+  "evidence_class": "ENGINEERING",
+  "files": {
+    "begin-failure-observed.txt": "ae0858f34853ecdd733355d2a90b71796a8240605e651e1b7539d19e2200ac56",
+    "begin-failure-repro.py": "59756a5fad2fb8e828b81ffc3ffc60c323924d346040a0764a34e8d0d063555f"
+  }
+}

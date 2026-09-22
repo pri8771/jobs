@@ -1,0 +1,31 @@
+Failed to write worker-run begin record for run 30875b41-b296-48c0-a90b-0d97039003a7: synthetic begin evidence store unavailable
+Traceback (most recent call last):
+  File "/Users/pchordia/Downloads/swarm_codex/review/jobs-health-source/src/jobs_automation/worker.py", line 178, in run_sweep
+    with self.session_factory() as begin_session:
+         ~~~~~~~~~~~~~~~~~~~~^^
+  File "/tmp/jobs-j20-health-begin-failure-repro-20260922.py", line 54, in __call__
+    raise RuntimeError("synthetic begin evidence store unavailable")
+RuntimeError: synthetic begin evidence store unavailable
+{
+  "durable_begin_run_ids": [
+    "prior-success"
+  ],
+  "durable_finish_run_ids": [
+    "prior-success"
+  ],
+  "factory_calls": 1,
+  "failed_run_id": "30875b41-b296-48c0-a90b-0d97039003a7",
+  "fresh_health_last_attempt_at": "2026-09-22T01:31:06.470348-04:00",
+  "fresh_health_last_attempt_status": "SUCCESS",
+  "fresh_health_message": "Last worker run 10.0m ago (SUCCESS).",
+  "fresh_health_status": "HEALTHY",
+  "pipeline_poll_calls": 0,
+  "returned_errors": [
+    "begin_record_failed: operational evidence store unavailable"
+  ],
+  "source_sha": "7345f1e0fc7153ba40c3628910ebd58266635421"
+}
+COMMAND=JOBS_HEALTH_DIAGNOSTIC_DB=<unique> PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-j20-health-begin-failure-repro-20260922.py
+SOURCE_SHA=7345f1e0fc7153ba40c3628910ebd58266635421
+PYTHON_EXIT=0
+CLEANUP_DATABASE_COUNT=0
