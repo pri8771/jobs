@@ -789,7 +789,7 @@ class BoundedIngestionRunner:
             try:
                 # A run the bound adapter cannot serve must not leave durable tags behind.
                 self._verify_mailbox(request)
-            except BoundedIngestionError:
+            except Exception:
                 self.session.rollback()
                 raise
             self.session.commit()

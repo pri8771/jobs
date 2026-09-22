@@ -870,6 +870,56 @@ def test_mailbox_mismatch_leaves_no_durable_canary_reclassification(db_session: 
         assert not (message.headers_json or {}).get("_provider", {}).get("canary")
 
 
+def test_replay_mailbox_mismatch_leaves_no_durable_canary_reclassification(
+    db_session: Session,
+) -> None:
+    """A contract-valid replay through a wrongly bound adapter must not commit new tags."""
+    alias = "owner.canary@invalid"
+    bound = GmailAdapter(
+        service=FakeGmailService(_five_messages(), profile_address=CANDIDATE),
+        verified_identities=[CANDIDATE],
+    )
+    original = _runner(
+        db_session, adapter=bound, adapter_kind="gmail", synthetic=False, canary_identities=[alias]
+    ).run(_request(mailbox=CANDIDATE, cap=10))
+    assert original.status == "SUCCESS", original.errors
+    # Historical mail from the alias that predates the policy and is outside the original's
+    # evidence, so the replay contract and reclassified-canary preflight both still pass.
+    historical = InboundMessageModel(
+        provider_message_id="historical-owner-canary",
+        provider_thread_id="historical-owner-canary-thread",
+        received_at=datetime.datetime(2019, 1, 1, tzinfo=datetime.UTC),
+        sender=alias,
+        recipients_json=[CANDIDATE],
+        direction="inbound",
+        subject="Historical owner test mail",
+        headers_json={},
+        body_text="Synthetic historical owner mail outside the original bounded batch.",
+        classification="RECRUITER_OUTREACH",
+        confidence=0.9,
+    )
+    db_session.add(historical)
+    db_session.commit()
+
+    elsewhere = FakeGmailService(_five_messages(), profile_address="other.person@invalid")
+    replay_runner = _runner(
+        db_session,
+        adapter=GmailAdapter(service=elsewhere, verified_identities=[CANDIDATE]),
+        adapter_kind="gmail",
+        synthetic=False,
+        canary_identities=[alias],
+    )
+    with pytest.raises(BoundedIngestionError, match="MAILBOX_MISMATCH"):
+        replay_runner.replay(
+            original.run_id, _request(mailbox=CANDIDATE, cap=10), allow_stateful_replay=True
+        )
+    assert elsewhere.list_calls == []
+    db_session.expire_all()
+    persisted = db_session.get(InboundMessageModel, historical.id)
+    assert persisted is not None
+    assert not (persisted.headers_json or {}).get("_provider", {}).get("canary")
+
+
 def test_timeline_export_is_redacted_and_digest_stable(db_session: Session) -> None:
     app = _seed_application(db_session)
     _runner(db_session).run(_request())
@@ -985,8 +1035,10 @@ def test_installed_entrypoints_run_restart_and_timeline_bounded_batch(tmp_path: 
                 select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
             ).all()
             assert len(runs) == 1
+            assert runs[0].external_reference == run_id
+            assert runs[0].metadata_json["run_id"] == run_id
             assert is_valid_bounded_audit_metadata(
-                runs[0].metadata_json, external_reference=runs[0].metadata_json["run_id"]
+                runs[0].metadata_json, external_reference=runs[0].external_reference
             )
             events = session.scalars(select(ApplicationEventModel)).all()
             event_types = [event.event_type for event in events]
