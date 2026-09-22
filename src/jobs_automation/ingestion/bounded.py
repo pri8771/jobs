@@ -832,9 +832,11 @@ class BoundedIngestionRunner:
             and not self._is_canary(message)
         ]
         genuine_ids = [message.id for message in genuine_messages]
-        # A canary is operational test traffic, never genuine recruiting evidence.  Do not
-        # let a canary-linked row attach a bounded run or replay proof to an application.
-        admitted_application_ids = self._batch_application_ids(genuine_ids)
+        # Proof includes genuine job alerts; operational lifecycle/alerts do not.
+        lifecycle_messages = [
+            message for message in genuine_messages if message.classification != "JOB_ALERT"
+        ]
+        lifecycle_message_ids = [message.id for message in lifecycle_messages]
 
         lifecycle_transitions = 0
         interviews_scheduled = 0
@@ -844,9 +846,7 @@ class BoundedIngestionRunner:
         if not request.dry_run and not errors:
             try:
                 lifecycle = LifecycleEngine(self.session)
-                for message in genuine_messages:
-                    if message.classification == "JOB_ALERT":
-                        continue
+                for message in lifecycle_messages:
                     transition = lifecycle.process_message(message)
                     if transition:
                         lifecycle_transitions += 1
@@ -855,14 +855,16 @@ class BoundedIngestionRunner:
 
                 admitted_thread_ids = {
                     message.provider_thread_id or message.provider_message_id
-                    for message in genuine_messages
+                    for message in lifecycle_messages
                 }
+                # Lifecycle may create or repair links; resolve alert scope afterward.
+                alert_application_ids = self._batch_application_ids(lifecycle_message_ids)
                 alerts = LifecycleAlertService(self.session)
                 unanswered_alerts = len(
                     alerts.check_unanswered_recruiters(thread_ids=admitted_thread_ids)
                 )
                 stale_alerts = len(
-                    alerts.check_stale_applications(application_ids=admitted_application_ids)
+                    alerts.check_stale_applications(application_ids=alert_application_ids)
                 )
                 self.session.commit()
             except Exception as exc:  # pragma: no cover - defensive; surfaced as FAILED
@@ -870,6 +872,9 @@ class BoundedIngestionRunner:
                 logger.warning("Bounded lifecycle pass failed with %s", type(exc).__name__)
                 errors.append("LIFECYCLE_PASS_FAILED")
 
+        # Keep proof attribution separate from operational alert eligibility. This
+        # also reads post-lifecycle links, including genuine job-alert associations.
+        proof_application_ids = self._batch_application_ids(genuine_ids)
         digests_after = compute_logical_state_digests(self.session)
         poll = summary.poll_report
         complete = bool(poll and poll.complete)
@@ -940,7 +945,7 @@ class BoundedIngestionRunner:
             canary_policy_sha256=self.canary_policy_sha256,
             code_identity=dict(self.identity),
             application_id_sha256=sorted(
-                _sha256_text(str(application_id)) for application_id in admitted_application_ids
+                _sha256_text(str(application_id)) for application_id in proof_application_ids
             ),
             provider_message_id_sha256=sorted(
                 _sha256_text(message.provider_message_id) for message in genuine_messages
