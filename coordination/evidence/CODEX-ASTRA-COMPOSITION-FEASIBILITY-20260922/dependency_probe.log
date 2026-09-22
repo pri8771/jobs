@@ -1,0 +1,12 @@
+base engine: /tmp/jobs-astra-composition-20260922/src/jobs_automation/ingestion/engine.py
+Traceback (most recent call last):
+  File "/tmp/jobs-astra-composition-feasibility-20260922/dependency_probe.py", line 8, in <module>
+    s.loader.exec_module(m)
+    ~~~~~~~~~~~~~~~~~~~~^^^
+  File "<frozen importlib._bootstrap_external>", line 1023, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "/tmp/jobs-astra-composition-feasibility-20260922/accepted_canary_bounded.py", line 39, in <module>
+    from jobs_automation.ingestion.engine import (
+    ...<5 lines>...
+    )
+ImportError: cannot import name 'canonical_email_addresses' from 'jobs_automation.ingestion.engine' (/tmp/jobs-astra-composition-20260922/src/jobs_automation/ingestion/engine.py)
