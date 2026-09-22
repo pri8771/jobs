@@ -2,95 +2,47 @@
 
 - Type: implementation / live evidence
 - Phase: V1.5
-- Status: IN_PROGRESS
-- Owner: Antigravity Lane A
+- Status: **ACCEPTED (engineering)**
+- Owner: Fable/Claude
 - Reviewer: ChatGPT
-- Dependencies: A-V14-PACKET-SAFETY ENGINEERING_ACCEPTED, A-V15-BROWSER-SAFETY-CONTRACT engineering acceptance, later user approval for consequential live evidence
-- Downstream: A-V16-FIRST-REAL-SUBMISSION
+- Dependencies: A-V14-PACKET-SAFETY ACCEPTED, A-V15-BROWSER-SAFETY-CONTRACT ACCEPTED (engineering)
+- Downstream: A-V15-LIVE-ASSISTED-PROOF, V1.6 engineering
 
 ## Purpose
 
-Prove that an accepted packet can be carried into a visible assisted browser flow without corrupting provenance or crossing unknown/user-only boundaries.
+Carry an accepted packet into a visible assisted-browser flow without corrupting provenance or crossing unknown/user-only boundaries, while guaranteeing the assisted path stops before submission.
 
-## Worker batches reviewed
+## Accepted source
 
-Initial:
-- `3d17fa8`
+- Exact consolidated source: `47fefd1b0ca354360353577685f6619a94f00f42`.
+- Integrated through PR #12 as `7c0fa73bf350392a88b47442455359a43cf926b0`.
+- Lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-Current repaired batch:
-- `ed875775122f0d390af6ab15beb378904af2a476`
+## Lead acceptance
 
-Task-scope lead acceptance in current batch:
-- A-R15-01 external-confirmation hardening
-- A-R15-02 field-level prompt-injection blocking
-- A-R15-03 consent/attestation prefill barrier
-- A-R15-04 cover-letter hash/provenance + tamper/missing-required handling
-- A-R15-05 immediate pre-write form-fingerprint revalidation
+The reviewed implementation closes the earlier assisted-browser residuals and verifies:
+- semantic page/form/destination identity and immediate pre-write reinspection;
+- exact accepted packet, answers/provenance and linked artifact integrity at browser use;
+- field-level and page-level untrusted-content defenses;
+- exact locator-bound text/select writes with readback;
+- resume/cover-letter field-specific upload mapping and byte/hash evidence;
+- unknown/ambiguous file inputs stay manual and are never defaulted to resume;
+- truthful partial-prefill state and persistent post-fill evidence;
+- consent/attestation, EEO/self-ID and unresolved consequential fields remain manual/blocking;
+- assisted execution always ends at `REVIEW_REQUIRED` and never promotes itself to submitted state;
+- URL text, caller receipts, runner flags, mock state and arbitrary evidence cannot establish external confirmation;
+- real local headless Playwright engineering forms receive no submit POST from the assisted path;
+- installed `assisted-apply` entrypoint stops for review even when legacy auto-confirm input is present.
 
-Worker reported 132 full tests passing, 27 targeted assisted-safety tests passing, clean Ruff, and no new mypy errors. The branch commit itself has no GitHub Actions/check result and PR #2 is currently draft/non-mergeable against newer main, so overall artifact acceptance remains pending.
+Fable's exact-head handoff reports 395 tests including real Playwright engineering-form coverage plus Ruff/mypy green. Hosted Actions were `CI_BLOCKED_ACCOUNT` before executable steps and are not called green; the documented lead engineering exception was applied after code/test review.
 
-## P0 sequencing
+## Live gate
 
-A-V14-REAL-PROOF outranks remaining V1.5 work.
+**G15 remains UNPASSED.** A genuine live example requires:
+1. an accepted genuine G14 packet;
+2. this accepted V1.5 engineering;
+3. a scoped owner grant naming the real visible-browser page/session;
+4. actual safe prefill/uploads and genuine post-fill evidence;
+5. **STOP BEFORE SUBMIT**.
 
-Lane A should rebase/pull current main and, if the real private profile and actual resume mapping exist on its machine, run the V1.4 proof immediately using:
-- `scripts/import_v14_proof_job.py`
-- `scripts/run_v14_real_proof.py`
-- `scripts/verify_v14_real_proof.py`
-
-No browser prefill/submission is part of V1.4 real proof.
-
-## Remaining V1.5 residuals after V1.4 proof
-
-See `docs/LANE_A_REAUDIT_2.md`:
-- A-R15-06 SP2 page-level prompt-injection inspection/security evidence.
-- A-R15-07 SP2 real cover-letter file-upload wiring + field-specific mapping.
-- A-R15-08 SP2 accepted packet hash/answer/provenance/resume-link integrity revalidation immediately before browser use.
-- A-R15-09 SP1 unknown file inputs must stay manual/unfilled rather than defaulting to resume.
-
-## Acceptance criteria
-
-- exact accepted packet used; no implicit latest-packet selection for a real run
-- packet hash/current answer/provenance integrity validated before browser use
-- dedicated persistent browser context/profile as appropriate
-- inspect form before any write/prefill
-- form fields explicitly classified
-- known fields mapped with provenance
-- arbitrary/unknown file inputs never receive the resume by default
-- ambiguous/unknown required fields block or remain manual
-- unresolved consequential packet questions block progress
-- EEO/self-ID left manual
-- exact accepted resume/cover-letter artifact hashes verified immediately before upload
-- field-specific upload mapping prevents cross-attachment
-- one persistent visible browser context spans inspect/prefill/review
-- meaningful form change after inspection blocks write/requires reinspection
-- pre-submit review manifest generated
-- external page/form content treated only as untrusted data, never agent instruction
-- user controls final submit in assisted mode
-- real external confirmation captured before submitted state
-- free-form/local/mock/generic receipt evidence cannot satisfy real submission state
-- application lifecycle/audit updated truthfully
-
-## Evidence required
-
-Engineering acceptance:
-- adversarial tests for all remaining residual safety cases
-- full pytest, Ruff, mypy
-- green integrated GitHub CI on current main/rebased branch
-- lead review
-
-Version completion additionally requires its own real non-mock V1.5 example under the owner completion policy. That later proof must not be confused with the non-consequential V1.4 packet proof.
-
-## Boundary
-
-No live browser/application action is authorized by this artifact's current engineering state. V1.6 remains blocked until V1.5 engineering and completion gates are satisfied.
-
-## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
-
-F145-07: the V1.5 browser code and adversarial tests from `worker/v15-assisted-application`
-`ddb4f84` were ported onto the single-worker branch `claude/serene-brown-g6uij0` without
-heartbeat/coordination churn. F145-08..11 (FR15-01..03 repairs, real local Playwright
-engineering-form tests, installed entrypoint test) are summarised in the addendum of
-`docs/V1_5_BROWSER_SAFETY_CONTRACT.md`. Exact SHA and independent check results are in the
-handoff and heartbeat. G15 (live visible prefill) remains blocked on this host: no accepted
-real packet, no owner browser grant, no owner machine.
+This engineering artifact authorizes no live employer-page prefill or submission by itself. V1.6 engineering may now proceed independently, but live G16 remains separately gated.
