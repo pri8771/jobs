@@ -1,0 +1,310 @@
+# Jobs V1.7 active disposition package — 2026-09-22
+
+Authority:
+- Latest owner goal reset: `coordination/codex/OWNER_TARGET_V17_20260922.md` (owner record ebae569).
+- Target is **accepted V1.7, then STOP**.
+- V2.0/V2.3/V2.7/V3 are deferred.
+- ChatGPT remains lead and formal engineering/live/milestone acceptance authority.
+- **Codex is the current direct implementation integrator for this pass.**
+- Claude/Fable is paused/handed off and is not dispatched by this package.
+
+This package lifts the prior owner pause only for the offline engineering work explicitly released below. It does not grant any live/account/mailbox/browser/application/model/scheduler/spend/deploy/main-merge action.
+
+## 1. Execution ownership and watcher
+
+Current direct implementation worker for this pass: **Codex**.
+
+Claude/Fable:
+- paused for implementation;
+- retained only as historical/source context unless the owner explicitly reactivates it;
+- no Fable/Claude dispatch is authorized by this package.
+
+Existing watcher/heartbeat ownership is preserved exactly as already recorded:
+- `FIVE_MIN_2026_09_21` / `ACTIVE_5M`;
+- publication branch `worker/v14-real-proof`;
+- no ownership transfer to Codex is implied;
+- **no new timer, heartbeat, scheduler, cron, or automation is created or changed**.
+
+Codex works directly on released source tasks and returns exact-SHA evidence. Existing watcher status must remain truthfully reported by its existing owner; this package does not fabricate or restart it.
+
+## 2. Immediate active assignment — PR26 hosted mypy repair
+
+### Exact starting source
+
+Actual Jobs PR26:
+https://github.com/pri8771/jobs/pull/26
+
+Base exact candidate:
+`b2688eeabb5ca996767b27b78d0004678eeee756`
+tree `6644f340b98eae517ae08ccde38a28da5f2c52a9`
+branch `codex/jobs-v17-cli-gate-20260922`
+
+Hosted run:
+`35757522343`, latest job `106870677780`.
+
+Observed hosted behavior:
+- setup/container/checkout/Python/install: PASS;
+- Ruff: PASS;
+- `mypy src tests`: FAIL;
+- Alembic + pytest skipped because mypy failed.
+
+Exact mypy failure inventory:
+- `tests/test_cli.py`: 15 errors;
+- `tests/test_worker.py`: 7 errors;
+- total: 22 errors across 113 checked files.
+
+The errors are test typing only: missing annotations and Optional ORM results assigned to non-Optional variables. This is a real hosted CI failure, not an infrastructure-start failure.
+
+### Allowed files
+
+Production source changes are **not authorized** for this assignment.
+
+Allowed files only:
+- `tests/test_cli.py`
+- `tests/test_worker.py`
+
+No workflow, pyproject/mypy config, ignore, exclude, per-module override, CI command, or source typing relaxation may be changed.
+
+### Required repair behavior
+
+Fix typing honestly without changing test semantics:
+- add precise parameter/return annotations to currently untyped test helpers/functions;
+- narrow/assert ORM `session.get` / scalar results before assigning/using values that tests require to exist;
+- use existing model types and standard typing constructs;
+- do not add `# type: ignore`, `Any` merely to silence errors, broad casts that bypass the invariant, or mypy exemptions unless a specific existing API truly requires a narrow cast and the test proves the runtime invariant first;
+- do not weaken assertions, skip tests, remove cases, or alter production behavior.
+
+### Required validation
+
+Before handoff:
+1. `mypy src tests` must pass exactly under the hosted command/config.
+2. Focused:
+   - `pytest -q tests/test_cli.py tests/test_worker.py`
+3. Full pytest.
+4. Ruff over source/tests.
+5. Format/diff check for the two touched tests.
+6. Push exact new PR26 head and allow hosted Actions to rerun.
+7. Hosted result must be classified truthfully:
+   - green if all actual steps execute/pass;
+   - code failure if an executed code step fails;
+   - infrastructure blocked only if runner never executes relevant steps.
+
+Return exact new SHA/tree, diff, commands/exits, hosted run/job IDs, and READY_FOR_LEAD_REVIEW. Do not self-accept.
+
+**This is the one active next engineering assignment now.**
+
+## 3. V1.6 hosted-form transport policy — frozen lead proposal
+
+This is a project safety/eligibility policy for V1.7 engineering. It is **not legal advice, ToS clearance, employer authorization, or a live-action grant**.
+
+### Single supported hosted-form route
+
+For V1.7, engineering may target **one candidate-facing employer/ATS hosted web-form route only: the employer-provided Greenhouse candidate application form in a visible browser flow**.
+
+Explicitly out of V1.7 live transport scope unless separately re-authorized:
+- LinkedIn submission;
+- Indeed submission;
+- generic browser submission to arbitrary ATS families;
+- employer/private ATS APIs;
+- undocumented endpoints;
+- reverse-engineered submission calls;
+- credential/API-token acquisition from an employer;
+- any anti-bot/CAPTCHA/MFA bypass.
+
+If the exact desired employer does not provide an eligible Greenhouse candidate-facing form, the truthful state is:
+`BLOCKED_NO_ELIGIBLE_TRANSPORT`
+until the lead/owner explicitly approves another route.
+
+### Five frozen transport questions
+
+1. **Destination policy / ToS eligibility**
+   - Before engineering/live use, record the exact candidate-facing form and current destination-policy review.
+   - If automation eligibility is unclear, disputed, blocked, or explicitly prohibited, stop with `BLOCKED_NO_ELIGIBLE_TRANSPORT`.
+   - Owner approval cannot override a destination restriction.
+   - This is an internal safety rule, not a legal determination.
+
+2. **Scoped authorization**
+   - No submit authority is blanket.
+   - Required before any real submit: exact owner-approved job/requisition + account/session alias + exact packet/hash + exact method/route + current policy reference + unexpired approval.
+   - Consequential unresolved answers block submission.
+
+3. **Bot challenge / verification**
+   - CAPTCHA, MFA, anti-bot challenge, identity verification, unexpected login challenge, or comparable barrier is a terminal automation halt.
+   - Route to manual owner review.
+   - No bypass, solver, stealth workaround, retry storm, fingerprint evasion, or alternate endpoint.
+
+4. **Employer/ATS API**
+   - No employer ATS submission API may be used without explicit employer-side authority/credentials establishing that API access.
+   - A public job-board token/read endpoint is not submission authority.
+   - For the V1.7 route above, the intended transport is the visible candidate-facing hosted form, not an employer API.
+
+5. **Confirmation signal**
+   - Local click success, HTTP success, navigation, thank-you URL text, or adapter return value is insufficient.
+   - `SUBMITTED` requires correlated external evidence tied to the exact attempt/job/candidate, such as a provider-generated confirmation/reference, employer account application state, or correlated application-confirmation email.
+   - Ambiguous outcome becomes `SUBMISSION_UNCONFIRMED`; do not blind-retry.
+
+These answers freeze the engineering policy only. They do not authorize G15 or G16.
+
+## 4. Formal V1.7 artifact dispositions
+
+### A-V17-CRM-EVIDENCE
+
+Disposition: **SEMANTIC REVIEW SATISFIED / FINAL ARTIFACT ACCEPTANCE PENDING INTEGRATED EXACT-HEAD CI**.
+
+Prior lead review already accepted the actual semantic repair set (multi-role/thread divergence and rejection contradiction handling). No new CRM rewrite is authorized without a concrete failing regression.
+
+Remaining acceptance work:
+- current V1.7 composed candidate;
+- exact-head full tests/Ruff/`mypy src tests`;
+- green hosted CI;
+- preserve manual correction/merge audibility and provider evidence.
+
+Status remains LEAD_REVIEW until that integration/CI condition is met.
+
+### A-V17-INTERVIEW-FOLLOWUP
+
+Disposition: **SEMANTIC REVIEW SATISFIED / FINAL ARTIFACT ACCEPTANCE PENDING INTEGRATED EXACT-HEAD CI**.
+
+Existing reviewed implementation/test coverage is the reuse baseline for:
+- interview scheduling/timezone/reschedule/cancel;
+- repeated-sweep idempotency;
+- follow-up dedupe/replied-thread handling;
+- safe lifecycle terminal transitions.
+
+No rebuild is authorized without a concrete failing case.
+
+Status remains LEAD_REVIEW until current composed exact-head validation and hosted CI pass.
+
+### A-V12-CANDIDATE-PROVENANCE
+
+Disposition: **SUPERSEDED / SATISFIED BY THE ACCEPTED P0A + PACKET PROVENANCE CONTRACT; NO PARALLEL IMPLEMENTATION**.
+
+The accepted A-V14-P0A-INTEGRITY source `8491dd98154ff750f49cbb64d2a79eca5cb06069` already requires:
+- canonical candidate-profile fingerprint;
+- exact selected resume bytes/hash/version/source binding;
+- persisted answer/provenance/unresolved-field recomputation;
+- fail-closed tamper/missing evidence;
+- private raw values kept out of committed proof.
+
+V1.7 work must reuse that canonical provenance/fingerprint path. Unknown/inferred consequential facts cannot become application truth. Do not create a second provenance database/model merely because A-V12 remains an older artifact row.
+
+This disposition does not pass G14; G14 still needs genuine approved profile/resume/job inputs and host permission.
+
+### Synthetic golden fixture
+
+The accepted synthetic golden fixture remains engineering regression evidence only. For V1.7 it may support integrated regression coverage, but it does not substitute for G14-G17 and is not itself a V1.7 live gate.
+
+## 5. Composition — COMP-2 queued release after PR26 typing review
+
+COMP-2 is the **next composition conflict**, but it is not the active task until the PR26 typing repair has an exact-SHA lead verdict.
+
+Inputs remain:
+- accepted control/local-origin line `b67fc523863babd3e195ee71a05f00fa0f2f7e79`;
+- accepted canary line `b2688eeabb5ca996767b27b78d0004678eeee756`;
+- accepted reference semantics patch `2969ac28364e9c39bbaf5c94b4c7cfe97ca5699a` is REFERENCE_ONLY;
+- common ancestor `dd2e0deb15ce0ff8983c4ed502e3e17206db2e80`.
+
+### COMP-2 scope
+
+When activated after typing acceptance, open **only the `src/jobs_automation/ingestion/engine.py` dependency conflict** required to make the accepted canary bounded/V3 APIs executable on the control composition base.
+
+Expected production file:
+- `src/jobs_automation/ingestion/engine.py`
+
+Expected focused tests:
+- `tests/test_gmail_adapter_bounded.py`
+- `tests/test_bounded_ingestion.py`
+- `tests/test_canary_provenance.py`
+- only one additional narrowly required existing test file if an engine behavior is directly exercised there.
+
+Required engine API/behavior closure:
+- `canonical_email_addresses`;
+- `persisted_message_matches_canary_policy`;
+- `reclassify_persisted_canary_messages`;
+- `IngestionSweepSummary.batch_canary_provider_message_ids`;
+- the accepted `safe_errors` constructor/behavior contract required by bounded execution;
+- malformed independent header handling;
+- invalid canary identity fail-closed behavior;
+- incomplete-poll atomicity from the accepted control line;
+- no regression to checkpoint semantics or ordinary genuine ingestion.
+
+Do not resolve lifecycle/alerts/CRM/worker/dashboard conflicts in COMP-2.
+
+### V1.7-only composition validation
+
+For COMP-2 and later composition, validation scope is the V1.7 critical path only:
+- Gmail bounded pagination/completeness;
+- header/direction/provider-time semantics;
+- canary durable/runtime quarantine;
+- V3 bounded audit/replay and zero-new-poll preflight;
+- accepted bounded reference semantics;
+- CRM/interview/follow-up regressions needed for G17;
+- V1.6/V1.7 safety integration relevant to G16/G17;
+- full pytest, Ruff, `mypy src tests`, migrations/PostgreSQL as affected.
+
+Do **not** require V2.0 control-center-only acceptance checks merely because they exist on the control branch, except where needed to prove no accepted safety regression in a touched shared file.
+
+## 6. Exact-SHA review before main merge
+
+Formal rule:
+
+**Candidate-branch exact-SHA engineering review and acceptance may precede any merge to `main`.**
+
+Main merge is not currently authorized and is not a prerequisite for:
+- reviewing an exact candidate SHA;
+- accepting an isolated engineering artifact;
+- reviewing a composed V1.7 candidate.
+
+Any acceptance must name exact SHA/tree and scope. It does not imply main merge.
+
+When/if a main merge is later authorized, the merged result must be re-identified and checked for composition/merge drift before claiming that main contains the accepted candidate.
+
+## 7. G14 relationship to composition
+
+G14 is independent of the b67/b268 composition.
+
+When the owner supplies:
+- approved genuine private candidate profile path;
+- exact selected resume bytes/path;
+- one current real job URL;
+- private-use authority;
+- eligible execution host/network permission;
+
+then G14 may proceed from the already accepted main proof path, subject to that exact scoped grant.
+
+**Do not wait for COMP-2/COMP-3 composition to begin G14 once its inputs/host authorization exist.**
+
+Until those owner inputs/grants arrive, G14 remains UNPASSED and no private proof is run.
+
+## 8. Closed authorities
+
+This package does not authorize:
+- live Gmail/OAuth/mailbox reads;
+- real employer page prefill;
+- application submit;
+- employer API use;
+- model/provider calls;
+- external messaging;
+- public actions;
+- scheduler/timer changes;
+- spend;
+- deployment;
+- main merge.
+
+G14-G17 remain UNPASSED.
+
+## 9. Immediate expected handoff
+
+Codex now performs only the PR26 two-file typing repair.
+
+Expected starting SHA:
+`b2688eeabb5ca996767b27b78d0004678eeee756`
+
+Expected changed files:
+- `tests/test_cli.py`
+- `tests/test_worker.py`
+
+Expected next state:
+`READY_FOR_LEAD_REVIEW` with a new exact PR26 head SHA/tree and hosted CI evidence.
+
+COMP-2 remains queued and becomes executable only after the typing candidate receives a lead disposition.
