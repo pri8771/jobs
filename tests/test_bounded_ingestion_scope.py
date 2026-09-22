@@ -22,6 +22,7 @@ from jobs_automation.db.models import (
 )
 from jobs_automation.db.session import init_db
 from jobs_automation.ingestion.bounded import (
+    BoundedIngestionError,
     BoundedIngestionRequest,
     BoundedIngestionRunner,
 )
@@ -92,6 +93,21 @@ def runner(
     )
 
 
+class CountingAdapter(MockEmailAdapter):
+    """Synthetic adapter that records whether any provider poll was attempted."""
+
+    poll_calls = 0
+
+    def poll_messages(
+        self,
+        query: str | None = None,
+        since_timestamp: str | None = None,
+        max_results: int = 100,
+    ) -> list[RawEmailMessage]:
+        self.poll_calls += 1
+        return super().poll_messages(query, since_timestamp, max_results)
+
+
 def seed_old_linked_rejection(session: Session, app: ApplicationModel) -> InboundMessageModel:
     message = InboundMessageModel(
         provider_message_id="old-outside-bounded-batch",
@@ -157,7 +173,7 @@ def test_replay_digest_mismatch_is_not_success(db_session: Session) -> None:
     )
     db_session.commit()
 
-    replay = replay_runner.replay(original.run_id, MAILBOX)
+    replay = replay_runner.replay(original.run_id, request(), allow_stateful_replay=True)
     assert replay.replay_matches_original is False
     assert replay.status != "SUCCESS"
     assert replay.errors  # mismatch must be machine-readable, not display-only
@@ -224,7 +240,7 @@ def test_restart_replay_of_same_bounded_batch_remains_positive(tmp_path: Path) -
     restarted_engine = create_engine(f"sqlite:///{database_path}")
     restarted_session = sessionmaker(bind=restarted_engine)()
     restarted_runner = runner(restarted_session, get_sample_email_fixtures())
-    replay = restarted_runner.replay(original_run_id, MAILBOX)
+    replay = restarted_runner.replay(original_run_id, request(), allow_stateful_replay=True)
 
     assert replay.status == "SUCCESS"
     assert replay.messages_ingested == 0
@@ -235,19 +251,76 @@ def test_restart_replay_of_same_bounded_batch_remains_positive(tmp_path: Path) -
     restarted_engine.dispose()
 
 
-def test_missing_original_is_failed_not_success(db_session: Session) -> None:
+def test_missing_original_is_rejected_before_any_poll(db_session: Session) -> None:
+    adapter = CountingAdapter(get_sample_email_fixtures())
+    counted = BoundedIngestionRunner(
+        db_session,
+        adapter,
+        candidate_emails=[MAILBOX],
+        adapter_kind="mock_fixtures",
+        synthetic=True,
+        identity={"git_sha": "repair-candidate", "package_version": "0.1.0"},
+    )
+    # A direct run cannot smuggle a replay id past the replay capability gate.
     missing = request().model_copy(update={"replay_of_run_id": "missing-synthetic-run"})
-    result = runner(db_session).run(missing)
-    assert result.status == "FAILED"
-    assert "REPLAY_ORIGINAL_NOT_FOUND" in result.errors
+    with pytest.raises(BoundedIngestionError, match="REPLAY_MUST_USE_REPLAY_API"):
+        counted.run(missing)
+    # The replay API rejects an unknown original before polling, rather than recording it.
+    with pytest.raises(BoundedIngestionError, match="REPLAY_RUN_NOT_FOUND"):
+        counted.replay("missing-synthetic-run", request(), allow_stateful_replay=True)
+    assert adapter.poll_calls == 0
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
 
 
 def test_replay_that_changes_logical_state_is_failed(db_session: Session) -> None:
     seed_application(db_session)
     original = runner(db_session).run(request())
-    replay = runner(db_session, get_sample_email_fixtures()).replay(original.run_id, MAILBOX)
+    replay = runner(db_session, get_sample_email_fixtures()).replay(
+        original.run_id, request(), allow_stateful_replay=True
+    )
     assert replay.messages_ingested > 0
     assert replay.replay_identical is False
     assert replay.replay_matches_original is False
     assert replay.status == "FAILED"
     assert "REPLAY_LOGICAL_STATE_MISMATCH" in replay.errors
+
+
+def test_legacy_mailbox_only_replay_fails_closed_before_any_poll(db_session: Session) -> None:
+    """Query-free V3 evidence cannot be replayed from a mailbox alone; no guessing."""
+
+    seed_application(db_session)
+    original = runner(db_session, get_sample_email_fixtures()).run(request())
+    assert original.status == "SUCCESS"
+    before = db_session.scalars(select(InboundMessageModel)).all()
+    adapter = CountingAdapter(get_sample_email_fixtures())
+    legacy = BoundedIngestionRunner(
+        db_session,
+        adapter,
+        candidate_emails=[MAILBOX],
+        adapter_kind="mock_fixtures",
+        synthetic=True,
+        identity={"git_sha": "repair-candidate", "package_version": "0.1.0"},
+    )
+    with pytest.raises(BoundedIngestionError, match="REPLAY_REQUEST_REQUIRED"):
+        legacy.replay(original.run_id, MAILBOX)
+    assert adapter.poll_calls == 0
+    assert db_session.scalars(select(InboundMessageModel)).all() == before
+
+
+def test_replay_policy_fingerprint_mismatch_fails_before_any_poll(db_session: Session) -> None:
+    seed_application(db_session)
+    original = runner(db_session, get_sample_email_fixtures()).run(request())
+    assert original.status == "SUCCESS"
+    adapter = CountingAdapter(get_sample_email_fixtures())
+    changed_policy = BoundedIngestionRunner(
+        db_session,
+        adapter,
+        candidate_emails=[MAILBOX],
+        canary_identities=["owner.canary@example.test"],
+        adapter_kind="mock_fixtures",
+        synthetic=True,
+        identity={"git_sha": "repair-candidate", "package_version": "0.1.0"},
+    )
+    with pytest.raises(BoundedIngestionError, match="REPLAY_CANARY_POLICY_MISMATCH"):
+        changed_policy.replay(original.run_id, request(), allow_stateful_replay=True)
+    assert adapter.poll_calls == 0
