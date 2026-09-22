@@ -23,6 +23,14 @@
     "bytes": 602,
     "sha256": "1efd3ce79c4f6b673719d0a7d227241e274f9e1d69a9aeb65993bd001ec77380"
   },
+  "migration-verification.sh": {
+    "bytes": 1879,
+    "sha256": "900e52f5f12b41665e62c091ec3c8840b2f529867826cfb22b6599cdd07b7049"
+  },
+  "migration-verification.txt": {
+    "bytes": 2418,
+    "sha256": "d47491b14e3cba87a81ca8477792c045bf93422481dcf92977b616248cd8a0f2"
+  },
   "mypy.txt": {
     "bytes": 44,
     "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
