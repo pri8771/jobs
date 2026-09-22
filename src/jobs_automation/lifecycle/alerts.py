@@ -11,9 +11,29 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from jobs_automation.db.base import utc_now
-from jobs_automation.db.models import ApplicationModel, InboundMessageModel, TaskModel
+from jobs_automation.db.models import (
+    ApplicationEventModel,
+    ApplicationModel,
+    InboundMessageModel,
+    MessageLinkModel,
+    TaskModel,
+)
 
 logger = logging.getLogger(__name__)
+
+
+# Keep this in lockstep with the task provenance fields redacted by the V1.7
+# timeline export.  A task that names durable canary evidence in any of these
+# fields is historical reconciliation work: do not silently update, resolve,
+# cancel, or reuse it for genuine traffic in the same provider thread.
+_TASK_MESSAGE_PROVENANCE_KEYS = (
+    "provider_message_id",
+    "source_message_id",
+    "message_id",
+    "latest_message_id",
+    "resolved_by_reply_id",
+    "inbound_message_id",
+)
 
 
 class LifecycleAlertService:
@@ -21,6 +41,87 @@ class LifecycleAlertService:
 
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    @staticmethod
+    def _is_canary(message: InboundMessageModel) -> bool:
+        """Return whether durable provider metadata marks a message as test traffic."""
+        provider_metadata = (message.headers_json or {}).get("_provider")
+        return isinstance(provider_metadata, dict) and bool(provider_metadata.get("canary"))
+
+    def _durable_canary_message_references(self) -> set[str]:
+        """Return UUID and provider-id forms of all currently durable canaries.
+
+        Alert tasks may have been created before a source message was reclassified.
+        Resolve against persisted, durable marks rather than the current candidate
+        thread so a later genuine message cannot mutate that historical task.
+        """
+        canary_messages = (
+            message
+            for message in self.session.scalars(select(InboundMessageModel)).all()
+            if self._is_canary(message)
+        )
+        references: set[str] = set()
+        for message in canary_messages:
+            references.add(str(message.id))
+            if message.provider_message_id:
+                references.add(str(message.provider_message_id))
+        return references
+
+    @staticmethod
+    def _task_references_durable_canary(task: TaskModel, references: Collection[str]) -> bool:
+        """Whether a task carries historical durable-canary source provenance."""
+        if not references:
+            return False
+        payload = task.payload_json if isinstance(task.payload_json, dict) else {}
+        return any(
+            str(reference) in references
+            for key in _TASK_MESSAGE_PROVENANCE_KEYS
+            if (reference := payload.get(key)) is not None
+        )
+
+    def _applications_with_canary_lifecycle_provenance(
+        self, application_ids: Collection[uuid.UUID]
+    ) -> set[uuid.UUID]:
+        """Return applications whose historical state needs canary reconciliation.
+
+        A stale-state reminder is itself a product action. If a prior untagged message
+        was later reclassified as canary, do not create a new reminder from that
+        potentially contaminated state. Existing historical rows are left intact for
+        explicit reconciliation rather than silently rewritten.
+        """
+        candidate_ids = set(application_ids)
+        if not candidate_ids:
+            return set()
+        canary_messages = [
+            message
+            for message in self.session.scalars(select(InboundMessageModel)).all()
+            if self._is_canary(message)
+        ]
+        if not canary_messages:
+            return set()
+        canary_message_ids = {message.id for message in canary_messages}
+        canary_provider_ids = {message.provider_message_id for message in canary_messages}
+        linked_applications = {
+            application_id
+            for application_id in self.session.scalars(
+                select(MessageLinkModel.application_id).where(
+                    MessageLinkModel.application_id.in_(candidate_ids),
+                    MessageLinkModel.inbound_message_id.in_(canary_message_ids),
+                )
+            )
+            if application_id is not None
+        }
+        event_applications = {
+            application_id
+            for application_id in self.session.scalars(
+                select(ApplicationEventModel.application_id).where(
+                    ApplicationEventModel.application_id.in_(candidate_ids),
+                    ApplicationEventModel.source_reference.in_(canary_provider_ids),
+                )
+            )
+            if application_id is not None
+        }
+        return linked_applications | event_applications
 
     def check_unanswered_recruiters(
         self,
@@ -35,7 +136,8 @@ class LifecycleAlertService:
 
         ``thread_ids`` limits processing to threads explicitly admitted by a bounded
         ingestion batch. ``None`` preserves the worker's full-mailbox behavior; an
-        empty collection processes no threads. Scoped calls ignore canary evidence.
+        empty collection processes no threads. Canary evidence is ignored in every
+        mode, including the unscoped worker pass.
         """
         if now is None:
             now = utc_now()
@@ -66,11 +168,12 @@ class LifecycleAlertService:
                 ).in_(thread_ids)
             )
         all_inbound = self.session.scalars(inbound_stmt).all()
+        canary_message_references = self._durable_canary_message_references()
 
         # Group by thread
         threads: dict[str, list[InboundMessageModel]] = {}
         for msg in all_inbound:
-            if thread_ids is not None and (msg.headers_json or {}).get("_provider", {}).get("canary"):
+            if self._is_canary(msg):
                 continue
             thread_id = msg.provider_thread_id or msg.provider_message_id
             threads.setdefault(thread_id, []).append(msg)
@@ -93,8 +196,7 @@ class LifecycleAlertService:
                 (
                     reply
                     for reply in self.session.scalars(reply_stmt)
-                    if thread_ids is None
-                    or not (reply.headers_json or {}).get("_provider", {}).get("canary")
+                    if not self._is_canary(reply)
                 ),
                 None,
             )
@@ -113,9 +215,12 @@ class LifecycleAlertService:
             thread_pending_tasks = [
                 t
                 for t in all_pending
-                if t.payload_json.get("thread_id") == thread_id
-                or t.payload_json.get("message_id")
-                in [str(m.id) for m in in_msgs]
+                if not self._task_references_durable_canary(t, canary_message_references)
+                and (
+                    (t.payload_json or {}).get("thread_id") == thread_id
+                    or (t.payload_json or {}).get("message_id")
+                    in [str(m.id) for m in in_msgs]
+                )
             ]
 
             if has_valid_reply:
@@ -152,7 +257,11 @@ class LifecycleAlertService:
                                     TaskModel.task_type == "UNANSWERED_RECRUITER"
                                 )
                             ).all()
-                            if t.payload_json.get("message_id") == str(latest_inbound.id)
+                            if not self._task_references_durable_canary(
+                                t, canary_message_references
+                            )
+                            and (t.payload_json or {}).get("message_id")
+                            == str(latest_inbound.id)
                         ]
                         if not exact_existing:
                             task = TaskModel(
@@ -201,7 +310,22 @@ class LifecycleAlertService:
             stmt = stmt.where(ApplicationModel.id.in_(application_ids))
         apps = self.session.scalars(stmt).all()
 
+        # 2. Screening stage with prolonged silence
+        stmt_screening = select(ApplicationModel).where(
+            ApplicationModel.status == "SCREENING",
+            ApplicationModel.last_activity_at <= cutoff_screening,
+        )
+        if application_ids is not None:
+            stmt_screening = stmt_screening.where(ApplicationModel.id.in_(application_ids))
+        screening_apps = self.session.scalars(stmt_screening).all()
+
+        contaminated_application_ids = self._applications_with_canary_lifecycle_provenance(
+            [app.id for app in [*apps, *screening_apps]]
+        )
+
         for app in apps:
+            if app.id in contaminated_application_ids:
+                continue
             existing = self.session.scalar(
                 select(TaskModel).where(
                     TaskModel.task_type == "STALE_APPLICATION_FOLLOW_UP",
@@ -229,16 +353,9 @@ class LifecycleAlertService:
                 self.session.add(task)
                 created_tasks.append(task)
 
-        # 2. Screening stage with prolonged silence
-        stmt_screening = select(ApplicationModel).where(
-            ApplicationModel.status == "SCREENING",
-            ApplicationModel.last_activity_at <= cutoff_screening,
-        )
-        if application_ids is not None:
-            stmt_screening = stmt_screening.where(ApplicationModel.id.in_(application_ids))
-        screening_apps = self.session.scalars(stmt_screening).all()
-
         for app in screening_apps:
+            if app.id in contaminated_application_ids:
+                continue
             existing = self.session.scalar(
                 select(TaskModel).where(
                     TaskModel.task_type == "STALE_SCREENING_FOLLOW_UP",

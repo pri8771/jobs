@@ -37,11 +37,13 @@ from jobs_automation.db.models import (
 )
 from jobs_automation.db.session import get_engine, get_sessionmaker, init_db
 from jobs_automation.ingestion.bounded import (
+    BOUNDED_AUDIT_SCHEMA_VERSION,
     BOUNDED_RUN_ACTION,
     BoundedIngestionError,
     BoundedIngestionRequest,
     BoundedIngestionRunner,
     compute_logical_state_digests,
+    is_valid_bounded_audit_metadata,
 )
 from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
 from jobs_automation.lifecycle.timeline import build_timeline_export, timeline_digest
@@ -117,7 +119,7 @@ def _bind_bounded_audits_to_application(session: Session, application_id: object
     for audit in audits:
         audit.metadata_json = {
             **audit.metadata_json,
-            "schema_version": 2,
+            "schema_version": BOUNDED_AUDIT_SCHEMA_VERSION,
             "application_id_sha256": [application_sha256],
         }
     session.commit()
@@ -156,7 +158,8 @@ def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
     metadata = audit.metadata_json
     assert metadata["run_id"] == result.run_id
     assert metadata["mailbox_domain"] == "gmail.com"
-    assert metadata["schema_version"] == 2
+    assert metadata["schema_version"] == BOUNDED_AUDIT_SCHEMA_VERSION
+    assert is_valid_bounded_audit_metadata(metadata, external_reference=result.run_id)
     assert MAILBOX not in json.dumps(metadata)
     assert result.query not in json.dumps(metadata)
     assert result.provider_query not in json.dumps(metadata)
@@ -252,6 +255,114 @@ def test_replay_rejects_legacy_audit_rows_without_safe_request_schema(db_session
         _runner(db_session).replay("legacy-run", _request(), allow_stateful_replay=True)
 
 
+@pytest.mark.parametrize(
+    ("field", "invalid_value"),
+    [
+        ("schema_version", 2),
+        ("run_id", "different-run-id"),
+        ("provider_message_id_sha256", ["not-a-sha256"]),
+        ("digests_after", {}),
+        ("canary_policy_sha256", "not-a-sha256"),
+    ],
+)
+def test_replay_rejects_malformed_v3_evidence_before_polling(
+    db_session: Session, field: str, invalid_value: Any
+) -> None:
+    """Audit corruption must fail before a replay can touch the provider."""
+    first = _runner(db_session).run(_request())
+    audit = db_session.scalar(
+        select(AuditLogModel).where(AuditLogModel.external_reference == first.run_id)
+    )
+    assert audit is not None
+    audit.metadata_json = {**audit.metadata_json, field: invalid_value}
+    db_session.commit()
+
+    class CountingAdapter(MockEmailAdapter):
+        def __init__(self) -> None:
+            super().__init__(get_sample_email_fixtures())
+            self.poll_calls = 0
+
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[Any]:
+            self.poll_calls += 1
+            return super().poll_messages(query, since_timestamp, max_results)
+
+    adapter = CountingAdapter()
+    runner = _runner(db_session, adapter=adapter)
+    with pytest.raises(BoundedIngestionError, match="REPLAY_EVIDENCE_SCHEMA_UNSUPPORTED"):
+        runner.replay(first.run_id, _request(), allow_stateful_replay=True)
+    assert adapter.poll_calls == 0
+
+
+def test_public_run_rejects_direct_replay_request_before_polling(db_session: Session) -> None:
+    """Only the replay API may create a replay request and authorize its side effects."""
+    first = _runner(db_session).run(_request())
+
+    class TrapAdapter(MockEmailAdapter):
+        def poll_messages(self, *args: Any, **kwargs: Any) -> list[Any]:
+            raise AssertionError("direct replay request must not poll")
+
+    with pytest.raises(BoundedIngestionError, match="REPLAY_MUST_USE_REPLAY_API"):
+        _runner(db_session, adapter=TrapAdapter()).run(_request(replay_of_run_id=first.run_id))
+
+
+def test_private_run_cannot_bypass_replay_authorization_before_polling(
+    db_session: Session,
+) -> None:
+    """The implementation method itself cannot mint a stateful replay capability."""
+    first = _runner(db_session).run(_request())
+
+    class TrapAdapter(MockEmailAdapter):
+        def poll_messages(self, *args: Any, **kwargs: Any) -> list[Any]:
+            raise AssertionError("direct implementation replay must not poll")
+
+    with pytest.raises(BoundedIngestionError, match="REPLAY_MUST_USE_REPLAY_API"):
+        _runner(db_session, adapter=TrapAdapter())._run(_request(replay_of_run_id=first.run_id))
+
+
+def test_replay_same_policy_rejects_currently_reclassified_canary_evidence(
+    db_session: Session,
+) -> None:
+    """A durable canary tag invalidates old proof even when the replay policy is unchanged."""
+    initial = _runner(db_session).run(_request())
+    reclassifier = _runner(db_session, canary_identities=["sarah.connor@viatris.com"])
+    reclassification = reclassifier.run(_request())
+    assert reclassification.canary_messages == 2
+
+    with pytest.raises(BoundedIngestionError, match="REPLAY_EVIDENCE_CANARY_RECLASSIFIED"):
+        _runner(db_session).replay(initial.run_id, _request(dry_run=True))
+
+
+def test_replay_accepts_semantically_equivalent_canary_policy_inputs(db_session: Session) -> None:
+    """Display names, case, ordering, and duplicate aliases cannot cause false policy drift."""
+    initial_runner = _runner(
+        db_session,
+        canary_identities=[
+            "Owner <SARAH.CONNOR@VIATRIS.COM>",
+            "other.alias@example.test",
+            "sarah.connor@viatris.com",
+        ],
+    )
+    initial = initial_runner.run(_request())
+
+    equivalent_runner = _runner(
+        db_session,
+        canary_identities=[
+            "other.alias@example.test",
+            "Sarah Connor <sarah.connor@viatris.com>",
+        ],
+    )
+    replay = equivalent_runner.replay(initial.run_id, _request(), allow_stateful_replay=True)
+
+    assert replay.status == "SUCCESS", replay.errors
+    assert replay.replay_identical is True
+    assert replay.replay_matches_original is True
+
+
 def test_cap_smaller_than_evidence_is_incomplete_and_recorded(db_session: Session) -> None:
     result = _runner(db_session).run(_request(cap=3))
     assert result.status == "FAILED"
@@ -292,7 +403,9 @@ class _ExplodingAdapter:
         return None
 
 
-def test_audit_metadata_redacts_raw_queries_and_provider_exception_text(db_session: Session) -> None:
+def test_audit_metadata_redacts_raw_queries_and_provider_exception_text(
+    db_session: Session,
+) -> None:
     request = _request(query="from:private-recruiter@example.test")
     result = _runner(db_session, adapter=_ExplodingAdapter()).run(request)
 
@@ -308,9 +421,10 @@ def test_audit_metadata_redacts_raw_queries_and_provider_exception_text(db_sessi
     assert "token=not-for-audit" not in metadata_text
     assert "errors" not in audit.metadata_json
     assert audit.metadata_json["error_codes"] == ["INGESTION_ERROR"]
-    assert audit.metadata_json["query_sha256"] == hashlib.sha256(
-        request.query.encode("utf-8")
-    ).hexdigest()
+    assert (
+        audit.metadata_json["query_sha256"]
+        == hashlib.sha256(request.query.encode("utf-8")).hexdigest()
+    )
 
 
 def test_replay_requires_explicit_stateful_authorization_but_allows_safe_dry_override(
@@ -320,7 +434,9 @@ def test_replay_requires_explicit_stateful_authorization_but_allows_safe_dry_ove
     runner = _runner(db_session)
     first = runner.run(_request())
 
-    with pytest.raises(BoundedIngestionError, match="REPLAY_STATEFUL_REQUIRES_EXPLICIT_AUTHORIZATION"):
+    with pytest.raises(
+        BoundedIngestionError, match="REPLAY_STATEFUL_REQUIRES_EXPLICIT_AUTHORIZATION"
+    ):
         runner.replay(first.run_id, _request())
 
     safe_replay = runner.replay(first.run_id, _request(dry_run=True))
@@ -385,7 +501,9 @@ def test_replay_digest_mismatch_is_recorded_as_failed(db_session: Session) -> No
     assert audit is not None and audit.result == "FAILED"
 
 
-def test_bounded_lifecycle_and_alerts_ignore_unrelated_historical_state(db_session: Session) -> None:
+def test_bounded_lifecycle_and_alerts_ignore_unrelated_historical_state(
+    db_session: Session,
+) -> None:
     _seed_application(db_session)  # the fixture's admitted Viatris application
     unrelated = _seed_application(db_session, company_name="Unrelated Employer")
     unrelated.last_activity_at = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
@@ -459,11 +577,14 @@ def test_bounded_lifecycle_and_alerts_ignore_unrelated_historical_state(db_sessi
     db_session.refresh(historical_alert)
     assert unrelated.status == "SUBMITTED"
     assert historical_alert.status == "pending"
-    assert db_session.scalars(
-        select(ApplicationEventModel).where(
-            ApplicationEventModel.source_reference == old_rejection.provider_message_id
-        )
-    ).all() == []
+    assert (
+        db_session.scalars(
+            select(ApplicationEventModel).where(
+                ApplicationEventModel.source_reference == old_rejection.provider_message_id
+            )
+        ).all()
+        == []
+    )
     assert hashlib.sha256(old_rejection.provider_message_id.encode("utf-8")).hexdigest() not in (
         result.provider_message_id_sha256
     )
@@ -474,6 +595,7 @@ def test_bounded_lifecycle_and_alerts_ignore_unrelated_historical_state(db_sessi
 
 def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: Session) -> None:
     app = _seed_application(db_session)
+    activity_before = app.last_activity_at
     # Treat the fixture recruiter as a canary alias: its mail must not move the application.
     result = _runner(db_session, canary_identities=["sarah.connor@viatris.com"]).run(_request())
     assert result.canary_messages == 2  # inbound recruiter + candidate reply in that thread
@@ -485,16 +607,133 @@ def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: S
     assert canary_provider_hashes.isdisjoint(result.provider_message_id_sha256)
     db_session.refresh(app)
     assert app.status == "SUBMITTED"
+    assert app.last_activity_at == activity_before
     assert result.lifecycle_transitions == 0
+    assert (
+        db_session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.application_id == app.id)
+        ).all()
+        == []
+    )
     export = build_timeline_export(
         db_session, app.id, identity={"git_sha": "x", "package_version": "0"}
     )
-    assert export["genuine_evidence"]["canary_excluded_count"] >= 1
+    # Fresh canaries never create an application link, so they are absent from this
+    # application-scoped export rather than appearing as excluded associated sources.
+    assert export["genuine_evidence"]["canary_excluded_count"] == 0
     assert export["genuine_evidence"]["source_count"] == 0
     assert export["replay"] is None
     assert all(
         not s["canary"] for s in export["sources"] if s["provider_message_id"] == "gmail_conf_001"
     )
+
+
+def test_preexisting_canary_duplicates_are_reclassified_before_bounded_proof(
+    db_session: Session,
+) -> None:
+    """A newly configured owner alias cannot inherit genuine proof from an older ingest."""
+
+    app = _seed_application(db_session)
+    initial = _runner(db_session).run(_request())
+    assert initial.status == "SUCCESS", initial.errors
+
+    result = _runner(
+        db_session,
+        canary_identities=["sarah.connor@viatris.com"],
+    ).run(_request())
+
+    # Retagging a historical source changes the durable logical state and removes
+    # the source from all new bounded-proof associations.
+    assert result.status == "SUCCESS", result.errors
+    assert result.digests_after != initial.digests_after
+    assert result.messages_ingested == 0
+    assert result.messages_skipped_duplicate == 7
+    assert result.canary_messages == 2
+    canary_provider_hashes = {
+        hashlib.sha256(message_id.encode("utf-8")).hexdigest()
+        for message_id in ("gmail_recruiter_001", "gmail_candidate_001")
+    }
+    assert canary_provider_hashes.isdisjoint(result.provider_message_id_sha256)
+    assert hashlib.sha256(str(app.id).encode("utf-8")).hexdigest() not in (
+        result.application_id_sha256
+    )
+    for provider_message_id in ("gmail_recruiter_001", "gmail_candidate_001"):
+        message = db_session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == provider_message_id
+            )
+        )
+        assert message is not None
+        assert (message.headers_json or {}).get("_provider", {}).get("canary") is True
+
+    export = build_timeline_export(
+        db_session, app.id, identity={"git_sha": "x", "package_version": "0"}
+    )
+    assert export["genuine_evidence"]["canary_excluded_count"] >= 2
+    assert export["genuine_evidence"]["source_count"] == 0
+    # The old application-bound audit and its lifecycle rows are no longer evidence
+    # after their provider sources are reclassified as canary traffic.
+    assert export["replay"] is None
+    assert export["events"] == []
+    assert export["tasks"] == []
+    assert export["contacts"] == []
+    assert export["uncertainty"]["canary_lifecycle_events_excluded"] >= 1
+    assert export["uncertainty"]["canary_lifecycle_tasks_excluded"] >= 1
+    assert export["uncertainty"]["canary_message_links_excluded"] >= 1
+    assert export["uncertainty"]["canary_lifecycle_state_requires_reconciliation"] is True
+    # A replay's policy is an evidence boundary.  A dry-run replay with a newly
+    # supplied canary alias must fail before polling instead of claiming identical
+    # logical state after excluding sources from the original proof.
+    with pytest.raises(BoundedIngestionError, match="REPLAY_CANARY_POLICY_MISMATCH"):
+        _runner(
+            db_session,
+            canary_identities=["sarah.connor@viatris.com"],
+        ).replay(initial.run_id, _request(dry_run=True))
+
+
+def test_dry_run_duplicate_canaries_never_enter_result_or_audit_hashes(
+    db_session: Session,
+) -> None:
+    """Rollback must not turn a transient canary tag back into genuine dry-run evidence."""
+
+    app = _seed_application(db_session)
+    initial = _runner(db_session).run(_request())
+    assert initial.status == "SUCCESS", initial.errors
+
+    result = _runner(
+        db_session,
+        canary_identities=["sarah.connor@viatris.com"],
+    ).run(_request(dry_run=True))
+
+    assert result.status == "DRY_RUN", result.errors
+    assert result.canary_messages == 2
+    assert result.digests_before == result.digests_after
+    canary_provider_hashes = {
+        hashlib.sha256(message_id.encode("utf-8")).hexdigest()
+        for message_id in ("gmail_recruiter_001", "gmail_candidate_001")
+    }
+    application_hash = hashlib.sha256(str(app.id).encode("utf-8")).hexdigest()
+    assert canary_provider_hashes.isdisjoint(result.provider_message_id_sha256)
+    assert application_hash not in result.application_id_sha256
+
+    audit = db_session.scalars(
+        select(AuditLogModel)
+        .where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+        .order_by(AuditLogModel.occurred_at.desc())
+    ).first()
+    assert audit is not None and audit.result == "DRY_RUN"
+    metadata = audit.metadata_json
+    assert canary_provider_hashes.isdisjoint(metadata["provider_message_id_sha256"])
+    assert application_hash not in metadata["application_id_sha256"]
+    # The dry run is nonpersistent even though its result uses the in-run canary set.
+    for provider_message_id in ("gmail_recruiter_001", "gmail_candidate_001"):
+        message = db_session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == provider_message_id
+            )
+        )
+        assert message is not None
+        assert (message.headers_json or {}).get("_provider", {}).get("canary") is not True
 
 
 @pytest.mark.parametrize(
@@ -593,6 +832,10 @@ def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) 
         'email: "engineering-candidate@invalid"', f'email: "{MAILBOX}"'
     )
     (config_dir / "candidate_profile.yaml").write_text(profile_yaml, encoding="utf-8")
+    (config_dir / "platforms.yaml").write_text(
+        (REPO_ROOT / "config" / "platforms.example.yaml").read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
 
     db_url = f"sqlite:///{tmp_path / 'bounded.db'}"
     engine = get_engine(db_url)

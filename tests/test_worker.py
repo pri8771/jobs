@@ -13,7 +13,17 @@ from sqlalchemy.orm import Session, sessionmaker
 from jobs_automation.adapters.base import EmailAdapter
 from jobs_automation.adapters.gmail import MockEmailAdapter
 from jobs_automation.db.base import Base
-from jobs_automation.db.models import ApplicationModel, CompanyModel, InboundMessageModel, JobModel
+from jobs_automation.db.models import (
+    ApplicationEventModel,
+    ApplicationModel,
+    CompanyModel,
+    ContactModel,
+    InboundMessageModel,
+    InterviewModel,
+    JobModel,
+    MessageLinkModel,
+    TaskModel,
+)
 from jobs_automation.ingestion.models import RawEmailMessage
 from jobs_automation.worker import WorkerDaemon
 
@@ -30,6 +40,233 @@ def test_worker_default_cadence(db_session_factory: sessionmaker[Session]) -> No
     daemon = WorkerDaemon(db_session_factory)
     assert daemon.poll_interval_seconds == 14400  # 4 hours
     assert daemon.reconciliation_interval_seconds == 86400  # 24 hours
+
+
+def test_worker_configured_canary_is_tagged_before_shared_lifecycle_pass(
+    db_session_factory: sessionmaker[Session], tmp_path
+) -> None:
+    """A scheduled worker must apply its durable canary policy before lifecycle work."""
+    now = datetime.datetime.now(datetime.UTC)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "platforms.yaml").write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "email:",
+                "  provider: gmail",
+                "  polling_minutes: 240",
+                "  polling_policy: periodic",
+                "  intended_interval_hours_min: 3",
+                "  intended_interval_hours_max: 4",
+                "  daily_reconciliation: true",
+                "  realtime_push_required: false",
+                "  readonly: true",
+                "  canary_identities:",
+                "    - Owner Alias <recruiter@stripe.com>",
+                "platforms:",
+                "  linkedin: {}",
+                "  indeed: {}",
+                "  ziprecruiter: {}",
+                "  dice: {}",
+                "gmail_queries: {}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    with db_session_factory() as session:
+        company = CompanyModel(normalized_name="stripe")
+        session.add(company)
+        session.flush()
+        job = JobModel(company_id=company.id, normalized_title="Staff Solutions Architect", status="active")
+        session.add(job)
+        session.flush()
+        application = ApplicationModel(
+            job_id=job.id,
+            status="SUBMITTED",
+            last_activity_at=now - datetime.timedelta(days=2),
+        )
+        session.add(application)
+        session.commit()
+        application_id = application.id
+        activity_before = application.last_activity_at
+
+    canary_email = RawEmailMessage(
+        provider_message_id="worker-fresh-canary",
+        provider_thread_id="worker-fresh-canary-thread",
+        received_at=now,
+        sender="recruiter@stripe.com",
+        recipients=["candidate@example.com"],
+        subject="Interview Request - Stripe Staff Solutions Architect",
+        body_text="Please schedule an interview for the Staff Solutions Architect role.",
+    )
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        config_dir=str(config_dir),
+        email_adapter=MockEmailAdapter([canary_email]),
+        candidate_emails=["candidate@example.com"],
+    )
+
+    result = daemon.run_sweep(reconcile=False)
+    assert result["messages_ingested"] == 1
+    assert result["lifecycle_transitions"] == 0
+    assert result["unanswered_alerts"] == 0
+
+    with db_session_factory() as session:
+        message = session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == "worker-fresh-canary"
+            )
+        )
+        application = session.get(ApplicationModel, application_id)
+        assert message is not None
+        assert (message.headers_json or {}).get("_provider", {}).get("canary") is True
+        assert application is not None
+        assert application.status == "SUBMITTED"
+        assert application.last_activity_at == activity_before
+        assert session.scalars(select(MessageLinkModel)).all() == []
+        assert session.scalars(select(ApplicationEventModel)).all() == []
+        assert session.scalars(select(ContactModel)).all() == []
+        assert session.scalars(select(InterviewModel)).all() == []
+        assert session.scalars(
+            select(TaskModel).where(TaskModel.task_type != "email_checkpoint")
+        ).all() == []
+
+
+def test_worker_reclassifies_historical_alias_before_lifecycle_without_a_poll(
+    db_session_factory: sessionmaker[Session], tmp_path
+) -> None:
+    """A policy added after ingestion must protect old linked rows on a worker sweep."""
+    now = datetime.datetime.now(datetime.UTC)
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "platforms.yaml").write_text(
+        "\n".join(
+            [
+                "version: 1",
+                "email:",
+                "  provider: gmail",
+                "  polling_minutes: 240",
+                "  polling_policy: periodic",
+                "  intended_interval_hours_min: 3",
+                "  intended_interval_hours_max: 4",
+                "  daily_reconciliation: true",
+                "  realtime_push_required: false",
+                "  readonly: true",
+                "  canary_identities:",
+                "    - Owner Alias <recruiter@stripe.com>",
+                "platforms:",
+                "  linkedin: {}",
+                "  indeed: {}",
+                "  ziprecruiter: {}",
+                "  dice: {}",
+                "gmail_queries: {}",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    with db_session_factory() as session:
+        company = CompanyModel(normalized_name="stripe")
+        session.add(company)
+        session.flush()
+        job = JobModel(company_id=company.id, normalized_title="Staff Solutions Architect")
+        session.add(job)
+        session.flush()
+        application = ApplicationModel(
+            job_id=job.id,
+            status="SUBMITTED",
+            last_activity_at=now,
+        )
+        session.add(application)
+        session.flush()
+        historical = InboundMessageModel(
+            provider_message_id="worker-historical-canary",
+            provider_thread_id="worker-historical-canary-thread",
+            received_at=now,
+            sender="Owner Alias <recruiter@stripe.com>",
+            recipients_json=["candidate@example.com"],
+            direction="inbound",
+            subject="Interview Request",
+            headers_json={},
+            body_text="Please schedule an interview.",
+            classification="INTERVIEW_REQUEST",
+            confidence=0.99,
+        )
+        session.add(historical)
+        session.flush()
+        session.add(
+            MessageLinkModel(
+                inbound_message_id=historical.id,
+                job_id=job.id,
+                application_id=application.id,
+                company_id=company.id,
+                confidence=0.99,
+                method="historical_fixture",
+            )
+        )
+        application_id = application.id
+        session.commit()
+
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        config_dir=str(config_dir),
+        email_adapter=MockEmailAdapter([]),
+    )
+    result = daemon.run_sweep(reconcile=False)
+
+    assert result["canary_messages_reclassified"] == 1
+    assert result["lifecycle_transitions"] == 0
+    with db_session_factory() as session:
+        historical = session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == "worker-historical-canary"
+            )
+        )
+        application = session.get(ApplicationModel, application_id)
+        assert historical is not None
+        assert (historical.headers_json or {}).get("_provider", {}).get("canary") is True
+        assert application is not None
+        assert application.status == "SUBMITTED"
+        assert session.scalars(select(ApplicationEventModel)).all() == []
+
+
+def test_worker_does_not_ingest_when_present_canary_policy_config_is_invalid(
+    db_session_factory: sessionmaker[Session], tmp_path
+) -> None:
+    """A broken policy file must not silently disable tagging on a scheduled sweep."""
+    config_dir = tmp_path / "config"
+    config_dir.mkdir()
+    (config_dir / "platforms.yaml").write_text(
+        "version: 1\nemail: {}\nplatforms: {}\n", encoding="utf-8"
+    )
+
+    class CountingAdapter(MockEmailAdapter):
+        def __init__(self) -> None:
+            super().__init__([])
+            self.poll_calls = 0
+
+        def poll_messages(self, *args, **kwargs):
+            self.poll_calls += 1
+            return super().poll_messages(*args, **kwargs)
+
+    adapter = CountingAdapter()
+    daemon = WorkerDaemon(
+        session_factory=db_session_factory,
+        poll_interval_seconds=60,
+        config_dir=str(config_dir),
+        email_adapter=adapter,
+    )
+
+    result = daemon.run_sweep(reconcile=False)
+
+    assert adapter.poll_calls == 0
+    assert result["messages_ingested"] == 0
+    assert any("canary policy configuration unavailable" in error for error in result["errors"])
 
 
 def test_worker_call_order_ingestion_before_lifecycle(

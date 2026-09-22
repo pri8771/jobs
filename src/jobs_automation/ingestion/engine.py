@@ -5,6 +5,8 @@ from __future__ import annotations
 import datetime
 import logging
 import uuid
+from collections.abc import Collection, Iterable
+from email.utils import getaddresses
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -26,6 +28,82 @@ from jobs_automation.ingestion.models import EmailClassification, PollReport
 from jobs_automation.ingestion.parsers import AlertParserRegistry
 
 logger = logging.getLogger(__name__)
+
+
+def canonical_email_addresses(values: Iterable[object]) -> set[str]:
+    """Return exact, lower-cased email addresses from configured/header values.
+
+    Canary identities are email aliases.  Treating an alias as a substring can both
+    miss a normal display-name header and permanently reclassify a lookalike address.
+    Values without an email address deliberately do not participate in this policy.
+    """
+    return {
+        address.strip().lower()
+        for _, address in getaddresses([str(value) for value in values if value])
+        if "@" in address and address.strip()
+    }
+
+
+def is_durable_canary(message: InboundMessageModel) -> bool:
+    """Return whether persisted provider facts mark the message as test traffic."""
+    provider_metadata = (message.headers_json or {}).get("_provider")
+    return isinstance(provider_metadata, dict) and bool(provider_metadata.get("canary"))
+
+
+def _participants_match_canary_policy(
+    canary_identities: Collection[str], participants: Iterable[object]
+) -> bool:
+    return bool(set(canary_identities) & canonical_email_addresses(participants))
+
+
+def persisted_message_matches_canary_policy(
+    message: InboundMessageModel, canary_identities: Collection[str]
+) -> bool:
+    provider_metadata = (message.headers_json or {}).get("_provider")
+    sender_address = (
+        provider_metadata.get("sender_address") if isinstance(provider_metadata, dict) else None
+    )
+    return _participants_match_canary_policy(
+        canary_identities,
+        [message.sender, *(message.recipients_json or []), sender_address],
+    )
+
+
+def mark_durable_canary(message: InboundMessageModel) -> bool:
+    """Apply the one-way persisted canary tag and report whether the row changed."""
+    headers = dict(message.headers_json or {})
+    provider_facts = dict(headers.get("_provider") or {})
+    if provider_facts.get("canary") is True:
+        return False
+    provider_facts["canary"] = True
+    headers["_provider"] = provider_facts
+    message.headers_json = headers
+    return True
+
+
+def reclassify_persisted_canary_messages(
+    session: Session, canary_identities: Iterable[object]
+) -> int:
+    """Durably tag every historical message matching the active owner-controlled policy.
+
+    A policy can be introduced after ordinary ingestion. Reclassifying the current
+    durable mailbox state before lifecycle, alert, dashboard, and evaluation paths run
+    prevents older alias traffic from being mistaken for recruiting evidence. It never
+    deletes or rewrites dependent historical records; those remain reconciliation-only.
+    """
+    policy = canonical_email_addresses(canary_identities)
+    if not policy:
+        return 0
+    changed = 0
+    for message in session.scalars(select(InboundMessageModel)).all():
+        if not is_durable_canary(message) and persisted_message_matches_canary_policy(
+            message, policy
+        ):
+            if mark_durable_canary(message):
+                changed += 1
+    if changed:
+        session.flush()
+    return changed
 
 
 class IngestionSweepSummary(BaseModel):
@@ -50,6 +128,10 @@ class IngestionSweepSummary(BaseModel):
     # excluded from serialized summaries because the IDs are database identifiers, but
     # bounded lifecycle work needs it to avoid scanning an older mailbox backlog.
     batch_message_ids: list[uuid.UUID] = Field(default_factory=list, exclude=True)
+    # Current-policy canary membership is also in-memory only.  A dry-run intentionally
+    # rolls back durable tags, but its result must still not describe those messages as
+    # genuine evidence after the rollback.
+    batch_canary_provider_message_ids: list[str] = Field(default_factory=list, exclude=True)
 
 
 class EmailIngestionEngine:
@@ -75,9 +157,7 @@ class EmailIngestionEngine:
         self.safety_overlap_minutes = safety_overlap_minutes
         # Owner-controlled test aliases: their mail is ingested but tagged as canary so it
         # never counts as genuine recruiting evidence (V17-M04).
-        self.canary_identities = {
-            identity.strip().lower() for identity in (canary_identities or []) if identity.strip()
-        }
+        self.canary_identities = canonical_email_addresses(canary_identities or [])
         # The scheduled worker retains its diagnostic error text and applies its established
         # sanitizer at its own audit boundary.  A bounded run renders errors to the operator
         # and persists a portable evidence record, so it opts into fixed, safe categories.
@@ -86,15 +166,31 @@ class EmailIngestionEngine:
     def _is_canary(self, raw_msg: Any) -> bool:
         if not self.canary_identities:
             return False
-        participants = {str(raw_msg.sender).lower()} | {str(r).lower() for r in raw_msg.recipients}
-        sender_address = str((raw_msg.provider_metadata or {}).get("sender_address") or "").lower()
-        if sender_address:
-            participants.add(sender_address)
-        return any(
-            identity in participant
-            for identity in self.canary_identities
-            for participant in participants
+        provider_metadata = raw_msg.provider_metadata or {}
+        sender_address = (
+            provider_metadata.get("sender_address")
+            if isinstance(provider_metadata, dict)
+            else None
         )
+        return _participants_match_canary_policy(
+            self.canary_identities,
+            [
+                raw_msg.sender,
+                *(raw_msg.recipients or []),
+                sender_address,
+            ],
+        )
+
+    @staticmethod
+    def _mark_existing_canary(message: InboundMessageModel) -> None:
+        """Persist the one-way canary classification when an alias is configured later.
+
+        A bounded proof may encounter a provider-duplicate first ingested by an
+        ordinary sweep.  Once an owner-controlled alias identifies that message
+        as canary traffic, preserving its earlier untagged state would allow it
+        to enter genuine evidence on the duplicate path.
+        """
+        mark_durable_canary(message)
 
     def get_last_checkpoint(self) -> datetime.datetime | None:
         stmt = (
@@ -205,12 +301,27 @@ class EmailIngestionEngine:
             newest_processed_time: datetime.datetime | None = last_checkpoint
 
             for raw_msg in raw_messages:
+                is_canary = self._is_canary(raw_msg)
                 # 1. Deduplication on provider_message_id
                 existing_stmt = select(InboundMessageModel).where(
                     InboundMessageModel.provider_message_id == raw_msg.provider_message_id
                 )
                 existing = self.session.execute(existing_stmt).scalars().first()
                 if existing is not None:
+                    # Classify duplicate rows under the active canary policy before
+                    # they join this batch.  An alias may be configured after a
+                    # normal sweep; its historical untagged duplicate must never
+                    # become genuine bounded-run or replay evidence.
+                    if is_canary:
+                        summary.canary_messages += 1
+                        summary.batch_canary_provider_message_ids.append(
+                            raw_msg.provider_message_id
+                        )
+                        # A dry run must leave the existing record untouched.  The
+                        # bounded runner receives the in-memory membership above so
+                        # its preview remains canary-free after rollback.
+                        if not dry_run:
+                            self._mark_existing_canary(existing)
                     summary.batch_message_ids.append(existing.id)
                     summary.messages_skipped_duplicate += 1
                     continue
@@ -223,7 +334,6 @@ class EmailIngestionEngine:
                 # so the claimed headers and the provider-observed facts stay distinguishable.
                 headers_json: dict[str, Any] = dict(raw_msg.headers)
                 provider_facts: dict[str, Any] = dict(raw_msg.provider_metadata or {})
-                is_canary = self._is_canary(raw_msg)
                 if is_canary:
                     provider_facts["canary"] = True
                     summary.canary_messages += 1
@@ -248,10 +358,20 @@ class EmailIngestionEngine:
                 self.session.flush()
                 summary.messages_ingested += 1
                 summary.batch_message_ids.append(msg_model.id)
+                if is_canary:
+                    summary.batch_canary_provider_message_ids.append(
+                        raw_msg.provider_message_id
+                    )
 
                 # Update latest processed time
                 if newest_processed_time is None or raw_msg.received_at > newest_processed_time:
                     newest_processed_time = raw_msg.received_at
+
+                # Canary traffic is retained only as tagged operational input.  It must
+                # never create a job, application link, review task, or activity update
+                # that a later export could mistake for recruiting evidence.
+                if is_canary:
+                    continue
 
                 # 4. Handle Job Alerts
                 if classification_res.classification == EmailClassification.JOB_ALERT:
@@ -328,6 +448,7 @@ class EmailIngestionEngine:
             self.session.rollback()
             # A rolled-back sweep has no durable batch to drive downstream work.
             summary.batch_message_ids.clear()
+            summary.batch_canary_provider_message_ids.clear()
             if self.safe_errors:
                 summary.errors.append(
                     "POLL_INCOMPLETE"

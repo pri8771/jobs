@@ -16,6 +16,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from jobs_automation.dashboard.analytics import FunnelAnalyticsService
+from jobs_automation.db.canary_provenance import (
+    DurableCanaryProvenance,
+    durable_canary_provenance,
+)
 from jobs_automation.db.models import (
     ApplicationModel,
     AuditLogModel,
@@ -29,6 +33,24 @@ from jobs_automation.health import HealthCheckService
 from jobs_automation.lifecycle.crm import RecruiterCRMService
 
 logger = logging.getLogger(__name__)
+
+
+def _timeline_row_is_quarantined(
+    row: dict[str, Any], provenance: DurableCanaryProvenance
+) -> bool:
+    """Keep a canary message or derived application out of dashboard timelines."""
+    for key in ("message_id", "provider_message_id"):
+        value = row.get(key)
+        if isinstance(value, str) and value.strip() in provenance.message_references:
+            return True
+
+    application_id = row.get("application_id")
+    if not isinstance(application_id, str):
+        return False
+    try:
+        return uuid.UUID(application_id) in provenance.application_ids
+    except ValueError:
+        return False
 
 DASHBOARD_HTML = """<!DOCTYPE html>
 <html lang="en">
@@ -520,9 +542,11 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/api/jobs":
-                jobs = session.scalars(
-                    select(JobModel).order_by(JobModel.first_seen_at.desc()).limit(100)
-                ).all()
+                provenance = durable_canary_provenance(session)
+                jobs_stmt = select(JobModel).order_by(JobModel.first_seen_at.desc())
+                if provenance.job_ids:
+                    jobs_stmt = jobs_stmt.where(JobModel.id.not_in(provenance.job_ids))
+                jobs = session.scalars(jobs_stmt.limit(100)).all()
                 data = [
                     {
                         "id": str(j.id),
@@ -541,11 +565,13 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/api/reviews":
+                provenance = durable_canary_provenance(session)
                 tasks = session.scalars(
                     select(TaskModel)
                     .where(TaskModel.status == "pending")
                     .order_by(TaskModel.due_at.asc().nulls_last())
                 ).all()
+                tasks = [task for task in tasks if not provenance.task_is_quarantined(task)]
                 review_data: list[dict[str, Any]] = [
                     {
                         "id": str(t.id),
@@ -561,11 +587,18 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/api/interviews":
+                provenance = durable_canary_provenance(session)
                 interviews = session.scalars(
                     select(InterviewModel).order_by(
                         InterviewModel.scheduled_start.desc()
                     )
                 ).all()
+                interviews = [
+                    interview
+                    for interview in interviews
+                    if interview.id not in provenance.interview_ids
+                    and interview.application_id not in provenance.application_ids
+                ]
                 data = [
                     {
                         "id": str(i.id),
@@ -589,11 +622,15 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/api/contacts":
+                provenance = durable_canary_provenance(session)
                 contacts = session.scalars(
                     select(ContactModel).order_by(
                         ContactModel.last_contact_at.desc().nulls_last()
                     )
                 ).all()
+                contacts = [
+                    contact for contact in contacts if contact.id not in provenance.contact_ids
+                ]
                 data = [
                     {
                         "id": str(c.id),
@@ -611,11 +648,15 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 return
 
             if path == "/api/audit":
+                provenance = durable_canary_provenance(session)
                 entries = session.scalars(
                     select(AuditLogModel)
                     .order_by(AuditLogModel.occurred_at.desc())
                     .limit(50)
                 ).all()
+                entries = [
+                    entry for entry in entries if not provenance.audit_is_quarantined(entry)
+                ]
                 audit_data: list[dict[str, Any]] = [
                     {
                         "id": str(e.id),
@@ -642,11 +683,13 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     "STALE_APPLICATION_FOLLOW_UP",
                     "STALE_SCREENING_FOLLOW_UP",
                 )
+                provenance = durable_canary_provenance(session)
                 tasks = session.scalars(
                     select(TaskModel)
                     .where(TaskModel.task_type.in_(followup_types))
                     .order_by(TaskModel.due_at.asc().nulls_last())
                 ).all()
+                tasks = [task for task in tasks if not provenance.task_is_quarantined(task)]
                 followup_data: list[dict[str, Any]] = [
                     {
                         "id": str(t.id),
@@ -684,12 +727,22 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
 
             if path == "/api/timeline":
                 crm = RecruiterCRMService(session)
+                provenance = durable_canary_provenance(session)
                 params = parse_qs(url.query)
                 app_ids = params.get("application_id", [])
                 contact_ids = params.get("contact_id", [])
                 if app_ids:
                     try:
-                        timeline = crm.get_timeline_for_application(uuid.UUID(app_ids[0]))
+                        application_id = uuid.UUID(app_ids[0])
+                        if application_id in provenance.application_ids:
+                            self._send_json([])
+                            return
+                        timeline = crm.get_timeline_for_application(application_id)
+                        timeline = [
+                            row
+                            for row in timeline
+                            if not _timeline_row_is_quarantined(row, provenance)
+                        ]
                         self._send_json(timeline)
                         return
                     except ValueError:
@@ -697,7 +750,16 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                         return
                 elif contact_ids:
                     try:
-                        timeline = crm.get_timeline_for_contact(uuid.UUID(contact_ids[0]))
+                        contact_id = uuid.UUID(contact_ids[0])
+                        if contact_id in provenance.contact_ids:
+                            self._send_json([])
+                            return
+                        timeline = crm.get_timeline_for_contact(contact_id)
+                        timeline = [
+                            row
+                            for row in timeline
+                            if not _timeline_row_is_quarantined(row, provenance)
+                        ]
                         self._send_json(timeline)
                         return
                     except ValueError:
@@ -717,11 +779,13 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     "REJECTED",
                     "WITHDRAWN",
                 )
+                provenance = durable_canary_provenance(session)
                 apps = session.scalars(
                     select(ApplicationModel)
                     .where(ApplicationModel.status.in_(terminal_or_offer))
                     .order_by(ApplicationModel.last_activity_at.desc())
                 ).all()
+                apps = [app for app in apps if app.id not in provenance.application_ids]
                 data = [
                     {
                         "application_id": str(a.id),
@@ -846,6 +910,19 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                     task = session.get(TaskModel, review_uuid)
                     if not task:
                         self.send_error(HTTPStatus.NOT_FOUND, "Task not found")
+                        return
+
+                    provenance = durable_canary_provenance(session)
+                    if provenance.task_is_quarantined(task):
+                        self._send_json(
+                            {
+                                "error": (
+                                    "Task requires canary provenance reconciliation and "
+                                    "cannot be resolved via dashboard."
+                                )
+                            },
+                            status=HTTPStatus.CONFLICT,
+                        )
                         return
 
                     task.status = "completed"

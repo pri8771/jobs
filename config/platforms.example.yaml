@@ -10,6 +10,8 @@ email:
   daily_reconciliation: true
   realtime_push_required: false
   readonly: true
+  # Owner-controlled test aliases only. Leave empty until a real alias is approved.
+  canary_identities: []
 
 platforms:
   linkedin:

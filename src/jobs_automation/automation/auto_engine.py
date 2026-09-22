@@ -19,6 +19,7 @@ from jobs_automation.automation.rate_limiter import DomainRateLimiter
 from jobs_automation.core.candidate_profile import CandidateProfileConfig
 from jobs_automation.core.policy_registry import PolicyDecision
 from jobs_automation.db.base import utc_now
+from jobs_automation.db.canary_provenance import require_job_without_durable_canary_provenance
 from jobs_automation.db.models import (
     ApplicationEventModel,
     ApplicationModel,
@@ -84,6 +85,8 @@ class ControlledAutoApplicationEngine:
         job = self.session.scalar(select(JobModel).where(JobModel.id == job_id))
         if not job:
             raise ValueError(f"Job {job_id} not found")
+
+        require_job_without_durable_canary_provenance(self.session, job.id)
 
         apply_url = job.apply_url
         if not apply_url:

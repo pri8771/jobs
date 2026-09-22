@@ -34,12 +34,11 @@ from jobs_automation.ingestion.bounded import (
     BOUNDED_RUN_ACTION,
     code_identity,
     compute_logical_state_digests,
+    is_valid_bounded_audit_metadata,
 )
 
-TIMELINE_SCHEMA_VERSION = 1
+TIMELINE_SCHEMA_VERSION = 2
 LOW_CONFIDENCE_THRESHOLD = 0.8
-# Must match the bounded-run writer's versioned audit metadata contract.
-BOUNDED_AUDIT_SCHEMA_VERSION = 2
 
 
 def _sha(text: str | None) -> str | None:
@@ -66,30 +65,81 @@ def _application_sha256(application_id: uuid.UUID) -> str:
 def _metadata_binds_application(metadata: dict[str, Any], application_sha256: str) -> bool:
     """Require an exact application hash in the schema-versioned audit association list."""
     associations = metadata.get("application_id_sha256")
-    if isinstance(associations, str):
-        return associations == application_sha256
-    if not isinstance(associations, list):
-        return False
-    return any(
-        isinstance(association, str) and association == application_sha256
-        for association in associations
+    return (
+        isinstance(associations, list)
+        and associations == sorted(set(associations))
+        and all(
+            isinstance(association, str)
+            and len(association) == 64
+            and all(character in "0123456789abcdef" for character in association)
+            for association in associations
+        )
+        and application_sha256 in associations
     )
 
 
-def _successful_complete_bounded_audit(
-    row: AuditLogModel, metadata: dict[str, Any]
+def _metadata_mentions_application(metadata: dict[str, Any], application_sha256: str) -> bool:
+    """Find a purported latest association so malformed evidence cannot hide behind an older row."""
+    associations = metadata.get("application_id_sha256")
+    if isinstance(associations, str):
+        return associations == application_sha256
+    return isinstance(associations, list) and application_sha256 in associations
+
+
+def _is_canary(message: InboundMessageModel) -> bool:
+    provider_metadata = (message.headers_json or {}).get("_provider")
+    return isinstance(provider_metadata, dict) and bool(provider_metadata.get("canary"))
+
+
+def _current_canary_references(session: Session) -> tuple[set[str], set[str], set[str]]:
+    """Return durable canary source references and their secret-safe audit hashes."""
+    canary_messages = [
+        message
+        for message in session.scalars(select(InboundMessageModel)).all()
+        if _is_canary(message)
+    ]
+    provider_message_ids = {message.provider_message_id for message in canary_messages}
+    message_ids = {str(message.id) for message in canary_messages}
+    provider_message_hashes = {
+        provider_hash
+        for provider_message_id in provider_message_ids
+        if (provider_hash := _sha(provider_message_id)) is not None
+    }
+    return provider_message_ids, message_ids, provider_message_hashes
+
+
+def _metadata_references_current_canary(
+    metadata: dict[str, Any], canary_provider_hashes: set[str]
 ) -> bool:
+    """Fail closed when an audit is malformed or names a source now tagged canary."""
+    provider_hashes = metadata.get("provider_message_id_sha256")
+    if not isinstance(provider_hashes, list) or not all(
+        isinstance(provider_hash, str)
+        and len(provider_hash) == 64
+        and all(character in "0123456789abcdef" for character in provider_hash)
+        for provider_hash in provider_hashes
+    ):
+        return True
+    return not set(provider_hashes).isdisjoint(canary_provider_hashes)
+
+
+def _successful_complete_bounded_audit(row: AuditLogModel, metadata: dict[str, Any]) -> bool:
     """A timeline must not surface failed, incomplete, or legacy bounded-run evidence."""
     return (
         row.result == "SUCCESS"
-        and metadata.get("schema_version") == BOUNDED_AUDIT_SCHEMA_VERSION
+        and isinstance(row.external_reference, str)
+        and bool(row.external_reference)
+        and is_valid_bounded_audit_metadata(metadata, external_reference=row.external_reference)
         and metadata.get("status") == "SUCCESS"
         and metadata.get("complete") is True
     )
 
 
 def _replay_has_bound_original(
-    session: Session, metadata: dict[str, Any], application_sha256: str
+    session: Session,
+    metadata: dict[str, Any],
+    application_sha256: str,
+    canary_provider_hashes: set[str],
 ) -> bool:
     """Verify replay flags and the original audit's application binding before export."""
     replay_of_run_id = metadata.get("replay_of_run_id")
@@ -110,12 +160,13 @@ def _replay_has_bound_original(
     )
     if original is None:
         return False
-    original_metadata = (
-        original.metadata_json if isinstance(original.metadata_json, dict) else {}
+    original_metadata = original.metadata_json if isinstance(original.metadata_json, dict) else {}
+    return (
+        _successful_complete_bounded_audit(original, original_metadata)
+        and metadata.get("canary_policy_sha256") == original_metadata.get("canary_policy_sha256")
+        and _metadata_binds_application(original_metadata, application_sha256)
+        and not _metadata_references_current_canary(original_metadata, canary_provider_hashes)
     )
-    return _successful_complete_bounded_audit(
-        original, original_metadata
-    ) and _metadata_binds_application(original_metadata, application_sha256)
 
 
 def _latest_application_bounded_audit(
@@ -129,7 +180,7 @@ def _latest_application_bounded_audit(
     ).all()
     for row in rows:
         metadata = row.metadata_json if isinstance(row.metadata_json, dict) else {}
-        if _metadata_binds_application(metadata, application_sha256):
+        if _metadata_mentions_application(metadata, application_sha256):
             return row, metadata
     return None
 
@@ -153,10 +204,18 @@ def build_timeline_export(
     if application is None:
         raise ValueError(f"application {application_id} not found")
     job = application.job
+    (
+        canary_provider_message_ids,
+        canary_message_ids,
+        canary_provider_hashes,
+    ) = _current_canary_references(session)
 
     link_rows = session.scalars(
         select(MessageLinkModel).where(MessageLinkModel.application_id == application_id)
     ).all()
+    canary_link_rows = [
+        link for link in link_rows if str(link.inbound_message_id) in canary_message_ids
+    ]
     links_by_message = {link.inbound_message_id: link for link in link_rows}
     linked_messages = (
         session.scalars(
@@ -188,7 +247,7 @@ def build_timeline_export(
     for message in messages:
         provider = dict((message.headers_json or {}).get("_provider") or {})
         link = links_by_message.get(message.id)
-        is_canary = bool(provider.get("canary"))
+        is_canary = _is_canary(message)
         if is_canary:
             canary_excluded += 1
         sources.append(
@@ -209,6 +268,17 @@ def build_timeline_export(
             }
         )
 
+    event_rows = session.scalars(
+        select(ApplicationEventModel)
+        .where(ApplicationEventModel.application_id == application_id)
+        .order_by(ApplicationEventModel.occurred_at.asc(), ApplicationEventModel.event_type)
+    ).all()
+    canary_event_rows = [
+        event for event in event_rows if event.source_reference in canary_provider_message_ids
+    ]
+    event_rows = [
+        event for event in event_rows if event.source_reference not in canary_provider_message_ids
+    ]
     events = [
         {
             "event_type": event.event_type,
@@ -218,11 +288,7 @@ def build_timeline_export(
             "actor": event.actor,
             "regression_prevented": bool((event.payload_json or {}).get("regression_prevented")),
         }
-        for event in session.scalars(
-            select(ApplicationEventModel)
-            .where(ApplicationEventModel.application_id == application_id)
-            .order_by(ApplicationEventModel.occurred_at.asc(), ApplicationEventModel.event_type)
-        ).all()
+        for event in event_rows
     ]
     interviews = [
         {
@@ -239,6 +305,34 @@ def build_timeline_export(
             .order_by(InterviewModel.scheduled_start.asc())
         ).all()
     ]
+    interview_source_reconciliation_required = bool(canary_event_rows and interviews)
+    for interview in interviews:
+        interview["source_provenance_unverified"] = interview_source_reconciliation_required
+
+    canary_message_references = canary_provider_message_ids | canary_message_ids
+
+    def _task_references_canary(task: TaskModel) -> bool:
+        payload = task.payload_json or {}
+        return any(
+            str(reference) in canary_message_references
+            for key in (
+                "provider_message_id",
+                "source_message_id",
+                "message_id",
+                "latest_message_id",
+                "resolved_by_reply_id",
+                "inbound_message_id",
+            )
+            if (reference := payload.get(key)) is not None
+        )
+
+    task_rows = session.scalars(
+        select(TaskModel)
+        .where(TaskModel.application_id == application_id)
+        .order_by(TaskModel.task_type, TaskModel.status)
+    ).all()
+    canary_task_rows = [task for task in task_rows if _task_references_canary(task)]
+    task_rows = [task for task in task_rows if not _task_references_canary(task)]
     tasks = [
         {
             "task_type": task.task_type,
@@ -247,17 +341,11 @@ def build_timeline_export(
             "reason_sha256": _sha(str((task.payload_json or {}).get("reason") or "")),
             "provider_message_id": (task.payload_json or {}).get("provider_message_id"),
         }
-        for task in session.scalars(
-            select(TaskModel)
-            .where(TaskModel.application_id == application_id)
-            .order_by(TaskModel.task_type, TaskModel.status)
-        ).all()
+        for task in task_rows
     ]
 
     contact_ids: set[str] = set()
-    for event in session.scalars(
-        select(ApplicationEventModel).where(ApplicationEventModel.application_id == application_id)
-    ).all():
+    for event in event_rows:
         contact_id = (event.payload_json or {}).get("contact_id")
         if contact_id:
             contact_ids.add(str(contact_id))
@@ -279,7 +367,8 @@ def build_timeline_export(
     low_confidence = sorted(
         message.provider_message_id
         for message in messages
-        if (link := links_by_message.get(message.id)) is not None
+        if not _is_canary(message)
+        and (link := links_by_message.get(message.id)) is not None
         and link.confidence < LOW_CONFIDENCE_THRESHOLD
     )
     pending_review = [
@@ -291,9 +380,13 @@ def build_timeline_export(
     latest_application_run = _latest_application_bounded_audit(session, application_sha256)
     if latest_application_run is not None:
         latest_run, metadata = latest_application_run
-        if _successful_complete_bounded_audit(
-            latest_run, metadata
-        ) and _replay_has_bound_original(session, metadata, application_sha256):
+        if (
+            _successful_complete_bounded_audit(latest_run, metadata)
+            and not _metadata_references_current_canary(metadata, canary_provider_hashes)
+            and _replay_has_bound_original(
+                session, metadata, application_sha256, canary_provider_hashes
+            )
+        ):
             replay = {
                 "run_id": metadata.get("run_id") or latest_run.external_reference,
                 "status": metadata.get("status"),
@@ -331,6 +424,15 @@ def build_timeline_export(
             "pending_review_tasks": len(pending_review),
             "low_confidence_link_message_ids": low_confidence,
             "regression_prevented_events": sum(1 for e in events if e["regression_prevented"]),
+            "canary_lifecycle_events_excluded": len(canary_event_rows),
+            "canary_lifecycle_tasks_excluded": len(canary_task_rows),
+            "canary_message_links_excluded": len(canary_link_rows),
+            "canary_lifecycle_state_requires_reconciliation": bool(
+                canary_event_rows or canary_task_rows or canary_link_rows
+            ),
+            "interviews_with_unverified_canary_provenance": (
+                len(interviews) if interview_source_reconciliation_required else 0
+            ),
         },
         "genuine_evidence": {
             "source_count": len(genuine_sources),

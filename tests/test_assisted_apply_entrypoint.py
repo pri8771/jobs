@@ -8,6 +8,7 @@ print or persist a submitted application.
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -47,6 +48,10 @@ def test_assisted_apply_entrypoint_stops_at_review_with_mock_browser(tmp_path: P
         engineering_profile_yaml(resume_path.resolve()), encoding="utf-8"
     )
     (config_dir / "policy_registry.yaml").write_text(POLICY_YAML, encoding="utf-8")
+    # Stateful application entrypoints load the durable canary policy before they
+    # select a job.  This fixture models a complete operator configuration rather
+    # than silently running without that safety boundary.
+    shutil.copy(REPO_ROOT / "config" / "platforms.example.yaml", config_dir / "platforms.yaml")
 
     db_url = f"sqlite:///{tmp_path / 'entrypoint.db'}"
     engine = get_engine(db_url)

@@ -18,7 +18,10 @@ from jobs_automation.adapters.base import EmailAdapter
 from jobs_automation.automation.kill_switch import KillSwitchManager
 from jobs_automation.core.config import ConfigLoader
 from jobs_automation.db.models import AuditLogModel, InboundMessageModel
-from jobs_automation.ingestion.engine import EmailIngestionEngine
+from jobs_automation.ingestion.engine import (
+    EmailIngestionEngine,
+    reclassify_persisted_canary_messages,
+)
 from jobs_automation.lifecycle.alerts import LifecycleAlertService
 from jobs_automation.lifecycle.engine import LifecycleEngine
 
@@ -81,6 +84,7 @@ class WorkerDaemon:
         config_dir: str = "config",
         email_adapter: EmailAdapter | None = None,
         candidate_emails: list[str] | None = None,
+        canary_identities: list[str] | None = None,
         reconciliation_interval_seconds: int = 86400,  # 24 hours default
     ) -> None:
         self.session_factory = session_factory
@@ -88,6 +92,10 @@ class WorkerDaemon:
         self.config_dir = config_dir
         self.email_adapter = email_adapter
         self.candidate_emails = candidate_emails
+        # Explicit identities supplement, rather than replace, the durable policy in
+        # platforms.yaml.  A scheduler cannot accidentally disable configured aliases
+        # by omitting a command-line flag.
+        self.canary_identities = list(canary_identities or [])
         self.reconciliation_interval_seconds = reconciliation_interval_seconds
         self.last_reconciliation_at: datetime.datetime | None = None
         self._running = False
@@ -125,6 +133,28 @@ class WorkerDaemon:
         except Exception as exc:
             logger.debug("Could not load candidate email from config: %s", exc)
         return []
+
+    def _resolve_canary_identities(self) -> list[str]:
+        """Load configured aliases and add explicit worker-only aliases.
+
+        The generic worker is an ingestion entrypoint, so it must share the durable
+        canary policy used by bounded ingestion instead of relying on an ephemeral
+        command invocation.
+        """
+        configured: list[str] = []
+        try:
+            loader = ConfigLoader(self.config_dir)
+            platforms, _ = loader.load_platforms()
+            configured = list(platforms.email.canary_identities)
+        except FileNotFoundError:
+            # A bootstrap install may not have platforms.yaml yet. There is no hidden
+            # policy to silently discard; explicit identities still apply.
+            configured = []
+        except Exception as exc:
+            # A present-but-invalid policy is unsafe to ignore: do not ingest a fresh
+            # mailbox batch without knowing whether owner-controlled aliases exist.
+            raise RuntimeError("canary policy configuration unavailable") from exc
+        return list(dict.fromkeys([*configured, *self.canary_identities]))
 
     # Threshold beyond which a RUNNING record is considered stale/interrupted (seconds)
     STALE_RUN_THRESHOLD_SECONDS: int = 7200  # 2 hours
@@ -168,6 +198,7 @@ class WorkerDaemon:
             "lifecycle_transitions": 0,
             "unanswered_alerts": 0,
             "stale_alerts": 0,
+            "canary_messages_reclassified": 0,
             "reconciliation_performed": False,
             "errors": [],
             "warnings": [],
@@ -221,6 +252,17 @@ class WorkerDaemon:
         pipeline_exception: Exception | None = None
         try:
             with self.session_factory() as session:
+                # Reconcile the configured policy before any worker consumer sees
+                # durable mailbox state. This must happen even when Gmail is unavailable:
+                # old rows can otherwise reach alerts or lifecycle processing untagged.
+                canary_identities = self._resolve_canary_identities()
+                reclassified_canaries = reclassify_persisted_canary_messages(
+                    session, canary_identities
+                )
+                if reclassified_canaries:
+                    session.commit()
+                results["canary_messages_reclassified"] = reclassified_canaries
+
                 # 1. Email Ingestion (Performed FIRST)
                 adapter = self._resolve_email_adapter()
                 if adapter is not None:
@@ -230,6 +272,7 @@ class WorkerDaemon:
                             session=session,
                             adapter=adapter,
                             candidate_emails=candidate_emails,
+                            canary_identities=canary_identities,
                         )
                         summary = ingestion_engine.run_sweep(reconcile=should_reconcile)
                         results["messages_polled"] = summary.messages_polled

@@ -92,12 +92,25 @@ class LifecycleEngine:
         self.interview_extractor = InterviewExtractor(session)
         self.alert_service = LifecycleAlertService(session)
 
+    @staticmethod
+    def _is_canary(message: InboundMessageModel) -> bool:
+        """Return whether durable provider metadata marks a message as test traffic."""
+        provider_metadata = (message.headers_json or {}).get("_provider")
+        return isinstance(provider_metadata, dict) and bool(provider_metadata.get("canary"))
+
     def process_message(
         self,
         message: InboundMessageModel,
         confidence_threshold: float = 0.8,
     ) -> LifecycleTransitionResult | None:
         """Evaluates an inbound message and triggers verified, idempotent lifecycle transitions."""
+        # Canary traffic may have been linked before a later bounded run reclassified
+        # it.  The worker and CLI both call this entrypoint, so the durable tag is the
+        # final shared boundary before any state, CRM, interview, or task mutation.
+        if self._is_canary(message):
+            logger.info("Skipping durable canary message during lifecycle processing.")
+            return None
+
         # Find associated application via links
         links = self.session.scalars(
             select(MessageLinkModel).where(

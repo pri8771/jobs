@@ -457,3 +457,47 @@ def test_canary_identities_are_tagged_and_counted(db_session: Session) -> None:
     )
     assert untagged is not None and "_provider" not in untagged.headers_json
     assert summary.poll_report is not None and summary.poll_report.synthetic is True
+
+
+def test_canary_identity_matching_uses_exact_normalized_addresses(db_session: Session) -> None:
+    """A display-name alias must match exactly without consuming lookalike addresses."""
+
+    exact = RawEmailMessage(
+        provider_message_id="exact-canary",
+        provider_thread_id="exact-canary-thread",
+        received_at=NOW,
+        sender="Owner Canary <sarah.connor@viatris.com>",
+        recipients=[CANDIDATE],
+        subject="Canary ping",
+        body_text="synthetic",
+    )
+    prefix_lookalike = exact.model_copy(
+        update={
+            "provider_message_id": "prefix-lookalike",
+            "provider_thread_id": "prefix-lookalike-thread",
+            "sender": "not-sarah.connor@viatris.com",
+        }
+    )
+    suffix_lookalike = exact.model_copy(
+        update={
+            "provider_message_id": "suffix-lookalike",
+            "provider_thread_id": "suffix-lookalike-thread",
+            "sender": "sarah.connor@viatris.com.evil",
+        }
+    )
+    engine = EmailIngestionEngine(
+        db_session,
+        MockEmailAdapter([exact, prefix_lookalike, suffix_lookalike]),
+        canary_identities=["Configured Alias <sarah.connor@viatris.com>"],
+    )
+
+    summary = engine.run_sweep(max_messages=10)
+
+    assert summary.canary_messages == 1
+    rows = {
+        message.provider_message_id: message
+        for message in db_session.scalars(select(InboundMessageModel)).all()
+    }
+    assert rows["exact-canary"].headers_json["_provider"]["canary"] is True
+    assert (rows["prefix-lookalike"].headers_json or {}).get("_provider", {}).get("canary") is not True
+    assert (rows["suffix-lookalike"].headers_json or {}).get("_provider", {}).get("canary") is not True

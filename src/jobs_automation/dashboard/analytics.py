@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, joinedload
 
+from jobs_automation.db.canary_provenance import durable_canary_provenance
 from jobs_automation.db.models import (
     ApplicationModel,
     JobModel,
@@ -47,7 +48,11 @@ class FunnelAnalyticsService:
         - uses confirmed real submissions (excluding simulation/mock modes and unsubmitted drafts)
           for the submitted denominator and conversion rates.
         """
-        total_discovered = self.session.scalar(select(func.count(JobModel.id))) or 0
+        provenance = durable_canary_provenance(self.session)
+        discovered_stmt = select(func.count(JobModel.id))
+        if provenance.job_ids:
+            discovered_stmt = discovered_stmt.where(JobModel.id.not_in(provenance.job_ids))
+        total_discovered = self.session.scalar(discovered_stmt) or 0
 
         # Query all applications with events and interviews joined
         applications = self.session.scalars(
@@ -57,6 +62,9 @@ class FunnelAnalyticsService:
                 joinedload(ApplicationModel.interviews),
             )
         ).unique().all()
+        applications = [
+            app for app in applications if app.id not in provenance.application_ids
+        ]
 
         status_map: dict[str, int] = {}
         for app in applications:
@@ -84,13 +92,12 @@ class FunnelAnalyticsService:
                 rejected += 1
 
         # Pending reviews count
-        pending_reviews = (
-            self.session.scalar(
-                select(func.count(TaskModel.id)).where(
-                    TaskModel.status == "pending"
-                )
-            )
-            or 0
+        pending_reviews = sum(
+            1
+            for task in self.session.scalars(
+                select(TaskModel).where(TaskModel.status == "pending")
+            ).all()
+            if not provenance.task_is_quarantined(task)
         )
 
         # Conversion percentages
@@ -118,12 +125,14 @@ class FunnelAnalyticsService:
 
     def get_source_breakdown(self) -> dict[str, int]:
         """Calculates discovery count by source platform/provider."""
-        results = self.session.execute(
-            select(JobSourceModel.provider, func.count(JobSourceModel.id)).group_by(
-                JobSourceModel.provider
-            )
-        ).all()
-        return {provider: count for provider, count in results}
+        provenance = durable_canary_provenance(self.session)
+        source_rows = self.session.scalars(select(JobSourceModel)).all()
+        results: dict[str, int] = {}
+        for source in source_rows:
+            if source.job_id in provenance.job_ids:
+                continue
+            results[source.provider] = results.get(source.provider, 0) + 1
+        return results
 
     # Simulation mode strings that must never count as real submissions
     _SIMULATION_MODES: frozenset[str] = frozenset(
@@ -282,6 +291,7 @@ class FunnelAnalyticsService:
         - uses confirmed submissions (applied_at present / not simulation) for the denominator,
         - attributes jobs with multiple sources to the primary (earliest) discovery source to avoid double-counting.
         """
+        provenance = durable_canary_provenance(self.session)
         all_sources = self.session.scalars(
             select(JobSourceModel).order_by(
                 JobSourceModel.job_id,
@@ -289,6 +299,9 @@ class FunnelAnalyticsService:
                 JobSourceModel.id.asc(),
             )
         ).all()
+        all_sources = [
+            source for source in all_sources if source.job_id not in provenance.job_ids
+        ]
 
         # Group sources by provider and map each job to its primary discovery source
         primary_source_by_job: dict[uuid.UUID, str] = {}
@@ -303,7 +316,11 @@ class FunnelAnalyticsService:
                 jobs_discovered_by_provider[s.provider] = set()
             jobs_discovered_by_provider[s.provider].add(s.job_id)
 
-        all_apps = self.session.scalars(select(ApplicationModel)).all()
+        all_apps = [
+            app
+            for app in self.session.scalars(select(ApplicationModel)).all()
+            if app.id not in provenance.application_ids
+        ]
 
         performance: list[dict[str, Any]] = []
         for provider in sorted(all_providers):
@@ -368,7 +385,12 @@ class FunnelAnalyticsService:
 
     def get_role_family_performance(self) -> list[dict[str, Any]]:
         """Calculates conversion and historical outcome distribution by target role/title family."""
-        all_apps = self.session.scalars(select(ApplicationModel)).all()
+        provenance = durable_canary_provenance(self.session)
+        all_apps = [
+            app
+            for app in self.session.scalars(select(ApplicationModel)).all()
+            if app.id not in provenance.application_ids
+        ]
 
         # Group applications by normalized job title
         apps_by_role: dict[str, list[ApplicationModel]] = {}
@@ -427,10 +449,13 @@ class FunnelAnalyticsService:
 
     def get_resume_performance(self) -> list[dict[str, Any]]:
         """Calculates funnel efficacy grouped by immutable resume variant and resume family."""
+        provenance = durable_canary_provenance(self.session)
         variants = self.session.scalars(select(ResumeVariantModel)).all()
 
         results: list[dict[str, Any]] = []
         for variant in variants:
+            if variant.target_job_id in provenance.job_ids:
+                continue
             # Applications linked to this resume variant via packets
             apps = [
                 pkt_app
@@ -438,6 +463,7 @@ class FunnelAnalyticsService:
                 for pkt_app in self.session.scalars(
                     select(ApplicationModel).where(ApplicationModel.packet_id == pkt.id)
                 ).all()
+                if pkt_app.id not in provenance.application_ids
             ]
 
             submitted_apps = [a for a in apps if self._is_real_submission(a)]
@@ -485,9 +511,11 @@ class FunnelAnalyticsService:
 
     def get_time_to_stage(self) -> dict[str, Any]:
         """Calculates average latency in days from application submission to various lifecycle stages."""
+        provenance = durable_canary_provenance(self.session)
         apps = self.session.scalars(
             select(ApplicationModel).where(ApplicationModel.applied_at.is_not(None))
         ).all()
+        apps = [app for app in apps if app.id not in provenance.application_ids]
 
         time_to_first_response: list[float] = []
         time_to_interview: list[float] = []
@@ -538,9 +566,13 @@ class FunnelAnalyticsService:
 
     def get_kanban_board(self) -> dict[str, list[dict[str, Any]]]:
         """Groups applications into Kanban columns for pipeline visualization."""
+        provenance = durable_canary_provenance(self.session)
         applications = self.session.scalars(
             select(ApplicationModel).order_by(ApplicationModel.last_activity_at.desc())
         ).all()
+        applications = [
+            app for app in applications if app.id not in provenance.application_ids
+        ]
 
         columns: dict[str, list[dict[str, Any]]] = {
             "DISCOVERED": [],

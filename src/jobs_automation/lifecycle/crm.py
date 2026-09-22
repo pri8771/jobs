@@ -18,6 +18,7 @@ from jobs_automation.db.models import (
     InboundMessageModel,
     MessageLinkModel,
 )
+from jobs_automation.ingestion.engine import is_durable_canary
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +72,11 @@ class RecruiterCRMService:
         message: InboundMessageModel,
     ) -> None:
         """Updates contact timestamp activity idempotently."""
+        # A message can be linked before a later policy run recognizes its address
+        # as owner-controlled test traffic.  Leave historical contact state for
+        # reconciliation, but never let the reclassified message advance CRM activity.
+        if is_durable_canary(message):
+            return
         ts = message.received_at
         if contact.first_contact_at is None or ts < contact.first_contact_at:
             contact.first_contact_at = ts
@@ -92,6 +98,8 @@ class RecruiterCRMService:
 
         timeline: list[dict[str, Any]] = []
         for msg in messages:
+            if is_durable_canary(msg):
+                continue
             timeline.append(
                 {
                     "message_id": str(msg.id),
@@ -117,10 +125,14 @@ class RecruiterCRMService:
             return []
 
         # Find messages from or to this contact
-        msg_stmt = select(InboundMessageModel.id).where(
+        msg_stmt = select(InboundMessageModel).where(
             InboundMessageModel.sender.ilike(f"%{contact.email}%")
         )
-        msg_ids = self.session.scalars(msg_stmt).all()
+        msg_ids = [
+            message.id
+            for message in self.session.scalars(msg_stmt).all()
+            if not is_durable_canary(message)
+        ]
         if not msg_ids:
             return []
 
@@ -153,6 +165,8 @@ class RecruiterCRMService:
 
         timeline: list[dict[str, Any]] = []
         for msg, app_id in results:
+            if is_durable_canary(msg):
+                continue
             timeline.append(
                 {
                     "message_id": str(msg.id),

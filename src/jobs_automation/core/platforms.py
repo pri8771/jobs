@@ -17,6 +17,9 @@ class EmailPollingConfig(BaseModel):
     daily_reconciliation: bool = True
     realtime_push_required: bool = False
     readonly: bool = True
+    # Owner-controlled aliases used to exercise the mailbox path. Their traffic is
+    # durable-tagged and excluded before ordinary worker/CLI lifecycle processing.
+    canary_identities: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def verify_email_architecture(self) -> EmailPollingConfig:
