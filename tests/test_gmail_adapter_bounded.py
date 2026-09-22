@@ -17,6 +17,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+import jobs_automation.ingestion.engine as ingestion_engine_module
 from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
 from jobs_automation.db.models import InboundMessageModel, MessageLinkModel, TaskModel
 from jobs_automation.db.session import init_db
@@ -421,7 +422,9 @@ def test_canary_identities_are_tagged_and_counted(db_session: Session) -> None:
 
 
 @pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
-def test_malformed_neighbor_preserves_valid_recipient_header(malformed_header: str) -> None:
+def test_malformed_neighbor_preserves_valid_recipient_header(
+    malformed_header: str, db_session: Session
+) -> None:
     alias = "owner+canary@example.com"
     payload = _message(
         "malformed-neighbor",
@@ -439,6 +442,16 @@ def test_malformed_neighbor_preserves_valid_recipient_header(malformed_header: s
     adapter = GmailAdapter(service=FakeGmailService([payload]))
     (message,) = adapter.poll_messages(max_results=5)
     assert message.recipients == [alias]
+    summary = EmailIngestionEngine(
+        db_session, adapter, canary_identities=["Owner <OWNER+CANARY@example.com>"]
+    ).run_sweep(advance_checkpoint=False)
+    assert summary.errors == []
+    assert summary.canary_messages == 1
+    assert summary.batch_canary_provider_message_ids == ["malformed-neighbor"]
+    persisted = db_session.scalar(select(InboundMessageModel))
+    assert persisted is not None
+    assert persisted.headers_json["_provider"]["canary"] is True
+    assert db_session.scalars(select(MessageLinkModel)).all() == []
 
 
 def test_valid_to_and_cc_recipients_preserve_order_and_addresses() -> None:
@@ -454,3 +467,179 @@ def test_valid_to_and_cc_recipients_preserve_order_and_addresses() -> None:
     adapter = GmailAdapter(service=FakeGmailService([payload]))
     (message,) = adapter.poll_messages(max_results=5)
     assert message.recipients == ["owner@example.com", "second@example.com", "third@example.com"]
+
+
+@pytest.mark.parametrize(
+    ("sender", "expected"),
+    [
+        ("Canary <OWNER+CANARY@example.com>", True),
+        ("owner+canary@example.com", True),
+        ("prefixowner+canary@example.com", False),
+        ("owner+canary@example.com.evil.invalid", False),
+    ],
+)
+def test_engine_matches_exact_canonical_canary_addresses(
+    db_session: Session, sender: str, expected: bool
+) -> None:
+    raw = RawEmailMessage(
+        provider_message_id="exact-address",
+        provider_thread_id="exact-thread",
+        received_at=NOW,
+        sender=sender,
+        recipients=[CANDIDATE],
+        subject="Canary ping",
+        body_text="synthetic",
+    )
+    summary = EmailIngestionEngine(
+        db_session,
+        MockEmailAdapter([raw]),
+        canary_identities=["Owner <OWNER+CANARY@example.com>"],
+    ).run_sweep(advance_checkpoint=False)
+    assert summary.errors == []
+    assert summary.canary_messages == int(expected)
+    assert summary.batch_canary_provider_message_ids == (["exact-address"] if expected else [])
+    stored = db_session.scalar(select(InboundMessageModel))
+    assert stored is not None
+    assert bool(stored.headers_json.get("_provider", {}).get("canary")) is expected
+
+
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_engine_tracks_duplicate_canary_without_persisting_dry_run(
+    db_session: Session, dry_run: bool
+) -> None:
+    raw = RawEmailMessage(
+        provider_message_id="historical-alias",
+        provider_thread_id="historical-thread",
+        received_at=NOW,
+        sender="Owner <owner+canary@example.com>",
+        recipients=[CANDIDATE],
+        subject="Canary ping",
+        body_text="synthetic",
+    )
+    adapter = MockEmailAdapter([raw])
+    first = EmailIngestionEngine(db_session, adapter).run_sweep(advance_checkpoint=False)
+    assert first.errors == [] and first.messages_ingested == 1
+    stored = db_session.scalar(select(InboundMessageModel))
+    assert stored is not None
+    original_id = stored.id
+    assert not stored.headers_json.get("_provider", {}).get("canary")
+
+    summary = EmailIngestionEngine(
+        db_session, adapter, canary_identities=["OWNER+CANARY@example.com"]
+    ).run_sweep(dry_run=dry_run, advance_checkpoint=False)
+    assert summary.errors == []
+    assert summary.messages_ingested == 0 and summary.messages_skipped_duplicate == 1
+    assert summary.canary_messages == 1
+    assert summary.batch_canary_provider_message_ids == ["historical-alias"]
+    assert summary.batch_message_ids == [original_id]
+    db_session.expire_all()
+    (stored,) = db_session.scalars(select(InboundMessageModel)).all()
+    assert bool(stored.headers_json.get("_provider", {}).get("canary")) is (not dry_run)
+    assert (
+        db_session.scalars(select(TaskModel).where(TaskModel.task_type == "email_checkpoint")).all()
+        == []
+    )
+
+
+def test_engine_tracks_new_canary_after_dry_run_rollback(db_session: Session) -> None:
+    adapter = GmailAdapter(
+        service=FakeGmailService(
+            [
+                _message(
+                    "dry-canary",
+                    sender="owner+canary@example.com",
+                    to=CANDIDATE,
+                    subject="Canary ping",
+                    body="synthetic",
+                    internal=NOW,
+                )
+            ]
+        )
+    )
+    summary = EmailIngestionEngine(
+        db_session, adapter, canary_identities=["owner+canary@example.com"]
+    ).run_sweep(dry_run=True)
+    assert summary.errors == [] and summary.canary_messages == 1
+    assert summary.batch_canary_provider_message_ids == ["dry-canary"]
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+    assert db_session.scalars(select(TaskModel)).all() == []
+
+
+@pytest.mark.parametrize("participant_field", ["sender", "recipients", "provider_sender"])
+def test_engine_reclassifies_historical_alias_once_and_keeps_provider_facts(
+    db_session: Session, participant_field: str
+) -> None:
+    raw = RawEmailMessage(
+        provider_message_id="historical-match",
+        provider_thread_id="historical-thread",
+        received_at=NOW,
+        sender="a@b.com;c@d.com",
+        recipients=[CANDIDATE],
+        subject="Canary ping",
+        body_text="synthetic",
+        provider_metadata={"direction_basis": "inbound_default"},
+    )
+    alias = "Owner <OWNER+CANARY@example.com>"
+    if participant_field == "sender":
+        raw.sender = alias
+    elif participant_field == "recipients":
+        raw.recipients = [alias]
+    else:
+        raw.provider_metadata["sender_address"] = alias
+    result = EmailIngestionEngine(db_session, MockEmailAdapter([raw])).run_sweep(
+        advance_checkpoint=False
+    )
+    assert result.errors == []
+    reclassify = ingestion_engine_module.reclassify_persisted_canary_messages
+    assert reclassify(db_session, [alias]) == 1
+    db_session.commit()
+    db_session.expire_all()
+    stored = db_session.scalar(select(InboundMessageModel))
+    assert stored is not None
+    assert ingestion_engine_module.is_durable_canary(stored)
+    assert stored.headers_json["_provider"]["direction_basis"] == "inbound_default"
+    assert reclassify(db_session, [alias]) == 0
+    assert reclassify(db_session, []) == 0
+    assert ingestion_engine_module.is_durable_canary(stored)
+
+
+@pytest.mark.parametrize("safe_errors", [None, False, True])
+def test_engine_safe_errors_are_opt_in(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch, safe_errors: bool | None
+) -> None:
+    adapter = MockEmailAdapter([])
+
+    def fail_poll(**kwargs: object) -> list[RawEmailMessage]:
+        raise RuntimeError("worker diagnostic owner@example.invalid")
+
+    monkeypatch.setattr(adapter, "poll_messages", fail_poll)
+    engine = (
+        EmailIngestionEngine(db_session, adapter)
+        if safe_errors is None
+        else EmailIngestionEngine(db_session, adapter, safe_errors=safe_errors)
+    )
+    summary = engine.run_sweep()
+    assert summary.errors == (
+        ["INGESTION_ERROR"] if safe_errors else ["worker diagnostic owner@example.invalid"]
+    )
+    assert summary.batch_canary_provider_message_ids == []
+    assert summary.batch_message_ids == []
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+    assert db_session.scalars(select(TaskModel)).all() == []
+
+
+@pytest.mark.parametrize("missing", [False, True])
+def test_engine_safe_incomplete_poll_never_writes(db_session: Session, missing: bool) -> None:
+    payloads = _five_messages()
+    failed_ids = {payloads[0]["id"]} if missing else set()
+    adapter = GmailAdapter(service=FakeGmailService(payloads, failing_ids=failed_ids))
+    summary = EmailIngestionEngine(db_session, adapter, safe_errors=True).run_sweep(
+        max_messages=10 if missing else 2
+    )
+    assert summary.errors == ["POLL_INCOMPLETE"]
+    assert summary.checkpoint_advanced_to is None
+    assert summary.checkpoint_held_reason is not None
+    assert summary.batch_message_ids == []
+    assert summary.batch_canary_provider_message_ids == []
+    assert db_session.scalars(select(InboundMessageModel)).all() == []
+    assert db_session.scalars(select(TaskModel)).all() == []
