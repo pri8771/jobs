@@ -243,7 +243,8 @@ class GmailAdapter(EmailAdapter):
         recipient_headers = [str(headers.get(key, "")) for key in ("To", "Cc") if headers.get(key)]
         recipients = [
             address.strip().lower()
-            for _, address in getaddresses(recipient_headers)
+            for header_value in recipient_headers
+            for _, address in getaddresses([header_value])
             if address and address.strip()
         ]
         subject = str(headers.get("Subject", "(No Subject)") or "(No Subject)")
