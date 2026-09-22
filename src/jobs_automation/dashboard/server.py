@@ -54,7 +54,10 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     body { background-color: var(--bg); color: var(--text); padding: 24px; }
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
     h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .status-badge { background: #064e3b; color: #34d399; font-size: 0.75rem; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+    .status-badge { background: var(--card-bg); color: var(--text-muted); font-size: 0.75rem; padding: 4px 8px; border-radius: 9999px; font-weight: 600; }
+    .health-healthy { background: #064e3b; color: #34d399; }
+    .health-degraded { background: #78350f; color: #fcd34d; }
+    .health-unhealthy { background: #7f1d1d; color: #fca5a5; }
     nav { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
     nav button { background: var(--card-bg); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
     nav button.active, nav button:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -88,7 +91,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
 </head>
 <body>
   <header>
-    <h1>💼 Jobs Automation OS <span class="status-badge">System Live</span></h1>
+    <h1>💼 Jobs Automation OS <span id="system-health-badge" class="status-badge health-unknown" role="status" aria-live="polite">Unknown</span></h1>
     <div id="refresh-time" style="font-size: 0.85rem; color: var(--text-muted);">Loaded</div>
   </header>
 
@@ -271,6 +274,28 @@ DASHBOARD_HTML = """<!DOCTYPE html>
       if (tabId === 'interviews') loadInterviews();
       if (tabId === 'crm') loadCRM();
       if (tabId === 'audit') loadAudit();
+    }
+
+    async function loadHealth() {
+      const badge = document.getElementById('system-health-badge');
+      let state = 'unknown';
+      let label = 'Unknown';
+      try {
+        const response = await fetch('/api/health', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Health unavailable');
+        const health = await response.json();
+        if (health === null || typeof health !== 'object' || Array.isArray(health)) {
+          throw new Error('Invalid health response');
+        }
+        const status = health.overall_status;
+        if (status === 'HEALTHY') { state = 'healthy'; label = 'Healthy'; }
+        else if (status === 'DEGRADED') { state = 'degraded'; label = 'Degraded'; }
+        else if (status === 'UNHEALTHY') { state = 'unhealthy'; label = 'Unhealthy'; }
+      } catch {
+        // Unavailable or malformed health never implies operational readiness.
+      }
+      badge.textContent = label;
+      badge.className = 'status-badge health-' + state;
     }
 
     async function loadFunnel() {
@@ -466,6 +491,7 @@ DASHBOARD_HTML = """<!DOCTYPE html>
     }
 
     // Init
+    loadHealth();
     loadFunnel();
     document.getElementById('refresh-time').innerText = 'Last updated: ' + new Date().toLocaleTimeString();
   </script>
