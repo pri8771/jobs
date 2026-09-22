@@ -522,3 +522,97 @@ If and only if COMP-2A is accepted, reactivate the engine-only conflict with:
 At that stage, integrated V3/reference claims remain deferred until their own explicit `bounded.py`/provenance scope is opened. Engine acceptance must not claim full composition.
 
 No Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or main merge.
+
+
+## 12. COMP-2A inherited mypy blocker — sequencing disposition
+
+Reported COMP-2A worktree:
+- isolated base: `b67fc523863babd3e195ee71a05f00fa0f2f7e79`;
+- released production files only:
+  - `src/jobs_automation/adapters/gmail.py`
+  - `src/jobs_automation/core/platforms.py`
+- released focused tests only:
+  - `tests/test_gmail_adapter_bounded.py`
+  - `tests/test_config.py`
+
+Current reported focused state:
+- baseline regressions: 8 failed / 23 passed;
+- repaired focused set: 31 passed;
+- Ruff clean;
+- source-only mypy (74 source files) clean.
+
+A separate pre-existing integration typing blocker was reproduced **before COMP-2A edits**:
+`uv run mypy src tests` reports 27 errors in:
+- `tests/test_crm_corrections.py`
+- `tests/test_bounded_ingestion_scope.py`
+- `tests/test_candidate_reply_attribution.py`
+- `tests/test_auto_application.py`
+- `tests/test_dashboard_health_badge.py`
+
+The COMP-2A candidate must not edit those files or weaken mypy/CI to hide them.
+
+### COMP-2A review rule
+
+Submit COMP-2A exactly within its released four-file scope.
+
+Formal review may disposition the bounded Gmail/config prerequisite on exact-SHA evidence if:
+1. the candidate changes only the released files;
+2. the 27 full-mypy errors are proven byte-for-byte/category-for-category inherited from the exact b67 baseline;
+3. the candidate introduces **zero new** `mypy src tests` errors outside that inherited set;
+4. focused Gmail/config tests pass;
+5. full pytest passes;
+6. Ruff passes;
+7. source-only mypy passes;
+8. any PostgreSQL/integration evidence required by the candidate completes cleanly.
+
+If accepted, the verdict must state:
+- COMP-2A behavior accepted;
+- full integration CI remains blocked by inherited test typing;
+- no hosted-green claim until the separate typing repair lands.
+
+Do not call the inherited typing errors a COMP-2A product regression.
+
+## COMP-2B-TYPING — queued, conditional on COMP-2A acceptance
+
+**Not active until COMP-2A exact-SHA disposition.**
+
+If COMP-2A is accepted, create the next isolated candidate **on top of the accepted COMP-2A SHA**.
+
+Allowed files only:
+- `tests/test_crm_corrections.py`
+- `tests/test_bounded_ingestion_scope.py`
+- `tests/test_candidate_reply_attribution.py`
+- `tests/test_auto_application.py`
+- `tests/test_dashboard_health_badge.py`
+
+No production source changes.
+
+Required repair:
+- fix all inherited typing errors honestly;
+- preserve test behavior/assertions;
+- add precise annotations and non-Optional narrowing/assertions where runtime invariants require existence;
+- no broad `Any` solely to silence mypy;
+- no `# type: ignore` unless an unavoidable third-party typing defect is demonstrated and narrowly documented;
+- no test deletion/skip/assertion weakening;
+- no mypy config, CI workflow, exclude, override, or command relaxation.
+
+Required validation:
+1. reproduce the exact inherited 27-error baseline on the accepted COMP-2A parent;
+2. `mypy src tests` => clean;
+3. focused pytest for all five touched test files;
+4. full pytest;
+5. Ruff;
+6. format/diff check;
+7. hosted CI on exact head if available.
+
+Return exact SHA/tree and READY_FOR_LEAD_REVIEW.
+
+## Composition hold
+
+COMP-2 engine work remains held until:
+1. COMP-2A is formally dispositioned; and
+2. the five-file typing repair is accepted with full `mypy src tests` green.
+
+Do not begin `engine.py`, `bounded.py`, provenance, lifecycle, worker, dashboard, or other held conflict work in parallel.
+
+No live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, Fable/Claude dispatch, or main merge.
