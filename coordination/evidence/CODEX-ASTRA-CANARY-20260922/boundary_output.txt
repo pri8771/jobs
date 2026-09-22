@@ -1,0 +1,5 @@
+normal {'recipients': ['owner+canary@example.com'], 'canonical_participants': ['owner+canary@example.com', 'recruiter@example.com']}
+malformed_from {'recipients': ['owner+canary@example.com'], 'canonical_participants': []}
+malformed_cc {'recipients': [], 'canonical_participants': ['recruiter@example.com']}
+config_accepted ['owner+canary@example.com'] effective_policy ['owner+canary@example.com']
+config_accepted ['owner+canary@example.com', 'a@b.com;c@d.com'] effective_policy []

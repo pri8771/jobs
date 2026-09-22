@@ -1,0 +1,26 @@
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{"case": "From", "database": "jobs_astra_canary_66d0af9188", "remaining_databases": 0}
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{"case": "Cc", "database": "jobs_astra_canary_1b84f606b3", "remaining_databases": 0}
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{"case": "To", "database": "jobs_astra_canary_8bd2685732", "remaining_databases": 0}
+[
+  {
+    "case": "From",
+    "migration_exit": 0,
+    "fresh_process_exit": 0,
+    "result": "pass"
+  },
+  {
+    "case": "Cc",
+    "migration_exit": 0,
+    "fresh_process_exit": 0,
+    "result": "pass"
+  },
+  {
+    "case": "To",
+    "migration_exit": 0,
+    "fresh_process_exit": 0,
+    "result": "pass"
+  }
+]

@@ -1,0 +1,3 @@
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{'adapter_sender': 'a@b.com;c@d.com', 'adapter_recipients': ['owner+canary@example.com'], 'sender_address': '', 'canonical_participants': [], 'engine_fresh_is_canary': False}
+{'historical_match': False, 'reclassified_count': 0, 'durable_canary': False}

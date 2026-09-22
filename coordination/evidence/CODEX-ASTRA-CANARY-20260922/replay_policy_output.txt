@@ -1,0 +1,5 @@
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+{'original_status': 'SUCCESS', 'original_canary_messages': 0, 'original_tag': False}
+{'same_policy_fingerprint': True, 'current_policy_match': True, 'preflight_references_canary': False}
+{'replay_status': 'FAILED', 'replay_errors': ['REPLAY_EVIDENCE_CANARY_RECLASSIFIED', 'REPLAY_LOGICAL_STATE_MISMATCH'], 'new_poll_list_calls': 1, 'durable_tag_after': True}
