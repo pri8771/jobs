@@ -20,7 +20,10 @@ from sqlalchemy.orm import Session, sessionmaker
 from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
 from jobs_automation.db.models import InboundMessageModel, MessageLinkModel, TaskModel
 from jobs_automation.db.session import init_db
-from jobs_automation.ingestion.engine import EmailIngestionEngine
+from jobs_automation.ingestion.engine import (
+    EmailIngestionEngine,
+    reclassify_persisted_canary_messages,
+)
 from jobs_automation.ingestion.models import RawEmailMessage
 
 CANDIDATE = "candidate@invalid"
@@ -499,5 +502,51 @@ def test_canary_identity_matching_uses_exact_normalized_addresses(db_session: Se
         for message in db_session.scalars(select(InboundMessageModel)).all()
     }
     assert rows["exact-canary"].headers_json["_provider"]["canary"] is True
-    assert (rows["prefix-lookalike"].headers_json or {}).get("_provider", {}).get("canary") is not True
-    assert (rows["suffix-lookalike"].headers_json or {}).get("_provider", {}).get("canary") is not True
+    assert (rows["prefix-lookalike"].headers_json or {}).get("_provider", {}).get(
+        "canary"
+    ) is not True
+    assert (rows["suffix-lookalike"].headers_json or {}).get("_provider", {}).get(
+        "canary"
+    ) is not True
+
+
+@pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
+def test_independent_malformed_header_cannot_hide_canary(
+    db_session: Session, malformed_header: str
+) -> None:
+    """Real Gmail parsing must preserve an alias from another valid header."""
+    alias = "owner+canary@example.com"
+    payload = _message(
+        "malformed-neighbor",
+        sender="recruiter@example.com",
+        to=alias,
+        subject="Recruiter followup",
+        body="Can we discuss this role?",
+        internal=NOW,
+    )
+    headers = payload["payload"]["headers"]
+    if malformed_header == "To":
+        headers.append({"name": "Cc", "value": alias})
+    headers[:] = [header for header in headers if header["name"] != malformed_header]
+    headers.append({"name": malformed_header, "value": "a@b.com;c@d.com"})
+    adapter = GmailAdapter(service=FakeGmailService([payload]))
+    summary = EmailIngestionEngine(db_session, adapter, canary_identities=[alias]).run_sweep(
+        max_messages=10
+    )
+    assert summary.canary_messages == 1
+    message = db_session.scalar(select(InboundMessageModel))
+    assert message is not None
+    assert message.recipients_json == [alias]
+    assert message.headers_json["_provider"]["canary"] is True
+    assert db_session.scalars(select(MessageLinkModel)).all() == []
+
+    # A previously untagged row must also be classified from the retained facts.
+    facts = dict(message.headers_json["_provider"])
+    facts.pop("canary")
+    message.headers_json = {**message.headers_json, "_provider": facts}
+    db_session.commit()
+    assert reclassify_persisted_canary_messages(db_session, [alias]) == 1
+    db_session.commit()
+    db_session.expire_all()
+    assert message.headers_json["_provider"]["canary"] is True
+    assert reclassify_persisted_canary_messages(db_session, [alias]) == 0

@@ -36,10 +36,14 @@ def canonical_email_addresses(values: Iterable[object]) -> set[str]:
     Canary identities are email aliases.  Treating an alias as a substring can both
     miss a normal display-name header and permanently reclassify a lookalike address.
     Values without an email address deliberately do not participate in this policy.
+    Parse independent fields separately: one malformed header must not erase a
+    valid alias in another field.
     """
     return {
         address.strip().lower()
-        for _, address in getaddresses([str(value) for value in values if value])
+        for value in values
+        if value
+        for _, address in getaddresses([str(value)])
         if "@" in address and address.strip()
     }
 
@@ -168,9 +172,7 @@ class EmailIngestionEngine:
             return False
         provider_metadata = raw_msg.provider_metadata or {}
         sender_address = (
-            provider_metadata.get("sender_address")
-            if isinstance(provider_metadata, dict)
-            else None
+            provider_metadata.get("sender_address") if isinstance(provider_metadata, dict) else None
         )
         return _participants_match_canary_policy(
             self.canary_identities,
@@ -359,9 +361,7 @@ class EmailIngestionEngine:
                 summary.messages_ingested += 1
                 summary.batch_message_ids.append(msg_model.id)
                 if is_canary:
-                    summary.batch_canary_provider_message_ids.append(
-                        raw_msg.provider_message_id
-                    )
+                    summary.batch_canary_provider_message_ids.append(raw_msg.provider_message_id)
 
                 # Update latest processed time
                 if newest_processed_time is None or raw_msg.received_at > newest_processed_time:

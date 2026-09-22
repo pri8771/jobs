@@ -81,3 +81,14 @@ def test_realtime_email_push_is_prohibited() -> None:
 def test_policy_registry_must_deny_by_default() -> None:
     with pytest.raises(ValidationError, match="Default policy decision must be 'blocked'"):
         DefaultPolicyConfig(decision=PolicyDecision.AUTO_ALLOWED)
+
+
+@pytest.mark.parametrize("invalid", ["", "not-an-address", "a@b.com;c@d.com", "a@b.com, c@d.com"])
+def test_invalid_canary_identity_rejects_whole_policy(invalid: str) -> None:
+    with pytest.raises(ValidationError, match="exactly one email address"):
+        EmailPollingConfig(canary_identities=["owner+canary@example.com", invalid])
+
+
+def test_display_name_canary_identity_remains_valid() -> None:
+    identity = "Owner Canary <OWNER+CANARY@example.com>"
+    assert EmailPollingConfig(canary_identities=[identity]).canary_identities == [identity]

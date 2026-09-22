@@ -15,7 +15,8 @@ import os
 import re
 import subprocess
 import sys
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
+from email.utils import getaddresses
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,7 @@ import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
+import jobs_automation.ingestion.engine as ingestion_module
 from jobs_automation.adapters.gmail import GmailAdapter, MockEmailAdapter
 from jobs_automation.db.base import Base
 from jobs_automation.db.models import (
@@ -47,7 +49,13 @@ from jobs_automation.ingestion.bounded import (
 )
 from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
 from jobs_automation.lifecycle.timeline import build_timeline_export, timeline_digest
-from tests.test_gmail_adapter_bounded import CANDIDATE, FakeGmailService, _five_messages
+from tests.test_gmail_adapter_bounded import (
+    CANDIDATE,
+    NOW,
+    FakeGmailService,
+    _five_messages,
+    _message,
+)
 from tests.test_real_proof_verifier import engineering_profile_yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -924,3 +932,43 @@ def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) 
     assert export["genuine_evidence"]["source_count"] == 2
     assert export["replay"]["replay_identical"] is True
     assert "sarah.connor" not in export_path.read_text(encoding="utf-8")
+
+
+def test_replay_canonicalizes_policy_before_any_poll_of_legacy_canary(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    policy = ["Owner <OWNER+CANARY@example.com>"]
+    payload = _message(
+        "legacy-missed-canary",
+        sender="a@b.com;c@d.com",
+        to="owner+canary@example.com",
+        subject="Recruiter followup",
+        body="Can we discuss this role?",
+        internal=NOW,
+    )
+    service = FakeGmailService([payload])
+    adapter = GmailAdapter(service=service)
+    request = _request(mailbox=CANDIDATE)
+
+    # Produce a writer-shaped historical audit with the actual pre-repair parser.
+    # Its unchanged policy fingerprint must not authorize a new mailbox poll.
+    def legacy_addresses(values: Iterable[object]) -> set[str]:
+        return {
+            address.strip().lower()
+            for _, address in getaddresses([str(value) for value in values if value])
+            if "@" in address and address.strip()
+        }
+
+    with monkeypatch.context() as historical:
+        historical.setattr(ingestion_module, "canonical_email_addresses", legacy_addresses)
+        initial = BoundedIngestionRunner(
+            db_session, adapter, canary_identities=policy, synthetic=True
+        ).run(request)
+    assert initial.status == "SUCCESS"
+    assert initial.canary_messages == 0
+    calls_before = len(service.list_calls)
+    runner = BoundedIngestionRunner(db_session, adapter, canary_identities=policy, synthetic=True)
+    assert runner.canary_policy_sha256 == initial.canary_policy_sha256
+    with pytest.raises(BoundedIngestionError, match="REPLAY_EVIDENCE_CANARY_RECLASSIFIED"):
+        runner.replay(initial.run_id, request, allow_stateful_replay=True)
+    assert len(service.list_calls) == calls_before

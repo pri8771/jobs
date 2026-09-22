@@ -1,3 +1,5 @@
+> Historical review of d337424e. Superseded for acceptance by the 2026-09-22 Astra exact-tree review: malformed independent From/To/Cc fields can suppress a valid recipient-side canary alias, and malformed policy entries are accepted. The earlier observation 1 “unreachable” assessment was disproved with the real Gmail adapter. A narrow follow-up repair parses independent fields separately and rejects invalid configured identities. A second reproduced historical-audit case also disproved observation 3: raw display/case aliases allowed replay polling before rejection. The follow-up canonicalizes runner identities before preflight. Formal lead review is still required; see native coordination evidence for the exact successor source and verification.
+
 # V1.7 CLI-gate independent review — 2026-09-22
 
 Independent engineering review by the Fable/Claude worker of the canary-provenance repair produced in the Codex session on `codex/jobs-v17-cli-gate-20260922`. This is a review recommendation for the lead, not acceptance: ChatGPT remains the acceptance authority, and no canary, fixture or test evidence here substitutes for the genuine G14–G17 live gates.

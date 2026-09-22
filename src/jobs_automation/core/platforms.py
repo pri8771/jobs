@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from email.utils import getaddresses
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class EmailPollingConfig(BaseModel):
@@ -20,6 +22,15 @@ class EmailPollingConfig(BaseModel):
     # Owner-controlled aliases used to exercise the mailbox path. Their traffic is
     # durable-tagged and excluded before ordinary worker/CLI lifecycle processing.
     canary_identities: list[str] = Field(default_factory=list)
+
+    @field_validator("canary_identities")
+    @classmethod
+    def verify_canary_identities(cls, values: list[str]) -> list[str]:
+        for value in values:
+            parsed = getaddresses([value])
+            if len(parsed) != 1 or "@" not in parsed[0][1]:
+                raise ValueError("Each canary identity must contain exactly one email address")
+        return values
 
     @model_validator(mode="after")
     def verify_email_architecture(self) -> EmailPollingConfig:

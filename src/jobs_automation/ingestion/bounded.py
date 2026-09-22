@@ -694,7 +694,7 @@ class BoundedIngestionRunner:
         self.session = session
         self.adapter = adapter
         self.candidate_emails = list(candidate_emails or [])
-        self.canary_identities = list(canary_identities or [])
+        self.canary_identities = sorted(canonical_email_addresses(canary_identities or []))
         self.canary_policy_sha256 = _canary_policy_fingerprint(self.canary_identities)
         self.adapter_kind = adapter_kind
         self.synthetic = synthetic
