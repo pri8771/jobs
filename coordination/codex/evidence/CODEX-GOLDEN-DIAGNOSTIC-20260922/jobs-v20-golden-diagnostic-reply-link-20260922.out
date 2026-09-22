@@ -1,0 +1,67 @@
+{
+  "application_event_source_refs": [
+    "diag-inbound-1"
+  ],
+  "application_last_activity_at": "2026-09-18T02:30:49-04:00",
+  "crm_application_timeline_provider_ids": [
+    "diag-inbound-1"
+  ],
+  "crm_contact_timeline_provider_ids": [
+    "diag-inbound-1"
+  ],
+  "first_worker": {
+    "errors": [],
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 1,
+    "messages_ingested": 1,
+    "messages_polled": 1,
+    "reconciliation_performed": false,
+    "run_id": "51e5ac8d-8577-4796-be72-ab6853f27f5a",
+    "stale_alerts": 0,
+    "unanswered_alerts": 1,
+    "warnings": []
+  },
+  "inbound_linked_to_application": true,
+  "messages": [
+    {
+      "classification": "RECRUITER_OUTREACH",
+      "direction": "inbound",
+      "provider_id": "diag-inbound-1"
+    },
+    {
+      "classification": "CANDIDATE_REPLY",
+      "direction": "outbound",
+      "provider_id": "diag-reply-1"
+    }
+  ],
+  "reply_link_count": 0,
+  "scenario": "synthetic diagnostic; seeded prior job/application",
+  "second_worker": {
+    "errors": [],
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "messages_ingested": 1,
+    "messages_polled": 2,
+    "reconciliation_performed": false,
+    "run_id": "486e055c-2e81-46ae-8eea-5615b4134161",
+    "stale_alerts": 0,
+    "unanswered_alerts": 0,
+    "warnings": []
+  },
+  "source_sha": "e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273",
+  "truth_timeline_sources": [
+    {
+      "direction": "inbound",
+      "link_method": "company_match",
+      "provider_message_id": "diag-inbound-1"
+    },
+    {
+      "direction": "outbound",
+      "link_method": "thread_sibling",
+      "provider_message_id": "diag-reply-1"
+    }
+  ],
+  "unanswered_task_final_status": "completed",
+  "unanswered_task_initial_status": "pending",
+  "unanswered_task_resolved_by_reply": true
+}

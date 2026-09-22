@@ -1,0 +1,13 @@
+# V2 golden workflow — first cross-service diagnosis
+
+**REWORK_FOUND**, diagnostic only under lead releasec54bb7d. Exact accepted integration sourcee1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273/treee5409f04e15ca7d21dd2357c000c03e5c53ebd09; clean isolated branch codex/jobs-v20-fixture-diagnostic-20260922. No production or repository test changes.
+
+The native fixture contract exists but no single golden scenario currently spans its service chain. Before adding one, the first bounded probe used a synthetic prior job/application and two .invalid messages on unique disposable PostgreSQL. Actual EmailIngestionEngine → WorkerDaemon → Lifecycle/CRM/Alert services processed recruiter outreach and then candidate reply. This is a partial diagnostic, not a completed fixture or live proof.
+
+Observed: outreach linked and created a pending unanswered-recruiter task. Reply classified CANDIDATE_REPLY and correctly completed the task with matching resolved_by_reply_id; redacted truth timeline included it as a thread sibling. However reply MessageLink count remained0, no application event attributed the reply, application.last_activity_at remained inbound time, and recruiter CRM application/contact timelines omitted it. The two read surfaces disagree about an attributable reply.
+
+Cause: ingestion.engine's recruiting-link dispatch omits CANDIDATE_REPLY. LifecycleEngine returns early without an application MessageLink. Alerts separately resolve via thread siblings, and the redacted timeline includes them, masking the missing CRM/application attribution in component-level checks.
+
+Smallest proposed repair: route a candidate reply through existing linking only when prior thread/application evidence resolves it safely, preserving ambiguous/no-proof review behavior; let existing lifecycle/CRM code consume the resulting link. Do not invent an application match from candidate address, fabricate a reply event, or add another orchestration layer. Request explicit bounded lead repair release before implementation, then resume the larger fixture only after this first defect is resolved.
+
+[Reproducer](../codex/evidence/CODEX-GOLDEN-DIAGNOSTIC-20260922/jobs-v20-golden-diagnostic-reply-link-20260922.py), [actual output](../codex/evidence/CODEX-GOLDEN-DIAGNOSTIC-20260922/jobs-v20-golden-diagnostic-reply-link-20260922.out), [causal note](../codex/evidence/CODEX-GOLDEN-DIAGNOSTIC-20260922/jobs-v20-golden-diagnostic-reply-link-20260922.md), [manifest](../codex/evidence/CODEX-GOLDEN-DIAGNOSTIC-20260922/manifest.json). Harness exit0, cleanup count0. No full fixture acceptance, real/private candidate data, live mailbox/model/provider, employer/browser/submit, Fable handoff, scheduler, spend, main merge or deployment.
