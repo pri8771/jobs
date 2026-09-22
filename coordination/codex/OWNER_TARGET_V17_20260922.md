@@ -56,3 +56,10 @@ Recorded by Claude from the owner's direct messages in the current Claude sessio
 - FINAL-DELIVERABLE: evidence privacy check, known limitations, separate G17 verifier (R17-L09), stop the watcher at STOP.
 
 **Smallest first moves:** owner supplies the G14 inputs and host; lead records V1.7 and names the worker; lead answers the transport policy; lead rules on PR26 CI.
+
+
+## Current blocker correction — 2026-09-22 20:30 UTC
+
+The “owner must locate career/profile/resume material” part of the G14 input blocker is resolved. Codex recovered and inspected the existing private career bank, keyword bank, application profile and source audits. Do not ask the owner to recreate that history. Personal material stays local; DYNAMIC_RESUME_CLARIFICATION_20260922.md points to the local-only source map.
+
+Codex owns runtime-profile mapping, proposing a current proof job, preparing a truthful per-job resume and preserving exact packet provenance. The owner still confirms the consequential job choice/actions and answers only genuinely unresolved fields. Existing confirmed standard answers must be reused with their scope. Discovery is not yet a generated exact resume, a completed G14 proof, or a grant for browser/application/mailbox actions. This correction does not alter the other live gate requirements or the current bounded engineering release.
