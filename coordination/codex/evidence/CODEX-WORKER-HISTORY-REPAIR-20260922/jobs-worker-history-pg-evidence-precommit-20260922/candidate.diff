@@ -1,0 +1,37 @@
+diff --git a/src/jobs_automation/dashboard/server.py b/src/jobs_automation/dashboard/server.py
+index de31319..9ee3a73 100644
+--- a/src/jobs_automation/dashboard/server.py
++++ b/src/jobs_automation/dashboard/server.py
+@@ -756,10 +756,15 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
+                 return
+ 
+             if path == "/api/worker":
+-                sweeps = session.scalars(
++                record_types = {
++                    "worker_run": "run_begin",
++                    "worker_run_finished": "run_finished",
++                    "worker_sweep": "legacy_sweep",
++                }
++                records = session.scalars(
+                     select(AuditLogModel)
+-                    .where(AuditLogModel.action_type == "worker_sweep")
+-                    .order_by(AuditLogModel.occurred_at.desc())
++                    .where(AuditLogModel.action_type.in_(tuple(record_types)))
++                    .order_by(AuditLogModel.occurred_at.desc(), AuditLogModel.id.desc())
+                     .limit(20)
+                 ).all()
+                 worker_data: list[dict[str, Any]] = [
+@@ -768,8 +773,12 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
+                         "result": s.result,
+                         "occurred_at": s.occurred_at.isoformat(),
+                         "metrics": s.metadata_json,
++                        "record_type": record_types[s.action_type],
++                        "run_id": s.external_reference
++                        if s.external_reference is not None
++                        else (s.metadata_json or {}).get("run_id"),
+                     }
+-                    for s in sweeps
++                    for s in records
+                 ]
+                 self._send_json(worker_data)
+                 return

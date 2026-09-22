@@ -1,0 +1,132 @@
+[
+  {
+    "path": "checks.json",
+    "bytes": 2227,
+    "sha256": "a73562f3efc77d2209271cc5d4bc69a318e82eeedf41b74ed5b005323b8e9326"
+  },
+  {
+    "path": "commands.txt",
+    "bytes": 1427,
+    "sha256": "a06b018b8287360fd426b3cf70553e292cb871152441f9aa21e70e4c4d778880"
+  },
+  {
+    "path": "jobs-worker-history-existing-focused.log",
+    "bytes": 99,
+    "sha256": "85f1aa72ff4bf228f7c649c312b97d64d05a0050dd4182053b953458e1664865"
+  },
+  {
+    "path": "jobs-worker-history-full-exact.log",
+    "bytes": 602,
+    "sha256": "08253be644faaf1e5e2ea796c77d42e64b0a6d6fb473b8673b1ae3f972e9cad0"
+  },
+  {
+    "path": "jobs-worker-history-full.log",
+    "bytes": 4782,
+    "sha256": "e7eaa15bfea87d41f2a142548f5e02ece70d65658d121687ac54acd1ae2e384a"
+  },
+  {
+    "path": "jobs-worker-history-import-diagnosis.log",
+    "bytes": 268,
+    "sha256": "48a320d61de0109ba89189a400c5db4ace1bc8e82689a2de1e4a6a3504120318"
+  },
+  {
+    "path": "jobs-worker-history-mypy.log",
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  {
+    "path": "jobs-worker-history-pg-case.py",
+    "bytes": 7194,
+    "sha256": "ec84d49ba3e0e5f13ed48113e66d9aebc9e3781e83409c1dbebf13effd987285"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-final-20260922/candidate.diff",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-final-20260922/migration.log",
+    "bytes": 541,
+    "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-final-20260922/report.json",
+    "bytes": 19924,
+    "sha256": "c0e73aec3e5653a9113d87f94a10b900e794bda1a2431826f55e6e7c5492a058"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-final-20260922/run-summary.json",
+    "bytes": 533,
+    "sha256": "412c7274b08f73e6b58d83a3ee6c8351e4ff2979ba4833377e4b94b57adad478"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-final-20260922/workflow.log",
+    "bytes": 20226,
+    "sha256": "5cef8bed44393ea241ca8f21d91ffb6d5df35ee960c236ceb6faff01e6f7600d"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/candidate.diff",
+    "bytes": 1806,
+    "sha256": "40c2eb533b83960c1aafd8bd42e369a10b639fe54f3852f440a7a3b37675fba2"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/migration.log",
+    "bytes": 541,
+    "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/report.json",
+    "bytes": 19924,
+    "sha256": "37a70e009deb5471b370d3a91e1ab383903f8eb88877a4ac395f7146c1af6dd6"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/run-summary.json",
+    "bytes": 488,
+    "sha256": "a275025b089c117a61533724ebcbba2b8fc11262096ad8c64d916132c193a291"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/workflow.log",
+    "bytes": 20226,
+    "sha256": "5de6605be4baca86ea10ca6208a213061886e2dc1854e585498fdd86f0e1c39c"
+  },
+  {
+    "path": "jobs-worker-history-pg-run.py",
+    "bytes": 3540,
+    "sha256": "9ef6b464a5171732189ffdb2db8f3a1008fd3118e449eb9fce1f1484a35875aa"
+  },
+  {
+    "path": "jobs-worker-history-restart-recheck.log",
+    "bytes": 98,
+    "sha256": "89dd7a09c1d9e2b0d6ec7e49004a57b9aa6615e6df9704be2343c2912178a15f"
+  },
+  {
+    "path": "jobs-worker-history-ruff.log",
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  {
+    "path": "jobs-worker-history-tests-green.log",
+    "bytes": 98,
+    "sha256": "f6e6b8418565fbd6476bef4cd4eea6509c221f48d795a78ffe3933df059705b7"
+  },
+  {
+    "path": "jobs-worker-history-tests-red.log",
+    "bytes": 6167,
+    "sha256": "20e97df228cc119661c3f23a8aa039dc87ee4d0dde2475ef51dba2b11b5ec168"
+  },
+  {
+    "path": "jobs-worker-history-tests-ruff.log",
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  {
+    "path": "review.md",
+    "bytes": 3060,
+    "sha256": "d25c86a8e06eac7cd0dfedac25f0fcf60193a87c6c741808b2d89c864d7f0cbc"
+  },
+  {
+    "path": "source-checksums.txt",
+    "bytes": 211,
+    "sha256": "c6f44eda97b8053a76c31b9c1ee27125db6d19775cd3c9fc7b3488d68dc974e7"
+  }
+]

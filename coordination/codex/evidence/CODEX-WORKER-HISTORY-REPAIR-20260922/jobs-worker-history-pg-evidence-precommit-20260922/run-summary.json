@@ -1,0 +1,15 @@
+{
+  "cleanup_remaining_database_count": 0,
+  "commands": [
+    {
+      "command": "alembic upgrade head",
+      "exit": 0
+    },
+    {
+      "command": "python /tmp/jobs-worker-history-pg-case.py",
+      "exit": 0
+    }
+  ],
+  "database": "jobs_worker_history_6df451906d93",
+  "source_id": "HEAD=832d85f5177ca82564c9d0b6c168790f26ea1dc3;index_tree=047eb8501e562cbbca450e946e260a1b8454f74b;uncommitted_server_diff_sha256=40c2eb533b83960c1aafd8bd42e369a10b639fe54f3852f440a7a3b37675fba2"
+}

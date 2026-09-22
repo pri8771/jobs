@@ -1,0 +1,124 @@
+FFF.                                                                     [100%]
+=================================== FAILURES ===================================
+_____________ test_actual_worker_success_returns_begin_and_finish ______________
+
+history_factory = sessionmaker(class_='Session', bind=Engine(sqlite:///:memory:), autoflush=True, expire_on_commit=True)
+
+    def test_actual_worker_success_returns_begin_and_finish(history_factory: sessionmaker[Session]) -> None:
+        result = WorkerDaemon(
+            history_factory,
+            email_adapter=MockEmailAdapter([]),
+            candidate_emails=["synthetic@example.invalid"],
+        ).run_sweep(reconcile=False)
+    
+        assert result["errors"] == []
+        status, rows = get_worker_history(history_factory)
+    
+        assert status == 200
+>       assert [row["record_type"] for row in rows] == ["run_finished", "run_begin"]
+E       AssertionError: assert [] == ['run_finished', 'run_begin']
+E         
+E         Right contains 2 more items, first extra item: 'run_finished'
+E         Use -v to get more diff
+
+/tmp/test_dashboard_worker_history_base.py:99: AssertionError
+__________ test_current_states_and_run_id_fallback_preserve_metadata ___________
+
+history_factory = sessionmaker(class_='Session', bind=Engine(sqlite:///:memory:), autoflush=True, expire_on_commit=True)
+
+    def test_current_states_and_run_id_fallback_preserve_metadata(
+        history_factory: sessionmaker[Session],
+    ) -> None:
+        now = datetime.datetime.now(datetime.UTC)
+        partial_metrics = {"run_id": "partial-from-metadata", "error_count": 1, "marker": "keep"}
+        failed_metrics = {"run_id": "ignored-metadata-id", "error_count": 2}
+        running_metrics = {"started_at": now.isoformat()}
+        with history_factory() as session:
+            session.add_all(
+                [
+                    audit(
+                        audit_id="00000000-0000-0000-0000-000000000001",
+                        action_type="worker_run_finished",
+                        result="PARTIAL",
+                        occurred_at=now - datetime.timedelta(seconds=2),
+                        metadata=partial_metrics,
+                    ),
+                    audit(
+                        audit_id="00000000-0000-0000-0000-000000000002",
+                        action_type="worker_run_finished",
+                        result="FAILED",
+                        occurred_at=now - datetime.timedelta(seconds=1),
+                        external_reference="failed-external-id",
+                        metadata=failed_metrics,
+                    ),
+                    audit(
+                        audit_id="00000000-0000-0000-0000-000000000003",
+                        action_type="worker_run",
+                        result="RUNNING",
+                        occurred_at=now,
+                        metadata=running_metrics,
+                    ),
+                ]
+            )
+            session.commit()
+    
+        _, rows = get_worker_history(history_factory)
+    
+>       assert [(row["record_type"], row["result"]) for row in rows] == [
+            ("run_begin", "RUNNING"),
+            ("run_finished", "FAILED"),
+            ("run_finished", "PARTIAL"),
+        ]
+E       AssertionError: assert [] == [('run_begin'...', 'PARTIAL')]
+E         
+E         Right contains 3 more items, first extra item: ('run_begin', 'RUNNING')
+E         Use -v to get more diff
+
+/tmp/test_dashboard_worker_history_base.py:144: AssertionError
+______________ test_legacy_fallback_combined_bound_and_tie_order _______________
+
+history_factory = sessionmaker(class_='Session', bind=Engine(sqlite:///:memory:), autoflush=True, expire_on_commit=True)
+
+    def test_legacy_fallback_combined_bound_and_tie_order(
+        history_factory: sessionmaker[Session],
+    ) -> None:
+        base = datetime.datetime(2026, 9, 22, 12, 0, tzinfo=datetime.UTC)
+        with history_factory() as session:
+            for index in range(22):
+                action_type = ("worker_run", "worker_run_finished", "worker_sweep")[index % 3]
+                session.add(
+                    audit(
+                        audit_id=f"00000000-0000-0000-0000-{index + 1:012d}",
+                        action_type=action_type,
+                        result=("RUNNING" if action_type == "worker_run" else "SUCCESS"),
+                        occurred_at=base + datetime.timedelta(minutes=index),
+                        external_reference=(f"run-{index}" if index % 2 == 0 else None),
+                        metadata={"run_id": f"metadata-{index}", "ordinal": index},
+                    )
+                )
+            # Same newest timestamp: higher UUID must sort first.
+            for suffix in (23, 24):
+                session.add(
+                    audit(
+                        audit_id=f"00000000-0000-0000-0000-{suffix:012d}",
+                        action_type="worker_sweep",
+                        result="SUCCESS",
+                        occurred_at=base + datetime.timedelta(hours=1),
+                        metadata={"ordinal": suffix},
+                    )
+                )
+            session.commit()
+    
+        status, rows = get_worker_history(history_factory)
+    
+        assert status == 200
+>       assert len(rows) == 20
+E       AssertionError: assert 9 == 20
+E        +  where 9 = len([{'id': '00000000-0000-0000-0000-000000000023', 'result': 'SUCCESS', 'occurred_at': '2026-09-22T13:00:00+00:00', 'metr...ult': 'SUCCESS', 'occurred_at': '2026-09-22T12:11:00+00:00', 'metrics': {'run_id': 'metadata-11', 'ordinal': 11}}, ...])
+
+/tmp/test_dashboard_worker_history_base.py:190: AssertionError
+=========================== short test summary info ============================
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source::test_actual_worker_success_returns_begin_and_finish
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source::test_current_states_and_run_id_fallback_preserve_metadata
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source::test_legacy_fallback_combined_bound_and_tie_order
+3 failed, 1 passed in 0.40s
