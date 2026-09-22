@@ -6,8 +6,8 @@
   },
   {
     "path": "commands.txt",
-    "bytes": 1427,
-    "sha256": "a06b018b8287360fd426b3cf70553e292cb871152441f9aa21e70e4c4d778880"
+    "bytes": 1951,
+    "sha256": "442673985a8cf019c5aa6b8028128e4022f6bd492c1fcb8ac7ab5b0b196bb88d"
   },
   {
     "path": "jobs-worker-history-existing-focused.log",
@@ -68,6 +68,11 @@
     "path": "jobs-worker-history-pg-evidence-precommit-20260922/candidate.diff",
     "bytes": 1806,
     "sha256": "40c2eb533b83960c1aafd8bd42e369a10b639fe54f3852f440a7a3b37675fba2"
+  },
+  {
+    "path": "jobs-worker-history-pg-evidence-precommit-20260922/manifest.json",
+    "bytes": 1243,
+    "sha256": "903761eaa34b45d15e92c2d4e89585f9c670d7b0986cec34f7b21083df03a4f0"
   },
   {
     "path": "jobs-worker-history-pg-evidence-precommit-20260922/migration.log",
