@@ -1,0 +1,40 @@
+{
+  "repository": "pri8771/jobs",
+  "source_sha": "9e29a59b729deb8f925121c70b90498794b55519",
+  "tree": "649ad76ce3b94bc7b235828006144f406eacf348",
+  "parent": "7345f1e0fc7153ba40c3628910ebd58266635421",
+  "release": "f06ec2a",
+  "checks": [
+    {
+      "command": "PROOF_TEST_PG_ADMIN_URL='postgresql+psycopg:///postgres?host=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd&port=56422' PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q",
+      "exit": 0,
+      "result": "447 passed, 1 existing host skip",
+      "log": "full.txt"
+    },
+    {
+      "command": "PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q tests/test_worker.py",
+      "exit": 0,
+      "result": "13 passed",
+      "log": "focused.txt"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/ruff check src tests/test_worker.py",
+      "exit": 0,
+      "log": "ruff.txt"
+    },
+    {
+      "command": "../jobs-source/.venv/bin/mypy src",
+      "exit": 0,
+      "result": "74 files",
+      "log": "mypy.txt"
+    },
+    {
+      "command": "bash /tmp/jobs-j20-health-fixed-check-20260922.sh",
+      "exit": 0,
+      "result": "real disposable PG fallback + separate process readback + both-write-failure + cleanup count0",
+      "log": "fixed-observed.txt"
+    }
+  ],
+  "evidence_type": "synthetic engineering, no Gmail/production data",
+  "new_separate_finding": "health inspection exception output leaks raw error text; repair not yet released"
+}
