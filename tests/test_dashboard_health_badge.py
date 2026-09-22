@@ -6,6 +6,7 @@ import json
 import re
 import shutil
 import subprocess
+from typing import TypedDict, cast
 
 import pytest
 
@@ -126,7 +127,14 @@ def _initial_badge() -> dict[str, object]:
     }
 
 
-def _run(scenario: dict[str, object]) -> dict[str, object]:
+class BadgeResult(TypedDict):
+    calls: list[str]
+    text: str
+    className: str
+    attributes: dict[str, str | None]
+
+
+def _run(scenario: dict[str, object]) -> BadgeResult:
     if shutil.which(NODE) is None:
         pytest.fail(f"required existing Node runtime is missing: {NODE}")
     proc = subprocess.run(
@@ -138,7 +146,7 @@ def _run(scenario: dict[str, object]) -> dict[str, object]:
         timeout=10,
     )
     assert proc.returncode == 0, proc.stderr
-    return json.loads(proc.stdout)
+    return cast(BadgeResult, json.loads(proc.stdout))
 
 
 def test_health_badge_initial_state_is_accessible_neutral_and_not_live() -> None:

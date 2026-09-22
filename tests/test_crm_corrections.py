@@ -6,6 +6,7 @@ All tests use synthetic records and local SQLite only.
 from __future__ import annotations
 
 import datetime
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -188,7 +189,7 @@ def test_relink_to_missing_application_is_atomic_and_leaves_links_untouched() ->
 
 
 def test_merged_contact_apps_and_timeline_survive_reopen_without_sender_rewrite(
-    tmp_path,
+    tmp_path: Path,
 ) -> None:
     database_path = tmp_path / "crm-merge.sqlite3"
     session = make_session(f"sqlite:///{database_path}")
@@ -215,6 +216,7 @@ def test_merged_contact_apps_and_timeline_survive_reopen_without_sender_rewrite(
     session.flush()
     primary_id, secondary_id = primary.id, secondary.id
     app_a_id, app_b_id = app_a.id, app_b.id
+    assert primary.email is not None and secondary.email is not None
     msg_a = seed_message(session, "primary-provider-id", primary.email, "primary-thread")
     msg_b = seed_message(session, "secondary-provider-id", secondary.email, "secondary-thread")
     msg_b.received_at = datetime.datetime(2026, 1, 2, tzinfo=datetime.UTC)

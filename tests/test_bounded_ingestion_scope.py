@@ -26,6 +26,7 @@ from jobs_automation.ingestion.bounded import (
     BoundedIngestionRunner,
 )
 from jobs_automation.ingestion.fixtures import get_sample_email_fixtures
+from jobs_automation.ingestion.models import RawEmailMessage
 
 MAILBOX = "priyansh.chordia@gmail.com"  # identity used by the existing synthetic fixtures
 WINDOW_START = datetime.datetime(2020, 1, 1, tzinfo=datetime.UTC)
@@ -60,8 +61,7 @@ def seed_application(
         application_mode="assisted",
         destination_domain="example.test",
         applied_at=datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC),
-        last_activity_at=last_activity_at
-        or datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC),
+        last_activity_at=last_activity_at or datetime.datetime(2026, 9, 1, tzinfo=datetime.UTC),
     )
     session.add(app)
     session.commit()
@@ -80,7 +80,7 @@ def request(*, query: str = "label:recruiting") -> BoundedIngestionRequest:
 
 def runner(
     session: Session,
-    messages: list | None = None,
+    messages: list[RawEmailMessage] | None = None,
 ) -> BoundedIngestionRunner:
     return BoundedIngestionRunner(
         session,
