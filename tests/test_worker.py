@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import os
 from collections.abc import Generator
+from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -43,7 +44,7 @@ def test_worker_default_cadence(db_session_factory: sessionmaker[Session]) -> No
 
 
 def test_worker_configured_canary_is_tagged_before_shared_lifecycle_pass(
-    db_session_factory: sessionmaker[Session], tmp_path
+    db_session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     """A scheduled worker must apply its durable canary policy before lifecycle work."""
     now = datetime.datetime.now(datetime.UTC)
@@ -80,7 +81,9 @@ def test_worker_configured_canary_is_tagged_before_shared_lifecycle_pass(
         company = CompanyModel(normalized_name="stripe")
         session.add(company)
         session.flush()
-        job = JobModel(company_id=company.id, normalized_title="Staff Solutions Architect", status="active")
+        job = JobModel(
+            company_id=company.id, normalized_title="Staff Solutions Architect", status="active"
+        )
         session.add(job)
         session.flush()
         application = ApplicationModel(
@@ -121,23 +124,26 @@ def test_worker_configured_canary_is_tagged_before_shared_lifecycle_pass(
                 InboundMessageModel.provider_message_id == "worker-fresh-canary"
             )
         )
-        application = session.get(ApplicationModel, application_id)
+        reloaded_application = session.get(ApplicationModel, application_id)
         assert message is not None
         assert (message.headers_json or {}).get("_provider", {}).get("canary") is True
-        assert application is not None
-        assert application.status == "SUBMITTED"
-        assert application.last_activity_at == activity_before
+        assert reloaded_application is not None
+        assert reloaded_application.status == "SUBMITTED"
+        assert reloaded_application.last_activity_at == activity_before
         assert session.scalars(select(MessageLinkModel)).all() == []
         assert session.scalars(select(ApplicationEventModel)).all() == []
         assert session.scalars(select(ContactModel)).all() == []
         assert session.scalars(select(InterviewModel)).all() == []
-        assert session.scalars(
-            select(TaskModel).where(TaskModel.task_type != "email_checkpoint")
-        ).all() == []
+        assert (
+            session.scalars(
+                select(TaskModel).where(TaskModel.task_type != "email_checkpoint")
+            ).all()
+            == []
+        )
 
 
 def test_worker_reclassifies_historical_alias_before_lifecycle_without_a_poll(
-    db_session_factory: sessionmaker[Session], tmp_path
+    db_session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     """A policy added after ingestion must protect old linked rows on a worker sweep."""
     now = datetime.datetime.now(datetime.UTC)
@@ -222,21 +228,21 @@ def test_worker_reclassifies_historical_alias_before_lifecycle_without_a_poll(
     assert result["canary_messages_reclassified"] == 1
     assert result["lifecycle_transitions"] == 0
     with db_session_factory() as session:
-        historical = session.scalar(
+        reloaded_message = session.scalar(
             select(InboundMessageModel).where(
                 InboundMessageModel.provider_message_id == "worker-historical-canary"
             )
         )
-        application = session.get(ApplicationModel, application_id)
-        assert historical is not None
-        assert (historical.headers_json or {}).get("_provider", {}).get("canary") is True
-        assert application is not None
-        assert application.status == "SUBMITTED"
+        reloaded_application = session.get(ApplicationModel, application_id)
+        assert reloaded_message is not None
+        assert (reloaded_message.headers_json or {}).get("_provider", {}).get("canary") is True
+        assert reloaded_application is not None
+        assert reloaded_application.status == "SUBMITTED"
         assert session.scalars(select(ApplicationEventModel)).all() == []
 
 
 def test_worker_does_not_ingest_when_present_canary_policy_config_is_invalid(
-    db_session_factory: sessionmaker[Session], tmp_path
+    db_session_factory: sessionmaker[Session], tmp_path: Path
 ) -> None:
     """A broken policy file must not silently disable tagging on a scheduled sweep."""
     config_dir = tmp_path / "config"
@@ -250,9 +256,14 @@ def test_worker_does_not_ingest_when_present_canary_policy_config_is_invalid(
             super().__init__([])
             self.poll_calls = 0
 
-        def poll_messages(self, *args, **kwargs):
+        def poll_messages(
+            self,
+            query: str | None = None,
+            since_timestamp: str | None = None,
+            max_results: int = 100,
+        ) -> list[RawEmailMessage]:
             self.poll_calls += 1
-            return super().poll_messages(*args, **kwargs)
+            return super().poll_messages(query, since_timestamp, max_results)
 
     adapter = CountingAdapter()
     daemon = WorkerDaemon(
@@ -494,6 +505,7 @@ def test_worker_begin_persistence_failure_fails_closed(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Worker fails closed and does not execute pipeline if begin record cannot be persisted."""
+
     class FailingSessionFactory:
         def __init__(self, real_factory: sessionmaker[Session]) -> None:
             self.real_factory = real_factory
@@ -556,6 +568,7 @@ def test_worker_pipeline_rollback_preserves_run_evidence(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Pipeline exception and rollback cannot erase operational begin and finish audit evidence."""
+
     class CrashingEmailAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -602,6 +615,7 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
     db_session_factory: sessionmaker[Session],
 ) -> None:
     """B-R20-05: Raw secrets, OAuth tokens, and passwords are sanitized in finalize records."""
+
     class SecretLeakingAdapter(EmailAdapter):
         def poll_messages(
             self,
@@ -642,4 +656,3 @@ def test_worker_error_sanitization_removes_secrets_and_categorizes(
         assert "Bearer my-secret-jwt-token" not in sample_errors_str
         assert "[REDACTED_SECRET]" in sample_errors_str
         assert "GMAIL_AUTH_ERROR" in meta.get("error_categories", [])
-

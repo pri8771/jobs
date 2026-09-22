@@ -4,6 +4,7 @@ import datetime
 import shutil
 from pathlib import Path
 
+import pytest
 from click.testing import CliRunner
 from sqlalchemy import select
 
@@ -62,7 +63,7 @@ def test_cli_generate_profile_worksheet(tmp_path: Path) -> None:
 
 
 def test_poll_emails_cli_propagates_canary_identity_to_generic_ingestion(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The direct polling CLI must tag a fresh alias before later lifecycle passes."""
     database_url = f"sqlite:///{tmp_path / 'poll-emails.sqlite'}"
@@ -94,7 +95,7 @@ def test_poll_emails_cli_propagates_canary_identity_to_generic_ingestion(
 
 
 def test_update_lifecycle_reclassifies_historical_alias_before_processing(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A direct lifecycle CLI pass must not transition a previously untagged alias."""
     database_url = f"sqlite:///{tmp_path / 'update-lifecycle.sqlite'}"
@@ -158,21 +159,21 @@ def test_update_lifecycle_reclassifies_historical_alias_before_processing(
 
     assert result.exit_code == 0, result.output
     with get_sessionmaker(get_engine(database_url))() as session:
-        historical = session.scalar(
+        reloaded_message = session.scalar(
             select(InboundMessageModel).where(
                 InboundMessageModel.provider_message_id == "historical-cli-canary"
             )
         )
-        application = session.get(ApplicationModel, application_id)
-        assert historical is not None
-        assert (historical.headers_json or {}).get("_provider", {}).get("canary") is True
-        assert application is not None
-        assert application.status == "SUBMITTED"
+        reloaded_application = session.get(ApplicationModel, application_id)
+        assert reloaded_message is not None
+        assert (reloaded_message.headers_json or {}).get("_provider", {}).get("canary") is True
+        assert reloaded_application is not None
+        assert reloaded_application.status == "SUBMITTED"
         assert session.scalars(select(ApplicationEventModel)).all() == []
 
 
 def test_evaluate_jobs_reclassifies_configured_historical_alias_before_selection(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Direct job evaluation must not select a job linked to a newly configured alias."""
     config_dir = tmp_path / "config"
@@ -225,20 +226,20 @@ def test_evaluate_jobs_reclassifies_configured_historical_alias_before_selection
 
     assert result.exit_code == 0, result.output
     with get_sessionmaker(get_engine(database_url))() as session:
-        historical = session.scalar(
+        reloaded_message = session.scalar(
             select(InboundMessageModel).where(
                 InboundMessageModel.provider_message_id == "historical-evaluation-canary"
             )
         )
-        job = session.get(JobModel, job_id)
-        assert historical is not None
-        assert (historical.headers_json or {}).get("_provider", {}).get("canary") is True
-        assert job is not None
-        assert job.status == "discovered"
+        reloaded_job = session.get(JobModel, job_id)
+        assert reloaded_message is not None
+        assert (reloaded_message.headers_json or {}).get("_provider", {}).get("canary") is True
+        assert reloaded_job is not None
+        assert reloaded_job.status == "discovered"
 
 
 def test_read_only_cli_views_exclude_durable_canary_provenance(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Status views show only ordinary evidence after a durable canary reclassification."""
     database_url = f"sqlite:///{tmp_path / 'canary-visibility.sqlite'}"
@@ -381,7 +382,7 @@ def test_read_only_cli_views_exclude_durable_canary_provenance(
 
 
 def test_mailbox_status_fails_closed_when_canary_policy_is_unavailable(
-    tmp_path: Path, monkeypatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """A status command never falls back to unfiltered evidence after policy failure."""
     database_url = f"sqlite:///{tmp_path / 'missing-policy.sqlite'}"
@@ -415,10 +416,12 @@ def _bounded_ingest_args(*extra: str) -> list[str]:
     ]
 
 
-def test_invalid_bounded_input_fails_before_configuration_or_gmail_access(monkeypatch) -> None:
+def test_invalid_bounded_input_fails_before_configuration_or_gmail_access(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     reached_config: list[bool] = []
 
-    def unexpected_config(*args, **kwargs):
+    def unexpected_config(*args: object, **kwargs: object) -> None:
         reached_config.append(True)
         raise AssertionError("configuration must not load after invalid bounded input")
 
@@ -432,10 +435,12 @@ def test_invalid_bounded_input_fails_before_configuration_or_gmail_access(monkey
     assert reached_config == []
 
 
-def test_replay_requires_explicit_safe_or_stateful_mode_before_configuration(monkeypatch) -> None:
+def test_replay_requires_explicit_safe_or_stateful_mode_before_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     reached_config: list[bool] = []
 
-    def unexpected_config(*args, **kwargs):
+    def unexpected_config(*args: object, **kwargs: object) -> None:
         reached_config.append(True)
         raise AssertionError("configuration must not load before replay intent is explicit")
 
@@ -447,10 +452,12 @@ def test_replay_requires_explicit_safe_or_stateful_mode_before_configuration(mon
     assert reached_config == []
 
 
-def test_replay_rejects_conflicting_modes_before_configuration(monkeypatch) -> None:
+def test_replay_rejects_conflicting_modes_before_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     reached_config: list[bool] = []
 
-    def unexpected_config(*args, **kwargs):
+    def unexpected_config(*args: object, **kwargs: object) -> None:
         reached_config.append(True)
         raise AssertionError("configuration must not load for conflicting replay modes")
 
