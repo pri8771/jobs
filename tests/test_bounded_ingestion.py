@@ -477,6 +477,12 @@ def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: S
     # Treat the fixture recruiter as a canary alias: its mail must not move the application.
     result = _runner(db_session, canary_identities=["sarah.connor@viatris.com"]).run(_request())
     assert result.canary_messages == 2  # inbound recruiter + candidate reply in that thread
+    assert result.application_id_sha256 == []
+    canary_provider_hashes = {
+        hashlib.sha256(message_id.encode()).hexdigest()
+        for message_id in ("gmail_recruiter_001", "gmail_candidate_001")
+    }
+    assert canary_provider_hashes.isdisjoint(result.provider_message_id_sha256)
     db_session.refresh(app)
     assert app.status == "SUBMITTED"
     assert result.lifecycle_transitions == 0
@@ -484,6 +490,8 @@ def test_canary_mail_is_tagged_counted_and_excluded_from_lifecycle(db_session: S
         db_session, app.id, identity={"git_sha": "x", "package_version": "0"}
     )
     assert export["genuine_evidence"]["canary_excluded_count"] >= 1
+    assert export["genuine_evidence"]["source_count"] == 0
+    assert export["replay"] is None
     assert all(
         not s["canary"] for s in export["sources"] if s["provider_message_id"] == "gmail_conf_001"
     )

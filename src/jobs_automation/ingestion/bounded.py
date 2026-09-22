@@ -451,9 +451,11 @@ class BoundedIngestionRunner:
         )
 
         batch_messages = self._batch_messages(summary)
-        batch_ids = [message.id for message in batch_messages]
-        batch_application_ids = self._batch_application_ids(batch_ids)
         genuine_messages = [message for message in batch_messages if not self._is_canary(message)]
+        genuine_ids = [message.id for message in genuine_messages]
+        # A canary is operational test traffic, never genuine recruiting evidence.  Do not
+        # let a canary-linked row attach a bounded run or replay proof to an application.
+        admitted_application_ids = self._batch_application_ids(genuine_ids)
 
         lifecycle_transitions = 0
         interviews_scheduled = 0
@@ -472,8 +474,6 @@ class BoundedIngestionRunner:
                         if transition.interview_scheduled:
                             interviews_scheduled += 1
 
-                genuine_ids = [message.id for message in genuine_messages]
-                admitted_application_ids = self._batch_application_ids(genuine_ids)
                 admitted_thread_ids = {
                     message.provider_thread_id or message.provider_message_id
                     for message in genuine_messages
@@ -558,10 +558,10 @@ class BoundedIngestionRunner:
             errors=errors,
             code_identity=dict(self.identity),
             application_id_sha256=sorted(
-                _sha256_text(str(application_id)) for application_id in batch_application_ids
+                _sha256_text(str(application_id)) for application_id in admitted_application_ids
             ),
             provider_message_id_sha256=sorted(
-                _sha256_text(message.provider_message_id) for message in batch_messages
+                _sha256_text(message.provider_message_id) for message in genuine_messages
             ),
         )
         self._record(result)
