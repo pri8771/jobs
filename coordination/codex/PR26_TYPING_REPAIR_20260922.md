@@ -31,3 +31,7 @@ All 26 test functions / 125 assertions remain: CLI 11 tests/52 assertions; worke
 - Worker SHA256 `5d7712b2173667bd9fb78a4b9e3ef428e74cd7fd50acdb06fadb27ac594a5e24`.
 
 Candidate pushed to PR26. Hosted rerun is pending readback at this checkpoint; do not claim green until actual steps execute. COMP-2 remains queued pending formal typing disposition. G14-G17 remain UNPASSED; no main merge or live actions.
+
+## Settled disposition
+
+Hosted run `35771627731`, job `106894485077`, exact source `eec0ae3d9b50979b74294dd9ee0561172eff54b0`: SUCCESS, with Ruff, full mypy, migrations and pytest actually executed. Lead `5b06336d0c54ed9f3ff3a4eccac779cefa05a65e` formally ACCEPTS the exact typing candidate and activates COMP-2. This closes the test-typing/CI blocker only.
