@@ -1,0 +1,1217 @@
+.........FFFFFFFFFFFFFFFFFFFF.F.FFF....                                  [100%]
+=================================== FAILURES ===================================
+_ test_tokenless_invalid_authority_denied_before_database[headers0-127.0.0.1] __
+
+headers = {}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10adc41a0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers1-127.0.0.1] __
+
+headers = {'Host': ''}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad2a0d0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers2-127.0.0.1] __
+
+headers = {'Host': 'localhost/path'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad2a350>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers3-127.0.0.1] __
+
+headers = {'Host': 'user@localhost'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad46060>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers4-127.0.0.1] __
+
+headers = {'Host': 'localhost:bad'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad46520>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers5-127.0.0.1] __
+
+headers = {'Host': 'localhost:0'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10add69f0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers6-127.0.0.1] __
+
+headers = {'Host': 'localhost:65536'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad9bce0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+____ test_tokenless_invalid_authority_denied_before_database[headers7-::1] _____
+
+headers = {'Host': '::1'}, peer = '::1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10af2c8d0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers8-127.0.0.1] __
+
+headers = {'Host': 'example.test'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10acb7150>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers9-127.0.0.1] __
+
+headers = {'Host': 'localhoſt'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae28650>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers10-127.0.0.1] _
+
+headers = {'Host': '127.0.0.1', 'Origin': 'https://foreign.example'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10acbe4e0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers11-127.0.0.1] _
+
+headers = {'Host': '127.0.0.1', 'Origin': 'null'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10acbfe30>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers12-127.0.0.1] _
+
+headers = {'Host': '127.0.0.1', 'Origin': 'http://127.0.0.1 http://localhost'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae20830>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers13-127.0.0.1] _
+
+headers = {'Host': '127.0.0.1', 'Origin': 'not an origin'}, peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae21710>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers14-127.0.0.1] _
+
+headers = {'Host': 'localhost', 'Origin': 'http://localhost/path'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad5bad0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers15-127.0.0.1] _
+
+headers = {'Host': 'localhost', 'Origin': 'https://localhost'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae02690>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers16-127.0.0.1] _
+
+headers = {'Host': 'localhost:8765', 'Origin': 'http://localhost:8766'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae01250>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers17-127.0.0.1] _
+
+headers = {'Host': 'localhost', 'Sec-Fetch-Site': 'cross-site'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae341b0>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers18-127.0.0.1] _
+
+headers = {'Host': 'localhost', 'Sec-Fetch-Site': 'same-site'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae0ac50>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers19-127.0.0.1] _
+
+headers = {'Host': 'localhost', 'Sec-Fetch-Site': 'unexpected'}
+peer = '127.0.0.1'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ae80410>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+_ test_tokenless_invalid_authority_denied_before_database[headers21-testclient] _
+
+headers = {'Host': 'localhost'}, peer = 'testclient'
+
+    @pytest.mark.parametrize(
+        ("headers", "peer"),
+        [
+            ({}, "127.0.0.1"),
+            ({"Host": ""}, "127.0.0.1"),
+            ({"Host": "localhost/path"}, "127.0.0.1"),
+            ({"Host": "user@localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:bad"}, "127.0.0.1"),
+            ({"Host": "localhost:0"}, "127.0.0.1"),
+            ({"Host": "localhost:65536"}, "127.0.0.1"),
+            ({"Host": "::1"}, "::1"),
+            ({"Host": "example.test"}, "127.0.0.1"),
+            ({"Host": "localhoſt"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "https://foreign.example"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "null"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "http://127.0.0.1 http://localhost"}, "127.0.0.1"),
+            ({"Host": "127.0.0.1", "Origin": "not an origin"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost/path"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "https://localhost"}, "127.0.0.1"),
+            ({"Host": "localhost:8765", "Origin": "http://localhost:8766"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "cross-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "same-site"}, "127.0.0.1"),
+            ({"Host": "localhost", "Sec-Fetch-Site": "unexpected"}, "127.0.0.1"),
+            ({"Host": "localhost", "Origin": "http://localhost"}, "192.0.2.10"),
+            ({"Host": "localhost"}, "testclient"),
+        ],
+    )
+    def test_tokenless_invalid_authority_denied_before_database(
+        headers: dict[str, str], peer: str
+    ) -> None:
+        sessions = SessionFactorySpy()
+        subject = handler(headers, peer=peer, session_factory=sessions)
+>       subject.do_POST()
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/jobs-local-origin-accepted-src-91375/src/jobs_automation/dashboard/server.py:908: in do_POST
+    with self.session_factory() as session:
+         ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <tests.test_dashboard_local_origin.SessionFactorySpy object at 0x10ad8d010>
+
+    def __call__(self) -> Any:
+        self.calls += 1
+>       raise AssertionError("authorization denial must precede database access")
+E       AssertionError: authorization denial must precede database access
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:21: AssertionError
+______________ test_duplicate_authority_headers_fail_closed[Host] ______________
+
+duplicate = 'Host'
+
+    @pytest.mark.parametrize("duplicate", ["Host", "Origin", "Sec-Fetch-Site"])
+    def test_duplicate_authority_headers_fail_closed(duplicate: str) -> None:
+        headers = Message()
+        headers["Content-Length"] = "2"
+        headers["Host"] = "localhost"
+        headers["Origin"] = "http://localhost"
+        headers["Sec-Fetch-Site"] = "same-origin"
+        headers[duplicate] = headers[duplicate]
+        subject = handler(headers)
+>       assert subject._authorize_write_operation() is False
+E       assert True is False
+E        +  where True = _authorize_write_operation()
+E        +    where _authorize_write_operation = <tests.test_dashboard.DummyRequestHandler object at 0x10ae347e0>._authorize_write_operation
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:147: AssertionError
+_____________ test_duplicate_authority_headers_fail_closed[Origin] _____________
+
+duplicate = 'Origin'
+
+    @pytest.mark.parametrize("duplicate", ["Host", "Origin", "Sec-Fetch-Site"])
+    def test_duplicate_authority_headers_fail_closed(duplicate: str) -> None:
+        headers = Message()
+        headers["Content-Length"] = "2"
+        headers["Host"] = "localhost"
+        headers["Origin"] = "http://localhost"
+        headers["Sec-Fetch-Site"] = "same-origin"
+        headers[duplicate] = headers[duplicate]
+        subject = handler(headers)
+>       assert subject._authorize_write_operation() is False
+E       assert True is False
+E        +  where True = _authorize_write_operation()
+E        +    where _authorize_write_operation = <tests.test_dashboard.DummyRequestHandler object at 0x10ae352e0>._authorize_write_operation
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:147: AssertionError
+_________ test_duplicate_authority_headers_fail_closed[Sec-Fetch-Site] _________
+
+duplicate = 'Sec-Fetch-Site'
+
+    @pytest.mark.parametrize("duplicate", ["Host", "Origin", "Sec-Fetch-Site"])
+    def test_duplicate_authority_headers_fail_closed(duplicate: str) -> None:
+        headers = Message()
+        headers["Content-Length"] = "2"
+        headers["Host"] = "localhost"
+        headers["Origin"] = "http://localhost"
+        headers["Sec-Fetch-Site"] = "same-origin"
+        headers[duplicate] = headers[duplicate]
+        subject = handler(headers)
+>       assert subject._authorize_write_operation() is False
+E       assert True is False
+E        +  where True = _authorize_write_operation()
+E        +    where _authorize_write_operation = <tests.test_dashboard.DummyRequestHandler object at 0x10ae355a0>._authorize_write_operation
+
+/Users/pchordia/Downloads/swarm_codex/review/jobs-local-origin-source/tests/test_dashboard_local_origin.py:147: AssertionError
+=============================== warnings summary ===============================
+../../Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/lib/python3.13/site-packages/_pytest/cacheprovider.py:469
+  /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/lib/python3.13/site-packages/_pytest/cacheprovider.py:469: PytestCacheWarning: could not create cache path /dev/.pytest_cache/v/cache/nodeids: [Errno 1] Operation not permitted: '/dev/pytest-cache-files-fogtc_tk'
+    config.cache.set("cache/nodeids", sorted(self.cached_nodeids))
+
+../../Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/lib/python3.13/site-packages/_pytest/cacheprovider.py:423
+  /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/lib/python3.13/site-packages/_pytest/cacheprovider.py:423: PytestCacheWarning: could not create cache path /dev/.pytest_cache/v/cache/lastfailed: [Errno 1] Operation not permitted: '/dev/pytest-cache-files-_nktdqhm'
+    config.cache.set("cache/lastfailed", self.lastfailed)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers0-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers1-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers2-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers3-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers4-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers5-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers6-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers7-::1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers8-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers9-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers10-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers11-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers12-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers13-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers14-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers15-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers16-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers17-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers18-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers19-127.0.0.1]
+FAILED ../../dev::test_tokenless_invalid_authority_denied_before_database[headers21-testclient]
+FAILED ../../dev::test_duplicate_authority_headers_fail_closed[Host] - assert...
+FAILED ../../dev::test_duplicate_authority_headers_fail_closed[Origin] - asse...
+FAILED ../../dev::test_duplicate_authority_headers_fail_closed[Sec-Fetch-Site]
+24 failed, 15 passed, 2 warnings in 0.25s
+pytest_exit=1

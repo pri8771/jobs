@@ -1,0 +1,7 @@
+{
+  "case_count": 46,
+  "cleanup_database_count": 0,
+  "result": "PASS_STRICT_LOCAL_ORIGIN_MATRIX",
+  "source_sha": "b67fc523863babd3e195ee71a05f00fa0f2f7e79",
+  "source_still_clean": true
+}

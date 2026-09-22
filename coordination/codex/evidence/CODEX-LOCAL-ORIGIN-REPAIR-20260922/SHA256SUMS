@@ -1,0 +1,10 @@
+9f17c0020ebb6fc5e2e2d51540c20fd75c081fcb124ae50936bcbc5cb498229b  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/agent-focused.log
+0b2c35909a4ac103ed5cba3a8c32ac130f2d97a19b6abf39f6a57d7921bdac40  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/baseline.log
+de14297a3b3c1f7c7fc4a26ed505ae7198ce8e484a01274d5b9dd454d67ba518  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/focused-final.log
+8b8f4c885f8976daf0229eb9fc35638b923f6912c24b0a18de7d248c331bfe00  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/format-known-inherited.log
+30e5e381fb4c64742b3a77c83468c551ae68606e29e97593c52025416e8a4ece  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/full.log
+4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/mypy.log
+66c79b3f6f0399f4a0af9ca5966aeae2a164df9886c4831e340b72d0d3c5c7cd  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/postgres-matrix.log
+02dfbd8012676d87f3016698172808aef9a9e72cc27569390050e1b31f147d81  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/postgres-matrix.py
+b1fb2e6994f54910af60d3c5912c9fa29c4efadc5f2a527f2e52351b96726953  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/pre-repair-independent-review.md
+82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18  coordination/codex/evidence/CODEX-LOCAL-ORIGIN-REPAIR-20260922/ruff.log
