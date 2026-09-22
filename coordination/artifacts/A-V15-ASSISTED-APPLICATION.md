@@ -84,3 +84,13 @@ Version completion additionally requires its own real non-mock V1.5 example unde
 ## Boundary
 
 No live browser/application action is authorized by this artifact's current engineering state. V1.6 remains blocked until V1.5 engineering and completion gates are satisfied.
+
+## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+
+F145-07: the V1.5 browser code and adversarial tests from `worker/v15-assisted-application`
+`ddb4f84` were ported onto the single-worker branch `claude/serene-brown-g6uij0` without
+heartbeat/coordination churn. F145-08..11 (FR15-01..03 repairs, real local Playwright
+engineering-form tests, installed entrypoint test) are summarised in the addendum of
+`docs/V1_5_BROWSER_SAFETY_CONTRACT.md`. Exact SHA and independent check results are in the
+handoff and heartbeat. G15 (live visible prefill) remains blocked on this host: no accepted
+real packet, no owner browser grant, no owner machine.

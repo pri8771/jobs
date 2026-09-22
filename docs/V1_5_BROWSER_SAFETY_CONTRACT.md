@@ -229,3 +229,64 @@ Acceptance tests:
 3. hidden/non-required adversarial text -> preserved in inspection evidence/security signal, not executed.
 4. required question containing suspicious prompt-like content -> route through normal provenance/manual-review rules; do not obey embedded agent instructions.
 5. page text cannot mark a packet live-ready, authorize submit, bypass EEO/manual barriers, or weaken policy.
+
+## F145-08..10 addendum — semantic snapshot, exact uploads, prefill-only (2026-09-22)
+
+Implemented on the single-worker branch against the frozen blockers FR15-01..03 in
+`coordination/reviews/V145_FINAL_REVIEW_20260921.md`. Worker report; lead acceptance pending.
+
+### Canonical semantic snapshot (FR15-01)
+
+`compute_form_snapshot()` in `browser/assisted_engine.py` binds, for the form as it will be
+written to: the actual navigated destination (scheme/host/path of `FormInspectionResult.final_url`),
+the owning form's `action`, every field's stable locator, name/type/required, label, placeholder,
+help text (`aria-describedby`), option labels and values, and its classification, plus the
+page-level security state (injection detection and warnings). The engine re-inspects and
+re-classifies immediately before writing and halts on any difference
+(`FORM_SNAPSHOT_MISMATCH`, audit `assisted_prefill_halted_fingerprint_mismatch` with a value-free
+change list such as `field_changed:first_name:label`, `form_action_changed`, `destination_changed`,
+`security_warnings_changed`). A failed or empty inspection, at either pass, is a `BLOCKED`
+result, never a clean safety result. A redirect to a host the policy does not permit for
+assisted prefill is `DESTINATION_REDIRECT_BLOCKED`; a permitted redirect is recorded as a
+security warning and in the manifest's `destination_final_url`.
+
+### Exact upload mapping and truthful outcomes (FR15-02)
+
+Runners receive `targets` (inspected field name -> exact locator) and never search the page
+with broad substrings. Each upload binds to exactly one positively identified inspected field;
+duplicate or shared-name file fields stay manual (`ambiguous_required_file_field:<name>` blocks
+when required) and unknown file inputs never receive the resume. Text-like controls are filled
+and read back; native `select` controls are filled only on an exact option match; checkbox,
+radio and other controls stay manual (`manual_required_control:<name>` /
+`manual_required_select_no_exact_option:<name>` block when required). After writing, the
+engine persists `PostFillEvidence` (`assisted_postfill_evidence` artifact) with intended versus
+actually filled value hashes, failed and unmatched fields, the digest of the bytes attached to
+each upload and the file read-back; `readback_verified` is true only when everything matched,
+otherwise the application is `ASSISTED_PREFILL_PARTIAL`. The pre-submit manifest remains the
+plan; `prefilled_count` reports actual read-back successes.
+
+### Prefill-only boundary (FR15-03)
+
+Assisted execution ends at `REVIEW_REQUIRED` with the visible browser open. `auto_confirm`,
+caller receipt text, a runner-reported `submitted`, a `confirmation_url`, URL keywords such as
+`?next=confirmation` or `thank_you`, arbitrary evidence dictionaries, the mock runner and
+injected page text are recorded as ignored claims (`assisted_submit_claim_ignored`) and never
+promote the application to `SUBMITTED` or `SUBMISSION_UNCONFIRMED` from the assisted path.
+`is_valid_external_confirmation()` accepts only structured evidence captured by a trusted
+observer (`browser_runner` / `mailbox_ingestion`) of type `confirmation_page` /
+`confirmation_email` with a reference id, an observation timestamp and, for a page, the
+application destination host; V1.5 itself never produces such evidence. The separately scoped
+manual-native report path still records `SUBMISSION_UNCONFIRMED` only. The Playwright runner's
+interactive session performs no submit action and does not infer submission from page text or
+URL.
+
+### Engineering evidence (F145-11)
+
+`tests/test_assisted_prefill_boundary.py` (mock runner) and
+`tests/test_assisted_playwright_engineering_form.py` (real headless Chromium against a local
+127.0.0.1 form server that records every POST and receives none) cover two upload fields,
+ambiguous and unknown file fields, dynamic label/action/option changes, field-level and
+page-level injection text, same-host and cross-host redirects, an unwritable control and the
+no-submit guarantee. `tests/test_assisted_apply_entrypoint.py` runs the installed
+`assisted-apply` command with `--auto-confirm` and asserts it stops at review. This is
+engineering evidence, not the employer live checkpoint (G15).

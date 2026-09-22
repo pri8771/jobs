@@ -736,6 +736,17 @@ def assisted_apply(
             console.print("[bold yellow]⏸️  Review Required / Prefill Complete[/bold yellow]")
             console.print(f"  Status: {res.status}")
             console.print(f"  Message: {res.message}")
+            if res.postfill_evidence is not None:
+                evidence = res.postfill_evidence
+                console.print(
+                    f"  Post-fill evidence: read-back verified={evidence.readback_verified}; "
+                    f"filled={len(evidence.filled_fields)} failed={len(evidence.failed_fields)} "
+                    f"unmatched={len(evidence.unmatched_fields)} "
+                    f"attached={len(evidence.attached_files)}; "
+                    f"submit performed={evidence.submit_performed}"
+                )
+            if res.security_warnings:
+                console.print(f"  Security warnings: {res.security_warnings}")
         elif res.status == "BLOCKED":
             console.print("[bold red]🚫 Submission Blocked by Policy[/bold red]")
             console.print(f"  Message: {res.message}")
