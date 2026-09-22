@@ -1,0 +1,74 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+___ test_spoofed_inbound_sender_containing_candidate_address_is_not_a_reply ____
+
+session = <sqlalchemy.orm.session.Session object at 0x10e8d3380>
+
+    def test_spoofed_inbound_sender_containing_candidate_address_is_not_a_reply(
+        session: Session,
+    ) -> None:
+        app = _application(session)
+        prior, _ = _prior(session, app, with_contact=True)
+        task = TaskModel(
+            application_id=app.id,
+            job_id=app.job_id,
+            task_type="UNANSWERED_RECRUITER",
+            status="pending",
+            payload_json={"thread_id": THREAD, "message_id": str(prior.id)},
+        )
+        session.add(task)
+        session.commit()
+        raw = RawEmailMessage(
+            provider_message_id="spoofed-inbound-candidate-address",
+            provider_thread_id=THREAD,
+            received_at=NOW,
+            sender=f"{CANDIDATE}.evil@attacker.invalid",
+            recipients=[CANDIDATE],
+            direction="inbound",
+            subject="Re: Synthetic recruiter outreach",
+            body_text="Inbound attacker-controlled content.",
+            raw_reference="synthetic://spoofed-inbound",
+        )
+    
+        summary = EmailIngestionEngine(
+            session=session,
+            adapter=MockEmailAdapter([raw]),
+            candidate_emails=[CANDIDATE],
+        ).run_sweep(reconcile=False)
+        assert summary.errors == []
+        message = session.scalar(
+            select(InboundMessageModel).where(
+                InboundMessageModel.provider_message_id == raw.provider_message_id
+            )
+        )
+>       assert message is not None and message.direction == "inbound"
+E       AssertionError: assert (<jobs_automation.db.models.InboundMessageModel object at 0x10e99e990> is not None and 'outbound' == 'inbound'
+E         
+E         - inbound
+E         + outbound)
+
+tests/test_candidate_reply_attribution.py:367: AssertionError
+_ test_proven_outbound_declining_different_role_records_reply_before_divergence _
+
+session = <sqlalchemy.orm.session.Session object at 0x10e99f9d0>
+
+    def test_proven_outbound_declining_different_role_records_reply_before_divergence(
+        session: Session,
+    ) -> None:
+        app = _application(session)
+        _prior(session, app, with_contact=True)
+        original_activity = app.last_activity_at
+        session.commit()
+        raw = _raw_reply(message_id="candidate-reply-different-role")
+        raw.body_text = "Thanks, but I am not pursuing a different role."
+    
+        reply = _ingest_and_process(session, raw)
+        event = _reply_event(session, app, raw.provider_message_id)
+>       assert event is not None and event.event_type == "CANDIDATE_REPLIED"
+E       assert (None is not None)
+
+tests/test_candidate_reply_attribution.py:392: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_candidate_reply_attribution.py::test_spoofed_inbound_sender_containing_candidate_address_is_not_a_reply
+FAILED tests/test_candidate_reply_attribution.py::test_proven_outbound_declining_different_role_records_reply_before_divergence
+2 failed, 10 deselected in 0.31s

@@ -1,0 +1,183 @@
+FF.FF..F.                                                                [100%]
+=================================== FAILURES ===================================
+______ test_unique_application_and_contact_records_stage_preserving_reply ______
+
+session = <sqlalchemy.orm.session.Session object at 0x10c823230>
+
+    def test_unique_application_and_contact_records_stage_preserving_reply(session: Session) -> None:
+        app = _application(session)
+        prior, contact = _prior(session, app, with_contact=True)
+        task = TaskModel(
+            application_id=app.id,
+            job_id=app.job_id,
+            task_type="UNANSWERED_RECRUITER",
+            status="pending",
+            payload_json={"thread_id": THREAD, "message_id": str(prior.id)},
+        )
+        session.add(task)
+        session.commit()
+    
+        reply = _ingest_and_process(session, _raw_reply(message_id="candidate-reply-unique"))
+        LifecycleAlertService(session).check_unanswered_recruiters(now=NOW)
+        session.commit()
+    
+        link = session.scalar(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == reply.id)
+        )
+        event = _reply_event(session, app, reply.provider_message_id)
+>       assert link is not None and link.application_id == app.id
+E       assert (None is not None)
+
+tests/test_candidate_reply_attribution.py:194: AssertionError
+____ test_unique_application_without_unique_contact_does_not_guess_contact _____
+
+session = <sqlalchemy.orm.session.Session object at 0x10c9039d0>
+
+    def test_unique_application_without_unique_contact_does_not_guess_contact(session: Session) -> None:
+        app = _application(session)
+        _prior(session, app)
+        session.commit()
+    
+        reply = _ingest_and_process(session, _raw_reply(message_id="candidate-reply-no-contact"))
+        event = _reply_event(session, app, reply.provider_message_id)
+        link = session.scalar(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == reply.id)
+        )
+>       assert link is not None and link.application_id == app.id
+E       assert (None is not None)
+
+tests/test_candidate_reply_attribution.py:223: AssertionError
+____ test_ambiguous_or_untrusted_thread_evidence_never_auto_links[multiple] ____
+
+session = <sqlalchemy.orm.session.Session object at 0x10b4429e0>
+case = 'multiple'
+
+    @pytest.mark.parametrize("case", ["missing", "multiple", "weak", "canary_only", "future_only"])
+    def test_ambiguous_or_untrusted_thread_evidence_never_auto_links(
+        session: Session, case: str
+    ) -> None:
+        app = _application(session)
+        if case == "multiple":
+            other = _application(session)
+            _prior(session, app)
+            _prior(session, other)
+        elif case == "weak":
+            _prior(session, app, confidence=0.79)
+        elif case == "canary_only":
+            _prior(session, app, canary=True)
+        elif case == "future_only":
+            _prior(session, app, received_at=NOW + datetime.timedelta(minutes=1))
+        session.commit()
+    
+        reply = _ingest_and_process(
+            session, _raw_reply(message_id=f"candidate-reply-{case}", received_at=NOW)
+        )
+        links = session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == reply.id)
+        ).all()
+        events = session.scalars(
+            select(ApplicationEventModel).where(
+                ApplicationEventModel.source_reference == reply.provider_message_id
+            )
+        ).all()
+        assert links == [] and events == []
+        if case in {"multiple", "weak"}:
+>           assert session.scalar(
+                select(TaskModel).where(
+                    TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+                )
+            ) is not None
+E           AssertionError: assert None is not None
+E            +  where None = scalar(<sqlalchemy.sql.selectable.Select object at 0x10cae7a50>)
+E            +    where scalar = <sqlalchemy.orm.session.Session object at 0x10b4429e0>.scalar
+E            +    and   <sqlalchemy.sql.selectable.Select object at 0x10cae7a50> = where(<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c400> == 'NEEDS_REVIEW', <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c220> == 'pending')
+E            +      where where = <sqlalchemy.sql.selectable.Select object at 0x10cae7950>.where
+E            +        where <sqlalchemy.sql.selectable.Select object at 0x10cae7950> = select(TaskModel)
+E            +      and   <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c400> = TaskModel.task_type
+E            +      and   <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c220> = TaskModel.status
+
+tests/test_candidate_reply_attribution.py:262: AssertionError
+______ test_ambiguous_or_untrusted_thread_evidence_never_auto_links[weak] ______
+
+session = <sqlalchemy.orm.session.Session object at 0x10ca2ad70>, case = 'weak'
+
+    @pytest.mark.parametrize("case", ["missing", "multiple", "weak", "canary_only", "future_only"])
+    def test_ambiguous_or_untrusted_thread_evidence_never_auto_links(
+        session: Session, case: str
+    ) -> None:
+        app = _application(session)
+        if case == "multiple":
+            other = _application(session)
+            _prior(session, app)
+            _prior(session, other)
+        elif case == "weak":
+            _prior(session, app, confidence=0.79)
+        elif case == "canary_only":
+            _prior(session, app, canary=True)
+        elif case == "future_only":
+            _prior(session, app, received_at=NOW + datetime.timedelta(minutes=1))
+        session.commit()
+    
+        reply = _ingest_and_process(
+            session, _raw_reply(message_id=f"candidate-reply-{case}", received_at=NOW)
+        )
+        links = session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == reply.id)
+        ).all()
+        events = session.scalars(
+            select(ApplicationEventModel).where(
+                ApplicationEventModel.source_reference == reply.provider_message_id
+            )
+        ).all()
+        assert links == [] and events == []
+        if case in {"multiple", "weak"}:
+>           assert session.scalar(
+                select(TaskModel).where(
+                    TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+                )
+            ) is not None
+E           AssertionError: assert None is not None
+E            +  where None = scalar(<sqlalchemy.sql.selectable.Select object at 0x10cbd5f50>)
+E            +    where scalar = <sqlalchemy.orm.session.Session object at 0x10ca2ad70>.scalar
+E            +    and   <sqlalchemy.sql.selectable.Select object at 0x10cbd5f50> = where(<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c400> == 'NEEDS_REVIEW', <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c220> == 'pending')
+E            +      where where = <sqlalchemy.sql.selectable.Select object at 0x10cbd5e50>.where
+E            +        where <sqlalchemy.sql.selectable.Select object at 0x10cbd5e50> = select(TaskModel)
+E            +      and   <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c400> = TaskModel.task_type
+E            +      and   <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c74c220> = TaskModel.status
+
+tests/test_candidate_reply_attribution.py:262: AssertionError
+______ test_replay_is_idempotent_and_reply_time_never_regresses_activity _______
+
+session = <sqlalchemy.orm.session.Session object at 0x10cc19370>
+
+    def test_replay_is_idempotent_and_reply_time_never_regresses_activity(session: Session) -> None:
+        app = _application(session, status="OFFER")
+        _prior(session, app)
+        app.last_activity_at = NOW + datetime.timedelta(hours=2)
+        session.commit()
+        raw = _raw_reply(message_id="candidate-reply-replay", received_at=NOW)
+    
+        first = _ingest_and_process(session, raw)
+        _ingest_and_process(session, raw)
+    
+>       assert len(session.scalars(select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == first.id)).all()) == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = len([])
+E        +    where [] = all()
+E        +      where all = <sqlalchemy.engine.result.ScalarResult object at 0x10ccce260>.all
+E        +        where <sqlalchemy.engine.result.ScalarResult object at 0x10ccce260> = scalars(<sqlalchemy.sql.selectable.Select object at 0x10cce0150>)
+E        +          where scalars = <sqlalchemy.orm.session.Session object at 0x10cc19370>.scalars
+E        +          and   <sqlalchemy.sql.selectable.Select object at 0x10cce0150> = where(<sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c718fe0> == UUID('7051b4c7-907e-4f83-976c-177f8fd7c0d0'))
+E        +            where where = <sqlalchemy.sql.selectable.Select object at 0x10cc4be50>.where
+E        +              where <sqlalchemy.sql.selectable.Select object at 0x10cc4be50> = select(MessageLinkModel)
+E        +            and   <sqlalchemy.orm.attributes.InstrumentedAttribute object at 0x10c718fe0> = MessageLinkModel.inbound_message_id
+E        +            and   UUID('7051b4c7-907e-4f83-976c-177f8fd7c0d0') = <jobs_automation.db.models.InboundMessageModel object at 0x10ccb6dd0>.id
+
+tests/test_candidate_reply_attribution.py:279: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_candidate_reply_attribution.py::test_unique_application_and_contact_records_stage_preserving_reply
+FAILED tests/test_candidate_reply_attribution.py::test_unique_application_without_unique_contact_does_not_guess_contact
+FAILED tests/test_candidate_reply_attribution.py::test_ambiguous_or_untrusted_thread_evidence_never_auto_links[multiple]
+FAILED tests/test_candidate_reply_attribution.py::test_ambiguous_or_untrusted_thread_evidence_never_auto_links[weak]
+FAILED tests/test_candidate_reply_attribution.py::test_replay_is_idempotent_and_reply_time_never_regresses_activity
+5 failed, 4 passed in 0.31s

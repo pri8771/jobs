@@ -1,0 +1,19 @@
+Jobs candidate-reply source correction review
+Date: 2026-09-22
+Source: /Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source
+Base: e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273
+Scope: read-only verification of the two reproduced defects; no tests or database calls.
+
+VERIFIED CORRECTED
+
+1. Sender-text promotion is removed.
+   - src/jobs_automation/ingestion/classifier.py:39-48 enters CANDIDATE_REPLY/outbound only when the adapter supplied email.direction == "outbound".
+   - Parsed sender identity is exact-address membership and affects confidence only; it cannot promote an inbound message.
+   - src/jobs_automation/ingestion/engine.py:228 persists that classifier direction, so the earlier substring-spoof path is closed.
+
+2. Candidate replies bypass employer role-divergence heuristics.
+   - src/jobs_automation/lifecycle/engine.py:151-179 handles an explicitly classified, persisted-outbound, non-canary candidate reply before _detect_thread_role_divergence at lines 181-188.
+   - The branch preserves application status, advances last_activity_at only monotonically using provider received_at, and records the required CANDIDATE_REPLIED event/contact evidence.
+   - Ordinary candidate prose containing phrases such as "different role" therefore no longer suppresses the required event.
+
+No remaining concrete defect was observed within these two corrections. This note does not independently validate runtime tests, PostgreSQL behavior, unrelated attribution paths, or the broader Jobs suite. Root reported the prior red reproductions and owns subsequent test evidence.
