@@ -11,6 +11,10 @@
     "bytes": 602,
     "sha256": "7373a74d642fdeb1d35cfdfa38b55d9e48a7f6ab7994f654ecd2bbb1d528b5c0"
   },
+  "hosted-ci.txt": {
+    "bytes": 3055,
+    "sha256": "6ed3b52beaecd0c0b31f24954f4ccc29c72fe9649c63661a0313a81115d04dd3"
+  },
   "mypy.txt": {
     "bytes": 44,
     "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"

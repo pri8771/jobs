@@ -1,0 +1,40 @@
+Jobs PR #19 native CI diagnostic (read-only)
+Checked: 2026-09-22
+Repository: pri8771/jobs
+Source checkout: /Users/pchordia/Downloads/swarm_codex/review/jobs-health-errors-source
+Exact head: ed864cb5ac3eb806c91ef55d489fb6084da19fe0 (clean)
+
+Native requirement
+- docs/V2_0_INTEGRATION_ACCEPTANCE.md lists CI in the V2.0 acceptance evidence bundle and requires A-V20-RELIABILITY.
+- docs/FABLE_V17_LIVE.md:149-151 requires focused/full checks and exact-head CI, distinguishes no run from code-test failure and verified runner/account blockage, and permits only an explicitly reviewed independent-validation exception while hosted CI is blocked.
+
+Workflow trigger and commands
+- .github/workflows/ci.yml
+- Triggers only on push to main or pull_request whose base is main.
+- Job test uses ubuntu-latest with PostgreSQL 16 and would execute checkout, Python 3.12 setup, dependency install, `ruff check .`, `mypy src tests`, `bash scripts/verify_migrations.sh`, and `pytest -v`.
+
+PR #19 metadata
+- URL: https://github.com/pri8771/jobs/pull/19
+- State: OPEN, draft.
+- Head: codex/jobs-health-errors-20260922 @ ed864cb5ac3eb806c91ef55d489fb6084da19fe0
+- Base: codex/jobs-health-diagnostic-20260922 @ 9e29a59b729deb8f925121c70b90498794b55519
+- statusCheckRollup: empty.
+- Commit check-runs API: total_count=0; commit status contexts: total_count=0.
+
+Classification
+PR #19 has NO CI RUN for exact head ed864cb. This is expected from the native workflow trigger: the PR base is a feature branch, not main. It is not evidence of a code-test failure and is not CI-green.
+
+Independent evidence of the separate hosted-runner condition
+- Current main-based PR #13 triggered the same CI workflow on head 36d3dbfd706b67e8804d7dc328746577ce7cbbf8:
+  https://github.com/pri8771/jobs/actions/runs/35693561790
+- Run 35693561790 / job 106635449497 completed FAILURE in about 3 seconds.
+- Job metadata: labels=[ubuntu-latest], runner_id=0, runner_name="", runner_group_id=0, steps=[].
+- Therefore no checkout, install, Ruff, mypy, migration, or pytest step executed. This is a hosted runner/account startup blockage, not a demonstrated application-code test failure. The API does not establish a specific billing cause, so billing should not be asserted.
+- The recent run list shows the same pre-step failure pattern repeatedly on main-based PR #13, including runs 35693285829, 35693117173, 35692979078, 35691898907, 35691779282, and 35691403314.
+
+Smallest prerequisite for required exact-head native CI evidence
+1. Present the exact accepted integration head through a PR whose base is main (or push it to main under the repository's normal protected process), so .github/workflows/ci.yml is eligible to trigger.
+2. The repository/account must regain an ubuntu-latest hosted runner that actually starts workflow steps.
+3. Then the automatically triggered exact-head job must execute and pass. No workflow rewrite or manual rerun can substitute for either missing prerequisite.
+
+No Actions run was triggered or rerun; no workflow, source, billing, or repository state was changed.

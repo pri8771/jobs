@@ -15,3 +15,9 @@ Separately at accepted9e29a59, one unique disposable PostgreSQL DB and fresh chi
 Directly seeded health-selection cases (not worker-created or live): newer five-minute RUNNING is selected over prior SUCCESS, healthy/non-stale with prior success retained; newer three-hour RUNNING is selected as degraded/stale with exact run ID. Adapter readback reports greenhouse/lever registered, both simulation-only, zero live-capable, DEGRADED. Separate process reads prove DB-derived status; cleanup database count0. [Harness](../codex/evidence/CODEX-HEALTH-ERRORS-20260922/remaining-health-verification.py), [observed output](../codex/evidence/CODEX-HEALTH-ERRORS-20260922/remaining-health-observed.txt).
 
 Request evidence acceptance for these narrow checks separately; no fixture evidence substitutes for genuine Gmail or other live checkpoints.
+
+## Hosted CI readback and integration preflight
+
+Exact ed864cb PR19 has zero check runs/status contexts because its base is a feature branch; existing ci.yml triggers pull_request only for main, or push main. It is NO CI RUN, not hosted-green or a code-test failure. Independently, main-based PR13 run35693561790/job106635449497 failed before runner allocation: runner_id0, no steps. No checkout/Ruff/mypy/migrations/pytest ran; this API evidence alone does not identify the account cause. [Read-only diagnostic](../codex/evidence/CODEX-HEALTH-ERRORS-20260922/hosted-ci.txt). No rerun/trigger/workflow/billing change was performed.
+
+A non-mutating git merge-tree preflight of candidateed864cb plus accepted backupd98b1ea returns conflict-free treee5409f04e15ca7d21dd2357c000c03e5c53ebd09. This is not an integration commit, acceptance, main merge or completed CI. After exact candidate acceptance, a bounded main-based draft integration PR can expose the existing trigger without merging main; hosted execution must then actually start and pass.
