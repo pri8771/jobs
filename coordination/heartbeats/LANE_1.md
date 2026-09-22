@@ -7,8 +7,8 @@ mode: ACTIVE_5M
 interval_minutes: 5
 heartbeat_count: 44
 last_check_in_utc: 2026-09-22T02:16:10Z
-current_task: V1.7-live scope (docs/FABLE_V17_LIVE.md): P0A F145-01..06 and V1.5 F145-07..11 READY_FOR_LEAD_REVIEW; working V1.7 engineering (M01..M04, R01..R05); code branch claude/serene-brown-g6uij0
-progress_note: P0A at 8491dd9, V1.5 at 47fefd1b0ca354360353577685f6619a94f00f42 on claude/serene-brown-g6uij0; 395 tests incl. real PostgreSQL producer-to-consumer and real headless Playwright engineering forms, ruff, mypy green on this host; CI_BLOCKED_ACCOUNT; no private inputs, mailbox, live browser or submission actions
+current_task: V1.7-live scope (docs/FABLE_V17_LIVE.md): V1.7 ingestion prerequisites V17-M01..M04 + R05 core READY_FOR_LEAD_REVIEW at claude/serene-brown-g6uij0 dd2e0de (code 113c584 merged with main 1a4efbb); now working V1.6 engineering V17-A01..X01 per advanced queue, then V17-R01..R04
+progress_note: P0A 8491dd9 and V1.5 47fefd1 ENGINEERING ACCEPTED by lead (PR #12 7c0fa73); branch synchronized with main; 429 tests incl. real PostgreSQL and real headless Playwright, ruff, mypy green on this host; CI_BLOCKED_ACCOUNT; G14 input-blocked on this host (no private profile, exact resume, live job or ATS egress); no mailbox, live browser or submission actions
 review_state: READY_FOR_LEAD_REVIEW
 lead_action_requested: REVIEW
 
