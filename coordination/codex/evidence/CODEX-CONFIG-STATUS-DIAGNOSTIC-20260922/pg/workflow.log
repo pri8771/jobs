@@ -1,0 +1,39 @@
+{
+  "missing_read_surfaces": [
+    {
+      "error": "Not Found",
+      "json": null,
+      "path": "/api/status",
+      "status": 404
+    },
+    {
+      "error": "Not Found",
+      "json": null,
+      "path": "/api/config",
+      "status": 404
+    },
+    {
+      "error": "Not Found",
+      "json": null,
+      "path": "/api/system-status",
+      "status": 404
+    }
+  ],
+  "result": "REPRO_SAFE_CONFIG_STATUS_READ_SURFACE_ABSENT",
+  "source_sha": "1e54aafa61ef06ed2ef8a7a681c806ba89ef3268",
+  "source_tree": "8972a90de1f7aafd469fedde63926382c726319f",
+  "working_read_controls": [
+    {
+      "error": null,
+      "json": [],
+      "path": "/api/jobs",
+      "status": 200
+    },
+    {
+      "error": null,
+      "json": [],
+      "path": "/api/policies",
+      "status": 200
+    }
+  ]
+}
