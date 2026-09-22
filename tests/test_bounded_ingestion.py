@@ -9,6 +9,7 @@ mailbox binding and replay idempotency, plus the installed ``ingest-mailbox`` an
 from __future__ import annotations
 
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -104,6 +105,21 @@ def _runner(session: Session, adapter: Any = None, **kwargs: Any) -> BoundedInge
         synthetic=kwargs.pop("synthetic", True),
         identity={"git_sha": "engineering", "package_version": "0.1.0"},
     )
+
+
+def _bind_bounded_audits_to_application(session: Session, application_id: object) -> None:
+    """Model the secret-safe application association emitted by the bounded-run writer."""
+    application_sha256 = hashlib.sha256(str(application_id).encode("utf-8")).hexdigest()
+    audits = session.scalars(
+        select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+    ).all()
+    for audit in audits:
+        audit.metadata_json = {
+            **audit.metadata_json,
+            "schema_version": 2,
+            "application_id_sha256": [application_sha256],
+        }
+    session.commit()
 
 
 def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
@@ -255,6 +271,7 @@ def test_live_adapter_must_be_bound_to_the_named_mailbox(db_session: Session) ->
 def test_timeline_export_is_redacted_and_digest_stable(db_session: Session) -> None:
     app = _seed_application(db_session)
     _runner(db_session).run(_request())
+    _bind_bounded_audits_to_application(db_session, app.id)
     identity = {"git_sha": "engineering", "package_version": "0.1.0"}
     export = build_timeline_export(db_session, app.id, identity=identity)
     again = build_timeline_export(db_session, app.id, identity=identity)
@@ -380,6 +397,7 @@ def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) 
             assert replay_meta["messages_ingested"] == 0
             events = session.scalars(select(ApplicationEventModel)).all()
             assert len(events) == 1  # one INTERVIEW_REQUESTED, not duplicated by replay
+            _bind_bounded_audits_to_application(session, app_id)
     finally:
         engine.dispose()
 
