@@ -418,3 +418,39 @@ def test_canary_identities_are_tagged_and_counted(db_session: Session) -> None:
     )
     assert untagged is not None and "_provider" not in untagged.headers_json
     assert summary.poll_report is not None and summary.poll_report.synthetic is True
+
+
+@pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
+def test_malformed_neighbor_preserves_valid_recipient_header(malformed_header: str) -> None:
+    alias = "owner+canary@example.com"
+    payload = _message(
+        "malformed-neighbor",
+        sender="recruiter@example.com",
+        to=alias,
+        subject="Recruiter followup",
+        body="Discuss this role",
+        internal=NOW,
+    )
+    headers = payload["payload"]["headers"]
+    if malformed_header == "To":
+        headers.append({"name": "Cc", "value": alias})
+    headers[:] = [header for header in headers if header["name"] != malformed_header]
+    headers.append({"name": malformed_header, "value": "a@b.com;c@d.com"})
+    adapter = GmailAdapter(service=FakeGmailService([payload]))
+    (message,) = adapter.poll_messages(max_results=5)
+    assert message.recipients == [alias]
+
+
+def test_valid_to_and_cc_recipients_preserve_order_and_addresses() -> None:
+    payload = _message(
+        "ordinary-recipients",
+        sender="recruiter@example.com",
+        to="Owner <owner@example.com>, SECOND@example.com",
+        subject="Recruiter followup",
+        body="Discuss this role",
+        internal=NOW,
+    )
+    payload["payload"]["headers"].append({"name": "Cc", "value": "Third <third@example.com>"})
+    adapter = GmailAdapter(service=FakeGmailService([payload]))
+    (message,) = adapter.poll_messages(max_results=5)
+    assert message.recipients == ["owner@example.com", "second@example.com", "third@example.com"]
