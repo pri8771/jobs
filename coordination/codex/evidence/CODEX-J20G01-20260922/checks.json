@@ -1,6 +1,6 @@
 {
-  "source_sha": "8631b3edf15cdaa11eefbd6edffb1038bdbc5433",
-  "tree": "a7bea1bd6d8730c7d827a2892ff5d4053d69b6c1",
+  "source_sha": "7345f1e0fc7153ba40c3628910ebd58266635421",
+  "tree": "5ea164fe3e2a041d436ffec3f64485eff842e244",
   "base": "10a3a23924fdde6b040082ef030ad1286591b9a9",
   "evidence_class": "ENGINEERING",
   "checks": [
@@ -8,34 +8,36 @@
       "command": "PROOF_TEST_PG_ADMIN_URL=<dedicated Jobs Unix socket> PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q",
       "exit": 0,
       "result": "446 passed, 1 existing Mac cross-host loopback skipped",
-      "log": "full.txt"
+      "log": "full-v2.txt"
     },
     {
       "command": "PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python -m pytest -q tests/test_gmail_adapter_bounded.py tests/test_ingestion_engine.py tests/test_worker.py",
       "exit": 0,
       "result": "38 passed",
-      "log": "affected.txt"
+      "log": "affected-v2.txt"
     },
     {
       "command": "../jobs-source/.venv/bin/ruff check src tests",
       "exit": 0,
-      "log": "ruff.txt"
+      "log": "ruff-v2.txt"
     },
     {
-      "command": "../jobs-source/.venv/bin/ruff format --check src/jobs_automation/ingestion/engine.py tests/test_gmail_adapter_bounded.py",
+      "command": "../jobs-source/.venv/bin/ruff format --check src/jobs_automation/ingestion/engine.py tests/test_gmail_adapter_bounded.py tests/test_bounded_ingestion.py",
       "exit": 0,
-      "log": "format.txt"
+      "log": "format-v2.txt"
     },
     {
       "command": "PYTHONPATH=$PWD/src ../jobs-source/.venv/bin/mypy src",
       "exit": 0,
       "result": "74 files",
-      "log": "mypy.txt"
+      "log": "mypy-v2.txt"
     }
   ],
   "notes": [
     "Exact committed source tree was unchanged after verification.",
     "No schema change; synthetic adapter/SQLite tests and existing full real-PG credential lifecycle tests are engineering evidence. No Gmail network, credential or private input.",
-    "First dedicated test-PG start failed on default5432; corrected explicit Unix socket/port56422/TCPdisabled. No original service was changed."
-  ]
+    "First dedicated test-PG start failed on default5432; corrected explicit Unix socket/port56422/TCPdisabled. No original service was changed.",
+    "Lead refinement requires caps to fail atomically too. Prior missing-only source8631b3e/logs superseded. Current cap path is FAILED/0rows; actual full suite includes corrected bounded-runner oracle. Mechanical-v2 independently confirms missing/cap failure, complete retry and preservation of committed state."
+  ],
+  "canonical_contract": "formal lead refinement1330d01a019531aa33520d773574f9eaea4c726a on coordination proposal"
 }
