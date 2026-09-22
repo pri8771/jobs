@@ -73,3 +73,45 @@ It does **not** prove automatic JD-to-résumé generation (tailoring was done by
   - Required: a new **Desktop-app** OAuth client (Console only; gcloud cannot create one) requesting **only `gmail.readonly`**. The consent screen must allow the recruiting mailbox (External/Testing with that Gmail as a test user if it is outside the Workspace).
   - The owner then personally completes one consent as the recruiting mailbox. Readiness accepts only a token whose scope is exactly read-only.
   - After that, name the mailbox alias, the canary alias and the query/window/cap. No cloud resource has been created. Creating one needs the owner's explicit per-action yes.
+
+---
+
+## Addendum: owner-chosen better-fit job, second G14 (Flexport), and the transport-policy blocker
+
+The owner chose a **better-fit job** over OpenSesame for the G15/G16 application path and said "just do any test to prove its working … choose what you think is most applicable". The OpenSesame proof above stays valid and frozen.
+
+**Importer generalization (independently reviewed, RECOMMEND_ACCEPT).**
+- Source: `claude/jobs-g14-importer-generalize-20260922@2ce1194142679629cb32c966ee2141c13f5b0239`, tree `a6e081fe`, on accepted main 1a4efbb.
+- The only change is `scripts/import_v14_proof_job.py`, plus its tests: `--expected-title`, `--company-name`, `--company-domain`. Defaults reproduce 7967740 exactly, and validation stays fail-closed.
+- A new job's `remote_type` is classified from the posted location instead of hard-coded as `remote`. The runner, verifier and schema are unchanged.
+- Checks: full owned PG 399 passed / 1 host skip; `mypy src tests` clean; Ruff clean. With Playwright now installed, the real-Chromium assisted-browser engineering test runs and passes; one loopback-alias sub-case skips.
+- Reviewer follow-up (non-blocking): fail when the job id changes but the company or URL is left at the OpenSesame default.
+
+**Flexport G14: REAL_PROOF_PASS.**
+- Job: Greenhouse **Flexport 8110413 "Forward Deployed Engineer - Supply Chain Solutions"** (SF; $206–252K base; fits the owner's strongest verified evidence family). Public import `REAL_PROOF_JOB_IMPORT_PASS`, job row `ed0b943c-…`, description sha256 `cdf351b7…e340d`, 8 screening questions. `remote_type` is left unset (truthful) rather than `remote`.
+- Database: new, isolated `jobs_v17_live_flexport` at head 003. A post-run `pg_dump` snapshot is kept privately (sha256 `35e4ecab…5800`).
+- Code: clean detached worktree at `2ce11941`.
+- Résumé: truthful, variant `resume_enterprise_automation`, sha256 `2595e00b…45a0`, 102 verified atoms, **FLEXPORT_FACT_CHECK_PASS** (43/43 claim lines).
+- Profile: **v4**, sha256 `0f991637…315b`. It is the fact-checked v3 (current verified role first, no `UNRESOLVED` text in any employer-visible field) plus exactly two **owner-delegated test answers**: prior Flexport employment = No, and 50% travel / in-person SF = Yes. Both must be re-confirmed before any real submission.
+- Run: packet `08075334-f712-4c2b-9f07-eb120ee3a0bb`, hash `89f69a066f6e8e53cad17440085b169ad2be37ee4d8995d1e71977c82a40896e`, **8 answers resolved, 0 unresolved, `is_live_ready=True`**.
+- Separate verifier: `REAL_PROOF_VALIDATION_PASS`. Redacted bundle `13a5bea7…9e75`, receipt `b5d1ffe6…0141`. Not committed; this awaits the lead.
+- **Independent review: RECOMMEND_G14_PASS.**
+  - The verifier was re-run independently in a separate process: REAL_PROOF_PASS, bundle hash identical, receipt identical except for its timestamp.
+  - Code is `2ce11941`, clean before and after. Its diff from 1a4efbb touches only the importer and its tests.
+  - The frozen profile and résumé hashes match, and the résumé artifact is byte-identical. The packet row has 8 answers whose keys equal the 8 questions, `unresolved=[]`, `is_live_ready=true`, profile version 4. The company is Flexport and the source is GREENHOUSE 8110413.
+  - **The DB has 0 application and 0 application_event rows, so nothing was submitted.**
+  - The redacted bundle holds exactly the 32 allow-listed keys, and a privacy regex scan found 0 hits.
+  - Answers: Q7–Q12 come from recorded facts. Q13/Q14 come only from the owner-delegated keys.
+  - Notes: the known deterministic cover-letter duplicate line (Flexport's form has no cover-letter field), and Q13/Q14 need re-confirmation before any real submit.
+
+**G15/G16 transport blocker (policy, not code).** The destination-policy review is in `GREENHOUSE_DESTINATION_POLICY_REVIEW_20260922.md`: public sources only, no form interaction.
+- Greenhouse publishes no candidate terms that permit automated or assisted applying.
+- Flexport's automated-means clause is ambiguous.
+- Greenhouse documents invisible reCAPTCHA behaviour scoring, email-code escalation, and bot and mass-application detection.
+
+Under the lead's frozen §3 rule ("If automation eligibility is unclear … stop with BLOCKED_NO_ELIGIBLE_TRANSPORT"; owner approval cannot override it), **assisted prefill (G15) and automated submission (G16) on Greenhouse are BLOCKED_NO_ELIGIBLE_TRANSPORT** until the lead rules otherwise. The runtime registry already defaults Greenhouse to `blocked`, since there is no entry. The proposed entry is `manual_only`. **A lead policy decision is required** to make any version of G15/G16 reachable. Options:
+- (a) Rule that visible-browser assisted prefill with human review and a human submit is acceptable on this route.
+- (b) Obtain written employer consent for a specific requisition.
+- (c) Redefine G15/G16 for V1.7.
+
+No CAPTCHA or bot bypass will ever be attempted.
