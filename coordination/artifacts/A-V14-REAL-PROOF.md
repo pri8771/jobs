@@ -2,11 +2,11 @@
 
 - Type: real-data proof / acceptance evidence
 - Phase: V1.4
-- Status: BLOCKED
-- Priority: P0
-- Owner: Lane 1 + ChatGPT lead; Lane 2 may execute proof only after P0A if its machine has genuine selected resume bytes; `worker-pc` may provide independent bounded audit/support
-- Dependencies: `A-V14-PACKET-SAFETY` engineering accepted; P0A proof-tool integrity accepted
-- Downstream: V1.4 COMPLETE designation and every later completed-version claim
+- Status: **BLOCKED ON GENUINE APPROVED INPUTS / ELIGIBLE HOST**
+- Priority: P0 live gate / G14
+- Owner: Fable/Claude + ChatGPT lead + Owner for private-input authorization
+- Dependencies: `A-V14-PACKET-SAFETY` ACCEPTED; `A-V14-P0A-INTEGRITY` ACCEPTED; `A-V14-CLEAN-INTEGRATION` ACCEPTED
+- Downstream: G14, V1.4 COMPLETE, G15
 
 ## Owner completion rule
 
@@ -14,138 +14,59 @@ A version is not COMPLETE until engineering acceptance and at least one genuine 
 
 For V1.4 packet preparation, candidate/profile/resume/job inputs must be real, the normal production packet path must run, no mock/fixture fallback may occur, and committed evidence must be runtime-derived and privacy-safe.
 
-Default target:
-- OpenSesame — AI Automation Engineer
-- `https://job-boards.greenhouse.io/opensesame/jobs/7967740?gh_jid=7967740`
+This artifact authorizes packet-preparation proof only when its genuine-input gate is actually open. It does **not** authorize browser prefill, application submission, Gmail/mailbox access, external messaging, MFA/CAPTCHA bypass, spending, or fabrication of candidate facts.
 
-This artifact authorizes packet-preparation proof only. It does not authorize browser prefill, application submission, Gmail OAuth/mailbox access, external messaging, MFA/CAPTCHA bypass, spending, or fabrication of candidate facts.
+## Engineering gate — PASSED
 
-## P0A proof-tool integrity gate
+ChatGPT accepted the P0A proof-tool integrity and clean integration on 2026-09-22:
+- exact P0A source: `8491dd98154ff750f49cbb64d2a79eca5cb06069`;
+- exact consolidated PR #12 head: `47fefd1b0ca354360353577685f6619a94f00f42`;
+- merged to `main` through PR #12 as `7c0fa73bf350392a88b47442455359a43cf926b0`;
+- lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-Private proof execution is forbidden until ChatGPT lead accepts the proof-verification chain.
+Accepted P0A properties include candidate/receipt separation, runtime closed-schema enforcement, database identity/target binding, independent persisted Job/JobSource/packet/answer/provenance/artifact/profile/resume re-derivation, canonical Greenhouse binding, exact selected-resume bytes/hash binding, truthful deterministic-generation labeling, fail-closed tamper handling, sanitized receipts, and production-path SQLite/PostgreSQL integration coverage.
 
-Authoritative audit:
-- `docs/V1_4_REAL_PROOF_TOOLING_AUDIT.md`
+Hosted Actions were `CI_BLOCKED_ACCOUNT` before executable steps and are not described as green. The documented lead engineering exception applies only to engineering acceptance and does not waive this live gate.
 
-Required repairs:
-- RP14-T1 — runner emits `REAL_PROOF_CANDIDATE`; verifier emits a separate candidate-bundle-bound `REAL_PROOF_PASS|REAL_PROOF_FAIL` receipt, including FAIL receipts on rejected candidates.
-- RP14-T2 — local/private bundle hashes cross-bind to the committed redacted candidate and `proof_run_id`.
-- RP14-T3 — JobModel/questions bind to the actual approved current Greenhouse fetch/attestation.
-- RP14-T4 — copied/renamed example candidate profiles are rejected by content evidence, not filename alone, and the actual private profile bytes are bound to the private evidence.
-- RP14-T5 — committed redacted evidence uses an explicit allowlist and rejects arbitrary extra fields.
-- RP14-T6 — deterministic generation is labeled unambiguously as deterministic production generation, never mock/test or fictitious external-provider output.
-- RP14-T7 — packet/manifest/resume/job/artifact/persisted-row cross-links are independently re-derived and verified.
+## G14 genuine-input gate
 
-Acceptance evidence must include adversarial tests for forged bundles, unrelated local artifacts, fake/unapproved job/question data, copied/example or fake private-profile evidence, extra fields, misleading generation metadata, and broken packet/artifact/database links. Targeted tests plus full pytest/Ruff/mypy/CI must be green on the accepted implementation batch.
+G14 may run only on a host that actually has all of the following:
+1. the approved genuine private candidate profile;
+2. the exact selected real resume bytes and canonical mapping;
+3. a current real job/source suitable for packet proof;
+4. production-path connectivity/configuration needed by the importer/runner/verifier;
+5. explicit authority to use those private inputs for this packet-preparation proof.
 
-## Latest lead review — 2026-09-21 18:03 ET
+The last reviewed Fable host reported that it does **not** have the required private profile/resume inputs and does not have usable public Greenhouse egress. Therefore that host is not currently eligible to execute G14. Do not fabricate, synthesize, relabel or silently substitute any input.
 
-Lane 1 remains **REWORK**. P0A is not accepted. V1.4 remains **NOT COMPLETE**.
+Private inputs remain local. Committed evidence must contain only sanitized hashes/provenance and runtime-generated redacted evidence.
 
-### Reviewed clean-port batch
+## Required production execution
 
-Worker implementation:
-- clean implementation branch: `claude/serene-brown-g6uij0`
-- substantive commit: `3444076de27573ec57d9c8ae60876aece8e646d9`
-- parent: reviewed `main` `927b33c0f523950ca206ead1cc2912e19a018184`
-- Lane 1 heartbeat branch reached #22 at `2026-09-21T21:31:56Z`, then became stale; before resuming Lane 1 must confirm the old watcher is dead and launch exactly one current watcher.
-
-Lead inspected the actual clean-port diff rather than the worker claim. The implementation materially closes the previously identified runtime-contract gaps:
-- runner emits `REAL_PROOF_CANDIDATE`, not PASS,
-- verifier emits a separately candidate-SHA-bound PASS/FAIL receipt and emits FAIL receipts on rejected candidates,
-- local/private artifact hashes and proof-run identity are cross-bound to the redacted candidate,
-- persisted DB evidence is mandatory/fail-closed,
-- Greenhouse source/question/job identity is corroborated against persisted `JobSource`/`Job` data,
-- copied repository example-profile bytes are rejected by content hash,
-- verifier uses the production `generation_origin` metadata key,
-- driver-qualified `postgresql+psycopg://` proof DB URLs are handled as PostgreSQL rather than misread as SQLite paths,
-- packet/manifest/resume/artifact/database links and canonical packet hash are re-derived.
-
-Worker-reported exact-head local validation for `3444076...`:
-- Python 3.12.3,
-- pytest: 205 passed,
-- Ruff check: clean,
-- mypy `src tests`: clean,
-- lead-reviewed adversarial probe set: 16 formerly-xfail defect cases reported passing.
-
-Those local claims are useful but do not establish lead acceptance by themselves.
-
-### Remaining blocking defect — RP14-T1/T5 schema contract
-
-The clean-port did **not** update `coordination/proofs/v14_real_proof.schema.json`.
-
-Lead inspection at `3444076...` found the schema still declares:
-- `"additionalProperties": true`, and
-- `result.const = "REAL_PROOF_PASS"`.
-
-That directly conflicts with the accepted P0A contract:
-- runtime evidence must be a `REAL_PROOF_CANDIDATE`, and
-- committed candidate evidence must be closed/allowlisted (`additionalProperties: false`).
-
-The verifier has an explicit Python allowlist, but the committed schema is itself part of the proof contract and must agree with the production candidate shape. P0A therefore remains **REWORK** until the schema is corrected and regression-tested against the actual runner output.
-
-### Reviewed worker-pc schema support
-
-Bounded task `jobs-v14-p0a-schema-gate-20260921-1748` completed successfully and returned:
-- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`,
-- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`,
-- direct parent `3444076de27573ec57d9c8ae60876aece8e646d9`.
-
-Lead inspected the actual Jobs diff. It changes only:
-- `coordination/proofs/v14_real_proof.schema.json`,
-- new `tests/test_real_proof_schema.py`,
-- `pyproject.toml` to add the `jsonschema` dev dependency.
-
-Structurally the support patch closes the schema gap:
-- `additionalProperties: false`,
-- `result.const: REAL_PROOF_CANDIDATE`,
-- schema `properties` and `required` are pinned to the runner's emitted top-level keys and verifier `ALLOWED_TOP_LEVEL_KEYS`,
-- legitimate production fields such as `candidate_unresolved_fact_categories`, `questions_count`, `generation_engine`, `model_provider`, and `model_name` are represented,
-- deterministic-generation labels are constrained consistently with the verifier,
-- tests cover production-shape candidate acceptance, arbitrary extra-field rejection, self-declared PASS rejection, missing required keys, and invalid out-of-contract values.
-
-**Support verdict: useful, not accepted or merge-ready.** The worker did not execute the test suite in its environment, and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or faithfully reimplement this patch inside its coherent current-main P0A batch, run focused and full validation, and obtain exact-head CI when hosted Actions execute. No support branch may auto-merge.
-
-### CI gate still unresolved
-
-GitHub has no check runs for substantive clean-port commit `3444076...` or schema-support commit `70ef7adc...`.
-
-The current Lane 1 heartbeat head and latest main CI continue to trigger Actions jobs that fail before any workflow step executes (`steps: []`, `runner_id: 0`), consistent with the existing account/hosted-runner startup block. Do not call this green CI and do not rewrite proof behavior to work around an infrastructure outage.
-
-Before P0A acceptance, Lane 1 must land the reviewed schema correction on a clean current-main integration, rerun focused + full pytest/Ruff/mypy, and obtain exact-head branch CI when hosted runners execute. If Actions still fail before steps begin, record `CI_BLOCKED_ACCOUNT`; private proof execution remains forbidden until the lead resolves the acceptance gate.
-
-## Real-proof execution after P0A acceptance
-
-### RP14-C1 — Lane 1
-Validate the actual private candidate profile and actual resume mappings locally. Do not use `candidate_profile.example.yaml`, temp/synthetic resumes, or commit private contents. Emit only redacted readiness evidence or `REAL_PROOF_BLOCKED_PRIVATE_INPUT`.
-
-### RP14-C2 — Lane 1
-Import/validate the current real OpenSesame JobModel/source/questions using `scripts/import_v14_proof_job.py` and current public Greenhouse data.
-
-### RP14-C3 — Lane 1
-Confirm the production packet path has a non-mock generation route. `DeterministicModelGateway` is acceptable only when represented honestly as deterministic production generation. No silent fallback to mock.
-
-### RP14-E1/E2 — first genuinely eligible Lane 1 or Lane 2 machine
-Whichever eligible machine first has the actual private profile and real mapped resume bytes runs, after P0A acceptance:
+When the gate is genuinely open on an eligible host, use the production path:
 - `python scripts/import_v14_proof_job.py`
 - `python scripts/run_v14_real_proof.py ...`
 - `python scripts/verify_v14_real_proof.py ... --local-full-bundle ...`
 
-Do not wait for a cross-lane handoff when one eligible machine has all inputs. Push only runtime-generated redacted candidate evidence plus the separately generated verifier receipt; private full evidence remains local/gitignored.
+The runner must emit a runtime `REAL_PROOF_CANDIDATE`; the independent verifier must emit a candidate-bound `REAL_PROOF_PASS` or `REAL_PROOF_FAIL` receipt. No hand-authored evidence is acceptable.
 
-A machine without the actual selected resume mapping is not eligible merely because another real resume file exists locally. Do not synthesize, relabel, or silently substitute resume bytes to make the proof pass.
+The default historical target is OpenSesame — AI Automation Engineer only if it is still current/live when the proof runs; otherwise select a current real job under the same owner-approved rules. A stale or fake job cannot satisfy G14.
 
-### RP14-I1 — independent audit
-After genuine candidate + verifier evidence appears, ChatGPT lead performs the acceptance audit and may use `worker-pc` for bounded independent review of runtime derivation, mock/fixture contamination, current-job binding, candidate-bundle SHA binding, local/artifact hash consistency, packet/manifest/resume/database linkage, generation origin, and privacy.
+## Forbidden substitutions
 
-Old Scout is paused and is not an active dependency.
+G14 fails if any of the following is used as a substitute for genuine production evidence:
+- `candidate_profile.example.yaml` or copied/example-profile contents;
+- temp, synthetic or silently substituted resume bytes;
+- fake/stale/unapproved job or hand-built question data;
+- `MockModelGateway`, `HallucinatingModelGateway`, test/adversarial-mock origin, or silent mock fallback;
+- self-declared PASS evidence;
+- local-only artifacts that are not independently linked to persisted production rows;
+- manually authored redacted proof files.
 
-### RP14-L1 — ChatGPT lead
-ChatGPT re-audits candidate evidence, verifier receipt, independent findings when available, implementation/test/CI evidence, and marks this artifact ACCEPTED only on a genuine `REAL_PROOF_PASS`.
+## Acceptance
 
-## Completion
+ChatGPT may mark this artifact ACCEPTED only after reviewing a genuine runtime candidate plus independently bound PASS receipt, current real job/source binding, private-input provenance hashes, packet/manifest/resume/database/artifact linkage, generation origin, privacy hygiene and available implementation/test evidence.
 
-V1.4 is COMPLETE only when:
-1. `A-V14-PACKET-SAFETY` engineering acceptance remains valid,
-2. P0A proof-tool integrity is lead-accepted,
-3. `A-V14-REAL-PROOF` is ACCEPTED from a genuine runtime candidate + independently bound PASS receipt.
+`coordination/proofs/` currently contains no accepted runtime proof bundle, so **G14 is UNPASSED and V1.4 is NOT COMPLETE**.
+
+After genuine G14 acceptance, G15 becomes the next live gate. G15 still requires its own scoped visible-browser owner grant and must stop before submit.
