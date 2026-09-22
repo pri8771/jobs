@@ -1202,6 +1202,12 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
 )
 @click.option("--replay-run", default=None, help="Replay the recorded parameters of a run id.")
 @click.option(
+    "--apply-replay",
+    is_flag=True,
+    default=False,
+    help="Explicitly permit a stateful replay of a recorded non-dry run.",
+)
+@click.option(
     "--canary-identity",
     "canary_identities",
     multiple=True,
@@ -1217,6 +1223,7 @@ def ingest_mailbox(
     dry_run: bool,
     mock_fixtures: bool,
     replay_run: str | None,
+    apply_replay: bool,
     canary_identities: tuple[str, ...],
     config_dir: str,
 ) -> None:
@@ -1244,6 +1251,32 @@ def ingest_mailbox(
             raise click.ClickException(f"{label} must be ISO-8601: {exc}") from exc
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.UTC)
 
+    # Validate every operator-supplied boundary before loading configuration, opening the
+    # database, assessing OAuth readiness, or constructing GmailAdapter.  Constructing a
+    # live adapter may refresh an expired token, so malformed input must fail before that
+    # side effect is even reachable.
+    try:
+        request = BoundedIngestionRequest(
+            mailbox=mailbox,
+            query=query,
+            window_start=_parse_window(window_start, "--window-start"),
+            window_end=_parse_window(window_end, "--window-end"),
+            cap=cap,
+            dry_run=dry_run,
+        ).validated()
+    except (BoundedIngestionError, ValueError) as exc:
+        raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
+
+    if apply_replay and not replay_run:
+        raise click.ClickException("--apply-replay requires --replay-run")
+    if replay_run and dry_run and apply_replay:
+        raise click.ClickException("--dry-run and --apply-replay cannot be combined")
+    if replay_run and not (dry_run or apply_replay):
+        raise click.ClickException(
+            "replay requires --dry-run for a non-mutating check or --apply-replay for a "
+            "stateful replay"
+        )
+
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
     candidate_emails = [profile.identity.email] if profile.identity.email else []
@@ -1265,7 +1298,9 @@ def ingest_mailbox(
             adapter = MockEmailAdapter(get_sample_email_fixtures())
             adapter_kind, synthetic = "mock_fixtures", True
         else:
-            readiness = assess_gmail_readiness(settings, session)
+            readiness = assess_gmail_readiness(
+                settings, session, expected_mailbox=request.mailbox
+            )
             if not readiness.live_capable or not readiness.scope_is_readonly_only:
                 console.print(
                     f"[bold red]Read-only Gmail grant not established (state={readiness.state}, "
@@ -1288,16 +1323,12 @@ def ingest_mailbox(
         )
         try:
             if replay_run:
-                result = runner.replay(replay_run, mailbox)
-            else:
-                request = BoundedIngestionRequest(
-                    mailbox=mailbox,
-                    query=query,
-                    window_start=_parse_window(window_start, "--window-start"),
-                    window_end=_parse_window(window_end, "--window-end"),
-                    cap=cap,
-                    dry_run=dry_run,
+                result = runner.replay(
+                    replay_run,
+                    request,
+                    allow_stateful_replay=apply_replay,
                 )
+            else:
                 result = runner.run(request)
         except BoundedIngestionError as exc:
             raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
@@ -1432,5 +1463,4 @@ def lifecycle_timeline(application_id: str, json_output: str | None) -> None:
 
 if __name__ == "__main__":
     cli()
-
 
