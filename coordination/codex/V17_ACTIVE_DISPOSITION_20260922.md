@@ -616,3 +616,83 @@ COMP-2 engine work remains held until:
 Do not begin `engine.py`, `bounded.py`, provenance, lifecycle, worker, dashboard, or other held conflict work in parallel.
 
 No live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, Fable/Claude dispatch, or main merge.
+
+
+## 13. COMP-2A formal verdict and COMP-2B typing activation
+
+### COMP-2A
+
+**ACCEPTED** exact source:
+- SHA `1b9efdda418baa059903215349e27493cf709f3a`
+- tree `cb57c3fe973cd8e837838d1a095d334cc2cba321`
+- base `b67fc523863babd3e195ee71a05f00fa0f2f7e79`
+
+Accepted scope only:
+- `src/jobs_automation/adapters/gmail.py`
+- `src/jobs_automation/core/platforms.py`
+- `tests/test_gmail_adapter_bounded.py`
+- `tests/test_config.py`
+
+Accepted behavior:
+- To/Cc recipient headers are parsed independently, so one malformed neighboring header cannot erase valid recipients from the other;
+- ordinary recipient ordering/address parsing remains stable;
+- control-line pagination/completeness/provider-time/direction semantics are preserved;
+- `EmailPollingConfig.canary_identities` exists with empty default;
+- every configured canary entry must resolve to exactly one email address;
+- malformed/multi-address entries fail validation;
+- `extra="forbid"` and existing provider/polling validation remain intact.
+
+Evidence:
+- baseline focused: 8 failed / 23 passed;
+- repaired focused: 31 passed;
+- full exact-tree: 530 passed / 1 existing host skip;
+- owned PostgreSQL proof integration cleanup0;
+- Ruff clean;
+- source-only mypy74 clean;
+- format/diff clean;
+- independent exact-tree review recommends acceptance.
+
+Full `mypy src tests` is **not green** on this line because of 27 inherited errors in unrelated tests. Baseline and candidate logs are byte-identical; COMP-2A adds zero new errors. Therefore this acceptance does not claim hosted/full integration CI green.
+
+### COMP-2B-TYPING — ACTIVE
+
+Current direct integrator: **Codex**.
+
+Starting parent:
+`1b9efdda418baa059903215349e27493cf709f3a`
+
+Allowed files only:
+- `tests/test_crm_corrections.py`
+- `tests/test_bounded_ingestion_scope.py`
+- `tests/test_candidate_reply_attribution.py`
+- `tests/test_auto_application.py`
+- `tests/test_dashboard_health_badge.py`
+
+No production source changes.
+
+Goal:
+- reproduce the exact 27 inherited errors on the accepted COMP-2A parent;
+- fix them honestly with precise annotations and non-Optional narrowing/assertions;
+- preserve behavior and assertions;
+- no broad `Any` solely to silence mypy;
+- no `# type: ignore` unless a specific unavoidable third-party typing defect is independently demonstrated and narrowly documented;
+- no skip/delete/assertion weakening;
+- no mypy config/CI command/exclude/override relaxation.
+
+Required validation:
+1. baseline `mypy src tests` => exact 27 errors;
+2. candidate `mypy src tests` => clean;
+3. focused pytest for all five touched files;
+4. full pytest;
+5. Ruff;
+6. format/diff check;
+7. hosted CI on exact candidate if available;
+8. return exact SHA/tree and READY_FOR_LEAD_REVIEW.
+
+### Engine composition remains held
+
+Do not resume `src/jobs_automation/ingestion/engine.py` COMP-2 until COMP-2B-TYPING receives a formal exact-SHA acceptance with full `mypy src tests` green.
+
+No bounded.py/provenance/lifecycle/worker/dashboard work in parallel.
+
+No live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, Fable/Claude dispatch, or main merge.
