@@ -1,78 +1,74 @@
 # Active queue — V1.7 live only
 
-Owner scope: **get V1.7 live and stop**. Exactly one Fable implementation session and one owned five-minute worker heartbeat. ChatGPT is lead and sole milestone acceptance authority. V2.0/V2.3/V3 are inactive future inventory.
+Owner scope: **get V1.7 live and stop**. Exactly one Fable/Claude implementation worker/session and one owned five-minute worker heartbeat. ChatGPT is lead and milestone acceptor. V2/V3 remain inactive future inventory.
 
 Canonical execution: `docs/FABLE_V17_LIVE.md`.
 Lead handoff: `coordination/V17_LEAD_HANDOFF.md`.
-Active implementation branch: `claude/serene-brown-g6uij0`.
-Draft review PR: #12.
+Latest lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-## Current reviewed position
+## Current accepted engineering position
 
-Latest reviewed worker code: `a6b5ba34eface2cb205e3d9e3809c339d38b06b7`.
+PR #12 has been lead-reviewed and merged. Exact engineering sources:
+- V1.4 P0A: `8491dd98154ff750f49cbb64d2a79eca5cb06069` — **ENGINEERING ACCEPTED**.
+- V1.5 assisted-browser: `47fefd1b0ca354360353577685f6619a94f00f42` — **ENGINEERING ACCEPTED**.
+- integration on `main`: `7c0fa73bf350392a88b47442455359a43cf926b0`.
 
-Phase 0 is complete as an operational discovery step, not as milestone acceptance:
-- consolidated readiness report exists and is accepted as current operational inventory;
-- V17-T01 transport research is useful support evidence but does **not** make a live transport eligible;
-- worker-host PostgreSQL and Playwright engineering capability is reported available;
-- exact-head code validation/READY handoff for the new hygiene changes is still pending;
-- no G14/G15/G16/G17 live proof has passed.
+Worker-host validation reports 395 tests including real PostgreSQL producer-to-consumer proof-path coverage and real headless Playwright engineering-form coverage, plus Ruff and mypy green. Hosted Actions are `CI_BLOCKED_ACCOUNT` before steps and are not green. A read-only `worker-pc` exact-head check confirmed the SHA but could not run Python due harness approval, so it adds zero test credit.
 
-## P0 — A-V14-P0A-INTEGRITY
+## P0 LIVE — G14 / A-V14-REAL-PROOF
 
-State: **IN_PROGRESS / REWORK; not accepted**.
+State: **BLOCKED ON GENUINE APPROVED INPUTS / ELIGIBLE HOST; UNPASSED**.
 
-Fable must complete F145-01..06 as one coherent current-branch batch. Preserve all consolidated PR #11 review findings, including:
-- closed runtime candidate schema and candidate/receipt separation;
-- credential-safe DB identity and mandatory persisted packet/resume/artifact/source linkage;
-- persisted answers/provenance/unresolved/profile/selected-resume binding;
-- canonical Greenhouse source binding and generation-origin truth;
-- real PostgreSQL compatibility and positive production-constructor coverage;
-- fail-closed behavior for missing/tampered evidence.
+P0A is no longer the blocker. To open G14, the execution host must actually have:
+- the approved genuine private candidate profile;
+- the exact selected real resume bytes/mapping;
+- a current real job/source suitable for the packet proof;
+- working production-path connectivity/configuration.
 
-Required handoff: actual diff + targeted proof tests + full pytest + Ruff + mypy + real PostgreSQL production-path validation available on the worker host. Hosted Actions currently fail before runner steps, so exact-code local/worker validation may be reviewed as engineering evidence but must never be described as hosted CI-green.
+Then run the production importer -> packet runner -> independent verifier and preserve only sanitized hashes/provenance in committed evidence. Private inputs remain local. No example/synthetic profile, temp resume, fake job, mock model, silent fallback or hand-authored proof evidence is allowed.
 
-No private profile/resume proof before ChatGPT accepts P0A.
+The last reviewed Fable host reported it does **not** have the required private inputs and public Greenhouse egress. Do not self-open this gate or fabricate substitutes.
 
-## Safe parallel work inside the same worker session
+## Safe independent engineering while G14 is blocked
 
-While P0A is waiting on lead review, the same Fable session may continue F145-07..11 V1.5 engineering only:
-- semantic form fingerprint/destination identity;
-- upload selection/result/readback evidence;
-- no false submission truth from URL keywords/arbitrary evidence;
-- prefill-only flow must stop before submit;
-- local controlled Playwright engineering validation is permitted.
+The same single Fable session should synchronize latest `main` and continue bounded **V1.6 engineering** from `docs/FABLE_V17_LIVE.md`, prioritizing:
+- authorization semantics for exact job + packet + method;
+- durable idempotency/concurrency safety;
+- immediate pre-submit packet/artifact/policy preflight;
+- external-confirmation truth and reconciliation;
+- task/telemetry/error hygiene;
+- eligible candidate-side transport only;
+- removal of unsafe fallbacks/retries and any code path that can infer submission truth from local state, URL text or untrusted evidence.
 
-This does not open G15 on a real employer page.
+Return one coherent reviewable batch with targeted/full validation. Do not perform a live submit.
 
-## Live gates
+## G15 — genuine visible-browser prefill
 
-### G14 — genuine V1.4 packet proof
-BLOCKED until P0A acceptance plus an eligible host with the genuine private profile, exact selected `resume_ai_software_engineer` bytes, and a current real job/source. Then run the production packet path and independently validate the runtime candidate/receipt. Private inputs remain local.
+State: **BLOCKED / UNPASSED** until accepted genuine G14 packet + accepted V1.5 engineering + a scoped owner grant naming the real application page/session. Perform safe visible prefill/uploads, capture post-fill evidence, and **STOP BEFORE SUBMIT**. LinkedIn/Indeed submission remains MANUAL_ONLY.
 
-### G15 — genuine visible-browser prefill
-BLOCKED until accepted real packet + V1.5 engineering acceptance + a scoped owner grant naming the real application page. Perform actual safe prefill/uploads, capture post-fill evidence, and **STOP BEFORE SUBMIT**.
+## G16 — one real system submission
 
-### G16 — one real system submission
-BLOCKED until V1.6 authorization/idempotency/preflight/confirmation/hygiene/transport engineering is accepted and the owner explicitly approves the exact desired job, packet and method. Employer-credentialed ATS APIs are not candidate-eligible. Hosted-browser submission is only a candidate transport if policy and exact owner authorization permit it. CAPTCHA/MFA/verification is a terminal manual barrier. Require correlated external confirmation; local success flags/manual reports are not substitutes.
+State: **BLOCKED / UNPASSED** until V1.6 authorization/idempotency/preflight/confirmation/hygiene/eligible-transport engineering is accepted and the owner explicitly approves the exact desired job, packet and method. A real system action plus correlated external confirmation is required. A manual report, mock, test employer, or public API GET is not a substitute. CAPTCHA/MFA/verification is a manual terminal barrier.
 
-### G17 — genuine recruiting lifecycle proof
-BLOCKED until the owner authorizes bounded read-only Gmail access and supplies/selects a bounded genuine recruiting evidence set. Reuse merged PR #3 lifecycle/CRM code; close only demonstrated ingestion/link/replay gaps. Prove production ingestion, meaningful timeline/interview/follow-up/outcome evidence, and idempotent replay/restart.
+## G17 — genuine recruiting lifecycle proof
 
-## Engineering sequence after P0A/V1.5
+State: **BLOCKED / UNPASSED** until bounded genuine recruiting evidence and the required read-only access are explicitly authorized. Reuse merged PR #3 lifecycle/CRM code; do not broadly rewrite it. Required proof: production ingestion/linking, meaningful timeline/interview/follow-up/outcome evidence, and idempotent replay/restart.
 
-1. V1.6: V17-A01/A02/I01/I02/P01/P02/D01/C01/C02/H01/T02/X01, strictly bounded by `docs/FABLE_V17_LIVE.md`.
-2. G16 when the exact live gate opens.
-3. V1.7: V17-R01/M01..M04/R02..R05 only as needed to reconcile merged code to the acceptance criteria.
-4. G17 when the bounded mailbox/evidence gate opens.
-5. `A-V17-MILESTONE-GATE`: accept only after engineering + genuine G14/G15/G16/G17 all pass.
-6. **STOP.** Do not assign V2/V3.
+## Completion sequence
+
+1. G14 genuine packet proof.
+2. G15 genuine visible-browser prefill proof, stopping before submit.
+3. Finish/accept V1.6 engineering and G16 one exact approved real system submission with correlated external confirmation.
+4. Reconcile only the V1.7 gaps needed around merged PR #3 and prove G17 with genuine bounded evidence.
+5. Accept `A-V17-MILESTONE-GATE` only when engineering + G14 + G15 + G16 + G17 all pass.
+6. **STOP.** Await new owner scope. Do not assign V2/V3.
 
 ## Operations
 
-- One implementation session only; no historical lane restart.
+- One implementation session only; do not restart historical lanes.
 - One worker watcher only: `FIVE_MIN_2026_09_21` / `ACTIVE_5M` every ~5 minutes while working.
-- Active heartbeat publication branch is `worker/v14-real-proof`; it is the watcher stream for the current Fable session, not a second implementation lane.
-- Latest lead-verified heartbeat at this sync: #27 at `2026-09-22T00:50:27Z`.
-- Heartbeat issue-comment workflow and hosted CI remain runner-start blocked (`steps: []`, `runner_id: 0`). Direct lead comments to issue #7 remain required.
-- `worker-pc` gets no task unless a concrete independent need exists and checkout/fetch/test permission is verified first. Do not repeat the failed clean-sync under unchanged permissions.
+- Watcher publication branch remains `worker/v14-real-proof` for this same Fable session; it is not a second implementation lane.
+- Latest lead-verified heartbeat: **#40 at `2026-09-22T01:56:01Z`**.
+- Hosted heartbeat comments/CI may remain runner-start blocked; direct lead issue #7 updates continue.
+- Do not repeat `worker-pc` Python validation under unchanged harness permissions.
+- No Gmail/mailbox, real employer-page prefill, submission, messaging, calendar, spending, CAPTCHA/MFA handling, or fabricated candidate facts without the exact scoped grant.
