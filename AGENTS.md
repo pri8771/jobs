@@ -8,9 +8,17 @@ User = product owner/final authority. ChatGPT = lead, reviewer and milestone acc
 
 Git defines current code and evidence; prior conversations/memory explain intent only. Explicit owner instructions outrank stale repository prose. Other projects are not Jobs authority.
 
+## Codex portfolio-management routing
+
+When the user explicitly asks Codex to manage Jobs, Social Bots and SwarmAI in one session, start with `CODEX_START.md` and `coordination/codex/PROJECTS.json`, then `coordination/codex/PORTFOLIO_RUNBOOK.md`. These are routes and management notes, not a shared implementation architecture, another acceptance system, or permission to start workers/schedulers.
+
+Codex may coordinate and independently review as assigned; preserve each repository's actual acceptance authority and existing worker ownership. Do not impersonate ChatGPT, self-accept worker output or infer merge/live authority from the word manage. Final role changes need actual owner authorization recorded in the relevant project.
+
+The Jobs V1.7 implementation contract below remains unchanged. Other projects' scope, canonical refs, heartbeat and grants come from their own current repositories. Do not apply Jobs' five-minute watcher to Social Bots SESSION_ONCE. Keep project-specific tasks/results in their own canonical refs and only a derived rollup here. This router does not modify any other repository, active worker, schedule or milestone.
+
 ## Startup and execution
 
-Read `CLAUDE.md`, `state/CURRENT.md`, `coordination/WORK_QUEUE.md`, the current artifact and `docs/FABLE_V17_LIVE.md`. Inspect actual branch/PR/diffs/tests/CI and the owned heartbeat before status claims. Read only relevant code/contracts; use search and targeted diffs. Do not load all V2/V3 documents.
+For a Jobs implementation session, read `CLAUDE.md`, `state/CURRENT.md`, `coordination/WORK_QUEUE.md`, the current artifact and `docs/FABLE_V17_LIVE.md`. For a portfolio-management session use the Codex route above, then read the current native files for each project. Inspect actual branch/PR/diffs/tests/CI and the owned heartbeat before status claims. Read only relevant code/contracts; use search and targeted diffs. Do not load all V2/V3 documents.
 
 Reuse existing code and accepted merged work. Prefer SP1/SP2 tasks with exact inputs, expected behavior, tests and fail-closed outcomes. Do not force-reset dirty work, force-push, auto-merge support branches or repeatedly rebase for heartbeat-only changes.
 
