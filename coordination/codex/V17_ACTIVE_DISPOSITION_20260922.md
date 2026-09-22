@@ -696,3 +696,125 @@ Do not resume `src/jobs_automation/ingestion/engine.py` COMP-2 until COMP-2B-TYP
 No bounded.py/provenance/lifecycle/worker/dashboard work in parallel.
 
 No live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, Fable/Claude dispatch, or main merge.
+
+
+## 14. COMP-2B typing verdict and COMP-2 engine activation
+
+### COMP-2B-TYPING
+
+**ACCEPTED** exact source:
+- SHA `bfc507903452d32d979cfb7b8c78f5ac916fa305`
+- tree `4c3bfa242b34912066c0470efb8745f5ae22b3ad`
+- parent `1b9efdda418baa059903215349e27493cf709f3a`
+
+Accepted scope only:
+- `tests/test_crm_corrections.py`
+- `tests/test_bounded_ingestion_scope.py`
+- `tests/test_candidate_reply_attribution.py`
+- `tests/test_auto_application.py`
+- `tests/test_dashboard_health_badge.py`
+
+Evidence:
+- exact parent baseline: 27 `mypy src tests` errors;
+- candidate `mypy src tests`: clean, 118 files;
+- focused: 46 passed;
+- full: 530 passed / 1 existing host skip;
+- owned PostgreSQL proof integration cleanup0;
+- Ruff/format/diff clean;
+- independent normalized AST review retained 29 tests and 145 existing assertions; five explicit non-null narrowing assertions added.
+
+Hosted exact-head status at acceptance time: **NO RUN YET**. No hosted-green claim is made. Hosted CI remains supplemental for this exact candidate and should be read back when/if GitHub starts it.
+
+No production/config/CI behavior changed.
+
+## COMP-2 ENGINE — ACTIVE
+
+Current direct integrator: **Codex**.
+
+Integration base for this pass:
+`bfc507903452d32d979cfb7b8c78f5ac916fa305`
+(which includes accepted COMP-2A + accepted COMP-2B typing cleanup)
+
+Reference accepted canary behavior source:
+`eec0ae3d9b50979b74294dd9ee0561172eff54b0`
+
+Reference-only bounded semantics:
+`2969ac28364e9c39bbaf5c94b4c7cfe97ca5699a`
+
+Allowed production file only:
+- `src/jobs_automation/ingestion/engine.py`
+
+Expected focused test files:
+- `tests/test_gmail_adapter_bounded.py`
+- `tests/test_bounded_ingestion.py`
+- `tests/test_canary_provenance.py`
+- at most one additional existing test file if strictly required to exercise an engine-owned behavior.
+
+### Required preservation from control/base
+
+Preserve all accepted control-line engine behavior, especially:
+- incomplete-poll atomicity and checkpoint hold semantics;
+- existing deduplication/job discovery behavior;
+- candidate-reply/outbound attribution path, including `_link_candidate_reply` and thread-reply attribution semantics;
+- no checkpoint advance on incomplete/missing/truncated poll evidence;
+- existing control error/reporting behavior unless `safe_errors=True` explicitly selects the accepted bounded-safe category path.
+
+### Required canary API/behavior port
+
+Add/preserve the accepted canary engine contracts:
+- `canonical_email_addresses`;
+- `is_durable_canary`;
+- `persisted_message_matches_canary_policy`;
+- `mark_durable_canary`;
+- `reclassify_persisted_canary_messages`;
+- `IngestionSweepSummary.batch_canary_provider_message_ids`;
+- `EmailIngestionEngine(..., safe_errors: bool = False)`;
+- canonical exact-address canary matching, not substring matching;
+- runtime canary membership tracking for dry-run/bounded evidence;
+- duplicate/historical canary reclassification behavior;
+- safe error categorization only when `safe_errors=True`.
+
+### Explicit composition rules
+
+- Do **not** replace `engine.py` wholesale with the canary branch version.
+- Build a deliberate semantic merge preserving control-only candidate-reply/outbound attribution and incomplete-poll behavior.
+- Do not modify `bounded.py`, `db/canary_provenance.py`, lifecycle, CRM, alerts, worker, dashboard, CLI, migrations, config, Gmail adapter, or CI in this pass.
+- If another production file is required, STOP with `COMP-2_ENGINE_REWORK_FOUND` and exact dependency.
+
+### Required focused regressions
+
+At minimum prove:
+1. malformed neighboring headers from accepted COMP-2A still produce recipients that exact-address canary matching recognizes;
+2. display/case canary aliases canonicalize and match;
+3. lookalike substring addresses do not match;
+4. runtime canaries are tracked in `batch_canary_provider_message_ids`;
+5. duplicate historical messages matching current canary policy become durably tagged on non-dry runs;
+6. dry-run canary membership is tracked without relying on persisted tag;
+7. incomplete poll/missing message/cap truncation still prevents ordinary writes/checkpoint advancement as accepted;
+8. control candidate-reply/outbound attribution tests remain green;
+9. `safe_errors=False` preserves existing worker-facing behavior while `safe_errors=True` returns only accepted bounded-safe categories.
+
+### Validation
+
+Run:
+- focused engine/Gmail/bounded/canary tests;
+- candidate-reply attribution tests;
+- incomplete-poll atomicity tests;
+- full pytest;
+- Ruff;
+- `mypy src tests`;
+- affected PostgreSQL proof/integration checks as needed;
+- format/diff check.
+
+Return exact SHA/tree and `READY_FOR_LEAD_REVIEW` or `COMP-2_ENGINE_REWORK_FOUND`.
+
+### Still held
+
+Do not open:
+- `bounded.py` V3/reference integration;
+- `db/canary_provenance.py`;
+- lifecycle/alerts/CRM conflict composition;
+- worker/dashboard/CLI conflict composition;
+- live G14-G17 execution.
+
+No Fable/Claude dispatch, live Gmail/OAuth, browser/application action, model/provider call, scheduler/timer change, spend, deployment, or main merge.
