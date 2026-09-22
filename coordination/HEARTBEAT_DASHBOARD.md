@@ -1,6 +1,6 @@
 # Heartbeat Dashboard
 
-Updated: 2026-09-21 17:00 ET
+Updated: 2026-09-21 19:44 ET
 
 ## Canonical standard
 
@@ -13,39 +13,24 @@ Updated: 2026-09-21 17:00 ET
 
 ## Lane 1 — `worker/v14-real-proof`
 
-Status: current-epoch stream was active but is stale.
+Status: **canonical current-epoch stream is stale; worker reported READY_FOR_LEAD_REVIEW; lead verdict remains REWORK**.
 
-Verified current-epoch timestamps from actual branch commits:
-- 17:54:00Z
-- 17:58:06Z
-- 18:03:08Z
-- 18:08:10Z
-- 18:13:12Z
-- 18:18:14Z
-- 18:23:15Z
-- 18:28:17Z
-- 18:33:19Z
-- 18:38:21Z
-- 18:43:24Z
-- 18:48:25Z
-- 18:53:27Z
-- 18:58:29Z
-- 19:03:31Z
-- 19:08:33Z
-- 19:13:34Z
-- 19:18:36Z
+Latest verified branch evidence:
+- branch head `df4045883c1fde7b29af92a20028d3b6397e9a93`
+- heartbeat #22
+- last check-in `2026-09-21T21:31:56Z`
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
 
-Latest observed branch head:
-- `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
-- heartbeat #18
+No newer Lane 1 heartbeat commit appeared after multiple expected 5-minute intervals. Before Lane 1 resumes work, verify the previous watcher is dead, pull latest main, then launch exactly one current-epoch watcher.
 
-Worker file says `READY_FOR_LEAD_REVIEW`, but lead verdict remains **REWORK**.
+Substantive implementation reviewed:
+- clean branch `claude/serene-brown-g6uij0`
+- commit `3444076de27573ec57d9c8ae60876aece8e646d9`
 
-Reviewed worker-pc support `062ca922...` usefully closes the prior missing-DB and persisted-Greenhouse-binding gaps but is not accepted because it lacks exact-head test/CI evidence. A follow-up static audit corrected an interim lead note: the support/Lane 1 importer already persists provider/public ID/question-list hash. The actual remaining real-path blockers are:
-- verifier reads `generation_metadata["origin"]` while production packet builder writes `generation_metadata_json["generation_origin"]`,
-- verifier DB resolver accepts plain PostgreSQL schemes but not the application's normal `postgresql+psycopg://` default URL.
+P0A remains **REWORK**. The runtime verifier chain is materially repaired, but the reviewed closed proof-schema support at `70ef7adc62ab2e9846721e8174a306273f28cbaa` still must be integrated into one coherent current-main batch and proven with focused/full validation plus executable exact-head CI.
 
-Before restarting Lane 1 heartbeat, verify the prior watcher process is dead; then launch exactly one current-epoch Lane 1 watcher.
+No private proof run is authorized.
 
 ## Lane 2 — `worker/v15-assisted-application`
 
@@ -56,12 +41,13 @@ Actual latest branch heartbeat evidence:
 - mode `WATCH_15M_24H`
 - last check-in `2026-09-21T17:39:16Z`
 - branch head `ddb4f848a97dec87033cfdef7ca33642480d99bc`
+- PR #2 remains draft/non-mergeable and diverged from current main.
 
 Required migration:
 1. stop/verify stopped the old Lane 2 watcher once,
 2. synchronize/rebase latest main,
-3. launch exactly one `FIVE_MIN_2026_09_21` watcher for Lane 2,
-4. do not launch a duplicate.
+3. launch exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
+4. complete A-R15-06..09 bounded validation and request review.
 
 ## Lane 3 — `worker/recruiting-ops`
 
@@ -72,44 +58,42 @@ Actual latest branch heartbeat evidence:
 - mode `PROVING_5M`
 - last check-in `2026-09-21T16:44:37Z`
 - branch head `d32a4c87ebd3fb904cf4a80aee1c91d195a2cd9b`
-- branch remains 0 commits ahead of main; accepted PR #3 batch is already merged
+- branch is 0 commits ahead / 187 behind current main,
+- accepted PR #3 batch is already merged as `be765ea42856bc695fc1eece9c1da396b4f162d4`.
 
 Required migration:
 1. stop/verify stopped any old Lane 3 watcher once,
 2. synchronize to latest main,
-3. launch exactly one `FIVE_MIN_2026_09_21` watcher,
+3. launch exactly one `FIVE_MIN_2026_09_21` / `ACTIVE_5M` watcher,
 4. run post-integration verification,
 5. repair only a real evidence-backed regression.
 
 ## Issue #7 / workflow health
 
-Automated heartbeat comments were confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`. Comments then stopped while Lane 1 heartbeat commits continued through `19:18:36Z`.
+Automated heartbeat comments were last confirmed through Lane 1 heartbeat `2026-09-21T18:18:14Z`.
 
-Fresh main CI evidence still indicates **`CI_BLOCKED_ACCOUNT` / GitHub Actions runner startup failure**, not heartbeat-workflow-code regression:
-- main CI failed before executing steps,
-- `steps: []`,
-- `runner_id: 0`,
-- scheduled heartbeat monitor also failed during the same outage.
+Lane 1 Git heartbeat commits continued later through `21:31:56Z`, but newer heartbeat workflow jobs fail before executable steps begin. Current main CI run `35661065821` likewise failed immediately with no executed test steps. Classification remains **`CI_BLOCKED_ACCOUNT` / hosted-runner startup failure**, not a heartbeat-protocol regression and not green CI.
 
-Do not rewrite heartbeat workflow semantics merely to manufacture activity. A direct ChatGPT lead comment was posted to issue #7 this run.
+ChatGPT continues to post one direct lead update to issue #7 each hourly run while the automated feed is impaired.
 
 ## worker-pc support
 
-Completed support implementation:
-- `jobs-v14-p0a-remaining-fix-20260921-1545`
-- branch `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
-- commit `062ca922c640d964220b550a06f61288b9a040c9`
-- useful but **not accepted** due missing exact-head validation.
+`worker-pc` remains online capacity-1 support infrastructure only, never a fourth implementation lane.
 
-Completed read-only audit:
-- `jobs-v14-p0a-importer-contract-audit-20260921-1645`
-- corrected the interim importer diagnosis and surfaced the generation-metadata and driver-qualified PostgreSQL URL blockers.
+Previously reviewed useful support:
+- runtime-contract support incorporated into clean implementation `3444076...`,
+- schema support `70ef7adc62ab2e9846721e8174a306273f28cbaa`, structurally useful but not accepted because tests/checks were not executed.
 
-New bounded support task:
-- `jobs-v14-p0a-runtime-contract-fix-20260921-1700`
-- support only; no automatic merge.
+Latest support task:
+- `jobs-v14-p0a-clean-sync-20260921-1844`
+- remote workflow completed successfully,
+- task result is **BLOCKED / NO REPOSITORY CHANGES**,
+- no Jobs commit was produced,
+- remote checkout exposed only `main`; source commits `3444076...` and `70ef7adc...` were unavailable,
+- fetch/ls-remote/test commands were denied by the worker session permission layer,
+- worker correctly refused to reconstruct reviewed code from prose.
 
-`worker-pc` remains infrastructure support only, never a fourth active implementation lane.
+Interpretation: zero engineering credit and nothing to merge. Do not repeat the same clean-sync task under identical constraints. Lane 1 owns the integration and must not wait for worker-pc.
 
 ## Interpretation
 

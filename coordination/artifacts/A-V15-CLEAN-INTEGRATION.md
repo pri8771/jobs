@@ -2,32 +2,26 @@
 
 - Type: integration / assisted-application safety
 - Phase: V1.5
-- Status: BLOCKED
-- Owner: Antigravity
+- Status: **ACCEPTED**
+- Owner: Fable/Claude + ChatGPT
 - Reviewer: ChatGPT
-- Dependencies: A-V14-REAL-PROOF ACCEPTED
+- Dependencies: A-V14-P0A-INTEGRITY ACCEPTED
 - Downstream: A-V15-BROWSER-SAFETY-CONTRACT, A-V15-ASSISTED-APPLICATION, A-V15-LIVE-ASSISTED-PROOF
 
 ## Purpose
-Port already-developed assisted-application safety code from old PR #2 onto a clean branch based on accepted current main.
 
-## Source commits to inspect
-- `44f5fd9...`
-- `3ef4002...`
-- `09f1852...`
+Integrate the already-developed assisted-browser safety implementation into the single-worker V1.7 campaign without historical heartbeat/coordination churn.
 
-## Tasks
-R15-I01..R15-I07 from the recovery plan, each SP1.
+## Accepted evidence
 
-## Acceptance
-Current-main small PR with targeted/full checks and no historical heartbeat churn.
+- Exact consolidated V1.5 source: `47fefd1b0ca354360353577685f6619a94f00f42`.
+- PR #12 integrated to `main` as `7c0fa73bf350392a88b47442455359a43cf926b0`.
+- Lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+Lead review accepted the semantic snapshot/destination binding, exact upload mapping/readback, prefill-only boundary, real local Playwright engineering-form coverage, and installed-entrypoint review stop. Fable reported 395 tests for the consolidated exact head plus Ruff/mypy green.
 
-F145-07: the V1.5 browser code and adversarial tests from `worker/v15-assisted-application`
-`ddb4f84` were ported onto the single-worker branch `claude/serene-brown-g6uij0` without
-heartbeat/coordination churn. F145-08..11 (FR15-01..03 repairs, real local Playwright
-engineering-form tests, installed entrypoint test) are summarised in the addendum of
-`docs/V1_5_BROWSER_SAFETY_CONTRACT.md`. Exact SHA and independent check results are in the
-handoff and heartbeat. G15 (live visible prefill) remains blocked on this host: no accepted
-real packet, no owner browser grant, no owner machine.
+Hosted Actions were blocked before executable steps (`CI_BLOCKED_ACCOUNT`) and are not called green. The documented lead engineering exception was applied to engineering acceptance only.
+
+## Boundary
+
+This integration acceptance does not satisfy G15. **G15 remains UNPASSED** until an accepted genuine G14 packet is used in a scoped owner-authorized visible-browser prefill/upload run with genuine post-fill evidence and a stop before submit.

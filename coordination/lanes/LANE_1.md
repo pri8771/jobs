@@ -14,100 +14,86 @@ Reviewer:
 Priority:
 - P0 / project critical path
 
-## Latest lead re-review — 2026-09-21 17:00 ET
+## Latest lead review — 2026-09-21 19:44 ET
 
-Current Lane 1 branch head:
-- `f3a0c414f4da08e7fb92549f64cdff39cccb3186`
-- heartbeat #18 at `2026-09-21T19:18:36Z`
-- current-epoch heartbeat stream is stale
+Current Lane 1 heartbeat branch head observed:
+- `df4045883c1fde7b29af92a20028d3b6397e9a93`
+- heartbeat #22 at `2026-09-21T21:31:56Z`
+- epoch `FIVE_MIN_2026_09_21`
+- mode `ACTIVE_5M`
+- worker state `READY_FOR_LEAD_REVIEW`
 
-Latest substantive Lane 1 implementation reviewed:
-- `5e5058461d5371f292c93e0c53cb0b93caba7e44`
+**Liveness:** stale. Multiple expected 5-minute intervals elapsed after #22 with no newer Lane 1 heartbeat commit. Before resuming work, verify the old watcher is dead, pull latest `main`, and launch exactly one new `FIVE_MIN_2026_09_21` watcher. Never launch a duplicate watcher.
+
+Clean implementation branch / substantive batch:
+- `claude/serene-brown-g6uij0`
+- `3444076de27573ec57d9c8ae60876aece8e646d9`
 
 Verdict:
 - **REWORK**
 - P0A is not accepted
+- V1.4 remains NOT COMPLETE
 - private candidate/profile/resume proof execution remains forbidden
 
-## Reviewed worker-pc support branch
+## Lead-reviewed positive evidence
 
-Task:
-- `jobs-v14-p0a-remaining-fix-20260921-1545`
+The clean implementation actual diff was reviewed and materially implements the intended P0A verifier chain:
 
-Returned branch / commit:
-- `worker/jobs-v14-p0a-remaining-fix-20260921-1545`
-- `062ca922c640d964220b550a06f61288b9a040c9`
+- RP14-T1 runtime emits `REAL_PROOF_CANDIDATE`; verifier emits separate candidate-SHA-bound PASS/FAIL receipts and writes FAIL receipts on rejection.
+- RP14-T2 local/private bundle binds `proof_run_id`, candidate bundle SHA, and artifact hashes to the redacted candidate.
+- RP14-T3 Greenhouse source/question/job evidence is checked against persisted `JobSource`/`Job` data, not merely against a self-consistent local attestation.
+- RP14-T4 actual private profile bytes are SHA-bound locally and repository example-profile bytes are rejected by content hash.
+- RP14-T6 production deterministic generation uses the canonical `generation_origin` metadata shape and rejects wrong/mock/test origins.
+- RP14-T7 local artifact/manifest/packet/resume/database relationships and packet hash are independently re-derived.
+- Proof DB linkage is mandatory/fail-closed.
+- `postgresql+psycopg://` is recognized as the normal SQLAlchemy PostgreSQL form.
 
-Lead-inspected diff is limited to:
-- `scripts/verify_v14_real_proof.py`
-- `tests/test_real_proof_verifier.py`
+Worker-reported exact-head local validation for `3444076...`:
+- pytest: 205 passed,
+- Ruff: clean,
+- mypy `src tests`: clean,
+- 16 formerly-xfail adversarial defect probes reported passing.
 
-It usefully addresses the two previously identified verifier gaps:
-1. proof DB target/persisted packet-resume-artifact validation becomes mandatory/fail-closed,
-2. source attestation is bound to persisted Greenhouse `JobSource`/`Job` evidence.
+Worker claims do not equal lead acceptance.
 
-The support commit is **not accepted or merge-ready** because it has no exact-head GitHub CI and worker-side pytest/Ruff/mypy were sandbox-blocked.
+## Remaining blocker — coherent schema integration and executable validation
 
-## Corrected production-path audit
+At `3444076...`, `coordination/proofs/v14_real_proof.schema.json` remained stale:
+- `additionalProperties: true`
+- `result.const: REAL_PROOF_PASS`
 
-An interim lead note incorrectly compared the support verifier to the older importer on main. Independent audit plus direct lead inspection of the support/Lane 1 importer corrected that finding.
+Bounded support task `jobs-v14-p0a-schema-gate-20260921-1748` returned:
+- branch `worker/jobs-v14-p0a-schema-gate-20260921-1748`
+- commit `70ef7adc62ab2e9846721e8174a306273f28cbaa`
+- direct parent `3444076de27573ec57d9c8ae60876aece8e646d9`
 
-At `062ca922...`, `scripts/import_v14_proof_job.py::_source_payload()` already persists:
-- `api_url`,
-- `fetched_at_utc`,
-- `content_sha256`,
-- `screening_question_count`,
-- `question_list_sha256`,
-- `source_kind`,
-- `provider`,
-- `public_job_id`.
+Lead inspected the support diff. It changes only the proof schema, schema regression tests, and the dev dependency needed to execute JSON-schema semantics. Structurally it closes the top-level allowlist, pins candidate `result` to `REAL_PROOF_CANDIDATE`, aligns runner/verifier/schema keys, and adds focused production-shape/adversarial schema tests.
 
-So the importer payload is **not** the current blocker.
+**Support verdict: useful / not accepted or merge-ready.** The worker environment did not execute the test suite and GitHub has zero check-runs for `70ef7adc...`. Lane 1 must adopt/cherry-pick or faithfully reimplement this support inside its coherent current-main batch and prove it with focused/full validation. Do not merge the support branch directly.
 
-Two actual production-path blockers remain:
+## Latest worker-pc clean-sync attempt
 
-### A. Generation metadata key mismatch
+Task `jobs-v14-p0a-clean-sync-20260921-1844` completed but produced **no Jobs repository changes and no commit**.
 
-Production `packet_builder.py` writes `generation_metadata_json` with:
-- `generation_origin`,
-- `cover_letter_origin`,
-- `cover_letter_model`.
+The worker checkout exposed only `main`; source commits `3444076...` and `70ef7adc...` were not present, while fetch/ls-remote/test commands needed to retrieve and validate them were denied by the non-interactive permission layer. The worker correctly refused to reconstruct reviewed code from coordination prose.
 
-Support verifier `062ca922...` reads `generation_metadata.get("origin", "")` and requires it to equal `deterministic`. A genuine production packet therefore fails even when its real generation metadata is correct. Existing verifier tests also use the non-production `origin` key and must be corrected to the real packet-builder shape.
+Lead interpretation:
+- zero engineering credit,
+- nothing to review or merge,
+- do not wait for worker-pc,
+- do not repeat the identical remote task under the same checkout/permission constraints.
 
-Required repair:
-- verify `generation_origin` as the canonical production key,
-- preserve a legacy fallback only if justified and fail closed for misleading values,
-- test actual production metadata shape and adversarial wrong-origin cases.
-
-### B. PostgreSQL proof DB URL mismatch
-
-Support `resolve_proof_db_url()` accepts `postgresql://` and `postgres://`, but the application's default `AppSettings.database_url` is `postgresql+psycopg://jobs:jobs@localhost:5432/jobs`.
-
-A genuine run using the normal application DB URL can therefore be misinterpreted as a local SQLite path and fail before persisted proof validation.
-
-Required repair:
-- accept the real SQLAlchemy PostgreSQL driver-qualified form, including `postgresql+psycopg://`,
-- retain fail-closed behavior for unsupported/unusable targets and persisted SQLite checks,
-- add focused DB URL normalization tests.
-
-## Remaining bounded assignment
+## Immediate bounded rework
 
 1. Verify the stale Lane 1 watcher is dead.
-2. Synchronize/clean-port the P0A implementation onto latest `main` without historical coordination churn.
-3. Adapt the useful `062ca922...` DB/source-binding changes.
-4. Fix the generation metadata and PostgreSQL URL production-contract blockers above.
-5. Keep Greenhouse source binding against the actual importer output and persisted `JobSourceModel`/`JobModel` evidence.
-6. Required adversarial coverage includes missing/unopenable/unrelated/tampered DB, packet/resume/artifact mismatch, forged Greenhouse source/question data, production generation metadata shape, wrong generation origin, and driver-qualified PostgreSQL URL handling.
-7. Run focused importer/runner/verifier tests plus full `pytest`, `ruff check .`, and `mypy src tests`.
-8. Obtain exact-head GitHub CI when Actions runners execute; if jobs fail before steps start, record `CI_BLOCKED_ACCOUNT` rather than claiming green CI.
-9. Start exactly one canonical watcher:
-   `python scripts/worker_heartbeat_watch.py --lane 1 --epoch FIVE_MIN_2026_09_21 --task "V1.4 real-proof tooling RP14-T1..T7" --detach`
-10. Push one coherent `READY_FOR_LEAD_REVIEW` batch and stop for lead review.
-
-A new bounded support task `jobs-v14-p0a-runtime-contract-fix-20260921-1700` was dispatched to worker-pc for only the two runtime-contract fixes above. Lane 1 must not wait for it and must not auto-merge its output.
-
-Do **not** use private candidate/resume inputs or execute the genuine proof until ChatGPT explicitly accepts P0A.
+2. Pull latest `main` and launch exactly one current `FIVE_MIN_2026_09_21` watcher.
+3. Synchronize the reviewed clean implementation with latest `main` coordination truth without importing old heartbeat/coordination churn into the code-review diff.
+4. Adopt or faithfully reimplement reviewed support commit `70ef7adc...` schema + schema-test contract.
+5. Run focused importer/runner/verifier/schema tests, including the new JSON-schema tests.
+6. Run full `pytest`, `ruff check .`, and `mypy src tests`.
+7. Push one coherent current-main P0A batch and mark `READY_FOR_LEAD_REVIEW`.
+8. Obtain exact-head GitHub CI when Actions runners execute. Current hosted Actions attempts still fail before executable steps; report `CI_BLOCKED_ACCOUNT`, never green, while that persists.
+9. Stop for lead review. Do **not** use private inputs or run the genuine proof before explicit P0A acceptance.
 
 ## Heartbeat
 
@@ -117,6 +103,18 @@ Canonical Lane 1 heartbeat:
 - interval 5 minutes
 - exactly one Lane 1 watcher
 
-Latest verified heartbeat remains #18 at `2026-09-21T19:18:36Z`; it is stale. Before restarting, verify the prior watcher process is not still running. Never create a duplicate.
+The last verified Lane 1 heartbeat is #22 at `2026-09-21T21:31:56Z`; the stream is stale. Resume with one watcher only after confirming the previous watcher is no longer running.
 
-Issue #7 automated heartbeat posting remains blocked by GitHub Actions runner startup failure (`steps: []`, `runner_id: 0`). Keep truthful Git heartbeat evidence and do not rewrite heartbeat semantics to work around the runner outage.
+The heartbeat/post-progress workflows on the latest Lane 1 head fail before executable steps begin, so issue #7 bot comments have not kept pace with heartbeat commits. Preserve truthful Git heartbeat evidence; do not change heartbeat semantics merely to manufacture comments.
+
+## After P0A acceptance only
+
+Immediately move to real-input readiness:
+- validate the genuine private profile locally,
+- resolve the exact selected genuine resume bytes,
+- import/validate the current live OpenSesame job/questions,
+- run the production packet path with non-mock deterministic generation,
+- emit only redacted runtime candidate + verifier receipt to the repo,
+- keep private profile/resume/full bundle local and gitignored.
+
+No browser application submission, Gmail OAuth/mailbox access, external messaging, MFA/CAPTCHA bypass, spending, or fabricated candidate facts are authorized by this lane.

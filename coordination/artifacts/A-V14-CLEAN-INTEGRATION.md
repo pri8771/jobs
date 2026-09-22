@@ -2,32 +2,27 @@
 
 - Type: integration / branch hygiene
 - Phase: V1.4
-- Status: BLOCKED
-- Owner: Antigravity
+- Status: **ACCEPTED**
+- Owner: Fable/Claude + ChatGPT
 - Reviewer: ChatGPT
 - Dependencies: A-V14-P0A-INTEGRITY ACCEPTED
 - Downstream: A-V14-REAL-PROOF
 
 ## Purpose
-Move V1.4 proof tooling onto a clean branch based on current main without dragging historical heartbeat/coordination churn.
 
-## Tasks
-- R14-I01 SP1 fresh branch from main
-- R14-I02 SP1 port only necessary proof-code changes
-- R14-I03 SP1 resolve real code conflicts
-- R14-I04 SP1 full checks
-- R14-I05 SP1 small PR/review
+Integrate the V1.4 proof tooling as a coherent current-main batch without historical heartbeat/coordination churn.
 
-## Acceptance
-Small reviewable diff on current main with equivalent proof behavior.
+## Accepted evidence
 
-## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
+- P0A exact source: `8491dd98154ff750f49cbb64d2a79eca5cb06069`.
+- Consolidated PR #12 exact head: `47fefd1b0ca354360353577685f6619a94f00f42`.
+- PR #12 merged to `main` as `7c0fa73bf350392a88b47442455359a43cf926b0`.
+- Lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-F145-06 (FR14-04): `tests/test_real_proof_integration.py` drives the production importer
-(Greenhouse fetch stubbed with a canonical engineering payload), the runner and the
-verifier as installed entry points on SQLite and on a throwaway password-protected
-PostgreSQL role/database created from `PROOF_TEST_PG_ADMIN_URL` (wired in CI to the
-existing postgres service), including password rotation between run and verification,
-runtime-target mismatch, missing runtime configuration, stale credential, and single-field
-DB mutations. Evidence stays under gitignored `.local/engineering_proof_<id>/` and is
-never published as REAL_PROOF. Independent execution results are in the handoff.
+The accepted P0A batch includes installed importer -> runner -> verifier production-path integration tests on SQLite and password-protected PostgreSQL, including credential/target rotation and persisted-data mutation cases. Fable reported 323 P0A tests and later 395 tests for the consolidated P0A+V1.5 exact head, plus Ruff/mypy green.
+
+Hosted Actions remained `CI_BLOCKED_ACCOUNT` before executable steps; the documented lead engineering exception was used and is not a claim of green hosted CI.
+
+## Boundary
+
+This artifact accepts engineering integration only. **G14 remains UNPASSED** and V1.4 remains incomplete until the genuine private profile + exact selected resume + current real job production packet proof produces a runtime candidate and independently validated receipt.

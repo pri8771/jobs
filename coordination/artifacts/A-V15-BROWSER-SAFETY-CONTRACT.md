@@ -2,96 +2,43 @@
 
 - Type: contract / safety / implementation guidance
 - Phase: V1.5
-- Status: IN_PROGRESS
-- Owner: ChatGPT / Antigravity Lane A implementation
-- Reviewer: ChatGPT lead review / user boundary for live execution
-- Dependencies: A-V14-PACKET-SAFETY ENGINEERING_ACCEPTED
-- Downstream: A-V15-ASSISTED-APPLICATION
+- Status: **ACCEPTED (engineering)**
+- Owner: Fable/Claude + ChatGPT
+- Reviewer: ChatGPT; owner authorization remains required for live execution
+- Dependencies: A-V14-PACKET-SAFETY ACCEPTED
+- Downstream: A-V15-ASSISTED-APPLICATION, A-V15-LIVE-ASSISTED-PROOF, V1.6 engineering
 
 ## Purpose
 
-Define and verify a safe assisted-browser runtime contract before real application prefill begins.
+Define and verify a safe assisted-browser runtime contract before any genuine application prefill begins.
 
-## Worker evidence reviewed
+## Accepted source
 
-Initial worker batch:
-- `3d17fa8`
+- Exact consolidated V1.5 implementation: `47fefd1b0ca354360353577685f6619a94f00f42`.
+- Integrated through PR #12 as `7c0fa73bf350392a88b47442455359a43cf926b0`.
+- Lead review: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
 
-Current repaired batch:
-- `ed875775122f0d390af6ab15beb378904af2a476` on `worker/v15-assisted-application`
+## Accepted engineering contract
 
-Lead reviewed the branch code and adversarial tests.
+Lead review verified:
+- exact accepted packet/artifact identity is revalidated at the browser boundary;
+- inspect-before-write and immediate reinspection are required;
+- the semantic form snapshot binds final destination, form action, stable exact locator, control name/type/required state, labels/help/options and field classification;
+- meaningful form or destination changes block writes;
+- exact field-specific file-upload mapping is required; duplicate/unknown/ambiguous file controls remain manual and never receive a default resume;
+- selected resume/cover-letter bytes and hashes are revalidated and post-fill evidence records actual attachment/readback identity;
+- intended-vs-actual field evidence and partial outcomes are truthful;
+- external page/form content remains untrusted data, never policy or authority;
+- consent/attestation, EEO/self-ID and unresolved consequential answers remain manual/blocking as appropriate;
+- assisted execution is prefill-only and ends at `REVIEW_REQUIRED`;
+- URL keywords, caller receipts, runner flags, mocks, arbitrary evidence and local success state cannot establish submission;
+- trusted structured external confirmation is a separate boundary;
+- real local headless Playwright engineering-form coverage records zero submit POSTs from the assisted path and the installed assisted entrypoint stops for review.
 
-Current batch materially repairs:
-- external-confirmation truth: local `receipt_text` / `auto_confirm` alone cannot create SUBMITTED,
-- field-level prompt-injection detection and POLICY_BLOCKED behavior,
-- consent/attestation prefill blocking,
-- distinct cover-letter hash/provenance and tamper/missing-required behavior,
-- immediate pre-write form-fingerprint revalidation.
+Fable's consolidated exact-head handoff reports 395 tests including real headless Playwright engineering forms plus Ruff and mypy green. Hosted Actions were blocked before executable steps (`CI_BLOCKED_ACCOUNT`) and are not called green. The lead applied the documented engineering exception after actual code/test review.
 
-Worker-reported local verification:
-- targeted adversarial tests: 27 passed,
-- full pytest: 132 passed,
-- Ruff: clean,
-- mypy: no new errors.
+## Live boundary
 
-GitHub evidence:
-- the branch commit has no GitHub Actions/check result of its own,
-- PR #2 remains draft and is currently non-mergeable against newer main,
-- therefore this artifact is not engineering-accepted yet.
+Engineering acceptance does **not** authorize real employer-page interaction. **G15 remains UNPASSED** until there is an accepted genuine G14 packet and a scoped owner grant for the real visible-browser page/session. A G15 run must capture genuine post-fill evidence and **STOP BEFORE SUBMIT**.
 
-## Task-scope lead acceptance from `ed87577`
-
-- A-R15-01 SP2 — LEAD_ACCEPTED
-- A-R15-02 SP2 — LEAD_ACCEPTED for field-level prompt-injection scope
-- A-R15-03 SP1 — LEAD_ACCEPTED
-- A-R15-04 SP2 — LEAD_ACCEPTED for hash/provenance/tamper scope
-- A-R15-05 SP2 — LEAD_ACCEPTED
-
-These task acceptances do not accept the overall V1.5 artifact.
-
-## Remaining residuals — P1 after V1.4 REAL_PROOF
-
-Authoritative audit:
-- `docs/LANE_A_REAUDIT_2.md`
-
-Tasks:
-- A-R15-06 SP2 — page-level prompt-injection signal/warning semantics outside individual form fields.
-- A-R15-07 SP2 — actual cover-letter upload wiring + field-specific file mapping; no generic cross-attachment.
-- A-R15-08 SP2 — recompute/revalidate accepted packet identity, answers/provenance, and linked resume/artifact identity immediately before browser use.
-- A-R15-09 SP1 — unknown file inputs remain manual/unfilled and never default to resume.
-
-These residuals must not delay A-V14-REAL-PROOF, which is the owner-designated P0 completion gate.
-
-## Acceptance criteria
-
-- exact accepted packet integrity and answer provenance verified at browser boundary,
-- inspect-before-write behavior,
-- safe field classification including unknown file inputs,
-- per-field provenance,
-- manual-barrier behavior,
-- persistent visible-session requirement,
-- resume and cover-letter upload integrity with field-specific mapping,
-- pre-submit manifest,
-- form-change detection immediately before write,
-- typed externally sourced confirmation boundary,
-- mock isolation,
-- field-level and page-level external prompt-injection resistance,
-- adversarial acceptance tests,
-- green integrated CI on current main.
-
-## Risks / boundaries
-
-- No live application/form execution is authorized by this engineering artifact.
-- External application content is attacker-controlled input from the agent perspective.
-- V1.4 REAL_PROOF is packet preparation only and does not authorize browser prefill/submission.
-
-## Worker report — Fable, 2026-09-22 (state: READY_FOR_LEAD_REVIEW, not accepted)
-
-F145-07: the V1.5 browser code and adversarial tests from `worker/v15-assisted-application`
-`ddb4f84` were ported onto the single-worker branch `claude/serene-brown-g6uij0` without
-heartbeat/coordination churn. F145-08..11 (FR15-01..03 repairs, real local Playwright
-engineering-form tests, installed entrypoint test) are summarised in the addendum of
-`docs/V1_5_BROWSER_SAFETY_CONTRACT.md`. Exact SHA and independent check results are in the
-handoff and heartbeat. G15 (live visible prefill) remains blocked on this host: no accepted
-real packet, no owner browser grant, no owner machine.
+LinkedIn/Indeed submission remains MANUAL_ONLY. No CAPTCHA/MFA/anti-bot bypass is permitted.
