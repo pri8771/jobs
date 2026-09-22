@@ -5,25 +5,25 @@ Artifact-oriented project registry.
 Statuses:
 PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | ACCEPTED | SUPERSEDED
 
-**Current execution override:** owner scope is **get V1.7 live and stop**. Fable/Claude is the one active implementation worker/session; ChatGPT is lead/acceptor. Historical Lane 1/2/3 names below are replaced for active V1.4–V1.7 work by Fable unless a row is explicitly historical. V2.0/V2.3/V3 rows are retained only as inactive future inventory and are not executable authority.
+**Current execution override:** owner scope is **get V1.7 live and stop**. Fable/Claude is the one active implementation worker/session; ChatGPT is lead/acceptor. Historical Lane 1/2/3 names below are source/history only. V2.0/V2.3/V3 rows are retained only as inactive future inventory and are not executable authority.
 
 | Artifact ID | Phase | Artifact | Type | Owner | Status | Depends on | Unblocks |
 |---|---|---|---|---|---|---|---|
 | A-V14-PACKET-SAFETY | V1.4 | Truthful immutable application packet pipeline | implementation/engineering acceptance | historical Lane A | ACCEPTED | V1.1 accepted | A-V14-REAL-PROOF, V1.5 |
-| A-V14-P0A-INTEGRITY | V1.4 | Fail-closed real-proof verifier integrity | proof tooling/integrity | Fable + ChatGPT | IN_PROGRESS | A-V14-PACKET-SAFETY | A-V14-CLEAN-INTEGRATION, A-V14-REAL-PROOF |
-| A-V14-CLEAN-INTEGRATION | V1.4 | Clean current-main integration of proof tooling | integration | Fable + ChatGPT | IN_PROGRESS | A-V14-P0A-INTEGRITY | A-V14-REAL-PROOF |
-| A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Fable + ChatGPT + Owner | BLOCKED | A-V14-PACKET-SAFETY ACCEPTED + P0A proof-tool integrity acceptance + genuine inputs | G14, V1.4 COMPLETE |
-| A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Fable | IN_PROGRESS | A-V14-PACKET-SAFETY ACCEPTED | A-V15-ASSISTED-APPLICATION |
-| A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Fable | IN_PROGRESS | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT | G15, V1.6 engineering |
-| A-V15-CLEAN-INTEGRATION | V1.5 | Port assisted-safety code to coherent current campaign branch | integration | Fable + ChatGPT | IN_PROGRESS | A-V14-P0A-INTEGRITY engineering acceptance | A-V15-BROWSER-SAFETY-CONTRACT, A-V15-ASSISTED-APPLICATION |
-| A-V15-LIVE-ASSISTED-PROOF | V1.5 | Real visible-browser assisted-flow proof to review boundary | live evidence | Fable + Owner + ChatGPT | BLOCKED | accepted real packet + V1.5 engineering acceptance + scoped browser authorization | G15, V1.5 COMPLETE |
-| A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT + Fable | READY | none | A-V16-SUBMISSION-ENGINE-REPAIR |
-| A-V16-SUBMISSION-ENGINE-REPAIR | V1.6 | Submission truth/idempotency/authorization repair | implementation/safety | Fable | BLOCKED | V1.5 engineering acceptance or explicit bounded lead advancement | A-V16-FIRST-REAL-SUBMISSION |
-| A-V16-AUTHORIZATION | V1.6 | Scoped job+packet+method submission authorization | implementation/permission | Fable + ChatGPT + Owner | BLOCKED | V1.5 engineering acceptance | A-V16-IDEMPOTENCY, A-V16-PREFLIGHT |
-| A-V16-IDEMPOTENCY | V1.6 | Durable attempt state and duplicate/concurrency prevention | implementation/state | Fable | BLOCKED | A-V16-AUTHORIZATION engineering contract | A-V16-CONFIRMATION |
-| A-V16-PREFLIGHT | V1.6 | Immediate pre-submit packet/artifact/policy integrity gate | implementation/safety | Fable | BLOCKED | A-V16-AUTHORIZATION engineering contract | A-V16-FIRST-REAL-SUBMISSION |
-| A-V16-CONFIRMATION | V1.6 | External confirmation/reconciliation truth | implementation/evidence | Fable | BLOCKED | A-V16-IDEMPOTENCY | A-V16-FIRST-REAL-SUBMISSION |
-| A-V16-HYGIENE | V1.6 | Submission task/telemetry/error hygiene | implementation/reliability | Fable | BLOCKED | V1.5 engineering acceptance | A-V16-SUBMISSION-ENGINE-REPAIR |
+| A-V14-P0A-INTEGRITY | V1.4 | Fail-closed real-proof verifier integrity | proof tooling/integrity | Fable + ChatGPT | ACCEPTED | A-V14-PACKET-SAFETY | A-V14-REAL-PROOF |
+| A-V14-CLEAN-INTEGRATION | V1.4 | Clean current-main integration of proof tooling | integration | Fable + ChatGPT | ACCEPTED | A-V14-P0A-INTEGRITY | A-V14-REAL-PROOF |
+| A-V14-REAL-PROOF | V1.4 | Real non-mock packet proof using real profile/resume/job | real-data acceptance | Fable + ChatGPT + Owner | BLOCKED | P0A ACCEPTED + genuine approved private profile/resume/current real job + eligible host | G14, V1.4 COMPLETE |
+| A-V15-BROWSER-SAFETY-CONTRACT | V1.5 | Assisted browser safety / evidence contract | contract/safety | ChatGPT + Fable | ACCEPTED | A-V14-PACKET-SAFETY ACCEPTED | A-V15-LIVE-ASSISTED-PROOF, V1.6 engineering |
+| A-V15-ASSISTED-APPLICATION | V1.5 | Assisted application execution contract + proof | implementation/live-evidence | Fable | ACCEPTED | A-V14-PACKET-SAFETY, A-V15-BROWSER-SAFETY-CONTRACT | G15, V1.6 engineering |
+| A-V15-CLEAN-INTEGRATION | V1.5 | Port assisted-safety code to coherent current campaign branch | integration | Fable + ChatGPT | ACCEPTED | A-V14-P0A-INTEGRITY | A-V15-BROWSER-SAFETY-CONTRACT, A-V15-ASSISTED-APPLICATION |
+| A-V15-LIVE-ASSISTED-PROOF | V1.5 | Real visible-browser assisted-flow proof to review boundary | live evidence | Fable + Owner + ChatGPT | BLOCKED | genuine G14 packet + accepted V1.5 engineering + scoped browser authorization | G15, V1.5 COMPLETE |
+| A-V16-SUBMISSION-CONTRACT | V1.6 | Controlled submission safety/authorization contract | contract/safety | ChatGPT + Fable | READY | V1.5 engineering ACCEPTED | A-V16-SUBMISSION-ENGINE-REPAIR |
+| A-V16-SUBMISSION-ENGINE-REPAIR | V1.6 | Submission truth/idempotency/authorization repair | implementation/safety | Fable | IN_PROGRESS | V1.5 engineering ACCEPTED | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-AUTHORIZATION | V1.6 | Scoped job+packet+method submission authorization | implementation/permission | Fable + ChatGPT + Owner | READY | V1.5 engineering ACCEPTED | A-V16-IDEMPOTENCY, A-V16-PREFLIGHT |
+| A-V16-IDEMPOTENCY | V1.6 | Durable attempt state and duplicate/concurrency prevention | implementation/state | Fable | READY | V1.5 engineering ACCEPTED | A-V16-CONFIRMATION |
+| A-V16-PREFLIGHT | V1.6 | Immediate pre-submit packet/artifact/policy integrity gate | implementation/safety | Fable | READY | V1.5 engineering ACCEPTED | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-CONFIRMATION | V1.6 | External confirmation/reconciliation truth | implementation/evidence | Fable | READY | V1.5 engineering ACCEPTED | A-V16-FIRST-REAL-SUBMISSION |
+| A-V16-HYGIENE | V1.6 | Submission task/telemetry/error hygiene | implementation/reliability | Fable | READY | V1.5 engineering ACCEPTED | A-V16-SUBMISSION-ENGINE-REPAIR |
 | A-V16-TRANSPORT | V1.6 | Current-policy compliant live system-submit transport | policy/implementation | Fable + ChatGPT + Owner | IN_PROGRESS | V17-T01 research done; exact hosted-form policy/authorization and T02 implementation remain | A-V16-FIRST-REAL-SUBMISSION |
 | A-V16-FIRST-REAL-SUBMISSION | V1.6 | First system-submitted externally confirmed application | live-evidence | Fable + Owner + ChatGPT | BLOCKED | accepted V1.6 safety artifacts + exact desired job/packet/method approval + eligible transport | G16, V1.6 COMPLETE |
 | A-V12-CANDIDATE-PROVENANCE | V1.2 | Private-safe candidate fact provenance contract | data/evidence | Fable | READY | none | safe packet answers |
@@ -70,11 +70,10 @@ PROPOSED | READY | IN_PROGRESS | BLOCKED | WORKER_REPORTED_DONE | LEAD_REVIEW | 
 
 ## Current critical path
 
-A-V14-P0A-INTEGRITY + A-V14-CLEAN-INTEGRATION
+**P0A + V1.5 engineering are accepted and integrated**
 → **G14 / A-V14-REAL-PROOF**
-→ A-V15-BROWSER-SAFETY-CONTRACT + A-V15-ASSISTED-APPLICATION
 → **G15 / A-V15-LIVE-ASSISTED-PROOF**
-→ V1.6 AUTHORIZATION + IDEMPOTENCY + PREFLIGHT + CONFIRMATION + HYGIENE + TRANSPORT
+→ V1.6 AUTHORIZATION + IDEMPOTENCY + PREFLIGHT + CONFIRMATION + HYGIENE + TRANSPORT engineering
 → **G16 / A-V16-FIRST-REAL-SUBMISSION**
 → A-V17-ENGINEERING-RECONCILIATION using merged PR #3
 → **G17 / A-V17-LIVE-LIFECYCLE-PROOF**
@@ -84,10 +83,11 @@ A-V14-P0A-INTEGRITY + A-V14-CLEAN-INTEGRATION
 ## Active implementation model
 
 - Exactly one active implementation worker/session: **Fable/Claude**.
-- Active code branch: `claude/serene-brown-g6uij0`; draft review container PR #12.
-- Exactly one owned worker heartbeat stream: `FIVE_MIN_2026_09_21` / `ACTIVE_5M` every ~5 minutes while working. The heartbeat is currently published from `worker/v14-real-proof` as a watcher-only branch for this same session; it is not another implementation lane.
+- PR #12 is merged; before new reviewable work, the worker synchronizes latest `main` and uses one active code branch only.
+- Exactly one owned worker heartbeat stream: `FIVE_MIN_2026_09_21` / `ACTIVE_5M` every ~5 minutes while working. The heartbeat is published from watcher-only `worker/v14-real-proof` for this same session; it is not a second implementation lane.
+- Latest lead-verified heartbeat at acceptance: #40 at `2026-09-22T01:56:01Z`.
 - Historical Lane 1/2/3/C/D/Scout branches are source/reference surfaces only unless a later owner instruction explicitly reactivates one.
-- `worker-pc` is optional bounded independent support infrastructure, never an automatic merge source or another implementation lane.
+- `worker-pc` is optional bounded independent support infrastructure, never an automatic merge source or another implementation lane. Do not repeat its exact-head Python validation under unchanged harness permissions.
 - ChatGPT owns lead review, engineering acceptance, live-proof acceptance and milestone truth.
 - V2.0/V2.3/V3 rows above remain archival/future inventory only; do not assign them under the current campaign.
 
