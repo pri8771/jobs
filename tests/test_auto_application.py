@@ -497,3 +497,67 @@ def test_controlled_auto_apply_rate_limiting(
     res2 = engine.execute_auto_apply(job_id=job2.id, mock_mode=True)
     assert res2.status == "RATE_LIMITED"
     assert "Pacing limit" in res2.message
+
+
+# V17-X01/C02: synthetic adapter regressions, no external transport.
+def _bound_packet_fixture(session):
+    company = CompanyModel(normalized_name="binding-fixture")
+    session.add(company)
+    session.flush()
+    jobs = [JobModel(company_id=company.id, normalized_title=f"Fixture {i}", status="shortlisted") for i in range(2)]
+    session.add_all(jobs)
+    session.flush()
+    for job in jobs:
+        session.add(JobSourceModel(job_id=job.id, provider="greenhouse", canonical_apply_url=f"https://boards.greenhouse.io/fixture/jobs/{job.id}"))
+    artifact = ArtifactModel(type="resume_markdown", storage_uri="/synthetic/resume.md", sha256="synthetic-only", metadata_json={})
+    session.add(artifact)
+    session.flush()
+    packet = ApplicationPacketModel(job_id=jobs[1].id, candidate_profile_version=1, resume_artifact_id=artifact.id, answers_json={}, unresolved_questions_json=[], packet_hash="bound-fixture", is_live_ready=True)
+    session.add(packet)
+    session.commit()
+    return jobs, packet
+
+
+def test_explicit_packet_for_another_job_never_reaches_adapter(db_session, candidate_profile, policy_config, monkeypatch):
+    jobs, packet = _bound_packet_fixture(db_session)
+    calls = []
+    def forbidden(*args, **kwargs):
+        calls.append(True)
+        pytest.fail("wrong-job packet reached adapter")
+    monkeypatch.setattr(GreenhouseATSAdapter, "validate_packet", forbidden)
+    engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+    result = engine.execute_auto_apply(jobs[0].id, packet_id=packet.id, mock_mode=True)
+    assert result.status == "FAILED_PACKET_BINDING"
+    assert calls == []
+    assert db_session.query(ApplicationModel).count() == 0
+
+
+@pytest.mark.parametrize("adapter_status,receipt,confirmation", [
+    ("SUBMITTED", None, None),
+    ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
+    ("SIMULATED", "SIM-CLAIM", None),
+])
+def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session, candidate_profile, policy_config, monkeypatch, adapter_status, receipt, confirmation):
+    from jobs_automation.automation.base import SubmissionResult
+    from jobs_automation.db.base import utc_now
+    jobs, packet = _bound_packet_fixture(db_session)
+    job = jobs[1]
+    task = TaskModel(job_id=job.id, task_type="NEEDS_REVIEW", status="pending", payload_json={})
+    db_session.add(task)
+    db_session.commit()
+    calls = []
+    def claimed_success(*args, **kwargs):
+        calls.append(True)
+        return SubmissionResult(success=True, status=adapter_status, receipt_id=receipt, confirmation_url=confirmation, response_payload={"independently_validated": True}, submitted_at=utc_now(), message="uncorroborated adapter claim")
+    monkeypatch.setattr(GreenhouseATSAdapter, "submit_application", claimed_success)
+    engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+    result = engine.execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+    assert result.status == "SUBMISSION_UNCONFIRMED"
+    app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).one()
+    assert app.status == "SUBMISSION_UNCONFIRMED" and app.applied_at is None
+    assert task.status == "pending"
+    assert db_session.query(ApplicationEventModel).filter(ApplicationEventModel.event_type == "APPLICATION_SUBMITTED").count() == 0
+    assert db_session.query(AuditLogModel).filter(AuditLogModel.action_type == "auto_application_submitted").count() == 0
+    db_session.expire_all()
+    replay = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile).execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+    assert replay.status == "SUBMISSION_UNCONFIRMED" and calls == [True]
