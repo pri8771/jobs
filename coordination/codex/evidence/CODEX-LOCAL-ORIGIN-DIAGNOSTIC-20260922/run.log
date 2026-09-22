@@ -1,0 +1,14 @@
+{
+  "case_count": 20,
+  "cleanup_database_count": 0,
+  "first_gap": {
+    "expected_safety_disposition": "Foreign initiating origin should not acquire trusted local operator authorization solely because TCP peer is loopback; reject or require an operator token.",
+    "name": "Foreign-Origin tokenless loopback POST mutates a review",
+    "reproduced_actual_status": 200,
+    "root_cause": "Authorization fallback at server.py:870-875 checks only allow-local environment and client_address; Origin, Host, and Sec-Fetch-Site are unused. POST then parses JSON without restricting Content-Type.",
+    "scope_limit": "Direct accepted production handler plus PostgreSQL proves header acceptance and committed mutation. No browser-origin execution, CORS/PNA reachability, DNS rebinding, or remote-TCP authentication bypass is claimed.",
+    "smallest_repair_proposal": "In tokenless local fallback, reject explicitly foreign Origin and cross-site browser metadata before accepting loopback. Preserve no-Origin local tools and same-origin UI; valid token remains explicit authority. Add focused synthetic direct-handler regressions only after repair release."
+  },
+  "source_sha": "413a18ee13ee049f57651ddd7060fd98fafad5f9",
+  "source_still_clean": true
+}

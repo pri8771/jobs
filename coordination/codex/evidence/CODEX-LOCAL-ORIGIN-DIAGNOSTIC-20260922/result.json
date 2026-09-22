@@ -1,0 +1,2398 @@
+{
+  "cases": [
+    {
+      "actual_status": 403,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "remote_ipv4_no_token",
+      "origin": null,
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/22b0e337-ef5b-4ae8-b0c7-db4060136a43/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 403,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "2001:db8::23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "remote_ipv6_no_token",
+      "origin": null,
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/bfd93565-53b9-4958-aced-0f29be6bf407/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 403,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "Host",
+        "Origin",
+        "X-Forwarded-For",
+        "X-Real-IP"
+      ],
+      "method": "POST",
+      "name": "remote_spoofed_loopback_headers",
+      "origin": "http://localhost:8765",
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/db411dfd-ea43-470c-be22-92a66041fa94/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 403,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "X-Operator-Token"
+      ],
+      "method": "POST",
+      "name": "remote_with_unconfigured_supplied_token",
+      "origin": null,
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/c8ff5d9f-38b2-4788-891a-ea22d09f8659/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 401,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 401,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "remote_configured_missing_token",
+      "origin": null,
+      "response": {
+        "error": "Unauthorized: missing or invalid operator write token."
+      },
+      "route": "/api/reviews/39441f10-83fd-4a1b-9d76-1e79acc0c64f/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 401,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 401,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "X-Operator-Token"
+      ],
+      "method": "POST",
+      "name": "remote_configured_wrong_token",
+      "origin": null,
+      "response": {
+        "error": "Unauthorized: missing or invalid operator write token."
+      },
+      "route": "/api/reviews/b1aebdba-9083-4c3e-9176-f91f9fb496fe/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 401,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "127.0.0.1",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 401,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "local_configured_missing_token",
+      "origin": null,
+      "response": {
+        "error": "Unauthorized: missing or invalid operator write token."
+      },
+      "route": "/api/reviews/1218db16-fdc5-401b-989e-e7d7cc289991/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 200,
+      "allow_local": null,
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "127.0.0.1",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "local_ipv4_default",
+      "origin": null,
+      "response": {
+        "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/e5126bde-6e60-4d6e-9be0-648e496e2f3b/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 200,
+      "allow_local": null,
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "::1",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "local_ipv6_default",
+      "origin": null,
+      "response": {
+        "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/e0789988-734d-4aaa-ad19-dc38f72d82c9/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 403,
+      "allow_local": "false",
+      "changed_tables": [],
+      "client_ip": "127.0.0.1",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "local_disabled",
+      "origin": null,
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/4d3255ff-5c7d-4068-bc67-1fbfcd24606f/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 403,
+      "allow_local": "invalid",
+      "changed_tables": [],
+      "client_ip": "127.0.0.1",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 403,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "local_invalid_enable_fails_closed",
+      "origin": null,
+      "response": {
+        "error": "Forbidden: write operations require DASHBOARD_WRITE_TOKEN or trusted local loopback origin."
+      },
+      "route": "/api/reviews/a79695ec-7bed-4c0d-b75f-dced846dbec1/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 200,
+      "allow_local": null,
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "198.51.100.23",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "X-Operator-Token"
+      ],
+      "method": "POST",
+      "name": "remote_valid_operator_header",
+      "origin": null,
+      "response": {
+        "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/502ab89c-8a2c-4a89-8bae-8ef06387621e/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 200,
+      "allow_local": null,
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "198.51.100.23",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_bearer",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Authorization",
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "POST",
+      "name": "remote_valid_bearer",
+      "origin": null,
+      "response": {
+        "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/18a16555-b274-4a52-bc11-1534b9bc9c3d/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 200,
+      "allow_local": "false",
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "198.51.100.23",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_bearer",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "3a9a1a8c-2fe4-43cc-b607-32fcaef601db",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_token_local_disabled",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_bearer",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "3a9a1a8c-2fe4-43cc-b607-32fcaef601db",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "X-Operator-Token"
+      ],
+      "method": "POST",
+      "name": "remote_valid_token_local_disabled",
+      "origin": null,
+      "response": {
+        "id": "3a9a1a8c-2fe4-43cc-b607-32fcaef601db",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/3a9a1a8c-2fe4-43cc-b607-32fcaef601db/resolve",
+      "token_configured": true
+    },
+    {
+      "actual_status": 501,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 501,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "PUT",
+      "name": "put_unavailable",
+      "origin": null,
+      "response": null,
+      "route": "/api/reviews/a9607341-ccfb-4147-a672-110b8f2092f4/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 501,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 501,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "PATCH",
+      "name": "patch_unavailable",
+      "origin": null,
+      "response": null,
+      "route": "/api/reviews/6dabecaf-f362-49aa-9a2a-f4fba0c68c00/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 501,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 501,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "DELETE",
+      "name": "delete_unavailable",
+      "origin": null,
+      "response": null,
+      "route": "/api/reviews/cb38f8da-a21f-4912-80c3-dd9573469b8f/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 501,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 501,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "OPTIONS",
+      "name": "options_unavailable",
+      "origin": null,
+      "response": null,
+      "route": "/api/reviews/9daa2744-ac3d-4655-b7af-005f0b5d1d44/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 501,
+      "allow_local": null,
+      "changed_tables": [],
+      "client_ip": "198.51.100.23",
+      "database_effect": {},
+      "database_session_entries": 0,
+      "expected_status": 501,
+      "header_names": [
+        "Content-Length",
+        "Content-Type"
+      ],
+      "method": "HEAD",
+      "name": "head_unavailable",
+      "origin": null,
+      "response": null,
+      "route": "/api/reviews/b02e4750-c12d-440f-96cc-32a8d9e7a760/resolve",
+      "token_configured": false
+    },
+    {
+      "actual_status": 200,
+      "allow_local": null,
+      "changed_tables": [
+        "task"
+      ],
+      "client_ip": "127.0.0.1",
+      "database_effect": {
+        "task": {
+          "after": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_bearer",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "3a9a1a8c-2fe4-43cc-b607-32fcaef601db",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_token_local_disabled",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "6dabecaf-f362-49aa-9a2a-f4fba0c68c00",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "9daa2744-ac3d-4655-b7af-005f0b5d1d44",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a9607341-ccfb-4147-a672-110b8f2092f4",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b02e4750-c12d-440f-96cc-32a8d9e7a760",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "cb38f8da-a21f-4912-80c3-dd9573469b8f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "f81eb17a-3a3c-4d75-b487-d39b6e12eecc",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: foreign_origin_tokenless_loopback",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ],
+          "before": [
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "1218db16-fdc5-401b-989e-e7d7cc289991",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "18a16555-b274-4a52-bc11-1534b9bc9c3d",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_bearer",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "22b0e337-ef5b-4ae8-b0c7-db4060136a43",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "39441f10-83fd-4a1b-9d76-1e79acc0c64f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "3a9a1a8c-2fe4-43cc-b607-32fcaef601db",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_token_local_disabled",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "4d3255ff-5c7d-4068-bc67-1fbfcd24606f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "502ab89c-8a2c-4a89-8bae-8ef06387621e",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: remote_valid_operator_header",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "6dabecaf-f362-49aa-9a2a-f4fba0c68c00",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "9daa2744-ac3d-4655-b7af-005f0b5d1d44",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a79695ec-7bed-4c0d-b75f-dced846dbec1",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "a9607341-ccfb-4147-a672-110b8f2092f4",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b02e4750-c12d-440f-96cc-32a8d9e7a760",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "b1aebdba-9083-4c3e-9176-f91f9fb496fe",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "bfd93565-53b9-4958-aced-0f29be6bf407",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "c8ff5d9f-38b2-4788-891a-ea22d09f8659",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "cb38f8da-a21f-4912-80c3-dd9573469b8f",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "db411dfd-ea43-470c-be22-92a66041fa94",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e0789988-734d-4aaa-ad19-dc38f72d82c9",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv6_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "e5126bde-6e60-4d6e-9be0-648e496e2f3b",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "resolution_notes": "Synthetic diagnostic: local_ipv4_default",
+                "synthetic": true
+              },
+              "status": "completed",
+              "task_type": "NEEDS_REVIEW"
+            },
+            {
+              "application_id": null,
+              "due_at": null,
+              "id": "f81eb17a-3a3c-4d75-b487-d39b6e12eecc",
+              "job_id": null,
+              "payload_json": {
+                "question": "Synthetic approved range?",
+                "synthetic": true
+              },
+              "status": "pending",
+              "task_type": "NEEDS_REVIEW"
+            }
+          ]
+        }
+      },
+      "database_session_entries": 1,
+      "expected_status": 200,
+      "header_names": [
+        "Content-Length",
+        "Content-Type",
+        "Host",
+        "Origin"
+      ],
+      "method": "POST",
+      "name": "foreign_origin_tokenless_loopback",
+      "origin": "https://foreign-origin.example",
+      "response": {
+        "id": "f81eb17a-3a3c-4d75-b487-d39b6e12eecc",
+        "status": "completed",
+        "success": true
+      },
+      "route": "/api/reviews/f81eb17a-3a3c-4d75-b487-d39b6e12eecc/resolve",
+      "token_configured": false
+    }
+  ],
+  "cleanup_database_count": 0,
+  "engineering_only": true,
+  "finished_utc": "2026-09-22T09:45:46.561793+00:00",
+  "first_gap": {
+    "expected_safety_disposition": "Foreign initiating origin should not acquire trusted local operator authorization solely because TCP peer is loopback; reject or require an operator token.",
+    "name": "Foreign-Origin tokenless loopback POST mutates a review",
+    "reproduced_actual_status": 200,
+    "root_cause": "Authorization fallback at server.py:870-875 checks only allow-local environment and client_address; Origin, Host, and Sec-Fetch-Site are unused. POST then parses JSON without restricting Content-Type.",
+    "scope_limit": "Direct accepted production handler plus PostgreSQL proves header acceptance and committed mutation. No browser-origin execution, CORS/PNA reachability, DNS rebinding, or remote-TCP authentication bypass is claimed.",
+    "smallest_repair_proposal": "In tokenless local fallback, reject explicitly foreign Origin and cross-site browser metadata before accepting loopback. Preserve no-Origin local tools and same-origin UI; valid token remains explicit authority. Add focused synthetic direct-handler regressions only after repair release."
+  },
+  "handler_methods": [
+    {
+      "line": 525,
+      "method": "do_GET"
+    },
+    {
+      "line": 885,
+      "method": "do_POST"
+    }
+  ],
+  "mutation_inventory": [
+    {
+      "authorization": "Configured nonempty token requires exact X-Operator-Token or Bearer match; otherwise allow_local truthy and client_address in loopback/trusted tuple.",
+      "dispatch_line": 894,
+      "method": "POST",
+      "mutation": "Set task.status=completed and task.payload_json.resolution_notes; session.commit()",
+      "mutation_lines": [
+        914,
+        919,
+        920
+      ],
+      "route": "/api/reviews/{id}/resolve"
+    }
+  ],
+  "postgres": {
+    "database": "j20_safety_bdcf717c9bb7479c",
+    "listen_addresses": "",
+    "port": 56422,
+    "socket": "/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd"
+  },
+  "source_module": "/Users/pchordia/Downloads/swarm_codex/review/jobs-config-status-source/src/jobs_automation/dashboard/server.py",
+  "source_sha": "413a18ee13ee049f57651ddd7060fd98fafad5f9",
+  "source_still_clean": true,
+  "source_tree": "f40e443a084e4a2e5c6a4ac7cbc4f6dcf791cfa6",
+  "started_utc": "2026-09-22T09:45:46.414695+00:00",
+  "stop_reason": "First concrete local-authorization boundary gap; no remaining read completeness probes executed."
+}
