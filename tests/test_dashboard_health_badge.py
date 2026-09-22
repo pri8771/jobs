@@ -155,16 +155,32 @@ def test_health_badge_initial_state_is_accessible_neutral_and_not_live() -> None
 @pytest.mark.parametrize(
     ("scenario", "expected_text", "expected_class"),
     [
-        ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
-        ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
-        ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+        (
+            {"kind": "response", "payload": {"overall_status": "HEALTHY"}},
+            "Healthy",
+            "health-healthy",
+        ),
+        (
+            {"kind": "response", "payload": {"overall_status": "DEGRADED"}},
+            "Degraded",
+            "health-degraded",
+        ),
+        (
+            {"kind": "response", "payload": {"overall_status": "UNHEALTHY"}},
+            "Unhealthy",
+            "health-unhealthy",
+        ),
         ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
         ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
         ({"kind": "json_reject"}, "Unknown", "health-unknown"),
         ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
         ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
         ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
-        ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+        (
+            {"kind": "response", "payload": {"overall_status": "SURPRISING"}},
+            "Unknown",
+            "health-unknown",
+        ),
         ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
     ],
 )
