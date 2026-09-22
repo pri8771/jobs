@@ -84,7 +84,7 @@ Rework de29999 fixed (a), (b) and (c).
 
 Round 2, a delta re-review of 54e255a..de29999: **RECOMMEND_ACCEPT**, with (a), (b) and (c) verified resolved and three minors raised. 212b762 addressed all three (any-error rollback; a contract-valid replay-path regression that truly reaches the mailbox check; installed run id bound to the persisted audit).
 
-A final independent confirm of de29999..212b762 is pending at the time of writing; see the next checkpoint.
+Final independent confirm of de29999..212b762: **RECOMMEND_ACCEPT**. It instrumented the replay test and showed that it reaches reconcile and then `_verify_mailbox`. The test is red without the fix and green with it, and the any-exception rollback was probe-verified. Two optional, non-blocking follow-ups: a committed test for a non-BoundedIngestionError rollback, and anchoring the `MAILBOX_MISMATCH` regex.
 
 ## Exact held dependency — patch prepared, awaiting release
 
