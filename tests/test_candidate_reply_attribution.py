@@ -129,7 +129,9 @@ def _prior(
     return message, contact
 
 
-def _raw_reply(*, message_id: str, thread: str = THREAD, received_at: datetime.datetime = NOW):
+def _raw_reply(
+    *, message_id: str, thread: str = THREAD, received_at: datetime.datetime = NOW
+) -> RawEmailMessage:
     return RawEmailMessage(
         provider_message_id=message_id,
         provider_thread_id=thread,
@@ -161,7 +163,9 @@ def _ingest_and_process(db: Session, raw: RawEmailMessage) -> InboundMessageMode
     return reply
 
 
-def _reply_event(db: Session, app: ApplicationModel, message_id: str):
+def _reply_event(
+    db: Session, app: ApplicationModel, message_id: str
+) -> ApplicationEventModel | None:
     return db.scalar(
         select(ApplicationEventModel).where(
             ApplicationEventModel.application_id == app.id,
@@ -173,6 +177,7 @@ def _reply_event(db: Session, app: ApplicationModel, message_id: str):
 def test_unique_application_and_contact_records_stage_preserving_reply(session: Session) -> None:
     app = _application(session)
     prior, contact = _prior(session, app, with_contact=True)
+    assert contact is not None
     task = TaskModel(
         application_id=app.id,
         job_id=app.job_id,
@@ -201,10 +206,15 @@ def test_unique_application_and_contact_records_stage_preserving_reply(session: 
     assert task.payload_json["resolved_by_reply_id"] == str(reply.id)
 
     crm = RecruiterCRMService(session)
-    assert [row["provider_message_id"] for row in crm.get_timeline_for_application(app.id)][-1] == reply.provider_message_id
-    assert [row["provider_message_id"] for row in crm.get_timeline_for_contact(contact.id)][-1] == reply.provider_message_id
+    assert [row["provider_message_id"] for row in crm.get_timeline_for_application(app.id)][
+        -1
+    ] == reply.provider_message_id
+    assert [row["provider_message_id"] for row in crm.get_timeline_for_contact(contact.id)][
+        -1
+    ] == reply.provider_message_id
     source = next(
-        row for row in build_timeline_export(session, app.id)["sources"]
+        row
+        for row in build_timeline_export(session, app.id)["sources"]
         if row["provider_message_id"] == reply.provider_message_id
     )
     assert source["link_method"] == "thread_reply_attribution"
@@ -219,6 +229,7 @@ def test_unique_application_without_unique_contact_does_not_guess_contact(
     if contact_evidence == "ambiguous":
         _prior(session, app, with_contact=True)
         prior, second_contact = _prior(session, app, with_contact=True)
+        assert second_contact is not None
         second_contact.email = "second-recruiter@reply-diagnostic.invalid"
         prior.sender = "Second Recruiter <second-recruiter@reply-diagnostic.invalid>"
     session.commit()
@@ -273,11 +284,14 @@ def test_ambiguous_or_untrusted_thread_evidence_never_auto_links(
     ).all()
     assert links == [] and events == []
     if case in {"multiple", "weak"}:
-        assert session.scalar(
-            select(TaskModel).where(
-                TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+        assert (
+            session.scalar(
+                select(TaskModel).where(
+                    TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+                )
             )
-        ) is not None
+            is not None
+        )
 
 
 def test_replay_is_idempotent_and_reply_time_never_regresses_activity(session: Session) -> None:
@@ -290,16 +304,32 @@ def test_replay_is_idempotent_and_reply_time_never_regresses_activity(session: S
     first = _ingest_and_process(session, raw)
     _ingest_and_process(session, raw)
 
-    assert len(session.scalars(select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == first.id)).all()) == 1
-    assert len(session.scalars(select(ApplicationEventModel).where(
-        ApplicationEventModel.application_id == app.id,
-        ApplicationEventModel.source_reference == raw.provider_message_id,
-    )).all()) == 1
+    assert (
+        len(
+            session.scalars(
+                select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == first.id)
+            ).all()
+        )
+        == 1
+    )
+    assert (
+        len(
+            session.scalars(
+                select(ApplicationEventModel).where(
+                    ApplicationEventModel.application_id == app.id,
+                    ApplicationEventModel.source_reference == raw.provider_message_id,
+                )
+            ).all()
+        )
+        == 1
+    )
     assert app.status == "OFFER"
     assert app.last_activity_at == NOW + datetime.timedelta(hours=2)
 
 
-def test_persisted_inbound_candidate_reply_is_not_attributed(session: Session) -> None:
+def test_persisted_inbound_candidate_reply_is_not_attributed(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
     app = _application(session)
     _prior(session, app)
     session.commit()
@@ -309,21 +339,31 @@ def test_persisted_inbound_candidate_reply_is_not_attributed(session: Session) -
         adapter=MockEmailAdapter([raw]),
         candidate_emails=[CANDIDATE],
     )
-    engine.classifier.classify = lambda _raw: EmailClassificationResult(
-        classification=EmailClassification.CANDIDATE_REPLY,
-        confidence=0.99,
-        direction="inbound",
-        needs_review=False,
+    monkeypatch.setattr(
+        engine.classifier,
+        "classify",
+        lambda _raw: EmailClassificationResult(
+            classification=EmailClassification.CANDIDATE_REPLY,
+            confidence=0.99,
+            direction="inbound",
+            needs_review=False,
+        ),
     )
     assert engine.run_sweep(reconcile=False).errors == []
-    message = session.scalar(select(InboundMessageModel).where(
-        InboundMessageModel.provider_message_id == raw.provider_message_id
-    ))
+    message = session.scalar(
+        select(InboundMessageModel).where(
+            InboundMessageModel.provider_message_id == raw.provider_message_id
+        )
+    )
+    assert message is not None
     LifecycleEngine(session).process_message(message)
     session.commit()
-    assert session.scalars(select(MessageLinkModel).where(
-        MessageLinkModel.inbound_message_id == message.id
-    )).all() == []
+    assert (
+        session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == message.id)
+        ).all()
+        == []
+    )
     assert _reply_event(session, app, raw.provider_message_id) is None
 
 
@@ -365,13 +405,17 @@ def test_spoofed_inbound_sender_containing_candidate_address_is_not_a_reply(
         )
     )
     assert message is not None and message.direction == "inbound"
+    assert message is not None
     LifecycleEngine(session).process_message(message)
     LifecycleAlertService(session).check_unanswered_recruiters(now=NOW)
     session.commit()
 
-    assert session.scalars(
-        select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == message.id)
-    ).all() == []
+    assert (
+        session.scalars(
+            select(MessageLinkModel).where(MessageLinkModel.inbound_message_id == message.id)
+        ).all()
+        == []
+    )
     assert _reply_event(session, app, raw.provider_message_id) is None
     assert task.status == "pending"
     assert task.payload_json.get("resolved_by_reply_id") is None
@@ -397,9 +441,12 @@ def test_proven_outbound_declining_different_role_records_reply_before_divergenc
         row["provider_message_id"]
         for row in RecruiterCRMService(session).get_timeline_for_application(app.id)
     }
-    assert session.scalar(
-        select(TaskModel).where(
-            TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+    assert (
+        session.scalar(
+            select(TaskModel).where(
+                TaskModel.task_type == "NEEDS_REVIEW", TaskModel.status == "pending"
+            )
         )
-    ) is None
+        is None
+    )
     assert reply.direction == "outbound"

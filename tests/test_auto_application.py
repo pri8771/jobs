@@ -1,6 +1,8 @@
 """Tests for V0.5 controlled automatic application, ATS adapters, and safety gates."""
 
+import uuid
 from collections.abc import Generator
+from typing import NoReturn
 
 import pytest
 from sqlalchemy import create_engine
@@ -500,71 +502,142 @@ def test_controlled_auto_apply_rate_limiting(
 
 
 # V17-X01/C02: synthetic adapter regressions, no external transport.
-def _bound_packet_fixture(session):
+def _bound_packet_fixture(session: Session) -> tuple[list[JobModel], ApplicationPacketModel]:
     company = CompanyModel(normalized_name="binding-fixture")
     session.add(company)
     session.flush()
-    jobs = [JobModel(company_id=company.id, normalized_title=f"Fixture {i}", status="shortlisted") for i in range(2)]
+    jobs = [
+        JobModel(company_id=company.id, normalized_title=f"Fixture {i}", status="shortlisted")
+        for i in range(2)
+    ]
     session.add_all(jobs)
     session.flush()
     for job in jobs:
-        session.add(JobSourceModel(job_id=job.id, provider="greenhouse", canonical_apply_url=f"https://boards.greenhouse.io/fixture/jobs/{job.id}"))
-    artifact = ArtifactModel(type="resume_markdown", storage_uri="/synthetic/resume.md", sha256="synthetic-only", metadata_json={})
+        session.add(
+            JobSourceModel(
+                job_id=job.id,
+                provider="greenhouse",
+                canonical_apply_url=f"https://boards.greenhouse.io/fixture/jobs/{job.id}",
+            )
+        )
+    artifact = ArtifactModel(
+        type="resume_markdown",
+        storage_uri="/synthetic/resume.md",
+        sha256="synthetic-only",
+        metadata_json={},
+    )
     session.add(artifact)
     session.flush()
-    packet = ApplicationPacketModel(job_id=jobs[1].id, candidate_profile_version=1, resume_artifact_id=artifact.id, answers_json={}, unresolved_questions_json=[], packet_hash="bound-fixture", is_live_ready=True)
+    packet = ApplicationPacketModel(
+        job_id=jobs[1].id,
+        candidate_profile_version=1,
+        resume_artifact_id=artifact.id,
+        answers_json={},
+        unresolved_questions_json=[],
+        packet_hash="bound-fixture",
+        is_live_ready=True,
+    )
     session.add(packet)
     session.commit()
     return jobs, packet
 
 
-def test_explicit_packet_for_another_job_never_reaches_adapter(db_session, candidate_profile, policy_config, monkeypatch):
+def test_explicit_packet_for_another_job_never_reaches_adapter(
+    db_session: Session,
+    candidate_profile: CandidateProfileConfig,
+    policy_config: PolicyRegistryConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     jobs, packet = _bound_packet_fixture(db_session)
     calls = []
-    def forbidden(*args, **kwargs):
+
+    def forbidden(*args: object, **kwargs: object) -> NoReturn:
         calls.append(True)
         pytest.fail("wrong-job packet reached adapter")
+
     monkeypatch.setattr(GreenhouseATSAdapter, "validate_packet", forbidden)
-    engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+    engine = ControlledAutoApplicationEngine(
+        db_session, PolicyEvaluator(policy_config), candidate_profile
+    )
     result = engine.execute_auto_apply(jobs[0].id, packet_id=packet.id, mock_mode=True)
     assert result.status == "FAILED_PACKET_BINDING"
     assert calls == []
     assert db_session.query(ApplicationModel).count() == 0
 
 
-@pytest.mark.parametrize("adapter_status,receipt,confirmation", [
-    ("SUBMITTED", None, None),
-    ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
-    ("SIMULATED", "SIM-CLAIM", None),
-])
-def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(db_session, candidate_profile, policy_config, monkeypatch, adapter_status, receipt, confirmation):
+@pytest.mark.parametrize(
+    "adapter_status,receipt,confirmation",
+    [
+        ("SUBMITTED", None, None),
+        ("SUBMITTED", "unverified-receipt", "https://example.invalid/thanks"),
+        ("SIMULATED", "SIM-CLAIM", None),
+    ],
+)
+def test_adapter_claim_cannot_confirm_live_submission_or_close_tasks(
+    db_session: Session,
+    candidate_profile: CandidateProfileConfig,
+    policy_config: PolicyRegistryConfig,
+    monkeypatch: pytest.MonkeyPatch,
+    adapter_status: str,
+    receipt: str | None,
+    confirmation: str | None,
+) -> None:
     from jobs_automation.automation.base import SubmissionResult
     from jobs_automation.db.base import utc_now
+
     jobs, packet = _bound_packet_fixture(db_session)
     job = jobs[1]
     task = TaskModel(job_id=job.id, task_type="NEEDS_REVIEW", status="pending", payload_json={})
     db_session.add(task)
     db_session.commit()
     calls = []
-    def claimed_success(*args, **kwargs):
+
+    def claimed_success(*args: object, **kwargs: object) -> SubmissionResult:
         calls.append(True)
-        return SubmissionResult(success=True, status=adapter_status, receipt_id=receipt, confirmation_url=confirmation, response_payload={"independently_validated": True}, submitted_at=utc_now(), message="uncorroborated adapter claim")
+        return SubmissionResult(
+            success=True,
+            status=adapter_status,
+            receipt_id=receipt,
+            confirmation_url=confirmation,
+            response_payload={"independently_validated": True},
+            submitted_at=utc_now(),
+            message="uncorroborated adapter claim",
+        )
+
     monkeypatch.setattr(GreenhouseATSAdapter, "submit_application", claimed_success)
-    engine = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile)
+    engine = ControlledAutoApplicationEngine(
+        db_session, PolicyEvaluator(policy_config), candidate_profile
+    )
     result = engine.execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
     assert result.status == "SUBMISSION_UNCONFIRMED"
     app = db_session.query(ApplicationModel).filter(ApplicationModel.job_id == job.id).one()
     assert app.status == "SUBMISSION_UNCONFIRMED" and app.applied_at is None
     assert task.status == "pending"
-    assert db_session.query(ApplicationEventModel).filter(ApplicationEventModel.event_type == "APPLICATION_SUBMITTED").count() == 0
-    assert db_session.query(AuditLogModel).filter(AuditLogModel.action_type == "auto_application_submitted").count() == 0
+    assert (
+        db_session.query(ApplicationEventModel)
+        .filter(ApplicationEventModel.event_type == "APPLICATION_SUBMITTED")
+        .count()
+        == 0
+    )
+    assert (
+        db_session.query(AuditLogModel)
+        .filter(AuditLogModel.action_type == "auto_application_submitted")
+        .count()
+        == 0
+    )
     db_session.expire_all()
-    replay = ControlledAutoApplicationEngine(db_session, PolicyEvaluator(policy_config), candidate_profile).execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
+    replay = ControlledAutoApplicationEngine(
+        db_session, PolicyEvaluator(policy_config), candidate_profile
+    ).execute_auto_apply(job.id, packet_id=packet.id, mock_mode=False)
     assert replay.status == "SUBMISSION_UNCONFIRMED" and calls == [True]
 
 
-
-def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(db_session, candidate_profile, policy_config, monkeypatch):
+def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(
+    db_session: Session,
+    candidate_profile: CandidateProfileConfig,
+    policy_config: PolicyRegistryConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     import datetime
     import importlib
 
@@ -572,11 +645,29 @@ def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(db_sessio
 
     from jobs_automation.automation.auto_engine import ControlledAutoApplicationResult
     from jobs_automation.db.base import utc_now
+
     cli_module = importlib.import_module("jobs_automation.cli.main")
     jobs, blocked_packet = _bound_packet_fixture(db_session)
-    eligible = ApplicationPacketModel(job_id=jobs[0].id, candidate_profile_version=1, resume_artifact_id=blocked_packet.resume_artifact_id, answers_json={}, unresolved_questions_json=[], packet_hash="eligible-fixture", created_at=utc_now()-datetime.timedelta(days=1))
+    eligible = ApplicationPacketModel(
+        job_id=jobs[0].id,
+        candidate_profile_version=1,
+        resume_artifact_id=blocked_packet.resume_artifact_id,
+        answers_json={},
+        unresolved_questions_json=[],
+        packet_hash="eligible-fixture",
+        created_at=utc_now() - datetime.timedelta(days=1),
+    )
     db_session.add(eligible)
-    db_session.add(ApplicationModel(job_id=jobs[1].id, packet_id=blocked_packet.id, status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", policy_decision="auto_allowed", application_mode="auto"))
+    db_session.add(
+        ApplicationModel(
+            job_id=jobs[1].id,
+            packet_id=blocked_packet.id,
+            status="SUBMISSION_UNCONFIRMED",
+            destination_domain="boards.greenhouse.io",
+            policy_decision="auto_allowed",
+            application_mode="auto",
+        )
+    )
     db_session.commit()
     expected_id = jobs[0].id
     monkeypatch.setattr(cli_module, "get_engine", lambda *_: db_session.get_bind())
@@ -584,9 +675,18 @@ def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(db_sessio
     monkeypatch.setattr(ConfigLoader, "load_candidate_profile", lambda _: (candidate_profile, {}))
     monkeypatch.setattr(ConfigLoader, "load_policy_registry", lambda _: (policy_config, {}))
     seen = []
-    def record_selection(self, job_id, **kwargs):
+
+    def record_selection(
+        self: ControlledAutoApplicationEngine, job_id: uuid.UUID, **kwargs: object
+    ) -> ControlledAutoApplicationResult:
         seen.append(job_id)
-        return ControlledAutoApplicationResult(job_id=str(job_id), status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", message="Requires confirmation")
+        return ControlledAutoApplicationResult(
+            job_id=str(job_id),
+            status="SUBMISSION_UNCONFIRMED",
+            destination_domain="boards.greenhouse.io",
+            message="Requires confirmation",
+        )
+
     monkeypatch.setattr(ControlledAutoApplicationEngine, "execute_auto_apply", record_selection)
     result = CliRunner().invoke(cli_module.cli, ["auto-apply", "--next"])
     assert result.exit_code == 0, result.output
