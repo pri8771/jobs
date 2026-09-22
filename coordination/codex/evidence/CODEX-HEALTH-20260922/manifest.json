@@ -1,0 +1,50 @@
+{
+  "begin-failure-observed.txt": {
+    "bytes": 1423,
+    "sha256": "ae0858f34853ecdd733355d2a90b71796a8240605e651e1b7539d19e2200ac56"
+  },
+  "begin-failure-repro.py": {
+    "bytes": 3938,
+    "sha256": "59756a5fad2fb8e828b81ffc3ffc60c323924d346040a0764a34e8d0d063555f"
+  },
+  "fixed-checks.json": {
+    "bytes": 1483,
+    "sha256": "65b81d0214086a17355d52fd0cd1dc5033bd9759dd512a56fbc5b1866144923c"
+  },
+  "fixed-observed.txt": {
+    "bytes": 3430,
+    "sha256": "c8906ab6e712f0e6132ffd2f668cbc1465cef3a7a16f094679abdd558680c1d8"
+  },
+  "fixed-repro.py": {
+    "bytes": 5539,
+    "sha256": "dc35bc61f5cf9cb9da6c9819351fbda4db0365bdafe3175a68942b268835544d"
+  },
+  "fixed-verification.sh": {
+    "bytes": 1862,
+    "sha256": "c5b9610aa6d4a4e11928beca8b49c2c9af0d7c677845cb08b3896035c0db9f25"
+  },
+  "focused.txt": {
+    "bytes": 99,
+    "sha256": "9fc0ffbd15caeeeb6e4680bc61e4d2455e5b94ba7ff480ea350ee0532e1f74a9"
+  },
+  "full.txt": {
+    "bytes": 602,
+    "sha256": "eb6122d09f7983c209ef8c5e4fda56702037d4392363c1a9c2de9ac5eb6d7974"
+  },
+  "health-secret-red.txt": {
+    "bytes": 518,
+    "sha256": "883790b75dc4cbe670bad1d6ee72a4b64cc51fcdd559bdf7af3afb42fc641fdd"
+  },
+  "mypy.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "remaining-diagnostic.txt": {
+    "bytes": 3486,
+    "sha256": "de2ad2d7ce1acedd121ef7a7b8a370aaa817ccae9de8a24cd97bdc81d5edf1cf"
+  },
+  "ruff.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  }
+}

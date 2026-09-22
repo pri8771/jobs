@@ -1,0 +1,531 @@
+FFFFFFFFFFFF                                                             [100%]
+=================================== FAILURES ===================================
+______ test_health_badge_initial_state_is_accessible_neutral_and_not_live ______
+
+    def test_health_badge_initial_state_is_accessible_neutral_and_not_live() -> None:
+>       initial = _initial_badge()
+                  ^^^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:145: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario0-Healthy-health-healthy] _
+
+scenario = {'kind': 'response', 'payload': {'overall_status': 'HEALTHY'}}
+expected_text = 'Healthy', expected_class = 'health-healthy'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario1-Degraded-health-degraded] _
+
+scenario = {'kind': 'response', 'payload': {'overall_status': 'DEGRADED'}}
+expected_text = 'Degraded', expected_class = 'health-degraded'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario2-Unhealthy-health-unhealthy] _
+
+scenario = {'kind': 'response', 'payload': {'overall_status': 'UNHEALTHY'}}
+expected_text = 'Unhealthy', expected_class = 'health-unhealthy'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario3-Unknown-health-unknown] _
+
+scenario = {'kind': 'fetch_reject'}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario4-Unknown-health-unknown] _
+
+scenario = {'kind': 'non_2xx'}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario5-Unknown-health-unknown] _
+
+scenario = {'kind': 'json_reject'}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario6-Unknown-health-unknown] _
+
+scenario = {'kind': 'response', 'payload': None}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario7-Unknown-health-unknown] _
+
+scenario = {'kind': 'response', 'payload': []}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario8-Unknown-health-unknown] _
+
+scenario = {'kind': 'response', 'payload': {}}, expected_text = 'Unknown'
+expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario9-Unknown-health-unknown] _
+
+scenario = {'kind': 'response', 'payload': {'overall_status': 'SURPRISING'}}
+expected_text = 'Unknown', expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+_ test_health_badge_executes_embedded_script_once_and_fails_closed[scenario10-Unknown-health-unknown] _
+
+scenario = {'kind': 'response', 'payload': {'overall_status': 7}}
+expected_text = 'Unknown', expected_class = 'health-unknown'
+
+    @pytest.mark.parametrize(
+        ("scenario", "expected_text", "expected_class"),
+        [
+            ({"kind": "response", "payload": {"overall_status": "HEALTHY"}}, "Healthy", "health-healthy"),
+            ({"kind": "response", "payload": {"overall_status": "DEGRADED"}}, "Degraded", "health-degraded"),
+            ({"kind": "response", "payload": {"overall_status": "UNHEALTHY"}}, "Unhealthy", "health-unhealthy"),
+            ({"kind": "fetch_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "non_2xx"}, "Unknown", "health-unknown"),
+            ({"kind": "json_reject"}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": None}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": []}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": "SURPRISING"}}, "Unknown", "health-unknown"),
+            ({"kind": "response", "payload": {"overall_status": 7}}, "Unknown", "health-unknown"),
+        ],
+    )
+    def test_health_badge_executes_embedded_script_once_and_fails_closed(
+        scenario: dict[str, object], expected_text: str, expected_class: str
+    ) -> None:
+>       result = _run(scenario)
+                 ^^^^^^^^^^^^^^
+
+/tmp/test_dashboard_health_badge_base.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/tmp/test_dashboard_health_badge_base.py:135: in _run
+    input=json.dumps({"script": _script(), "scenario": scenario, "initial": _initial_badge()}),
+                                                                            ^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def _initial_badge() -> dict[str, object]:
+        match = re.search(
+            r"<span(?P<attrs>[^>]*\bid=[\"']system-health-badge[\"'][^>]*)>(?P<text>.*?)</span>",
+            DASHBOARD_HTML,
+            re.DOTALL,
+        )
+>       assert match is not None, "dashboard must expose a stable system-health-badge id"
+E       AssertionError: dashboard must expose a stable system-health-badge id
+E       assert None is not None
+
+/tmp/test_dashboard_health_badge_base.py:116: AssertionError
+=========================== short test summary info ============================
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_initial_state_is_accessible_neutral_and_not_live
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario0-Healthy-health-healthy]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario1-Degraded-health-degraded]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario2-Unhealthy-health-unhealthy]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario3-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario4-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario5-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario6-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario7-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario8-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario9-Unknown-health-unknown]
+FAILED ../../Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source::test_health_badge_executes_embedded_script_once_and_fails_closed[scenario10-Unknown-health-unknown]
+12 failed in 0.25s

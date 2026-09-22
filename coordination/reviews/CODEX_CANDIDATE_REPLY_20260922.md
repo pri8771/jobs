@@ -1,0 +1,34 @@
+# Candidate reply attribution — independent review preparation
+
+**READY_FOR_LEAD_REVIEW / RECOMMEND_ACCEPT** for bounded engineering behavior only. Codex prepared this packet; ChatGPT engineering lead remains the formal exact-source acceptance authority.
+
+- **Project/repository:** Jobs Automation / `pri8771/jobs`.
+- **Artifact and submission:** candidate **832d85f5177ca82564c9d0b6c168790f26ea1dc3**, tree **047eb8501e562cbbca450e946e260a1b8454f74b**, branch `codex/jobs-v20-fixture-diagnostic-20260922`, parent accepted integration **e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273**. [PR21](https://github.com/pri8771/jobs/pull/21).
+- **Contract:** bounded outbound candidate-reply attribution released at coordination ref **398656d055e58b879dd433bec70df622756e6c18**. The release is not authority for a mailbox send, application action or full V2.0 golden run.
+- **Reviewed paths:** `src/jobs_automation/ingestion/{classifier.py,engine.py}`, `src/jobs_automation/lifecycle/{crm.py,engine.py}`, `tests/{test_candidate_reply_attribution.py,test_bounded_ingestion.py,test_ingestion_engine.py}`.
+
+## Finding and repair
+
+The initial synthetic product-path diagnostic proved that a same-thread outbound reply could complete `UNANSWERED_RECRUITER` while having no `MessageLink` or application event; application activity and application/contact CRM histories omitted it even though the redacted timeline surfaced it as a thread sibling. [Initial output](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/initial-product-path-baseline.out) and [causal note](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-diagnostic-20260922.md).
+
+Candidate 832d85f attributes only a persisted outbound `CANDIDATE_REPLY` from earlier, non-canary same-thread links that identify exactly one canonical application/job/company at confidence at least `0.8`. It conservatively inherits the minimum prior confidence; ambiguous or weak evidence creates one idempotent review task. It emits one stage-preserving `CANDIDATE_REPLIED` event, advances activity monotonically, and attaches a recruiter contact only when earlier same-thread lifecycle evidence proves exactly one contact. Application and contact CRM timelines plus the redacted export then use the actual reply link.
+
+Two additional adverse checks caught boundary defects before the candidate was finalized: sender text containing the candidate address could override an adapter-proven inbound direction, and employer role-divergence wording in a genuine outbound reply could suppress reply evidence. Both reproduced red and now pass: adapter direction alone establishes outbound ownership, parsed identity changes confidence only, and the reply branch precedes employer role-divergence analysis. [Two red reproductions](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-final-defects-red.log) and [bounded source audit](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-source-review.txt).
+
+## Checks and evidence
+
+- Focused attribution: **12 passed**. Affected seven modules: **91 passed**. Ruff over all `src`/`tests` and mypy over **74 source files** pass.
+- Final full suite with `PROOF_TEST_PG_ADMIN_URL` configured: **463 passed, 1 existing host-loopback skip in 68.08s**. [Final full log](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-full-final.log).
+- Exact committed-source disposable PostgreSQL run migrated to Alembic head, ran three actual `WorkerDaemon` sessions including a fresh duplicate/restart, then used a new engine/session for readback. It found exactly two messages, one reply link, one reply event, one recruiter contact and one completed alert; no interviews or review task. The link retained the application/job/company IDs, method `thread_reply_attribution` and confidence `0.8`; the event retained `CANDIDATE_REPLIED`, `email_lifecycle`, candidate actor and proven contact. Status remained the post-inbound `SCREENING`, `closed_at` remained null, activity advanced to reply time, both CRM timelines included the reply, duplicate ingestion/transitions were zero, and cleanup count was zero. This is synthetic partial-path evidence, not golden/live proof. [Harness](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-pg.py), [repeatable wrapper](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-pg-run.sh), [exact run](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/jobs-candidate-reply-pg-832d85f5177c-20260922T065108Z.log).
+- Exact commands, exits and the raw-log hash inventory are in [checks.json](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/checks.json) and [manifest.json](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/manifest.json).
+- Read-only hosted-CI inspection at `2026-09-22T06:54:16Z` found PR21 still at exact head 832d85f with **zero check runs and zero workflow runs**; the legacy commit context is pending but contains no run. This is no hosted execution and provides no runner evidence. No rerun or dispatch occurred. [Hosted-CI readback](../codex/evidence/CODEX-CANDIDATE-REPLY-20260922/hosted-ci.json).
+
+The packet retains intermediate failures honestly. One focused compatibility run had three stale expectations after intended reply linkage changed. A later compatibility check had one legacy test that did not set adapter direction. A provisional full run, started before the test edit returned, reached 459 passes but failed on a missing `uuid` import in the edited test. These were test-only corrections and are **not** cited as final evidence; their raw logs remain in the evidence directory. The final full run above supersedes them.
+
+The retained PostgreSQL harness predates the final commit and prints an inner `source_state` value of `base_plus_dirty_candidate_reply_repair`. The wrapper independently required clean production sources, verified HEAD exactly **832d85f5177ca82564c9d0b6c168790f26ea1dc3**, and records `source_state=exact_committed_source` before running that unchanged harness. The wrapper identity is authoritative for this rerun; the stale inner label is preserved rather than rewritten.
+
+## Recommendation and remaining gates
+
+**RECOMMEND_ACCEPT** 832d85f for this engineering repair. Request a formal exact-SHA/tree verdict from ChatGPT engineering lead. This recommendation does not accept the full golden workflow, establish genuine mailbox/provider behavior, or close V2.0. Full golden execution remains held pending review; genuine G14–G17, hosted/account and any independent live checkpoints remain open. No private mailbox content, real candidate data, external send, application action, deployment, merge or scheduler change is claimed.
+
+After a formal verdict, the next bounded action is the smallest lead-released dependency-safe checkpoint. Do not infer authority for the held golden run from this packet.

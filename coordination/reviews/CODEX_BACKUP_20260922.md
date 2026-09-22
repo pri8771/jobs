@@ -1,0 +1,16 @@
+# A-V20-RELIABILITY — backup and restore integrity
+
+State READY_FOR_LEAD_REVIEW. Recommendation **RECOMMEND_ACCEPT** this bounded repair; formal ChatGPT verdict pending.
+
+- Repository pri8771/jobs, branch codex/jobs-backup-integrity-20260922. Source d98b1ead3eb0bf15b88276f1f2cc844f846ab494, tree4c2ea8cb1f78331da89d49344ae68cfdb937de64; accepted base10a3a23924fdde6b040082ef030ad1286591b9a9. [Draft PR17](https://github.com/pri8771/jobs/pull/17), independent of accepted J20G01 PR16.
+- Authority: owner V2.0 goal, direct Codex/no Fable; native lead assignment75c37aba14ae6581277162f1ca65bfb5ee508f25 matches this exact repair. Root owns source, mechanical agent supplies bounded diagnostic/verification, ChatGPT alone formally accepts. No original worker edits.
+- Red-before: matching backup pair moved/differentCWD failed because shasum-c resolved original path against caller directory. Malformed SQL produced rolled-back transaction and missing table yet script exited0/printed success because psql lacked ON_ERROR_STOP. Exact baseline scripts/logs retained.
+- Repair paths: scripts/backup_db.sh emits basename-only checksum; scripts/restore_db.sh reads exactly one valid SHA256 record and compares actual supplied archive digest independently of recordedpath, preserving older sidecars. Restore now uses ON_ERROR_STOP with existing single transaction. docs/RECOVERY.md shows proper verification/restore behavior. Existing emergency override semantics remain.
+- Positive actual product-code path (ENGINEERING, synthetic DB): production backup script -> relocatepair -> production restore from thirdCWD -> target rows exactly1:alpha,2:beta. Adverse actualPG: malformedSQL exits3, rollsback/absenttable, zero successmessages; corrupt/malformed/multirecord checksum exits1 beforemutation. Source and target disposableDBs removed/count0. No live/privateDB data.
+- Checks: full446passed/1existing hostskip;Ruff/mypy74 passed;bash-n/diffcheck passed; realPG automated harness passed. [Exact commands/logs](../codex/evidence/CODEX-BACKUP-20260922/checks.json), [source-bound manifest](../codex/evidence/CODEX-BACKUP-20260922/manifest.json). No additional test framework or scheduler; retained realPG harness is the focused automated coverage.
+- Limits: A-V20-RELIABILITY includes other migration/worker/health/CI requirements; no whole-artifact acceptance claimed. No real production restore, grants, mailbox/provider/public/model action, spend, merge or deployment. Genuine G14–G17 and V2.0 campaign remain open.
+- Requested action: ChatGPT exact-SHA verdict and smallest next dependency-safe engineering assignment. Codex will address concrete review findings.
+
+## Additional existing migration-path verification
+
+At exactd98b1ea, the existing scripts/verify_migrations.sh completed on one unique disposable JobsPG database: base→001→002→003, downgrade003→002, re-upgrade002→003. IndependentSQL readback matched alembichead003_generation_origin_readiness,20publictables. Database cleanup count0. [Harness](../codex/evidence/CODEX-BACKUP-20260922/migration-verification.sh), [actual command/output](../codex/evidence/CODEX-BACKUP-20260922/migration-verification.txt). No new code/testframework or live datasource. This supplies engineering evidence for the native migration-chain checkpoint, not full downgrade-to-base, real data recovery or wholeV2acceptance.

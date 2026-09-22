@@ -1,0 +1,66 @@
+267:         if actual != request.mailbox.strip().lower():
+268:             raise BoundedIngestionError("MAILBOX_MISMATCH")
+269: 
+270:     def run(self, request: BoundedIngestionRequest) -> BoundedIngestionResult:
+271:         request = request.validated()
+272:         self._verify_mailbox(request)
+273:         started = datetime.datetime.now(datetime.UTC)
+274:         run_id = str(uuid.uuid4())
+275:         fingerprint = mailbox_fingerprint(request.mailbox)
+276:         digests_before = compute_logical_state_digests(self.session)
+277: 
+278:         engine = EmailIngestionEngine(
+279:             session=self.session,
+280:             adapter=self.adapter,
+281:             candidate_emails=self.candidate_emails,
+282:             canary_identities=self.canary_identities,
+283:         )
+284:         summary: IngestionSweepSummary = engine.run_sweep(
+285:             query=request.provider_query(),
+286:             max_messages=request.cap,
+287:             dry_run=request.dry_run,
+288:             since_override=request.window_start,
+289:             advance_checkpoint=False,
+290:         )
+291: 
+292:         lifecycle_transitions = 0
+293:         interviews_scheduled = 0
+294:         unanswered_alerts = 0
+295:         stale_alerts = 0
+296:         errors = list(summary.errors)
+297:         if not request.dry_run and not errors:
+298:             try:
+299:                 lifecycle = LifecycleEngine(self.session)
+300:                 messages = self.session.scalars(
+301:                     select(InboundMessageModel)
+302:                     .where(
+303:                         InboundMessageModel.id.in_(summary.batch_message_ids),
+304:                         InboundMessageModel.classification != "JOB_ALERT",
+305:                     )
+306:                     .order_by(InboundMessageModel.received_at.asc())
+307:                 ).all()
+308:                 genuine_ids: list[uuid.UUID] = []
+309:                 thread_ids: set[str] = set()
+310:                 for message in messages:
+311:                     if (message.headers_json or {}).get("_provider", {}).get("canary"):
+312:                         continue  # canary mail never drives genuine lifecycle state
+313:                     genuine_ids.append(message.id)
+314:                     thread_ids.add(message.provider_thread_id or message.provider_message_id)
+315:                     transition = lifecycle.process_message(message)
+316:                     if transition:
+317:                         lifecycle_transitions += 1
+318:                         if transition.interview_scheduled:
+319:                             interviews_scheduled += 1
+320:                 alerts = LifecycleAlertService(self.session)
+321:                 application_ids = {
+322:                     app_id for app_id in self.session.scalars(
+323:                         select(MessageLinkModel.application_id).where(
+324:                             MessageLinkModel.inbound_message_id.in_(genuine_ids),
+325:                             MessageLinkModel.application_id.is_not(None),
+326:                         )
+327:                     ) if app_id is not None
+328:                 }
+329:                 unanswered_alerts = len(alerts.check_unanswered_recruiters(thread_ids=thread_ids))
+330:                 stale_alerts = len(alerts.check_stale_applications(application_ids=application_ids))
+331:                 self.session.commit()
+332:             except Exception as exc:  # pragma: no cover - defensive; surfaced as FAILED

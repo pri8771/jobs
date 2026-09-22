@@ -1,0 +1,29 @@
+Jobs CRM final bounded mechanical review
+Date: 2026-09-22
+Source: /Users/pchordia/Downloads/swarm_codex/review/jobs-crm-source
+Reviewed worktree state: HEAD 6ae659f with local modifications to
+  src/jobs_automation/lifecycle/crm.py
+  tests/test_crm_corrections.py
+
+Focused command:
+PYTHONPATH=/Users/pchordia/Downloads/swarm_codex/review/jobs-crm-source/src /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python -m pytest -q tests/test_crm_corrections.py
+Result: exit 0; 4 passed in 0.20s
+
+Mechanical findings:
+1. Invalid-target ordering is correct. relink_message resolves both the inbound
+   message and target application and raises for either missing row before it
+   queries, deletes, creates, or modifies any MessageLinkModel, application
+   activity, or audit row (crm.py:262-267; mutations begin at 268/281).
+2. Corrected-link identity and audit binding are correct. The method retains an
+   existing link already bound to the target when present, otherwise retains the
+   first application-bearing link or creates one; it removes the other
+   application-bearing links, assigns application/job/company consistently,
+   flushes to establish the retained/new link ID, then binds the success audit's
+   entity_id to that exact link ID (crm.py:268-311). The audit captures the full
+   sorted prior application-ID set and target ID.
+3. Successful merge audit filtering and malformed alias guarding are present at
+   crm.py:113-127. The integrated regressions cover chained no-event merges,
+   failed aliases, and same-contact rejection.
+
+Conclusion: no bounded actionable defect found in the requested surfaces.
+This is mechanical review only, not formal acceptance or live G17 proof.

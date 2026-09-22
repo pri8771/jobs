@@ -1,0 +1,574 @@
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+Failed to write worker-run begin record for run eada9262-ca2d-47af-a12f-a4a1b03a05c7 (RuntimeError)
+{
+  "cases": {
+    "actual_daemon_begin_failure": {
+      "api": [
+        {
+          "id": "b9eda134-e5d0-4b44-acfa-662e600109a9",
+          "metrics": {
+            "error_categories": [
+              "BEGIN_RECORD_FAILED"
+            ],
+            "error_count": 1,
+            "final_status": "FAILED",
+            "finished_at": "2026-09-22T07:51:08.060840+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7",
+            "sample_errors": [
+              "begin_record_failed: operational evidence store unavailable"
+            ],
+            "stale_alerts": 0,
+            "started_at": "2026-09-22T07:51:08.060805+00:00",
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.060942-04:00",
+          "record_type": "run_finished",
+          "result": "FAILED",
+          "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7"
+        },
+        {
+          "id": "57d17edf-2678-4c37-a634-e02d270c8055",
+          "metrics": {
+            "error_categories": [
+              "UNKNOWN_ERROR"
+            ],
+            "error_count": 1,
+            "final_status": "PARTIAL",
+            "finished_at": "2026-09-22T07:51:08.059047+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "sample_errors": [
+              "synthetic bounded poll failure"
+            ],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.059136-04:00",
+          "record_type": "run_finished",
+          "result": "PARTIAL",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        },
+        {
+          "id": "3f5313cb-d0c5-418b-a863-71cc1f924e3c",
+          "metrics": {
+            "reconcile_requested": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.057838+00:00"
+          },
+          "occurred_at": "2026-09-22T03:51:08.057928-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        },
+        {
+          "id": "206446ad-b9db-4bc0-8517-b378ba445d02",
+          "metrics": {
+            "error_categories": [],
+            "error_count": 0,
+            "final_status": "SUCCESS",
+            "finished_at": "2026-09-22T07:51:08.055033+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "sample_errors": [],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.055169-04:00",
+          "record_type": "run_finished",
+          "result": "SUCCESS",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        },
+        {
+          "id": "1cc459a2-6430-49a8-9a52-32510bc16a60",
+          "metrics": {
+            "reconcile_requested": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.033566+00:00"
+          },
+          "occurred_at": "2026-09-22T03:51:08.045026-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        }
+      ],
+      "daemon_result": {
+        "errors": [
+          "begin_record_failed: operational evidence store unavailable"
+        ],
+        "final_status": "FAILED",
+        "jobs_discovered": 0,
+        "lifecycle_transitions": 0,
+        "messages_ingested": 0,
+        "messages_polled": 0,
+        "operational_evidence_durable": true,
+        "reconciliation_performed": false,
+        "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7",
+        "stale_alerts": 0,
+        "unanswered_alerts": 0,
+        "warnings": []
+      },
+      "durable_rows": [
+        {
+          "action_type": "worker_run_finished",
+          "metadata": {
+            "error_categories": [
+              "BEGIN_RECORD_FAILED"
+            ],
+            "error_count": 1,
+            "final_status": "FAILED",
+            "finished_at": "2026-09-22T07:51:08.060840+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7",
+            "sample_errors": [
+              "begin_record_failed: operational evidence store unavailable"
+            ],
+            "stale_alerts": 0,
+            "started_at": "2026-09-22T07:51:08.060805+00:00",
+            "unanswered_alerts": 0
+          },
+          "result": "FAILED",
+          "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7"
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 0.0,
+          "last_attempt_at": "2026-09-22T03:51:08.060942-04:00",
+          "last_attempt_status": "FAILED",
+          "last_error_at": "2026-09-22T03:51:08.060942-04:00",
+          "last_error_category": "BEGIN_RECORD_FAILED",
+          "last_reconciliation_at": null,
+          "last_success_at": "2026-09-22T03:51:08.055169-04:00",
+          "metrics": {
+            "error_categories": [
+              "BEGIN_RECORD_FAILED"
+            ],
+            "error_count": 1,
+            "final_status": "FAILED",
+            "finished_at": "2026-09-22T07:51:08.060840+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "eada9262-ca2d-47af-a12f-a4a1b03a05c7",
+            "sample_errors": [
+              "begin_record_failed: operational evidence store unavailable"
+            ],
+            "stale_alerts": 0,
+            "started_at": "2026-09-22T07:51:08.060805+00:00",
+            "unanswered_alerts": 0
+          },
+          "stale_run_id": null,
+          "stale_running_run": false
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker run 0.0m ago (FAILED).",
+        "name": "worker",
+        "status": "DEGRADED"
+      }
+    },
+    "actual_daemon_partial": {
+      "api": [
+        {
+          "id": "57d17edf-2678-4c37-a634-e02d270c8055",
+          "metrics": {
+            "error_categories": [
+              "UNKNOWN_ERROR"
+            ],
+            "error_count": 1,
+            "final_status": "PARTIAL",
+            "finished_at": "2026-09-22T07:51:08.059047+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "sample_errors": [
+              "synthetic bounded poll failure"
+            ],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.059136-04:00",
+          "record_type": "run_finished",
+          "result": "PARTIAL",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        },
+        {
+          "id": "3f5313cb-d0c5-418b-a863-71cc1f924e3c",
+          "metrics": {
+            "reconcile_requested": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.057838+00:00"
+          },
+          "occurred_at": "2026-09-22T03:51:08.057928-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        },
+        {
+          "id": "206446ad-b9db-4bc0-8517-b378ba445d02",
+          "metrics": {
+            "error_categories": [],
+            "error_count": 0,
+            "final_status": "SUCCESS",
+            "finished_at": "2026-09-22T07:51:08.055033+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "sample_errors": [],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.055169-04:00",
+          "record_type": "run_finished",
+          "result": "SUCCESS",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        },
+        {
+          "id": "1cc459a2-6430-49a8-9a52-32510bc16a60",
+          "metrics": {
+            "reconcile_requested": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.033566+00:00"
+          },
+          "occurred_at": "2026-09-22T03:51:08.045026-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        }
+      ],
+      "daemon_result": {
+        "errors": [
+          "synthetic bounded poll failure"
+        ],
+        "jobs_discovered": 0,
+        "lifecycle_transitions": 0,
+        "messages_ingested": 0,
+        "messages_polled": 0,
+        "reconciliation_performed": false,
+        "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+        "stale_alerts": 0,
+        "unanswered_alerts": 0,
+        "warnings": []
+      },
+      "durable_rows": [
+        {
+          "action_type": "worker_run",
+          "metadata": {
+            "reconcile_requested": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.057838+00:00"
+          },
+          "result": "RUNNING",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        },
+        {
+          "action_type": "worker_run_finished",
+          "metadata": {
+            "error_categories": [
+              "UNKNOWN_ERROR"
+            ],
+            "error_count": 1,
+            "final_status": "PARTIAL",
+            "finished_at": "2026-09-22T07:51:08.059047+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "sample_errors": [
+              "synthetic bounded poll failure"
+            ],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "result": "PARTIAL",
+          "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4"
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 0.0,
+          "last_attempt_at": "2026-09-22T03:51:08.059136-04:00",
+          "last_attempt_status": "PARTIAL",
+          "last_error_at": "2026-09-22T03:51:08.059136-04:00",
+          "last_error_category": "UNKNOWN_ERROR",
+          "last_reconciliation_at": null,
+          "last_success_at": "2026-09-22T03:51:08.055169-04:00",
+          "metrics": {
+            "error_categories": [
+              "UNKNOWN_ERROR"
+            ],
+            "error_count": 1,
+            "final_status": "PARTIAL",
+            "finished_at": "2026-09-22T07:51:08.059047+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "79353a20-04aa-4106-9075-fbebcbfb51b4",
+            "sample_errors": [
+              "synthetic bounded poll failure"
+            ],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "stale_run_id": null,
+          "stale_running_run": false
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker run 0.0m ago (PARTIAL).",
+        "name": "worker",
+        "status": "DEGRADED"
+      }
+    },
+    "actual_daemon_success": {
+      "api": [
+        {
+          "id": "206446ad-b9db-4bc0-8517-b378ba445d02",
+          "metrics": {
+            "error_categories": [],
+            "error_count": 0,
+            "final_status": "SUCCESS",
+            "finished_at": "2026-09-22T07:51:08.055033+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "sample_errors": [],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "occurred_at": "2026-09-22T03:51:08.055169-04:00",
+          "record_type": "run_finished",
+          "result": "SUCCESS",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        },
+        {
+          "id": "1cc459a2-6430-49a8-9a52-32510bc16a60",
+          "metrics": {
+            "reconcile_requested": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.033566+00:00"
+          },
+          "occurred_at": "2026-09-22T03:51:08.045026-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        }
+      ],
+      "daemon_result": {
+        "errors": [],
+        "jobs_discovered": 0,
+        "lifecycle_transitions": 0,
+        "messages_ingested": 0,
+        "messages_polled": 0,
+        "reconciliation_performed": false,
+        "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+        "stale_alerts": 0,
+        "unanswered_alerts": 0,
+        "warnings": []
+      },
+      "durable_rows": [
+        {
+          "action_type": "worker_run",
+          "metadata": {
+            "reconcile_requested": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "run_kind": "scheduled_sweep",
+            "started_at": "2026-09-22T07:51:08.033566+00:00"
+          },
+          "result": "RUNNING",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        },
+        {
+          "action_type": "worker_run_finished",
+          "metadata": {
+            "error_categories": [],
+            "error_count": 0,
+            "final_status": "SUCCESS",
+            "finished_at": "2026-09-22T07:51:08.055033+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "sample_errors": [],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "result": "SUCCESS",
+          "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857"
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 0.0,
+          "last_attempt_at": "2026-09-22T03:51:08.055169-04:00",
+          "last_attempt_status": "SUCCESS",
+          "last_error_at": null,
+          "last_error_category": null,
+          "last_reconciliation_at": null,
+          "last_success_at": "2026-09-22T03:51:08.055169-04:00",
+          "metrics": {
+            "error_categories": [],
+            "error_count": 0,
+            "final_status": "SUCCESS",
+            "finished_at": "2026-09-22T07:51:08.055033+00:00",
+            "jobs_discovered": 0,
+            "lifecycle_transitions": 0,
+            "messages_ingested": 0,
+            "messages_polled": 0,
+            "reconciliation_performed": false,
+            "run_id": "e733c8fa-ea24-4248-9f3e-f58aeed3d857",
+            "sample_errors": [],
+            "stale_alerts": 0,
+            "unanswered_alerts": 0
+          },
+          "stale_run_id": null,
+          "stale_running_run": false
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker run 0.0m ago (SUCCESS).",
+        "name": "worker",
+        "status": "HEALTHY"
+      }
+    },
+    "seeded_fresh_running_parity": {
+      "api": [
+        {
+          "id": "44dd8d70-c3b5-4a19-8221-e809c66faa5e",
+          "metrics": {
+            "fixture": "fresh_parity",
+            "run_id": "seeded-fresh-run"
+          },
+          "occurred_at": "2026-09-22T03:51:08.065805-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "seeded-fresh-run"
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 0.0,
+          "last_attempt_at": "2026-09-22T03:51:08.065805-04:00",
+          "last_attempt_status": "RUNNING",
+          "last_error_at": null,
+          "last_error_category": null,
+          "last_reconciliation_at": null,
+          "last_success_at": null,
+          "metrics": {},
+          "stale_run_id": null,
+          "stale_running_run": false
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker run 0.0m ago (RUNNING). [RUNNING in progress]",
+        "name": "worker",
+        "status": "HEALTHY"
+      }
+    },
+    "seeded_legacy_readback": {
+      "api": [
+        {
+          "id": "97f630d6-8834-48dd-b2dc-d9ceb9fd574f",
+          "metrics": {
+            "fixture": "seeded_legacy_readback"
+          },
+          "occurred_at": "2026-09-22T03:51:08.063050-04:00",
+          "record_type": "legacy_sweep",
+          "result": "SUCCESS",
+          "run_id": null
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 0.0,
+          "last_attempt_at": "2026-09-22T03:51:08.063050-04:00",
+          "last_attempt_status": "SUCCESS",
+          "last_error_at": null,
+          "last_error_category": null,
+          "last_reconciliation_at": null,
+          "last_success_at": null,
+          "metrics": {
+            "fixture": "seeded_legacy_readback"
+          },
+          "stale_run_id": null,
+          "stale_running_run": false
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker sweep 0.0m ago (SUCCESS). [legacy record]",
+        "name": "worker",
+        "status": "HEALTHY"
+      }
+    },
+    "seeded_stale_running_parity": {
+      "api": [
+        {
+          "id": "3adf422e-5238-413d-86ad-d757a942f9a5",
+          "metrics": {
+            "fixture": "stale_parity",
+            "run_id": "seeded-stale-run"
+          },
+          "occurred_at": "2026-09-22T00:51:08.064305-04:00",
+          "record_type": "run_begin",
+          "result": "RUNNING",
+          "run_id": "seeded-stale-run"
+        }
+      ],
+      "health": {
+        "details": {
+          "age_seconds": 10800.0,
+          "last_attempt_at": "2026-09-22T00:51:08.064305-04:00",
+          "last_attempt_status": "RUNNING",
+          "last_error_at": null,
+          "last_error_category": null,
+          "last_reconciliation_at": null,
+          "last_success_at": null,
+          "metrics": {},
+          "stale_run_id": "seeded-stale-run",
+          "stale_running_run": true
+        },
+        "latency_ms": 0.0,
+        "message": "Last worker run 180.0m ago (RUNNING). STALE_RUNNING run_id=seeded-stale-run detected.",
+        "name": "worker",
+        "status": "DEGRADED"
+      }
+    }
+  },
+  "source": "HEAD=832d85f5177ca82564c9d0b6c168790f26ea1dc3;index_tree=047eb8501e562cbbca450e946e260a1b8454f74b;uncommitted_server_diff_sha256=40c2eb533b83960c1aafd8bd42e369a10b639fe54f3852f440a7a3b37675fba2"
+}

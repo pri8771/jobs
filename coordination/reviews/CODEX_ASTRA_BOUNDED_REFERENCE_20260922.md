@@ -1,0 +1,9 @@
+# Bounded scopes reference patch — submitted, then owner paused
+
+REFERENCE_ONLY. Source2969ac28364e9c39bbaf5c94b4c7cfe97ca5699a/tree9e34b5c8e56ca501f84f6b0f7451aead34cf412e. Base acceptedb2688eeabb5ca996767b27b78d0004678eeee756/tree6644f340b98eae517ae08ccde38a28da5f2c52a9. Branchcodex/jobs-bounded-reference-20260922, clean /tmp/jobs-astra-bounded-reference-20260922; pushed [draftPR27](https://github.com/pri8771/jobs/pull/27).
+
+Under adjusted leade5629e808d2b4dffc18b023969da77d716b95d79, only productionbounded.py changed: all genuine current-batch messages includingJOB_ALERT feed proof; lifecycle/recruiter/stale scopes excludeJOB_ALERT; stale links resolved after lifecycle; proof application links resolved separately afterward. Runtime/durable canaries excluded; dry-run, strictV3, policy/replay gates unchanged.
+
+Concrete regressions3failed1passed before;36focused passed after. New scope tests use persisted localSQL rows and explicit synthetic lifecycle/alert seams, not live evidence. Existing real bounded services/replay suite remains green, including historical-canary0newpolls. Full494passed1hostskip in65.98s with actual ownedPostgreSQL proof integration; roles/databases before/afterempty, cleanup0. Ruffclean,mypy75clean, exactstagedtreeequalscommittedtree. Independent recommendation for this exactreference scope, no formal acceptance yet. Evidence ../evidence/CODEX-ASTRA-BOUNDED-REFERENCE-20260922/.
+
+Original composition /tmp/jobs-astra-composition-20260922 remains clean b67fc523, untouched. This does not certify b67compatibility, compose acceptedbranches or resolve the other7conflicts. Earlier diagnostic570ee3e and feasibility9bec5df remain retained. Owner paused after completion and resettargetV2.0allthree. Stop here pending ownerresume/formalreview; G14-G17unpassed.

@@ -1,0 +1,11 @@
+Source: /Users/pchordia/Downloads/swarm_codex/review/jobs-source
+Exact source SHA: 6ae659f1cec35fc3d20f2a28dce0ce7868f314af
+Command: .venv/bin/python /tmp/jobs-agent-audit-20260922/repro_lifecycle_crm.py
+Exit: 0
+Inputs: synthetic records in isolated in-memory SQLite only
+
+ambiguous_relink {'link_count_after_manual_relink': 2, 'application_ids_after': ['66290fcb-edac-4beb-8548-64f2855e73f8', 'ffe309d7-3907-4e31-836d-ce45d4e9558d'], 'corrected_application_id': 'ffe309d7-3907-4e31-836d-ce45d4e9558d', 'transition': False, 'ambiguity_review_tasks': 1}
+
+contact_merge {'applications_before_merge': ['034459cd-b90d-4f18-95eb-fa1eb6f2d308', '0b831347-0be0-4f34-aba5-53a758d35bc6'], 'applications_after_merge': ['034459cd-b90d-4f18-95eb-fa1eb6f2d308'], 'second_application_lost_from_primary_summary': True, 'summary_count': 1}
+
+No network, mailbox, browser, model, provider, private data, source edit, or public action occurred.

@@ -1,0 +1,186 @@
+source_sha=9e29a59b729deb8f925121c70b90498794b55519
+database=jobs_health_remaining_20260922020605_42898
+command=PYTHONPATH=src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-j20-health-remaining-pg.py
+Gmail message incomplete-2 could not be fetched (RuntimeError); poll will be marked incomplete.
+{
+  "adapter_details": {
+    "details": {
+      "live_capable_platforms": [],
+      "registered_platforms": [
+        "greenhouse",
+        "lever"
+      ],
+      "simulation_only_platforms": [
+        "greenhouse",
+        "lever"
+      ]
+    },
+    "latency_ms": 0.0,
+    "message": "2 ATS adapters registered (greenhouse, lever), 0 live-capable. (Live automation NOT_IMPLEMENTED; simulation/mock mode only).",
+    "name": "adapters",
+    "status": "DEGRADED"
+  },
+  "database": "jobs_health_remaining_20260922020605_42898",
+  "direct_seed_health_selection": {
+    "fresh_running": {
+      "details": {
+        "age_seconds": 300.2,
+        "last_attempt_at": "2026-09-22T02:01:06.526028-04:00",
+        "last_attempt_status": "RUNNING",
+        "last_error_at": null,
+        "last_error_category": null,
+        "last_reconciliation_at": null,
+        "last_success_at": "2026-09-22T01:46:06.526028-04:00",
+        "metrics": {
+          "error_count": 0
+        },
+        "stale_run_id": null,
+        "stale_running_run": false
+      },
+      "latency_ms": 0.0,
+      "message": "Last worker run 5.0m ago (RUNNING). [RUNNING in progress]",
+      "name": "worker",
+      "status": "HEALTHY"
+    },
+    "stale_running": {
+      "details": {
+        "age_seconds": 10800.5,
+        "last_attempt_at": "2026-09-21T23:06:06.526028-04:00",
+        "last_attempt_status": "RUNNING",
+        "last_error_at": null,
+        "last_error_category": null,
+        "last_reconciliation_at": null,
+        "last_success_at": "2026-09-21T22:06:06.526028-04:00",
+        "metrics": {
+          "error_count": 0
+        },
+        "stale_run_id": "seed-stale-running",
+        "stale_running_run": true
+      },
+      "latency_ms": 0.0,
+      "message": "Last worker run 180.0m ago (RUNNING). STALE_RUNNING run_id=seed-stale-running detected.",
+      "name": "worker",
+      "status": "DEGRADED"
+    }
+  },
+  "incomplete_poll_product_path": {
+    "counts_after": {
+      "application": 0,
+      "inbound_message": 0,
+      "job": 0,
+      "message_link": 0,
+      "task": 0
+    },
+    "counts_before": {
+      "application": 0,
+      "inbound_message": 0,
+      "job": 0,
+      "message_link": 0,
+      "task": 0
+    },
+    "fresh_process_health": {
+      "details": {
+        "age_seconds": 0.2,
+        "last_attempt_at": "2026-09-22T02:06:06.251617-04:00",
+        "last_attempt_status": "PARTIAL",
+        "last_error_at": "2026-09-22T02:06:06.251617-04:00",
+        "last_error_category": "UNKNOWN_ERROR",
+        "last_reconciliation_at": null,
+        "last_success_at": null,
+        "metrics": {
+          "error_categories": [
+            "UNKNOWN_ERROR"
+          ],
+          "error_count": 1,
+          "final_status": "PARTIAL",
+          "finished_at": "2026-09-22T06:06:06.251505+00:00",
+          "jobs_discovered": 0,
+          "lifecycle_transitions": 0,
+          "messages_ingested": 0,
+          "messages_polled": 4,
+          "reconciliation_performed": false,
+          "run_id": "04016d81-658b-495a-879f-d117f14bca29",
+          "sample_errors": [
+            "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+          ],
+          "stale_alerts": 0,
+          "unanswered_alerts": 0
+        },
+        "stale_run_id": null,
+        "stale_running_run": false
+      },
+      "latency_ms": 0.0,
+      "message": "Last worker run 0.0m ago (PARTIAL).",
+      "name": "worker",
+      "status": "DEGRADED"
+    },
+    "persisted_finish_metadata": {
+      "error_categories": [
+        "UNKNOWN_ERROR"
+      ],
+      "error_count": 1,
+      "final_status": "PARTIAL",
+      "finished_at": "2026-09-22T06:06:06.251505+00:00",
+      "jobs_discovered": 0,
+      "lifecycle_transitions": 0,
+      "messages_ingested": 0,
+      "messages_polled": 4,
+      "reconciliation_performed": false,
+      "run_id": "04016d81-658b-495a-879f-d117f14bca29",
+      "sample_errors": [
+        "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+      ],
+      "stale_alerts": 0,
+      "unanswered_alerts": 0
+    },
+    "result_errors": [
+      "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+    ],
+    "run_id": "04016d81-658b-495a-879f-d117f14bca29"
+  },
+  "source_sha": "9e29a59b729deb8f925121c70b90498794b55519",
+  "worker_partial_product_path": {
+    "fresh_process_health": {
+      "details": {
+        "age_seconds": 0.2,
+        "last_attempt_at": "2026-09-22T02:06:05.975642-04:00",
+        "last_attempt_status": "PARTIAL",
+        "last_error_at": "2026-09-22T02:06:05.975642-04:00",
+        "last_error_category": "GMAIL_API_ERROR",
+        "last_reconciliation_at": null,
+        "last_success_at": null,
+        "metrics": {
+          "error_categories": [
+            "GMAIL_API_ERROR"
+          ],
+          "error_count": 1,
+          "final_status": "PARTIAL",
+          "finished_at": "2026-09-22T06:06:05.975442+00:00",
+          "jobs_discovered": 0,
+          "lifecycle_transitions": 0,
+          "messages_ingested": 0,
+          "messages_polled": 0,
+          "reconciliation_performed": false,
+          "run_id": "6f71d1ec-36e2-4a8c-a6ff-3cca181535d1",
+          "sample_errors": [
+            "synthetic timeout"
+          ],
+          "stale_alerts": 0,
+          "unanswered_alerts": 0
+        },
+        "stale_run_id": null,
+        "stale_running_run": false
+      },
+      "latency_ms": 0.0,
+      "message": "Last worker run 0.0m ago (PARTIAL).",
+      "name": "worker",
+      "status": "DEGRADED"
+    },
+    "result_errors": [
+      "synthetic timeout"
+    ],
+    "run_id": "6f71d1ec-36e2-4a8c-a6ff-3cca181535d1"
+  }
+}
+harness_exit=0
+cleanup_database_count=0

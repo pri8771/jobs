@@ -1,0 +1,16 @@
+Working directory: /Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source
+
+Independent wrapper invocation:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-golden-root-run.py
+
+Commands performed by wrapper with a unique disposable PostgreSQL database and source-bound environment:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/alembic upgrade head
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-v20-golden-steps9-17.py
+
+Observed:
+source_sha=832d85f5177ca82564c9d0b6c168790f26ea1dc3
+tree=047eb8501e562cbbca450e946e260a1b8454f74b
+migration_exit=0
+workflow_exit=0
+result=PASS_STEPS_1_17
+remaining_database_count=0

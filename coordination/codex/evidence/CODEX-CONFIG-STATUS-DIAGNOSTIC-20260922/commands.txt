@@ -1,0 +1,15 @@
+Source: /Users/pchordia/Downloads/swarm_codex/review/jobs-health-badge-source
+Expected HEAD/tree: 1e54aafa61ef06ed2ef8a7a681c806ba89ef3268 / 8972a90de1f7aafd469fedde63926382c726319f
+
+Route/source inventory (read-only):
+rg -n 'if path (==|in )|elif path|path == ' src/jobs_automation/dashboard/server.py
+rg -n 'ConfigLoader|validate_all|ConfigValidationReport' src/jobs_automation/dashboard/server.py src/jobs_automation/dashboard
+rg -n 'data-tab|showTab|<button|<section|tab-' src/jobs_automation/dashboard/server.py
+
+Disposable PostgreSQL production-handler reproduction:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-config-status-run.py > /tmp/jobs-control-center-config-status-wrapper.log 2>&1
+Observed exit 0; migration 0, workflow 0, cleanup count 0.
+
+Independent integration-owner repeat:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-config-status-independent-run.py > /tmp/jobs-control-center-config-status-independent-wrapper.log 2>&1
+Observed exit 0; distinct database jobs_control_status_7e79864e4de9; migration 0, workflow 0, cleanup count 0.

@@ -1,0 +1,17 @@
+{
+  "checked_at": "2026-09-22T06:54:16.108110+00:00",
+  "method": "gh api read-only; no rerun or dispatch",
+  "repo": "pri8771/jobs",
+  "sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+  "pull_request": {
+    "number": 21,
+    "url": "https://github.com/pri8771/jobs/pull/21",
+    "state": "open",
+    "head_sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3"
+  },
+  "check_run_count": 0,
+  "workflow_run_count": 0,
+  "legacy_commit_status": "pending",
+  "runs": [],
+  "execution_verdict": "no hosted checks/runs registered for exact SHA; no runner evidence"
+}

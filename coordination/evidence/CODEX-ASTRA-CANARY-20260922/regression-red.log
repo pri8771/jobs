@@ -1,0 +1,148 @@
+FFFFFFF.                                                                 [100%]
+=================================== FAILURES ===================================
+__________ test_independent_malformed_header_cannot_hide_canary[From] __________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10be638c0>
+malformed_header = 'From'
+
+    @pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
+    def test_independent_malformed_header_cannot_hide_canary(
+        db_session: Session, malformed_header: str
+    ) -> None:
+        """Real Gmail parsing must preserve an alias from another valid header."""
+        alias = "owner+canary@example.com"
+        payload = _message(
+            "malformed-neighbor", sender="recruiter@example.com", to=alias,
+            subject="Recruiter followup", body="Can we discuss this role?", internal=NOW,
+        )
+        headers = payload["payload"]["headers"]
+        if malformed_header == "To":
+            headers.append({"name": "Cc", "value": alias})
+        headers[:] = [header for header in headers if header["name"] != malformed_header]
+        headers.append({"name": malformed_header, "value": "a@b.com;c@d.com"})
+        adapter = GmailAdapter(service=FakeGmailService([payload]))
+        summary = EmailIngestionEngine(
+            db_session, adapter, canary_identities=[alias]
+        ).run_sweep(max_messages=10)
+>       assert summary.canary_messages == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = IngestionSweepSummary(started_at=datetime.datetime(2026, 9, 22, 16, 45, 8, 626175, tzinfo=datetime.timezone.utc), comp...lse, errors=[], batch_message_ids=[UUID('91c871aa-eebc-476a-bd1b-fee7d0d2c434')], batch_canary_provider_message_ids=[]).canary_messages
+
+tests/test_gmail_adapter_bounded.py:528: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  jobs_automation.ingestion.classifier:classifier.py:29 EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+___________ test_independent_malformed_header_cannot_hide_canary[Cc] ___________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10bfa02f0>
+malformed_header = 'Cc'
+
+    @pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
+    def test_independent_malformed_header_cannot_hide_canary(
+        db_session: Session, malformed_header: str
+    ) -> None:
+        """Real Gmail parsing must preserve an alias from another valid header."""
+        alias = "owner+canary@example.com"
+        payload = _message(
+            "malformed-neighbor", sender="recruiter@example.com", to=alias,
+            subject="Recruiter followup", body="Can we discuss this role?", internal=NOW,
+        )
+        headers = payload["payload"]["headers"]
+        if malformed_header == "To":
+            headers.append({"name": "Cc", "value": alias})
+        headers[:] = [header for header in headers if header["name"] != malformed_header]
+        headers.append({"name": malformed_header, "value": "a@b.com;c@d.com"})
+        adapter = GmailAdapter(service=FakeGmailService([payload]))
+        summary = EmailIngestionEngine(
+            db_session, adapter, canary_identities=[alias]
+        ).run_sweep(max_messages=10)
+>       assert summary.canary_messages == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = IngestionSweepSummary(started_at=datetime.datetime(2026, 9, 22, 16, 45, 8, 663651, tzinfo=datetime.timezone.utc), comp...lse, errors=[], batch_message_ids=[UUID('b1f56fac-3d0c-4025-bfa4-d4efc1df953f')], batch_canary_provider_message_ids=[]).canary_messages
+
+tests/test_gmail_adapter_bounded.py:528: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  jobs_automation.ingestion.classifier:classifier.py:29 EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+___________ test_independent_malformed_header_cannot_hide_canary[To] ___________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10bfa27b0>
+malformed_header = 'To'
+
+    @pytest.mark.parametrize("malformed_header", ["From", "Cc", "To"])
+    def test_independent_malformed_header_cannot_hide_canary(
+        db_session: Session, malformed_header: str
+    ) -> None:
+        """Real Gmail parsing must preserve an alias from another valid header."""
+        alias = "owner+canary@example.com"
+        payload = _message(
+            "malformed-neighbor", sender="recruiter@example.com", to=alias,
+            subject="Recruiter followup", body="Can we discuss this role?", internal=NOW,
+        )
+        headers = payload["payload"]["headers"]
+        if malformed_header == "To":
+            headers.append({"name": "Cc", "value": alias})
+        headers[:] = [header for header in headers if header["name"] != malformed_header]
+        headers.append({"name": malformed_header, "value": "a@b.com;c@d.com"})
+        adapter = GmailAdapter(service=FakeGmailService([payload]))
+        summary = EmailIngestionEngine(
+            db_session, adapter, canary_identities=[alias]
+        ).run_sweep(max_messages=10)
+>       assert summary.canary_messages == 1
+E       AssertionError: assert 0 == 1
+E        +  where 0 = IngestionSweepSummary(started_at=datetime.datetime(2026, 9, 22, 16, 45, 8, 671059, tzinfo=datetime.timezone.utc), comp...lse, errors=[], batch_message_ids=[UUID('154aaf31-bb2b-4d6d-b5d6-d9ceb01dd59c')], batch_canary_provider_message_ids=[]).canary_messages
+
+tests/test_gmail_adapter_bounded.py:528: AssertionError
+------------------------------ Captured log call -------------------------------
+WARNING  jobs_automation.ingestion.classifier:classifier.py:29 EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+_____________ test_invalid_canary_identity_rejects_whole_policy[] ______________
+
+invalid = ''
+
+    @pytest.mark.parametrize("invalid", ["", "not-an-address", "a@b.com;c@d.com", "a@b.com, c@d.com"])
+    def test_invalid_canary_identity_rejects_whole_policy(invalid: str) -> None:
+>       with pytest.raises(ValidationError, match="exactly one email address"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_config.py:88: Failed
+______ test_invalid_canary_identity_rejects_whole_policy[not-an-address] _______
+
+invalid = 'not-an-address'
+
+    @pytest.mark.parametrize("invalid", ["", "not-an-address", "a@b.com;c@d.com", "a@b.com, c@d.com"])
+    def test_invalid_canary_identity_rejects_whole_policy(invalid: str) -> None:
+>       with pytest.raises(ValidationError, match="exactly one email address"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_config.py:88: Failed
+______ test_invalid_canary_identity_rejects_whole_policy[a@b.com;c@d.com] ______
+
+invalid = 'a@b.com;c@d.com'
+
+    @pytest.mark.parametrize("invalid", ["", "not-an-address", "a@b.com;c@d.com", "a@b.com, c@d.com"])
+    def test_invalid_canary_identity_rejects_whole_policy(invalid: str) -> None:
+>       with pytest.raises(ValidationError, match="exactly one email address"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_config.py:88: Failed
+_____ test_invalid_canary_identity_rejects_whole_policy[a@b.com, c@d.com] ______
+
+invalid = 'a@b.com, c@d.com'
+
+    @pytest.mark.parametrize("invalid", ["", "not-an-address", "a@b.com;c@d.com", "a@b.com, c@d.com"])
+    def test_invalid_canary_identity_rejects_whole_policy(invalid: str) -> None:
+>       with pytest.raises(ValidationError, match="exactly one email address"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValidationError
+
+tests/test_config.py:88: Failed
+=========================== short test summary info ============================
+FAILED tests/test_gmail_adapter_bounded.py::test_independent_malformed_header_cannot_hide_canary[From]
+FAILED tests/test_gmail_adapter_bounded.py::test_independent_malformed_header_cannot_hide_canary[Cc]
+FAILED tests/test_gmail_adapter_bounded.py::test_independent_malformed_header_cannot_hide_canary[To]
+FAILED tests/test_config.py::test_invalid_canary_identity_rejects_whole_policy[]
+FAILED tests/test_config.py::test_invalid_canary_identity_rejects_whole_policy[not-an-address]
+FAILED tests/test_config.py::test_invalid_canary_identity_rejects_whole_policy[a@b.com;c@d.com]
+FAILED tests/test_config.py::test_invalid_canary_identity_rejects_whole_policy[a@b.com, c@d.com]
+7 failed, 1 passed in 0.43s

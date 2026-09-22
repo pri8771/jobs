@@ -1,0 +1,65 @@
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+{
+  "base_sha": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "diff_sha256": "7be7cd8a2d5a16326110aac5b567067479fd6ea4f39949c57a841c9408835c8b",
+  "fresh_failure_then_retry": {
+    "failure_checkpoint": null,
+    "failure_counts": {
+      "checkpoints": 0,
+      "links": 0,
+      "messages": 0,
+      "tasks": 0
+    },
+    "failure_errors": [
+      "poll_incomplete: missing_messages=1"
+    ],
+    "retry_checkpoint": "2026-09-20T12:00:00+00:00",
+    "retry_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 5,
+      "tasks": 6
+    },
+    "retry_ingested": 5,
+    "retry_provider_ids": [
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "retry_skipped": 0
+  },
+  "prior_state_preservation": {
+    "after_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "before_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "checkpoint_due_at": "2026-01-01T00:00:00+00:00",
+    "checkpoint_id": "4e496cc0-08af-4579-b8c0-4af779be14f3",
+    "checkpoint_payload": {
+      "marker": "must-survive",
+      "nested": {
+        "n": 1
+      },
+      "source": "prior"
+    },
+    "failure_errors": [
+      "poll_incomplete: missing_messages=1"
+    ],
+    "prior_message_id": "23cdcc59-7bb5-4146-b02d-3e5b163fc7e8"
+  }
+}
+COMMAND=PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-j20g01-repaired-check-20260922.py
+BASE_SHA=10a3a23924fdde6b040082ef030ad1286591b9a9
+DIFF_SHA256=ff443bba60721f68667ad239c7d8fc686e1d217a053dbacbd46e152b4e770977
+EXIT=0

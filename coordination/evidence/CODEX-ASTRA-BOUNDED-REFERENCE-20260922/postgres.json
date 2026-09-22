@@ -1,0 +1,12 @@
+{
+  "data_directory": "/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd/data",
+  "port": "56422",
+  "listen_addresses": "",
+  "user": "pchordia",
+  "before_dbs": [],
+  "before_roles": [],
+  "after_dbs": [],
+  "after_roles": [],
+  "new_remaining_dbs": [],
+  "new_remaining_roles": []
+}

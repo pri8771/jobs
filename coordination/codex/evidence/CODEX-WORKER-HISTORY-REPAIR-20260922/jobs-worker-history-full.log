@@ -1,0 +1,104 @@
+................s....................................................... [ 15%]
+.................................F...................................... [ 30%]
+........................................................................ [ 46%]
+........................................................................ [ 61%]
+........................................................................ [ 76%]
+........................................................................ [ 92%]
+....................................                                     [100%]
+=================================== FAILURES ===================================
+_________ test_installed_entrypoints_restart_and_replay_bounded_batch __________
+
+tmp_path = PosixPath('/private/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/pytest-of-pchordia/pytest-408/test_installed_entrypoints_res0')
+
+    def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
+        """Separate processes: run, restart, replay, inspect — identical logical state."""
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+        resume = tmp_path / "resume_ai_software_engineer.md"
+        resume.write_text("# resume\n", encoding="utf-8")
+        profile_yaml = engineering_profile_yaml(resume.resolve()).replace(
+            'email: "engineering-candidate@invalid"', f'email: "{MAILBOX}"'
+        )
+        (config_dir / "candidate_profile.yaml").write_text(profile_yaml, encoding="utf-8")
+    
+        db_url = f"sqlite:///{tmp_path / 'bounded.db'}"
+        engine = get_engine(db_url)
+        Base.metadata.create_all(bind=engine)
+        with get_sessionmaker(engine)() as session:
+            app = _seed_application(session)
+            app_id = str(app.id)
+        engine.dispose()
+        env = {**os.environ, "DATABASE_URL": db_url}
+        common = [
+            "ingest-mailbox",
+            "--mailbox",
+            MAILBOX,
+            "--query",
+            "label:recruiting",
+            "--window-start",
+            "2020-01-01T00:00:00Z",
+            "--window-end",
+            "2040-01-01T00:00:00Z",
+            "--cap",
+            "50",
+            "--mock-fixtures",
+            "--config-dir",
+            str(config_dir),
+        ]
+        first = _run_cli(common, env)
+        assert first.returncode == 0, first.stdout + first.stderr
+        assert "SYNTHETIC ENGINEERING RUN" in first.stdout
+        run_id_match = re.search(r"Run ID\s*│?\s*([0-9a-f-]{36})", first.stdout)
+        assert run_id_match is not None, first.stdout
+        run_id = run_id_match.group(1)
+    
+        replay = _run_cli(
+            [
+                "ingest-mailbox",
+                "--mailbox",
+                MAILBOX,
+                "--query",
+                "x",
+                "--window-start",
+                "2020-01-01",
+                "--window-end",
+                "2040-01-01",
+                "--cap",
+                "50",
+                "--mock-fixtures",
+                "--replay-run",
+                run_id,
+                "--config-dir",
+                str(config_dir),
+            ],
+            env,
+        )
+        assert replay.returncode == 0, replay.stdout + replay.stderr
+        assert "Replay identical" in replay.stdout and "True" in replay.stdout
+    
+        engine = get_engine(db_url)
+        try:
+            with get_sessionmaker(engine)() as session:
+                runs = session.scalars(
+                    select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+                ).all()
+                assert len(runs) == 2
+                replay_meta = next(
+                    r.metadata_json for r in runs if r.metadata_json.get("replay_of_run_id")
+                )
+                assert replay_meta["replay_identical"] is True
+                assert replay_meta["replay_matches_original"] is True
+                assert replay_meta["messages_ingested"] == 0
+                events = session.scalars(select(ApplicationEventModel)).all()
+                event_types = [event.event_type for event in events]
+>               assert sorted(event_types) == ["CANDIDATE_REPLIED", "INTERVIEW_REQUESTED"]
+E               AssertionError: assert ['INTERVIEW_REQUESTED'] == ['CANDIDATE_R...EW_REQUESTED']
+E                 
+E                 At index 0 diff: 'INTERVIEW_REQUESTED' != 'CANDIDATE_REPLIED'
+E                 Right contains one more item: 'INTERVIEW_REQUESTED'
+E                 Use -v to get more diff
+
+tests/test_bounded_ingestion.py:395: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_bounded_ingestion.py::test_installed_entrypoints_restart_and_replay_bounded_batch
+1 failed, 466 passed, 1 skipped in 67.45s (0:01:07)

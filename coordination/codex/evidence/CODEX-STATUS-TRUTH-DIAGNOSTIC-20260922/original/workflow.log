@@ -1,0 +1,20 @@
+{
+  "ats_live_capable": [],
+  "component_statuses": {
+    "adapters": "DEGRADED",
+    "database": "HEALTHY",
+    "gmail": "DEGRADED",
+    "kill_switches": "HEALTHY",
+    "policy_registry": "HEALTHY",
+    "worker": "DEGRADED"
+  },
+  "gmail_readiness": "NOT_CONFIGURED",
+  "header_claim": "System Live",
+  "header_has_health_fetch": false,
+  "health_status": 200,
+  "index_status": 200,
+  "overall_health": "DEGRADED",
+  "result": "REPRODUCED_STATIC_LIVE_BADGE_MISMATCH",
+  "source_sha": "b462e17b48c286dc4bdee5b958217b42da8e701e",
+  "source_tree": "f0694f58e4feef9846c21a608dc7bbdeca4be39d"
+}

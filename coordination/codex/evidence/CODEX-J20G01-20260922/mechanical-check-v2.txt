@@ -1,0 +1,75 @@
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+{
+  "base_sha": "8631b3edf15cdaa11eefbd6edffb1038bdbc5433",
+  "diff_sha256": "ca6b2ab0c4bed54f1729d5ec7f44b8c6b582b19e12cd0aabb5773ba96bc12a10",
+  "fresh_failure_then_retry": {
+    "cap_failure_checkpoint": null,
+    "cap_failure_counts": {
+      "checkpoints": 0,
+      "links": 0,
+      "messages": 0,
+      "tasks": 0
+    },
+    "cap_failure_errors": [
+      "poll_incomplete: truncated_by_cap=True, missing_messages=0"
+    ],
+    "failure_checkpoint": null,
+    "failure_counts": {
+      "checkpoints": 0,
+      "links": 0,
+      "messages": 0,
+      "tasks": 0
+    },
+    "failure_errors": [
+      "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+    ],
+    "retry_checkpoint": "2026-09-20T12:00:00+00:00",
+    "retry_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 5,
+      "tasks": 6
+    },
+    "retry_ingested": 5,
+    "retry_provider_ids": [
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "retry_skipped": 0
+  },
+  "prior_state_preservation": {
+    "after_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "before_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "checkpoint_due_at": "2026-01-01T00:00:00+00:00",
+    "checkpoint_id": "92a99482-bb26-4a03-86b9-d9e6775b0225",
+    "checkpoint_payload": {
+      "marker": "must-survive",
+      "nested": {
+        "n": 1
+      },
+      "source": "prior"
+    },
+    "failure_errors": [
+      "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+    ],
+    "prior_message_id": "9f98caaa-ed4c-4435-a98e-dcd419b44503"
+  }
+}
+COMMAND=PYTHONPATH=$PWD/src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-j20g01-repaired-check-20260922.py
+BASE_SHA=8631b3edf15cdaa11eefbd6edffb1038bdbc5433
+DIFF_SHA256=ca6b2ab0c4bed54f1729d5ec7f44b8c6b582b19e12cd0aabb5773ba96bc12a10
+EXIT=0

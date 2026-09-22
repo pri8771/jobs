@@ -1,0 +1,37 @@
+J20-08 bounded health diagnostic (read-only)
+Date: 2026-09-22
+Source: /Users/pchordia/Downloads/swarm_codex/review/jobs-health-source
+Observed final inspection HEAD: 9e29a59b729deb8f925121c70b90498794b55519
+Native goal inspected: coordination/jobs/coordination/codex/GOAL_20260922.md at f06ec2a
+Workspace status at final inspection: clean.
+
+Bounded existing test execution (no PostgreSQL, Gmail, provider, or credential access):
+  PYTHONPATH=src ../jobs-source/.venv/bin/pytest -q tests/test_health.py tests/test_worker.py
+  Exit 0: 23 passed in 0.42s
+
+CONCRETE REPRODUCED DEFECT — health exception output is not secret-safe
+A fake session factory raised RuntimeError('database password=RAW-J20-SECRET access_token=RAW-TOKEN'). HealthCheckService(Fail()).run_full_check() returned the raw string in both message and details.error for database, worker, and gmail. Exact captured output:
+  /tmp/jobs-j20-health-remaining-secret-repro.txt
+Causal production sites in src/jobs_automation/health.py:
+  check_database lines 69-76: interpolates exc and str(exc)
+  check_policy_registry lines 129-135: interpolates exc and str(exc)
+  check_worker lines 350-355: interpolates exc and str(exc)
+  check_gmail lines 401-406: interpolates exc and str(exc)
+Worker attempt persistence sanitizes its own failure metadata, but the health service does not apply that sanitizer to inspection/session exceptions. This fails J20-08 item 6 for health output.
+
+Materially covered by existing source/tests:
+- DB component is present in run_full_check; nominal SQLite connection/queue data are asserted. PostgreSQL behavior was intentionally not run here.
+- Policy registry expiry produces DEGRADED and is asserted.
+- Worker latest-attempt behavior is exercised for fresh RUNNING, stale RUNNING, SUCCESS, and FAILED. The begin-write repair tests establish fail-closed behavior, no poll after failed begin persistence, a durable FAILED fallback when possible, preservation of the prior success timestamp, and fresh HealthCheckService readback.
+- Active kill switch is reported DEGRADED; worker kill behavior records a non-success terminal state.
+- Gmail readiness tests cover NOT_CONFIGURED/CONFIGURED/CONNECTED/non-PROVEN, reject synthetic or incomplete observations as proof, and permit PROVEN only from a complete explicitly real result. Network/OAuth access is forbidden in those tests. No real Gmail proof was observed or claimed.
+- Incomplete Gmail PollReport and ingestion rollback/no-partial-write behavior are covered at adapter/ingestion level.
+- Adapter component reports registered platforms and simulation-only/live-capability state from the registry.
+
+Precise remaining evidence gaps (implementation exists, but end-to-end health claim is not materially demonstrated by current tests):
+- PARTIAL is produced by worker tests, but no test reads that exact latest PARTIAL attempt through a fresh HealthCheckService and asserts the status/details.
+- An incomplete PollReport is not driven through WorkerDaemon and then inspected through a fresh/restarted HealthCheckService. Adapter/ingestion rollback and worker summary propagation are separate tests.
+- Adapter health tests permit HEALTHY or DEGRADED and do not assert the detailed per-adapter state exposed by check_adapters.
+- Durable restart/session truth on PostgreSQL remains outside this bounded run; root owns the unique-PG check.
+
+No real Gmail/config/credential access, PostgreSQL tests, source edits, or coordination edits were performed.

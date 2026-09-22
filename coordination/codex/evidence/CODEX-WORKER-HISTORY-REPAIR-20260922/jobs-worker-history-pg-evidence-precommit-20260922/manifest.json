@@ -1,0 +1,37 @@
+[
+  {
+    "path": "/tmp/jobs-worker-history-pg-case.py",
+    "bytes": 7194,
+    "sha256": "ec84d49ba3e0e5f13ed48113e66d9aebc9e3781e83409c1dbebf13effd987285"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-evidence-20260922/candidate.diff",
+    "bytes": 1806,
+    "sha256": "40c2eb533b83960c1aafd8bd42e369a10b639fe54f3852f440a7a3b37675fba2"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-evidence-20260922/migration.log",
+    "bytes": 541,
+    "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-evidence-20260922/report.json",
+    "bytes": 19924,
+    "sha256": "37a70e009deb5471b370d3a91e1ab383903f8eb88877a4ac395f7146c1af6dd6"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-evidence-20260922/run-summary.json",
+    "bytes": 488,
+    "sha256": "a275025b089c117a61533724ebcbba2b8fc11262096ad8c64d916132c193a291"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-evidence-20260922/workflow.log",
+    "bytes": 20226,
+    "sha256": "5de6605be4baca86ea10ca6208a213061886e2dc1854e585498fdd86f0e1c39c"
+  },
+  {
+    "path": "/tmp/jobs-worker-history-pg-run.py",
+    "bytes": 3060,
+    "sha256": "b652f653e2ea65e0774e2ce6b627578f447e0164e5de610f9591c050d68db437"
+  }
+]

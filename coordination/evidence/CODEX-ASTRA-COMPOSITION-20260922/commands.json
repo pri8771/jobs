@@ -1,0 +1,77 @@
+[
+  {
+    "argv": [
+      "git",
+      "merge-base",
+      "--all",
+      "b67fc523863babd3e195ee71a05f00fa0f2f7e79",
+      "b2688eeabb5ca996767b27b78d0004678eeee756"
+    ],
+    "exit": 0,
+    "output": "merge-bases.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "log",
+      "--reverse",
+      "--format=%H %s",
+      "dd2e0deb15ce0ff8983c4ed502e3e17206db2e80..b67fc523863babd3e195ee71a05f00fa0f2f7e79"
+    ],
+    "exit": 0,
+    "output": "control-delta.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "log",
+      "--reverse",
+      "--format=%H %s",
+      "dd2e0deb15ce0ff8983c4ed502e3e17206db2e80..b2688eeabb5ca996767b27b78d0004678eeee756"
+    ],
+    "exit": 0,
+    "output": "canary-delta.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--stat",
+      "dd2e0deb15ce0ff8983c4ed502e3e17206db2e80",
+      "b67fc523863babd3e195ee71a05f00fa0f2f7e79"
+    ],
+    "exit": 0,
+    "output": "control-diff-stat.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "diff",
+      "--stat",
+      "dd2e0deb15ce0ff8983c4ed502e3e17206db2e80",
+      "b2688eeabb5ca996767b27b78d0004678eeee756"
+    ],
+    "exit": 0,
+    "output": "canary-diff-stat.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "merge-tree",
+      "--write-tree",
+      "b67fc523863babd3e195ee71a05f00fa0f2f7e79",
+      "b2688eeabb5ca996767b27b78d0004678eeee756"
+    ],
+    "exit": 1,
+    "output": "merge-tree.txt"
+  },
+  {
+    "argv": [
+      "git",
+      "status",
+      "--short"
+    ],
+    "exit": 0,
+    "output": "worktree-status-after.txt"
+  }
+]

@@ -1,0 +1,35 @@
+SOURCE_SHA=e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273
+SCRIPT_SHA256=1393abb9550d017d22ea8b1680b9e3c43cb94d7a920a1bc50bd9a40854c59d8e
+DATABASE=jobs_int_migration_probe_20260922061526_45231
+== Alembic migration verification ==
+Database URL is configured (value intentionally not printed).
+1/5: Ensure database starts from base revision
+2/5: Upgrade empty database to head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 001_initial_foundation, initial foundation
+INFO  [alembic.runtime.migration] Running upgrade 001_initial_foundation -> 002_resume_variant_attribution, resume variant attribution and packet provenance
+INFO  [alembic.runtime.migration] Running upgrade 002_resume_variant_attribution -> 003_generation_origin_readiness, generation origin and live readiness gate
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+Current revision after upgrade: 003_generation_origin_readiness (head)
+3/5: Downgrade one revision from head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running downgrade 003_generation_origin_readiness -> 002_resume_variant_attribution, generation origin and live readiness gate
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+Current revision after downgrade: 002_resume_variant_attribution
+4/5: Re-upgrade to head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 002_resume_variant_attribution -> 003_generation_origin_readiness, generation origin and live readiness gate
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+Current revision after re-upgrade: 003_generation_origin_readiness (head)
+5/5: Verify head revision is applied
+Migration verification passed.
+OBSERVED_REVISION=003_generation_origin_readiness
+ALEMBIC_HEAD=003_generation_origin_readiness
+PUBLIC_TABLE_COUNT=20
+CLEANUP_DATABASE_COUNT=0

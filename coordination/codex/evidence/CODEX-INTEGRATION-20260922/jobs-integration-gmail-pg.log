@@ -1,0 +1,78 @@
+source_sha=e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273
+source_tree=e5409f04e15ca7d21dd2357c000c03e5c53ebd09
+database=jobs_integration_gmail_20260922021614_45685
+command=PYTHONPATH=src:$PWD ../jobs-source/.venv/bin/python /tmp/jobs-integration-gmail-pg.py
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+{
+  "atomic_failure_complete_retry": {
+    "cap_checkpoint": null,
+    "cap_counts": {
+      "checkpoints": 0,
+      "links": 0,
+      "messages": 0,
+      "tasks": 0
+    },
+    "cap_errors": [
+      "poll_incomplete: truncated_by_cap=True, missing_messages=0"
+    ],
+    "missing_fetch_checkpoint": null,
+    "missing_fetch_counts": {
+      "checkpoints": 0,
+      "links": 0,
+      "messages": 0,
+      "tasks": 0
+    },
+    "missing_fetch_errors": [
+      "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+    ],
+    "retry_checkpoint": "2026-09-20T12:00:00+00:00",
+    "retry_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 5,
+      "tasks": 6
+    },
+    "retry_ingested": 5,
+    "retry_provider_ids": [
+      "m1",
+      "m2",
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "retry_skipped": 0
+  },
+  "database": "jobs_integration_gmail_20260922021614_45685",
+  "dialect": "postgresql",
+  "prior_committed_state_preserved": {
+    "after_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "before_counts": {
+      "checkpoints": 1,
+      "links": 0,
+      "messages": 1,
+      "tasks": 1
+    },
+    "checkpoint_due_at": "2025-12-31T19:00:00-05:00",
+    "checkpoint_payload": {
+      "marker": "must-survive",
+      "nested": {
+        "n": 1
+      },
+      "source": "prior"
+    },
+    "errors": [
+      "poll_incomplete: truncated_by_cap=False, missing_messages=1"
+    ],
+    "prior_provider_message_id": "prior-committed"
+  },
+  "source_sha": "e1dbfeb6d4ddac9c49a5ac2b3d8d0a5c6ebc8273",
+  "source_tree": "e5409f04e15ca7d21dd2357c000c03e5c53ebd09"
+}
+harness_exit=0
+cleanup_database_count=0

@@ -1,0 +1,49 @@
+{
+  "artifact": "A-V20-CONTROL-CENTER/J20-01-worker-history-diagnostic",
+  "formal_acceptance": false,
+  "postgresql": {
+    "api_worker": [],
+    "cleanup_database_count": 0,
+    "durable_records": [
+      {
+        "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+        "status": "RUNNING",
+        "type": "worker_run"
+      },
+      {
+        "run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+        "status": "SUCCESS",
+        "type": "worker_run_finished"
+      }
+    ],
+    "health_last_attempt": "SUCCESS",
+    "health_run_id": "6dd2a42b-de34-48a0-9014-6deb80692488",
+    "health_status": "HEALTHY",
+    "http_status": 200,
+    "migration_exit": 0,
+    "result": "REPRODUCED_WORKER_HISTORY_GAP",
+    "workflow_exit": 0
+  },
+  "recommendation": "REWORK_FOUND",
+  "release_ref": "0c89bc9aa20d55e4b759b0117502b664ab8cf18e",
+  "source": {
+    "clean_asserted_by_wrapper": true,
+    "sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+    "tree": "047eb8501e562cbbca450e946e260a1b8454f74b"
+  },
+  "sqlite": {
+    "log": "jobs-control-center-worker-repro.log",
+    "result": "api_worker empty while current SUCCESS health visible"
+  },
+  "unchecked_not_findings": [
+    "safe config/status surface",
+    "embedded-view completeness",
+    "job evaluation visibility",
+    "HTML rendering safety"
+  ],
+  "validation_not_run": [
+    "full pytest",
+    "Ruff",
+    "mypy"
+  ]
+}

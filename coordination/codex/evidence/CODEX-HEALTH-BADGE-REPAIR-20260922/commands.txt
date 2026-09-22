@@ -1,0 +1,38 @@
+Candidate working directory unless stated otherwise:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-health-badge-source
+Tool directory: ../jobs-source/.venv/bin
+
+Accepted-parent red preparation:
+cp tests/test_dashboard_health_badge.py /tmp/test_dashboard_health_badge_base.py
+Accepted-parent red working directory: /tmp
+PYTHONPATH="/Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source/src:/Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source" /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/pytest -q -c /Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source/pyproject.toml /tmp/test_dashboard_health_badge_base.py
+Observed exit 1; 12 failed.
+
+Focused (run before the final test-only formatting commit; production source unchanged):
+PYTHONPATH="$PWD/src:$PWD" ../jobs-source/.venv/bin/pytest -q tests/test_dashboard_health_badge.py tests/test_dashboard.py tests/test_dashboard_worker_history.py tests/test_health.py
+Observed exit 0; 40 passed.
+
+Final full:
+PYTHONPATH="$PWD/src:$PWD" PROOF_TEST_PG_ADMIN_URL='postgresql+psycopg:///postgres?host=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd&port=56422' ../jobs-source/.venv/bin/pytest -q
+Observed exit 0; 479 passed, 1 existing host skip.
+
+Final static checks:
+PYTHONPATH="$PWD/src:$PWD" ../jobs-source/.venv/bin/ruff check src tests
+Observed exit 0; All checks passed.
+PYTHONPATH="$PWD/src:$PWD" ../jobs-source/.venv/bin/mypy src
+Observed exit 0; Success in 74 source files.
+../jobs-source/.venv/bin/ruff format --check tests/test_dashboard_health_badge.py
+Observed exit 0; 1 file already formatted.
+
+Accepted-parent server formatting comparison working directory:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source
+../jobs-source/.venv/bin/ruff format --check src/jobs_automation/dashboard/server.py
+Observed exit 1; inherited accepted-parent server formatting would change. This is comparison evidence, not a candidate failure caused by the repair.
+
+Exact-source PostgreSQL runtime:
+/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-health-badge-final-pg-run.py
+Observed exit 0; wrapper pins SHA/tree; migration 0, workflow 0, database cleanup count 0.
+
+Final candidate server formatting comparison:
+../jobs-source/.venv/bin/ruff format --check src/jobs_automation/dashboard/server.py
+Observed exit 1; same inherited untouched Python formatting hunks as accepted parent. No unsolicited server-wide reformat was performed.

@@ -1,0 +1,50 @@
+{
+  "baseline-cwd.sh": {
+    "bytes": 1511,
+    "sha256": "f65c931845577fcfef2f5be0a9a32b1e1a29ffd574a1664a64a60fad5b8f8ebe"
+  },
+  "baseline-cwd.txt": {
+    "bytes": 821,
+    "sha256": "c7aebbd254e47374e4d4a3360b0021c09b0c86359d1370dd9d7f50204bbc1bb4"
+  },
+  "baseline-sql-error.sh": {
+    "bytes": 2270,
+    "sha256": "ad9149227fd7c75bf9f31dca696397b1017ddfa826cf57fa4e34f1f48b393d5d"
+  },
+  "baseline-sql-error.txt": {
+    "bytes": 1331,
+    "sha256": "f7e3b0ec568c9a9d7c13e984bda9ebe6438ffdae4de3c385ea4895e5c7219775"
+  },
+  "checks.json": {
+    "bytes": 1912,
+    "sha256": "b9fe45c3f7bf4005f77ea46dec2e6262646c224b65d2b49777b1ebb4737e30eb"
+  },
+  "full.txt": {
+    "bytes": 602,
+    "sha256": "1efd3ce79c4f6b673719d0a7d227241e274f9e1d69a9aeb65993bd001ec77380"
+  },
+  "migration-verification.sh": {
+    "bytes": 1879,
+    "sha256": "900e52f5f12b41665e62c091ec3c8840b2f529867826cfb22b6599cdd07b7049"
+  },
+  "migration-verification.txt": {
+    "bytes": 2418,
+    "sha256": "d47491b14e3cba87a81ca8477792c045bf93422481dcf92977b616248cd8a0f2"
+  },
+  "mypy.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "pg-verification.sh": {
+    "bytes": 5325,
+    "sha256": "04e5397361ef58440f2aaaaca23480fe42f0bea1338dbfbef4665faf8438aa8c"
+  },
+  "pg-verification.txt": {
+    "bytes": 2757,
+    "sha256": "570435a6a4c442864417b32f852e89b4b5301455ce4eb36826e273c357e245ef"
+  },
+  "ruff.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  }
+}

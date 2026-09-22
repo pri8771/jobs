@@ -1,0 +1,44 @@
+{
+  "source_sha": "ed864cb5ac3eb806c91ef55d489fb6084da19fe0",
+  "database": "jobs_health_errors_76f9bfd912cb",
+  "actual_postgresql_exception_paths": {
+    "database": {
+      "name": "database",
+      "status": "UNHEALTHY",
+      "message": "Database health check failed.",
+      "latency_ms": 0.5,
+      "details": {
+        "error_category": "DATABASE_CHECK_FAILED"
+      }
+    },
+    "policy_registry": {
+      "name": "policy_registry",
+      "status": "UNHEALTHY",
+      "message": "Policy registry health check failed.",
+      "latency_ms": 0.0,
+      "details": {
+        "error_category": "POLICY_HEALTH_CHECK_FAILED"
+      }
+    },
+    "worker": {
+      "name": "worker",
+      "status": "UNHEALTHY",
+      "message": "Worker health check failed.",
+      "latency_ms": 0.0,
+      "details": {
+        "error_category": "WORKER_HEALTH_CHECK_FAILED"
+      }
+    },
+    "gmail": {
+      "name": "gmail",
+      "status": "UNHEALTHY",
+      "message": "Gmail health check failed.",
+      "latency_ms": 0.0,
+      "details": {
+        "error_category": "GMAIL_HEALTH_CHECK_FAILED"
+      }
+    }
+  },
+  "normal_gmail_non_proven": true
+}
+CLEANUP_DATABASE_COUNT=0

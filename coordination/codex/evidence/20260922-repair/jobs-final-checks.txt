@@ -1,0 +1,25 @@
+Source: 3d9cc95d03b0b8c146d10423060d97ee9736212c
+
+$ .venv/bin/python -m pytest -q -rs
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+.............................................s.......................... [ 67%]
+........................................................................ [ 83%]
+.....................................................................    [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_assisted_playwright_engineering_form.py:41: could not import 'playwright.sync_api': No module named 'playwright'
+SKIPPED [1] tests/test_real_proof_integration.py:319: PROOF_TEST_PG_ADMIN_URL not set: the PostgreSQL production-path integration needs an admin connection that can create a throwaway role and database
+428 passed, 2 skipped in 59.69s
+EXIT=0
+
+$ .venv/bin/ruff check src tests
+All checks passed!
+EXIT=0
+
+$ .venv/bin/mypy src
+Success: no issues found in 74 source files
+EXIT=0
+
+$ git diff --check
+EXIT=0

@@ -1,0 +1,26 @@
+{
+  "api_status": 200,
+  "api_worker": [],
+  "health_worker": {
+    "details": {
+      "age_seconds": 0.0,
+      "last_attempt_at": "2026-09-22T07:37:04.451197+00:00",
+      "last_attempt_status": "SUCCESS",
+      "last_error_at": null,
+      "last_error_category": null,
+      "last_reconciliation_at": null,
+      "last_success_at": "2026-09-22T07:37:04.451197+00:00",
+      "metrics": {
+        "error_count": 0,
+        "run_id": "fixture-current-worker-run"
+      },
+      "stale_run_id": null,
+      "stale_running_run": false
+    },
+    "latency_ms": 0.0,
+    "message": "Last worker run 0.0m ago (SUCCESS).",
+    "name": "worker",
+    "status": "HEALTHY"
+  }
+}
+exit=0

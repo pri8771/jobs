@@ -1,0 +1,90 @@
+{
+  "affected-v2.txt": {
+    "bytes": 99,
+    "sha256": "dab2793b4b28da18453c10c2c71581a90df58bfc9d5e31657ab404d802b702d3"
+  },
+  "affected.txt": {
+    "bytes": 99,
+    "sha256": "7f9dd6a658d6ad78c1b0ef4354ddefebff1d752704f8775bb5f735b64631dfe9"
+  },
+  "baseline-repro.py": {
+    "bytes": 4674,
+    "sha256": "98844c581d5ddb23e622e5d9c0e2bcc45db70ecee4ae74bfc51b44717f617c52"
+  },
+  "baseline.txt": {
+    "bytes": 2397,
+    "sha256": "4f880a0560dcc55c0d65ad1961412d43b9e45f4ccaa10ee9c348766f90ab6b80"
+  },
+  "checks.json": {
+    "bytes": 2125,
+    "sha256": "3075cdf5978169dd53bd5d15bea578c006de25c3d5724503e4c9bec6e877c42e"
+  },
+  "format-v2.txt": {
+    "bytes": 26,
+    "sha256": "eee76f865de5a9f2456950f710ae5d5f9b5bd0ea02aa54f614c5eed6642a0bfd"
+  },
+  "format.txt": {
+    "bytes": 26,
+    "sha256": "3bc53bf3e981a98a34a852e175bf9b77af841edea74fca595d9aedcbaf9a4938"
+  },
+  "full-v2.txt": {
+    "bytes": 602,
+    "sha256": "5898b0b162a1da01ec5ecbb3bf6a2de1f21152d32980de321083d4c2fc4c8937"
+  },
+  "full.txt": {
+    "bytes": 602,
+    "sha256": "4c43f5ffac57f3677df0f484208cf8cd341d7b83fe2609ff68134ea5b978edde"
+  },
+  "mechanical-check-v2.py": {
+    "bytes": 6202,
+    "sha256": "aaa30338f24b1a65efd3478c3592d56f05dc1fb06e0253495d3e58c2d132badb"
+  },
+  "mechanical-check-v2.txt": {
+    "bytes": 2063,
+    "sha256": "10e9614f02c2cd2e484b78d1e499f4937104032e7634f7bfac790eb4561f6055"
+  },
+  "mechanical-check.py": {
+    "bytes": 5366,
+    "sha256": "cea5f1a38aacbf8973431b97e77085c4cf5e2c944b38839ae986fde303b5368f"
+  },
+  "mechanical-check.txt": {
+    "bytes": 1762,
+    "sha256": "a81544a4a8860091c1a7f93e4171de37254b68bdcb9b91fc966c48f369ec5a78"
+  },
+  "mypy-v2.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "mypy.txt": {
+    "bytes": 44,
+    "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+  },
+  "next-restore-cwd-baseline.txt": {
+    "bytes": 821,
+    "sha256": "c7aebbd254e47374e4d4a3360b0021c09b0c86359d1370dd9d7f50204bbc1bb4"
+  },
+  "next-restore-cwd-repro.sh": {
+    "bytes": 1511,
+    "sha256": "f65c931845577fcfef2f5be0a9a32b1e1a29ffd574a1664a64a60fad5b8f8ebe"
+  },
+  "next-restore-error-baseline.txt": {
+    "bytes": 1331,
+    "sha256": "f7e3b0ec568c9a9d7c13e984bda9ebe6438ffdae4de3c385ea4895e5c7219775"
+  },
+  "next-restore-error-repro.sh": {
+    "bytes": 2270,
+    "sha256": "ad9149227fd7c75bf9f31dca696397b1017ddfa826cf57fa4e34f1f48b393d5d"
+  },
+  "ruff-v2.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "ruff.txt": {
+    "bytes": 19,
+    "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+  },
+  "scope-diagnostic.md": {
+    "bytes": 5015,
+    "sha256": "99f4032a39a27d409a80a6119c44ab8b5fa6e3739b46181b6c327e112e7e8d60"
+  }
+}

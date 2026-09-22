@@ -1,0 +1,144 @@
+..................................................F...........FF........ [ 97%]
+..                                                                       [100%]
+=================================== FAILURES ===================================
+__ test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint __
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10ce538c0>
+
+    def test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint(
+        db_session: Session,
+    ) -> None:
+        app = _seed_application(db_session)
+        result = _runner(db_session).run(_request())
+        assert result.status == "SUCCESS", result.errors
+        assert result.complete is True
+        assert result.messages_ingested == 7
+>       assert result.lifecycle_transitions == 1  # the recruiter's call request moves the seeded app
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert 2 == 1
+E        +  where 2 = BoundedIngestionResult(run_id='87c649e8-d25e-44d5-bac8-28b0547f089d', status='SUCCESS', adapter='mock_fixtures', synth...al=None, replay_matches_original=None, errors=[], code_identity={'git_sha': 'engineering', 'package_version': '0.1.0'}).lifecycle_transitions
+
+tests/test_bounded_ingestion.py:117: AssertionError
+______________ test_timeline_export_is_redacted_and_digest_stable ______________
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10ce52900>
+
+    def test_timeline_export_is_redacted_and_digest_stable(db_session: Session) -> None:
+        app = _seed_application(db_session)
+        _runner(db_session).run(_request())
+        identity = {"git_sha": "engineering", "package_version": "0.1.0"}
+        export = build_timeline_export(db_session, app.id, identity=identity)
+        again = build_timeline_export(db_session, app.id, identity=identity)
+        assert export["export_sha256"] == again["export_sha256"] == timeline_digest(export)
+        serialized = json.dumps(export)
+        assert "sarah.connor" not in serialized
+        assert "Solutions Architecture Opportunity" not in serialized
+        assert "impressed" not in serialized  # no body text
+        assert export["application"]["status"] == "INTERVIEWING"
+        by_id = {s["provider_message_id"]: s for s in export["sources"]}
+        assert set(by_id) == {"gmail_recruiter_001", "gmail_candidate_001"}
+        assert by_id["gmail_recruiter_001"]["link_method"] == "company_match"
+        assert by_id["gmail_recruiter_001"]["direction"] == "inbound"
+        # The candidate's own reply is not linked by the engine but shares the thread.
+>       assert by_id["gmail_candidate_001"]["link_method"] == "thread_sibling"
+E       AssertionError: assert 'thread_reply_attribution' == 'thread_sibling'
+E         
+E         - thread_sibling
+E         + thread_reply_attribution
+
+tests/test_bounded_ingestion.py:274: AssertionError
+_________ test_installed_entrypoints_restart_and_replay_bounded_batch __________
+
+tmp_path = PosixPath('/private/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/pytest-of-pchordia/pytest-401/test_installed_entrypoints_res0')
+
+    def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
+        """Separate processes: run, restart, replay, inspect — identical logical state."""
+        config_dir = tmp_path / "config"
+        config_dir.mkdir()
+        resume = tmp_path / "resume_ai_software_engineer.md"
+        resume.write_text("# resume\n", encoding="utf-8")
+        profile_yaml = engineering_profile_yaml(resume.resolve()).replace(
+            'email: "engineering-candidate@invalid"', f'email: "{MAILBOX}"'
+        )
+        (config_dir / "candidate_profile.yaml").write_text(profile_yaml, encoding="utf-8")
+    
+        db_url = f"sqlite:///{tmp_path / 'bounded.db'}"
+        engine = get_engine(db_url)
+        Base.metadata.create_all(bind=engine)
+        with get_sessionmaker(engine)() as session:
+            app = _seed_application(session)
+            app_id = str(app.id)
+        engine.dispose()
+        env = {**os.environ, "DATABASE_URL": db_url}
+        common = [
+            "ingest-mailbox",
+            "--mailbox",
+            MAILBOX,
+            "--query",
+            "label:recruiting",
+            "--window-start",
+            "2020-01-01T00:00:00Z",
+            "--window-end",
+            "2040-01-01T00:00:00Z",
+            "--cap",
+            "50",
+            "--mock-fixtures",
+            "--config-dir",
+            str(config_dir),
+        ]
+        first = _run_cli(common, env)
+        assert first.returncode == 0, first.stdout + first.stderr
+        assert "SYNTHETIC ENGINEERING RUN" in first.stdout
+        run_id_match = re.search(r"Run ID\s*│?\s*([0-9a-f-]{36})", first.stdout)
+        assert run_id_match is not None, first.stdout
+        run_id = run_id_match.group(1)
+    
+        replay = _run_cli(
+            [
+                "ingest-mailbox",
+                "--mailbox",
+                MAILBOX,
+                "--query",
+                "x",
+                "--window-start",
+                "2020-01-01",
+                "--window-end",
+                "2040-01-01",
+                "--cap",
+                "50",
+                "--mock-fixtures",
+                "--replay-run",
+                run_id,
+                "--config-dir",
+                str(config_dir),
+            ],
+            env,
+        )
+        assert replay.returncode == 0, replay.stdout + replay.stderr
+        assert "Replay identical" in replay.stdout and "True" in replay.stdout
+    
+        engine = get_engine(db_url)
+        try:
+            with get_sessionmaker(engine)() as session:
+                runs = session.scalars(
+                    select(AuditLogModel).where(AuditLogModel.action_type == BOUNDED_RUN_ACTION)
+                ).all()
+                assert len(runs) == 2
+                replay_meta = next(
+                    r.metadata_json for r in runs if r.metadata_json.get("replay_of_run_id")
+                )
+                assert replay_meta["replay_identical"] is True
+                assert replay_meta["replay_matches_original"] is True
+                assert replay_meta["messages_ingested"] == 0
+                events = session.scalars(select(ApplicationEventModel)).all()
+>               assert len(events) == 1  # one INTERVIEW_REQUESTED, not duplicated by replay
+                ^^^^^^^^^^^^^^^^^^^^^^^
+E               assert 2 == 1
+E                +  where 2 = len([<jobs_automation.db.models.ApplicationEventModel object at 0x10d55acb0>, <jobs_automation.db.models.ApplicationEventModel object at 0x10d55ac10>])
+
+tests/test_bounded_ingestion.py:384: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_bounded_ingestion.py::test_bounded_run_records_secret_free_evidence_and_does_not_move_checkpoint
+FAILED tests/test_bounded_ingestion.py::test_timeline_export_is_redacted_and_digest_stable
+FAILED tests/test_bounded_ingestion.py::test_installed_entrypoints_restart_and_replay_bounded_batch
+3 failed, 71 passed in 2.04s

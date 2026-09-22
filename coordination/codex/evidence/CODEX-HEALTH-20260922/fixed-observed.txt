@@ -1,0 +1,101 @@
+Failed to write worker-run begin record for run 3c74a2c7-21a3-4a42-afc6-ef1aa9e323c2 (RuntimeError)
+Failed to write worker-run begin record for run d84ce094-fc49-40d9-be4f-f2f98f29e12d (RuntimeError)
+Failed to write worker-run finalize record for run d84ce094-fc49-40d9-be4f-f2f98f29e12d (RuntimeError)
+{
+  "durable_begin_run_ids": [
+    "prior-success"
+  ],
+  "durable_finish_run_ids": [
+    "prior-success",
+    "3c74a2c7-21a3-4a42-afc6-ef1aa9e323c2"
+  ],
+  "factory_calls": 2,
+  "failed_run_id": "3c74a2c7-21a3-4a42-afc6-ef1aa9e323c2",
+  "fresh_health_details": {
+    "age_seconds": 0.0,
+    "last_attempt_at": "2026-09-22T01:57:35.986610-04:00",
+    "last_attempt_status": "FAILED",
+    "last_error_at": "2026-09-22T01:57:35.986610-04:00",
+    "last_error_category": "BEGIN_RECORD_FAILED",
+    "last_reconciliation_at": "2026-09-22T01:47:35.976696-04:00",
+    "last_success_at": "2026-09-22T01:47:35.976696-04:00",
+    "metrics": {
+      "error_categories": [
+        "BEGIN_RECORD_FAILED"
+      ],
+      "error_count": 1,
+      "final_status": "FAILED",
+      "finished_at": "2026-09-22T05:57:35.986393+00:00",
+      "jobs_discovered": 0,
+      "lifecycle_transitions": 0,
+      "messages_ingested": 0,
+      "messages_polled": 0,
+      "reconciliation_performed": false,
+      "run_id": "3c74a2c7-21a3-4a42-afc6-ef1aa9e323c2",
+      "sample_errors": [
+        "begin_record_failed: operational evidence store unavailable"
+      ],
+      "stale_alerts": 0,
+      "started_at": "2026-09-22T05:57:35.986319+00:00",
+      "unanswered_alerts": 0
+    },
+    "stale_run_id": null,
+    "stale_running_run": false
+  },
+  "fresh_health_last_attempt_at": "2026-09-22T01:57:35.986610-04:00",
+  "fresh_health_last_attempt_status": "FAILED",
+  "fresh_health_message": "Last worker run 0.0m ago (FAILED).",
+  "fresh_health_status": "DEGRADED",
+  "latest_finish_metadata": {
+    "error_categories": [
+      "BEGIN_RECORD_FAILED"
+    ],
+    "error_count": 1,
+    "final_status": "FAILED",
+    "finished_at": "2026-09-22T05:57:35.986393+00:00",
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "messages_ingested": 0,
+    "messages_polled": 0,
+    "reconciliation_performed": false,
+    "run_id": "3c74a2c7-21a3-4a42-afc6-ef1aa9e323c2",
+    "sample_errors": [
+      "begin_record_failed: operational evidence store unavailable"
+    ],
+    "stale_alerts": 0,
+    "started_at": "2026-09-22T05:57:35.986319+00:00",
+    "unanswered_alerts": 0
+  },
+  "operational_evidence_durable": true,
+  "pipeline_poll_calls": 0,
+  "returned_errors": [
+    "begin_record_failed: operational evidence store unavailable"
+  ],
+  "returned_final_status": "FAILED",
+  "source_sha": "9e29a59b729deb8f925121c70b90498794b55519"
+}
+{
+  "both_fail": {
+    "errors": [
+      "begin_record_failed: operational evidence store unavailable"
+    ],
+    "final_status": "FAILED",
+    "jobs_discovered": 0,
+    "lifecycle_transitions": 0,
+    "messages_ingested": 0,
+    "messages_polled": 0,
+    "operational_evidence_durable": false,
+    "reconciliation_performed": false,
+    "run_id": "d84ce094-fc49-40d9-be4f-f2f98f29e12d",
+    "stale_alerts": 0,
+    "unanswered_alerts": 0,
+    "warnings": [
+      "operational_evidence_undurable: failed attempt could not be persisted"
+    ]
+  },
+  "durable_row_count": 0,
+  "factory_calls": 2,
+  "poll_calls": 0
+}
+SEPARATE_PROCESS_READBACK=DEGRADED/FAILED/BEGIN_RECORD_FAILED/PRIOR_SUCCESS_PRESERVED
+CLEANUP_DATABASE_COUNT=0

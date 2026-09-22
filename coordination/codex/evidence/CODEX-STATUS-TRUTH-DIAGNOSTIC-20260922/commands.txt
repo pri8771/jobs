@@ -1,0 +1,13 @@
+Original reproduction
+working_directory=/Users/pchordia/Downloads/swarm_codex
+command=/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-status-truth-run.py
+migration_exit=0
+workflow_exit=0
+remaining_database_count=0
+
+Independent root repeat
+working_directory=/Users/pchordia/Downloads/swarm_codex
+command=/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-control-center-status-truth-independent-run.py
+migration_exit=0
+workflow_exit=0
+remaining_database_count=0

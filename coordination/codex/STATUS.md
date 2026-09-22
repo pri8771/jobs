@@ -1,33 +1,33 @@
-# Portfolio handoff — setup snapshot, not live health
+# Portfolio checkpoint — V1.7 race handoff, 2026-09-22
 
-Setup state: **PREPARED_NOT_ACTIVATED**. No Codex management session or new worker/watch service was started by writing this file.
+## Latest owner assignments — prepared, not launched
 
-| Project | Instruction ref observed | Scope from native contract | Worker routing hint | Heartbeat policy from native contract | Code/live acceptance in this setup |
-|---|---|---|---|---|---|
-| Jobs | main @ 5610f43276c7886bbdb1d1d038473101566a19c3 | V1.7 live, stop beyond it | Fable; current branch/handoff to reverify; PR #11 candidate capsule | One owned five-minute ACTIVE_5M stream | Not independently audited/executed in this notes setup |
-| Social Bots | chatgpt/social-bots-plan-20260920 @ 982fbce3406e24f186d9b68d0fadeb9bf7058ca6 | LEAD-048 live V1.7 only | fable/social-bots-v23-fasttrack-20260921, historical name not scope | SESSION_ONCE for fresh session only; no periodic chat watcher | Not independently audited/executed in this notes setup |
-| SwarmAI | coordination/swarm-control @ 817821d0bab6c68ae1b92671b115f8be98590ebc | OWNER_V17_LIVE_ONLY; v17 only | cursor/v17-single-session, handoff to Fable verified locally | One existing five-minute stream; verified ownership handoff | Not independently audited/executed in this notes setup |
+| Product | Assigned implementation owner | Target | Start prompt |
+|---|---|---|---|
+| Jobs | Claude | Accepted LIVE V1.7 | coordination/codex/CLAUDE_JOBS_V17_RACE_20260922.md |
+| SwarmAI | GPT-6 Sol, new Codex task | Accepted LIVE V1.7 | docs/coordination/GPT6_SOL_SWARM_V17_RACE_20260922.md in Swarm |
+| Social Bots | Antigravity | Accepted LIVE V1.7 | social-bots/prompts/ANTIGRAVITY_BOTS_V17_RACE_20260922.md in Bots |
 
-These are scope/router observations, not assertions that workers are active, tests pass or milestones are accepted. Source branches may advance immediately. Re-read current canonical refs and native proof records before every status claim.
+Each is ASSIGNED_WAITING_FOR_WORKER. This Codex task relinquishes implementation after packaging; no destination agent or scheduler was launched. OWNER_RACE_V17_20260922.md in each product supersedes older sole-integrator routing only. Separate grants, evidence and independent acceptance remain required. Product runtimes and scheduled-worker transport are unchanged.
 
-## First Codex pass
+Derived rollup only. The owner has clarified that Codex is the accountable lead; see OWNER_LEAD_ASSIGNMENT_20260922.md. Native evidence and independent review requirements remain authoritative. The later owner directive recorded at 18:50 in GOAL_JOURNAL and each OWNER_TARGET_V17_20260922.md sets the current operational target to accepted LIVE V1.7 in all three, then stop; V2.0+ is deferred. The earlier V2.0 pause entry remains historical. Released bounded engineering resumed; no live grant is inferred.
 
-1. Verify access to each repo and load its native instructions.
-2. Inspect actual ready worker handoffs, code, checks and proof evidence.
-3. Verify worker and lead-writer ownership, including accessible scheduled review prompts.
-4. Review ready artifacts before new planning; produce project-local bounded review recommendations/assignments where authorized.
-5. Replace this derived table with a concise evidence-backed rollup and actual next actions, without overwriting native artifact truth.
+| Project | Source progress | Exact current review boundary | Next permitted path |
+|---|---|---|---|
+| Jobs | PR26 typing eec0ae3, COMP2A 1b9efdd and COMP2B bfc5079 formally accepted. Engine PR30 0a319d0 / tree f98b225b: 545 full passed, 1 host skip; 56 focused; full mypy/Ruff clean; owned PostgreSQL cleanup 0; independent recommendation. | Engine PR30 was accepted at c719835. COMP-3A bounded.py is now active; other downstream conflicts remain held. PR26 hosted CI green; stacked COMP2B/engine PRs have no matching inherited CI trigger. | Complete released COMP-3A bounded V3/reference composition, then independently review before subsequent provenance/lifecycle/worker/dashboard scopes. Canonical private career/keyword sources recovered; runtime mapping and per-job tailoring remain engineering work. Proof-job confirmation remains separate. G14–G17 remain unpassed. |
+| SwarmAI | Lead accepted admission, P0, lint and bounded queue repairs. Composed PR30 4d16fe8: full owned PG 642 passed / 13 live skips. R31a offline PR31 3c79a88: 694 passed / 13 live skips; full type/lint and exact hosted checks green; independent recommendations; cleanup 0. | PR30 then PR31 formal verdicts outstanding. R31a is offline adapter engineering, not the full live artifact. R31b and renewed live attempts remain held. | Native verdicts/releases; qualification of existing provider accounts and owned hosts; separate exact CP/mission/external-action grants. No admitted remote provider gained through these checks. Owner selected Groq/OpenRouter/Ollama reuse. Additional PR32 7aa45a0 repairs output bounds, independently recommended; 668 PG passed / 13 live skips, hosted offline/console green. PR31 and PR32 are separate children of PR30. |
+| Social Bots | LEAD067/068 accepted local Ollama adapter, fail-fast batch, Mac prepare-only package and corrected E1/E2. Composed PR22 3bad054 / tree 781fc16b: 789 tests, 2 skips, OK; exact hosted checks green. Exact five prompts/matrix independently regenerated. | Composition plus final prepared matrix verdict outstanding. No canonical execution manifest, 0 calls consumed. Official V0.4.x; SB-R07-073/074 still planned. | Resolve exact matrix verdict; the concrete five-call owner request is already pending. Prepare no canonical manifest until actual owner approval and required lead disposition. Owner selected Mac; cultural reviewer question remains. Persistent scheduler and publication gates are separate. |
 
-## Known coordination risk
+## Current grant and evidence boundaries
 
-Previous project prompts and scheduled lead writers used obsolete lane/topology/scope rules. Some historical default branches lack the current root guidance entirely. Neither an old automation prompt nor a v23/v3 branch name can override a current explicit owner V1.7 scope.
+No inference, mailbox/OAuth, employer form, social posting, account mutation, new scheduler, spend, deployment or main merge occurred. Exact live grants are still required. Existing dirty checkouts and scheduler ownership remain untouched. Repositories, queues, credentials, runtime data, budgets and evidence remain separate. Source checks and public source captures are not product-path live acceptance.
 
-Do not assume the existing lead schedules are current, stale, paused or accessible: verify them before takeover. This setup leaves them unchanged. Use isolated proposals while another writer holds a canonical queue; avoid repeated competing governance rewrites.
+Earlier hosted CI billing failures are historical. Jobs PR26, Swarm composition/R31a and Bots source checks now execute successfully. The Jobs stacked integration branch has no matching workflow trigger; do not call it green or modify CI without release.
 
-## Source index
+## Native continuation anchors
 
-Jobs: `AGENTS.md`, `docs/FABLE_V17_LIVE.md` at the snapshot above.
-Social Bots: `CLAUDE.md`, `social-bots/SESSION_ROUTER.md`, `social-bots/delivery/V17_LIVE.md` at the snapshot above.
-SwarmAI: `AGENTS.md`, `docs/coordination/SESSION_START.md`, `docs/coordination/EXECUTION_CONTROL.json` at the snapshot above.
-
-Full routing: `PROJECTS.json`. Operational rules: `PORTFOLIO_RUNBOOK.md`. Substantive Jobs history/technical handoff: `JOBS_CONTEXT.md`.
+- Jobs: V17_ACTIVE_DISPOSITION_20260922.md, COMP2_ENGINE_RETURN_20260922.md, COMP2B_TYPING_RETURN_20260922.md, DYNAMIC_RESUME_CLARIFICATION_20260922.md.
+- Swarm: docs/coordination/CODEX_V17_COMPOSITION_RETURN_20260922.md, CODEX_R31A_OFFLINE_RETURN_20260922.md, PROVIDER_INVENTORY_20260922.md.
+- Bots: social-bots/lead-reviews/CODEX_MAC_MATRIX_RETURN_20260922.md, CODEX_CAPTURE_HOST_RETURN_20260922.md, canonical LEAD-068.
+- Owner questions pending: proof-job confirmation and only genuinely unresolved job-specific answers; specific provider access/consent only if reinspection needs it; named cultural reviewer. Existing provider account inventory is known; see Swarm PROVIDER_PROGRESS_20260922.md. Career-source locations are resolved; see DYNAMIC_RESUME_CLARIFICATION_20260922.md.
+- Handoff: `/Users/pchordia/Downloads/swarm_codex/HANDOFF_FOR_CLAUDE_20260922.md`. No automatic dispatch. If blocked, preserve exact evidence and move to another released task; do not duplicate settled checks without drift.

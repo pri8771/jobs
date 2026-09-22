@@ -1,0 +1,22 @@
+{
+  "jobs-v20-golden-diagnostic-cleanup-20260922.log": {
+    "bytes": 77,
+    "sha256": "c17cfc09cc0e3b02b73a16a04c678a3e4e7b7046d59c51ba49c1071a0828bb95"
+  },
+  "jobs-v20-golden-diagnostic-migrate-20260922.log": {
+    "bytes": 541,
+    "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+  },
+  "jobs-v20-golden-diagnostic-reply-link-20260922.md": {
+    "bytes": 2436,
+    "sha256": "8f0a7062c3daecf5d22726e495043a796e53954b610099f51a91b9c455e07fb1"
+  },
+  "jobs-v20-golden-diagnostic-reply-link-20260922.out": {
+    "bytes": 1795,
+    "sha256": "14554e15e6cd3ac44178ed5431c17819fca0bf95541e1d7679c15d8c32afd1b3"
+  },
+  "jobs-v20-golden-diagnostic-reply-link-20260922.py": {
+    "bytes": 5202,
+    "sha256": "88fcd51447c0e9762249c104657c33d9670793d07ef79347a7617f44370e3594"
+  }
+}

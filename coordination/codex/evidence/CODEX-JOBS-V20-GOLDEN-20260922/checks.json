@@ -1,0 +1,33 @@
+{
+  "formal_acceptance": false,
+  "independent_root_run": {
+    "command": "/Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-golden-root-run.py",
+    "migration_exit": 0,
+    "remaining_database_count": 0,
+    "result": "PASS_STEPS_1_17",
+    "workflow_exit": 0
+  },
+  "limitations": [
+    "synthetic inputs",
+    "MockEmailAdapter",
+    "deterministic provider",
+    "DummyRequestHandler, no HTTP server",
+    "fresh daemon objects, no fresh OS process",
+    "Gmail NOT_CONFIGURED",
+    "ATS adapters simulation-only",
+    "G14-G17 remain open"
+  ],
+  "live_claim": false,
+  "recommendation": "RECOMMEND_ACCEPT_ENGINEERING_GOLDEN_FIXTURE_ONLY",
+  "reused_not_fresh": {
+    "full_suite": "463 passed, 1 existing host-loopback skip in 68.08s",
+    "mypy": "74 source files passed",
+    "native_coordination_commit": "80448a7",
+    "ruff": "all src/tests passed"
+  },
+  "source": {
+    "clean_asserted_by_wrapper": true,
+    "sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+    "tree": "047eb8501e562cbbca450e946e260a1b8454f74b"
+  }
+}

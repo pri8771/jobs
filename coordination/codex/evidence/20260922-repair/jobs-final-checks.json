@@ -1,0 +1,64 @@
+{
+  "source_sha": "3d9cc95d03b0b8c146d10423060d97ee9736212c",
+  "completed_utc": "2026-09-22T03:09:51.542454+00:00",
+  "runs": [
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/ruff",
+        "check",
+        "src",
+        "tests"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/mypy",
+        "src"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs",
+        "tests/test_real_proof_integration.py",
+        "tests/test_assisted_playwright_engineering_form.py"
+      ],
+      "env_description": "dedicated isolated Jobs PostgreSQL and loopback Chromium fixture",
+      "exit": 0
+    },
+    {
+      "command": [
+        ".venv/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "-rs"
+      ],
+      "env_description": "dedicated isolated Jobs PostgreSQL and loopback Chromium fixture",
+      "exit": 0
+    }
+  ]
+}

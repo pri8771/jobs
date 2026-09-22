@@ -1,0 +1,10 @@
+7208343eca261efbde152142ba78eed0568b868a fix: validate bounded CLI before adapter initialization
+39d526dc1e1e38cd673c0a9ea724b55d868e2a02 Fix real proof integration profile harness
+e8c53b9592f8d28f509b7167a5a0c181e1425376 fix: bind readiness and timeline evidence to identity
+186f441c95cca8ce94ee660395835d843a067aea fix: preserve local-only readiness check
+94e9ffb7a67aedf53d895256128c7c7593c21cc8 fix: make bounded Gmail ingestion atomic and replay-safe
+97d61ded3a04a6517fb824e21e90b7ecbccaeacf fix: retain worker diagnostics behind bounded error boundary
+bc93a8a0bd381f9f675440b62c91aaf3b8406795 fix: exclude canary batches from proof association
+d337424e8fde6f2a54e99ac7a1d02aed1878cc60 fix: quarantine durable canary provenance across ingestion, lifecycle, gates and evidence
+7685f811ec5e41df789e6df82f948669e5e35fe2 docs: record independent V1.7 CLI-gate review (RECOMMEND_ACCEPT) for d337424e
+b2688eeabb5ca996767b27b78d0004678eeee756 fix: preserve canary aliases across malformed headers and replay preflight

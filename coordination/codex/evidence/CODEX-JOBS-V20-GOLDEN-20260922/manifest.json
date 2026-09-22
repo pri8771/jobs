@@ -1,0 +1,63 @@
+{
+  "artifact": "CODEX-JOBS-V20-GOLDEN-20260922",
+  "files": [
+    {
+      "bytes": 1070,
+      "path": "checks.json",
+      "sha256": "636815cf48d66f28995960cf47140a8a5f8e61c8bda6bf9b4b9850682f5d006a"
+    },
+    {
+      "bytes": 714,
+      "path": "commands.txt",
+      "sha256": "5450d3231c80c2dfdba94f37ae8bdb7dc103237e5337f9f4b7a53bac03d6eb7b"
+    },
+    {
+      "bytes": 2118,
+      "path": "harness-assumption-diagnostics.md",
+      "sha256": "d835336161af0d9b6e000a0ed6452822cdd4b63142a3e2890b1610d4ac76c432"
+    },
+    {
+      "bytes": 2456,
+      "path": "jobs-golden-root-run.py",
+      "sha256": "7d67c1c6e87cdcc9d112a3adc77a788682a4cc9d1c094e762005152f080a9f6d"
+    },
+    {
+      "bytes": 9304,
+      "path": "jobs-v20-golden-setup.py",
+      "sha256": "b17caa54099844c9896eb2b1ecd74280524157724bd853a0a7e3faab288b118a"
+    },
+    {
+      "bytes": 11771,
+      "path": "jobs-v20-golden-steps9-17.py",
+      "sha256": "eebf1beae591b76b243c492762f1f3653222d902021f705a1db0af61118cba97"
+    },
+    {
+      "bytes": 5672,
+      "path": "review.md",
+      "sha256": "a552a9718cbe36351c14bbee4699990c78edb2da90c9693781474ae59f80822d"
+    },
+    {
+      "bytes": 541,
+      "path": "root-result/migration.log",
+      "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+    },
+    {
+      "bytes": 11492,
+      "path": "root-result/report.json",
+      "sha256": "c9909e078e80b2421fb86ca8392eb2c0a0f725929b977f7e17e96110bc9d0fa8"
+    },
+    {
+      "bytes": 242,
+      "path": "root-result/run.json",
+      "sha256": "cbe09a2f55cfea4431350004263e61ed4b10723033c9dd015c67c538ff20f544"
+    },
+    {
+      "bytes": 11492,
+      "path": "root-result/workflow.log",
+      "sha256": "3b453e210c68ba5c5adeeeb715ca2c75f15e36be2b2c0e628b081e89511bb2cd"
+    }
+  ],
+  "fixture_version": "v2.0-golden-synthetic-20260922",
+  "source_sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+  "source_tree": "047eb8501e562cbbca450e946e260a1b8454f74b"
+}

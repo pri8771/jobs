@@ -1,0 +1,41 @@
+826:         batch_messages = self._batch_messages(summary)
+827:         runtime_canary_provider_message_ids = set(summary.batch_canary_provider_message_ids)
+828:         genuine_messages = [
+829:             message
+830:             for message in batch_messages
+831:             if message.provider_message_id not in runtime_canary_provider_message_ids
+832:             and not self._is_canary(message)
+833:         ]
+834:         genuine_ids = [message.id for message in genuine_messages]
+835:         # A canary is operational test traffic, never genuine recruiting evidence.  Do not
+836:         # let a canary-linked row attach a bounded run or replay proof to an application.
+837:         admitted_application_ids = self._batch_application_ids(genuine_ids)
+838: 
+839:         lifecycle_transitions = 0
+840:         interviews_scheduled = 0
+841:         unanswered_alerts = 0
+842:         stale_alerts = 0
+843:         errors = list(summary.errors)
+844:         if not request.dry_run and not errors:
+845:             try:
+846:                 lifecycle = LifecycleEngine(self.session)
+847:                 for message in genuine_messages:
+848:                     if message.classification == "JOB_ALERT":
+849:                         continue
+850:                     transition = lifecycle.process_message(message)
+851:                     if transition:
+852:                         lifecycle_transitions += 1
+853:                         if transition.interview_scheduled:
+854:                             interviews_scheduled += 1
+855: 
+856:                 admitted_thread_ids = {
+857:                     message.provider_thread_id or message.provider_message_id
+858:                     for message in genuine_messages
+859:                 }
+860:                 alerts = LifecycleAlertService(self.session)
+861:                 unanswered_alerts = len(
+862:                     alerts.check_unanswered_recruiters(thread_ids=admitted_thread_ids)
+863:                 )
+864:                 stale_alerts = len(
+865:                     alerts.check_stale_applications(application_ids=admitted_application_ids)
+866:                 )

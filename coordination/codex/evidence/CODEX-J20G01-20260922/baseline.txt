@@ -1,0 +1,76 @@
+Gmail message m2 could not be fetched (RuntimeError); poll will be marked incomplete.
+Checkpoint held at None: poll_incomplete: truncated_by_cap=False, missing_messages=1
+{
+  "after_missing_fetch": {
+    "checkpoint_advanced_to": null,
+    "checkpoint_held_reason": "poll_incomplete: truncated_by_cap=False, missing_messages=1",
+    "database": {
+      "checkpoint_due_at": null,
+      "checkpoint_rows": 0,
+      "classifications": {
+        "m1": "UNKNOWN_REVIEW_REQUIRED",
+        "m3": "UNKNOWN_REVIEW_REQUIRED",
+        "m4": "UNKNOWN_REVIEW_REQUIRED",
+        "m5": "UNKNOWN_REVIEW_REQUIRED"
+      },
+      "lifecycle_eligible_rows": 4,
+      "message_links": 0,
+      "message_rows": 4,
+      "provider_ids": [
+        "m1",
+        "m3",
+        "m4",
+        "m5"
+      ],
+      "task_rows": 4
+    },
+    "errors": [],
+    "fetched_count": 4,
+    "listed_count": 5,
+    "messages_ingested": 4,
+    "messages_polled": 4,
+    "missing_message_ids": [
+      "m2"
+    ],
+    "poll_complete": false
+  },
+  "after_successful_retry": {
+    "checkpoint_advanced_to": "2026-09-20T09:00:00+00:00",
+    "checkpoint_held_reason": null,
+    "database": {
+      "checkpoint_due_at": "2026-09-20T09:00:00+00:00",
+      "checkpoint_rows": 1,
+      "classifications": {
+        "m1": "UNKNOWN_REVIEW_REQUIRED",
+        "m2": "UNKNOWN_REVIEW_REQUIRED",
+        "m3": "UNKNOWN_REVIEW_REQUIRED",
+        "m4": "UNKNOWN_REVIEW_REQUIRED",
+        "m5": "UNKNOWN_REVIEW_REQUIRED"
+      },
+      "lifecycle_eligible_rows": 5,
+      "message_links": 0,
+      "message_rows": 5,
+      "provider_ids": [
+        "m1",
+        "m2",
+        "m3",
+        "m4",
+        "m5"
+      ],
+      "task_rows": 6
+    },
+    "errors": [],
+    "fetched_count": 5,
+    "listed_count": 5,
+    "messages_ingested": 1,
+    "messages_polled": 5,
+    "messages_skipped_duplicate": 4,
+    "missing_message_ids": [],
+    "poll_complete": true
+  },
+  "code_sha": "10a3a23924fdde6b040082ef030ad1286591b9a9",
+  "observed_defect": "missing listed message produced no sweep error and committed fetched subset"
+}
+COMMAND=PYTHONPATH=/Users/pchordia/Downloads/swarm_codex/review/jobs-crm-source/src:/Users/pchordia/Downloads/swarm_codex/review/jobs-crm-source /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/python /tmp/jobs-j20g01-partial-commit-repro-20260922.py
+SOURCE_SHA=10a3a23924fdde6b040082ef030ad1286591b9a9
+EXIT=0

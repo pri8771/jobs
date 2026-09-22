@@ -1,0 +1,71 @@
+{
+  "candidate": {
+    "accepted_parent": "b462e17b48c286dc4bdee5b958217b42da8e701e",
+    "commit": "1e54aafa61ef06ed2ef8a7a681c806ba89ef3268",
+    "pull_request": "https://github.com/pri8771/jobs/pull/23",
+    "release": "85659226d54b78f2a70d82b8bdba2d63404c6068",
+    "tree": "8972a90de1f7aafd469fedde63926382c726319f"
+  },
+  "checks": [
+    {
+      "exit": 1,
+      "log": "baseline-red.log",
+      "name": "accepted-parent new regressions",
+      "result": "12 failed as expected"
+    },
+    {
+      "exit": 0,
+      "log": "focused-pre-test-format.log",
+      "name": "focused dashboard and health",
+      "result": "40 passed; predates test-only formatting commit, production source unchanged"
+    },
+    {
+      "exit": 0,
+      "log": "full.log",
+      "name": "final full",
+      "result": "479 passed, 1 existing host skip"
+    },
+    {
+      "exit": 0,
+      "log": "ruff.log",
+      "name": "Ruff src and tests",
+      "result": "All checks passed"
+    },
+    {
+      "exit": 0,
+      "log": "mypy.log",
+      "name": "mypy src",
+      "result": "Success, 74 source files"
+    },
+    {
+      "exit": 0,
+      "log": "test-format.log",
+      "name": "new test formatting",
+      "result": "1 file already formatted"
+    },
+    {
+      "exit": 1,
+      "log": "accepted-parent-server-format.log",
+      "name": "accepted-parent server formatting comparison",
+      "result": "inherited server.py formatting would reformat; not introduced and not claimed green"
+    },
+    {
+      "exit": 0,
+      "log": "final-pg/run.json",
+      "name": "exact-source PostgreSQL runtime",
+      "result": "migration0 workflow0 cleanup0; health DEGRADED and embedded script rendered Degraded"
+    },
+    {
+      "exit": 1,
+      "log": "final-candidate-server-format.log",
+      "name": "final candidate server formatting comparison",
+      "result": "same inherited untouched Python formatting hunks as accepted parent; no unsolicited reformat"
+    }
+  ],
+  "limitations": [
+    "synthetic engineering evidence only",
+    "Node VM DOM/fetch stub, not a real browser",
+    "no deployment or live account/mailbox proof",
+    "G14-G17 remain open"
+  ]
+}

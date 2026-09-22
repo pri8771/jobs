@@ -1,0 +1,113 @@
+source_sha=832d85f5177ca82564c9d0b6c168790f26ea1dc3
+source_state=exact_committed_source
+source_dir=/Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source
+scenario=synthetic partial seeded job/application; not golden or live proof
+stage_preservation_baseline=post-inbound SCREENING
+database=jobs_candidate_reply_53882_1790059868 socket=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd port=56422 user=pchordia
+harness_sha256=7a586068b82b68fabdd9b73c1729eba7dda14e9e4613c0b7d786e40d71d3e3e3
+createdb_exit=0
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 001_initial_foundation, initial foundation
+INFO  [alembic.runtime.migration] Running upgrade 001_initial_foundation -> 002_resume_variant_attribution, resume variant attribution and packet provenance
+INFO  [alembic.runtime.migration] Running upgrade 002_resume_variant_attribution -> 003_generation_origin_readiness, generation origin and live readiness gate
+alembic_upgrade_head_exit=0
+{
+  "application": {
+    "closed_at": null,
+    "last_activity_at": "2026-09-22 01:51:08-04:00",
+    "status": "SCREENING"
+  },
+  "assertions": "PASS",
+  "crm_application_provider_ids": [
+    "diag-inbound-1",
+    "diag-reply-1"
+  ],
+  "crm_contact_provider_ids": [
+    "diag-inbound-1",
+    "diag-reply-1"
+  ],
+  "durable_counts": {
+    "contacts": 1,
+    "interviews": 0,
+    "messages": 2,
+    "reply_events": 1,
+    "reply_links": 1,
+    "unanswered_tasks": 1
+  },
+  "redacted_reply_source": {
+    "canary": false,
+    "claimed_date_utc": null,
+    "classification": "CANDIDATE_REPLY",
+    "confidence": 0.95,
+    "direction": "outbound",
+    "direction_basis": null,
+    "link_confidence": 0.8,
+    "link_method": "thread_reply_attribution",
+    "provider_message_id": "diag-reply-1",
+    "provider_received_at": "2026-09-22T01:51:08-04:00",
+    "provider_thread_id": "diag-thread-reply-link",
+    "sender_domain": "diagnostic.invalid",
+    "subject_sha256": "53945c0150d88c7887d5fa94d8a5d47d0b6a4d5fc9337f3afcbeca0f1a192f46"
+  },
+  "reply_event": {
+    "actor": "candidate",
+    "contact_id": "bdff0bb4-6ae9-4efa-8de6-ecaa9e832b34",
+    "source": "email_lifecycle",
+    "type": "CANDIDATE_REPLIED"
+  },
+  "reply_link": {
+    "application_id": "be2bb410-ce62-4f16-bb33-cd06aa616b06",
+    "company_id": "840cc03e-1fd6-4cc0-ac0d-3b866c9906b5",
+    "confidence": 0.8,
+    "job_id": "2972d34c-8941-475e-900d-b925bf1317f3",
+    "method": "thread_reply_attribution"
+  },
+  "scenario": "synthetic partial seeded job/application; not golden or live proof",
+  "source_base_sha": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+  "source_diff_sha256": "committed-tree",
+  "source_state": "base_plus_dirty_candidate_reply_repair",
+  "worker_runs": {
+    "duplicate_restart": {
+      "errors": [],
+      "jobs_discovered": 0,
+      "lifecycle_transitions": 0,
+      "messages_ingested": 0,
+      "messages_polled": 1,
+      "reconciliation_performed": false,
+      "run_id": "82263433-ac14-4db4-9846-70ca76acd639",
+      "stale_alerts": 0,
+      "unanswered_alerts": 0,
+      "warnings": []
+    },
+    "first": {
+      "errors": [],
+      "jobs_discovered": 0,
+      "lifecycle_transitions": 1,
+      "messages_ingested": 1,
+      "messages_polled": 1,
+      "reconciliation_performed": false,
+      "run_id": "e30cf081-f9fc-4afa-87d1-06d2d06be330",
+      "stale_alerts": 0,
+      "unanswered_alerts": 1,
+      "warnings": []
+    },
+    "second": {
+      "errors": [],
+      "jobs_discovered": 0,
+      "lifecycle_transitions": 1,
+      "messages_ingested": 1,
+      "messages_polled": 2,
+      "reconciliation_performed": false,
+      "run_id": "40058447-fc3e-438c-8207-1590f4206b12",
+      "stale_alerts": 0,
+      "unanswered_alerts": 0,
+      "warnings": []
+    }
+  }
+}
+harness_exit=0
+cleanup_drop_exit=0
+cleanup_query_exit=0
+cleanup_database_count=0
+final_exit=0

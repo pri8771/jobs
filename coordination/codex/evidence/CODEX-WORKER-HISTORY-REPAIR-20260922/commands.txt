@@ -1,0 +1,17 @@
+Working directory: /Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source
+Interpreter/tool directory: ../jobs-source/.venv/bin
+
+Baseline preparation from /Users/pchordia/Downloads/swarm_codex:
+cp /Users/pchordia/Downloads/swarm_codex/review/jobs-worker-history-source/tests/test_dashboard_worker_history.py /tmp/test_dashboard_worker_history_base.py
+Baseline run working directory /tmp:
+PYTHONPATH="/Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source/src:/Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source" /Users/pchordia/Downloads/swarm_codex/review/jobs-source/.venv/bin/pytest -q -c /Users/pchordia/Downloads/swarm_codex/review/jobs-fixture-source/pyproject.toml /tmp/test_dashboard_worker_history_base.py > /tmp/jobs-worker-history-tests-red.log 2>&1
+Observed exit1; 3 expected failures, 1 pass. The accepted-base configuration and copied test avoid candidate pytest pythonpath contamination.
+Candidate: ../jobs-source/.venv/bin/pytest -q tests/test_dashboard_worker_history.py (exit0, 4passed)
+Affected: ../jobs-source/.venv/bin/pytest -q tests/test_dashboard.py tests/test_worker.py tests/test_health.py (exit0, 37passed)
+Final full: PYTHONPATH="$PWD/src:$PWD" PROOF_TEST_PG_ADMIN_URL='postgresql+psycopg:///postgres?host=/var/folders/fg/lmdhrms177s93m879bkgvjzr0000gn/T/jobs-proof-pg-7_ashjwd&port=56422' ../jobs-source/.venv/bin/pytest -q (exit0, 467passed1skip)
+Static: ../jobs-source/.venv/bin/ruff check src tests (exit0)
+Static: ../jobs-source/.venv/bin/mypy src (exit0, 74files)
+Static: git diff --check (exit0)
+Exact PostgreSQL: ../jobs-source/.venv/bin/python /tmp/jobs-worker-history-pg-run.py (exit0, migration/workflow0, cleanup0; wrapper pins clean b462e17)
+
+The first full run omitted explicit PYTHONPATH and loaded an older editable install in CLI subprocesses. It is superseded, with raw evidence retained. No source or test was changed to repair this execution-environment mismatch.

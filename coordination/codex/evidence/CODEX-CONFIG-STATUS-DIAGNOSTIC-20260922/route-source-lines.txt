@@ -1,0 +1,315 @@
+    90	  </style>
+    91	</head>
+    92	<body>
+    93	  <header>
+    94	    <h1>💼 Jobs Automation OS <span id="system-health-badge" class="status-badge health-unknown" role="status" aria-live="polite">Unknown</span></h1>
+    95	    <div id="refresh-time" style="font-size: 0.85rem; color: var(--text-muted);">Loaded</div>
+    96	  </header>
+    97	
+    98	  <nav>
+    99	    <button class="active" onclick="switchTab('analytics')">Funnel Analytics</button>
+   100	    <button onclick="switchTab('kanban')">Kanban Pipeline</button>
+   101	    <button onclick="switchTab('jobs')">Discovered Jobs</button>
+   102	    <button onclick="switchTab('reviews')">Review Queue <span id="review-pill" style="display:none; background:var(--danger); color:white; border-radius:10px; padding:1px 6px; font-size:0.75rem;"></span></button>
+   103	    <button onclick="switchTab('interviews')">Interviews</button>
+   104	    <button onclick="switchTab('crm')">Recruiter CRM</button>
+   105	    <button onclick="switchTab('audit')">Audit Trail</button>
+   106	  </nav>
+   107	
+   108	  <main>
+   109	    <!-- TAB 1: Analytics -->
+   110	    <div id="tab-analytics" class="tab-content active">
+   111	      <div class="grid" id="stats-grid">
+   112	        <div class="stat-card">
+   524	    def do_GET(self) -> None:  # noqa: N802
+   525	        url = urlparse(self.path)
+   526	        path = url.path.rstrip("/")
+   527	
+   528	        if path in ("", "/index.html"):
+   529	            self._send_html(DASHBOARD_HTML)
+   530	            return
+   531	
+   532	        with self.session_factory() as session:
+   533	            if path == "/api/funnel":
+   534	                service = FunnelAnalyticsService(session)
+   535	                self._send_json(service.get_funnel_summary())
+   536	                return
+   537	
+   538	            if path == "/api/sources":
+   539	                service = FunnelAnalyticsService(session)
+   540	                self._send_json(service.get_source_breakdown())
+   541	                return
+   542	
+   543	            if path == "/api/kanban":
+   544	                service = FunnelAnalyticsService(session)
+   545	                self._send_json(service.get_kanban_board())
+   546	                return
+   547	
+   548	            if path == "/api/jobs":
+   549	                jobs = session.scalars(
+   550	                    select(JobModel).order_by(JobModel.first_seen_at.desc()).limit(100)
+   551	                ).all()
+   552	                data = [
+   553	                    {
+   554	                        "id": str(j.id),
+   555	                        "company": j.company_name,
+   556	                        "title": j.title,
+   557	                        "remote_type": j.remote_type,
+   558	                        "status": j.status,
+   559	                        "apply_url": j.apply_url,
+   560	                        "first_seen_at": j.first_seen_at.isoformat()
+   561	                        if j.first_seen_at
+   562	                        else None,
+   563	                    }
+   564	                    for j in jobs
+   565	                ]
+   566	                self._send_json(data)
+   567	                return
+   568	
+   569	            if path == "/api/reviews":
+   570	                tasks = session.scalars(
+   571	                    select(TaskModel)
+   572	                    .where(TaskModel.status == "pending")
+   573	                    .order_by(TaskModel.due_at.asc().nulls_last())
+   574	                ).all()
+   575	                review_data: list[dict[str, Any]] = [
+   576	                    {
+   577	                        "id": str(t.id),
+   578	                        "job_id": str(t.job_id) if t.job_id else None,
+   579	                        "reason": t.task_type,
+   580	                        "payload": t.payload_json,
+   581	                        "status": t.status,
+   582	                        "due_at": t.due_at.isoformat() if t.due_at else None,
+   583	                    }
+   584	                    for t in tasks
+   585	                ]
+   586	                self._send_json(review_data)
+   587	                return
+   588	
+   589	            if path == "/api/interviews":
+   590	                interviews = session.scalars(
+   591	                    select(InterviewModel).order_by(
+   592	                        InterviewModel.scheduled_start.desc()
+   593	                    )
+   594	                ).all()
+   595	                data = [
+   596	                    {
+   597	                        "id": str(i.id),
+   598	                        "application_id": str(i.application_id),
+   599	                        "company": i.application.job.company_name
+   600	                        if i.application and i.application.job
+   601	                        else "Unknown",
+   602	                        "round_type": i.round_type,
+   603	                        "scheduled_start": i.scheduled_start.isoformat()
+   604	                        if i.scheduled_start
+   605	                        else None,
+   606	                        "scheduled_end": i.scheduled_end.isoformat()
+   607	                        if i.scheduled_end
+   608	                        else None,
+   609	                        "location_or_link": i.location_or_link,
+   610	                        "status": i.status,
+   611	                    }
+   612	                    for i in interviews
+   613	                ]
+   614	                self._send_json(data)
+   615	                return
+   616	
+   617	            if path == "/api/contacts":
+   618	                contacts = session.scalars(
+   619	                    select(ContactModel).order_by(
+   620	                        ContactModel.last_contact_at.desc().nulls_last()
+   621	                    )
+   622	                ).all()
+   623	                data = [
+   624	                    {
+   625	                        "id": str(c.id),
+   626	                        "name": c.name,
+   627	                        "email": c.email,
+   628	                        "role": c.role,
+   629	                        "company": c.company.normalized_name if c.company else None,
+   630	                        "last_contact_at": c.last_contact_at.isoformat()
+   631	                        if c.last_contact_at
+   632	                        else None,
+   633	                    }
+   634	                    for c in contacts
+   635	                ]
+   636	                self._send_json(data)
+   637	                return
+   638	
+   639	            if path == "/api/audit":
+   640	                entries = session.scalars(
+   641	                    select(AuditLogModel)
+   642	                    .order_by(AuditLogModel.occurred_at.desc())
+   643	                    .limit(50)
+   644	                ).all()
+   645	                audit_data: list[dict[str, Any]] = [
+   646	                    {
+   647	                        "id": str(e.id),
+   648	                        "action_type": e.action_type,
+   649	                        "entity_type": e.entity_type,
+   650	                        "actor": e.actor,
+   651	                        "result": e.result,
+   652	                        "occurred_at": e.occurred_at.isoformat(),
+   653	                        "metadata": e.metadata_json,
+   654	                    }
+   655	                    for e in entries
+   656	                ]
+   657	                self._send_json(audit_data)
+   658	                return
+   659	
+   660	            if path == "/api/health":
+   661	                checker = HealthCheckService(self.session_factory)
+   662	                self._send_json(checker.run_full_check().model_dump(mode="json"))
+   663	                return
+   664	
+   665	            if path == "/api/followups":
+   666	                followup_types = (
+   667	                    "UNANSWERED_RECRUITER",
+   668	                    "STALE_APPLICATION_FOLLOW_UP",
+   669	                    "STALE_SCREENING_FOLLOW_UP",
+   670	                )
+   671	                tasks = session.scalars(
+   672	                    select(TaskModel)
+   673	                    .where(TaskModel.task_type.in_(followup_types))
+   674	                    .order_by(TaskModel.due_at.asc().nulls_last())
+   675	                ).all()
+   676	                followup_data: list[dict[str, Any]] = [
+   677	                    {
+   678	                        "id": str(t.id),
+   679	                        "application_id": str(t.application_id) if t.application_id else None,
+   680	                        "job_id": str(t.job_id) if t.job_id else None,
+   681	                        "task_type": t.task_type,
+   682	                        "status": t.status,
+   683	                        "due_at": t.due_at.isoformat() if t.due_at else None,
+   684	                        "payload": t.payload_json,
+   685	                    }
+   686	                    for t in tasks
+   687	                ]
+   688	                self._send_json(followup_data)
+   689	                return
+   690	
+   691	            if path == "/api/analytics/sources":
+   692	                service = FunnelAnalyticsService(session)
+   693	                self._send_json(service.get_source_performance())
+   694	                return
+   695	
+   696	            if path == "/api/analytics/roles":
+   697	                service = FunnelAnalyticsService(session)
+   698	                self._send_json(service.get_role_family_performance())
+   699	                return
+   700	
+   701	            if path == "/api/analytics/resumes":
+   702	                service = FunnelAnalyticsService(session)
+   703	                self._send_json(service.get_resume_performance())
+   704	                return
+   705	
+   706	            if path == "/api/analytics/time-to-stage":
+   707	                service = FunnelAnalyticsService(session)
+   708	                self._send_json(service.get_time_to_stage())
+   709	                return
+   710	
+   711	            if path == "/api/timeline":
+   712	                crm = RecruiterCRMService(session)
+   713	                params = parse_qs(url.query)
+   714	                app_ids = params.get("application_id", [])
+   715	                contact_ids = params.get("contact_id", [])
+   716	                if app_ids:
+   717	                    try:
+   718	                        timeline = crm.get_timeline_for_application(uuid.UUID(app_ids[0]))
+   719	                        self._send_json(timeline)
+   720	                        return
+   721	                    except ValueError:
+   722	                        self.send_error(HTTPStatus.BAD_REQUEST, "Invalid application UUID")
+   723	                        return
+   724	                elif contact_ids:
+   725	                    try:
+   726	                        timeline = crm.get_timeline_for_contact(uuid.UUID(contact_ids[0]))
+   727	                        self._send_json(timeline)
+   728	                        return
+   729	                    except ValueError:
+   730	                        self.send_error(HTTPStatus.BAD_REQUEST, "Invalid contact UUID")
+   731	                        return
+   732	                else:
+   733	                    # Default: return recent touchpoints
+   734	                    self._send_json([])
+   735	                    return
+   736	
+   737	            if path == "/api/offers-rejections":
+   738	                terminal_or_offer = (
+   739	                    "OFFER_RECEIVED",
+   740	                    "OFFER_ACCEPTED",
+   741	                    "OFFER_DECLINED",
+   742	                    "ONBOARDING",
+   743	                    "REJECTED",
+   744	                    "WITHDRAWN",
+   745	                )
+   746	                apps = session.scalars(
+   747	                    select(ApplicationModel)
+   748	                    .where(ApplicationModel.status.in_(terminal_or_offer))
+   749	                    .order_by(ApplicationModel.last_activity_at.desc())
+   750	                ).all()
+   751	                data = [
+   752	                    {
+   753	                        "application_id": str(a.id),
+   754	                        "company": a.job.company_name if a.job else "Unknown",
+   755	                        "title": a.job.normalized_title if a.job else "Unknown",
+   756	                        "status": a.status,
+   757	                        "applied_at": a.applied_at.isoformat() if a.applied_at else None,
+   758	                        "closed_at": a.closed_at.isoformat() if a.closed_at else None,
+   759	                        "last_activity_at": a.last_activity_at.isoformat() if a.last_activity_at else None,
+   760	                    }
+   761	                    for a in apps
+   762	                ]
+   763	                self._send_json(data)
+   764	                return
+   765	
+   766	            if path == "/api/policies":
+   767	                policies = session.scalars(select(PolicyRegistryModel)).all()
+   768	                data = [
+   769	                    {
+   770	                        "id": str(p.id),
+   771	                        "platform": p.platform,
+   772	                        "domain_pattern": p.domain_pattern,
+   773	                        "capability": p.capability,
+   774	                        "decision": p.decision,
+   775	                        "adapter": p.adapter,
+   776	                        "reviewed_at": p.reviewed_at.isoformat(),
+   777	                        "review_due_at": p.review_due_at.isoformat() if p.review_due_at else None,
+   778	                    }
+   779	                    for p in policies
+   780	                ]
+   781	                self._send_json(data)
+   782	                return
+   783	
+   784	            if path == "/api/worker":
+   785	                record_types = {
+   786	                    "worker_run": "run_begin",
+   787	                    "worker_run_finished": "run_finished",
+   788	                    "worker_sweep": "legacy_sweep",
+   789	                }
+   790	                records = session.scalars(
+   791	                    select(AuditLogModel)
+   792	                    .where(AuditLogModel.action_type.in_(tuple(record_types)))
+   793	                    .order_by(AuditLogModel.occurred_at.desc(), AuditLogModel.id.desc())
+   794	                    .limit(20)
+   795	                ).all()
+   796	                worker_data: list[dict[str, Any]] = [
+   797	                    {
+   798	                        "id": str(s.id),
+   799	                        "result": s.result,
+   800	                        "occurred_at": s.occurred_at.isoformat(),
+   801	                        "metrics": s.metadata_json,
+   802	                        "record_type": record_types[s.action_type],
+   803	                        "run_id": s.external_reference
+   804	                        if s.external_reference is not None
+   805	                        else (s.metadata_json or {}).get("run_id"),
+   806	                    }
+   807	                    for s in records
+   808	                ]
+   809	                self._send_json(worker_data)
+   810	                return
+   811	
+   812	        self.send_error(HTTPStatus.NOT_FOUND, "Not Found")
+   813	
+   814	    def _authorize_write_operation(self) -> bool:
+   815	        """Enforces operator write safety for state-changing endpoints (B-R20-06).

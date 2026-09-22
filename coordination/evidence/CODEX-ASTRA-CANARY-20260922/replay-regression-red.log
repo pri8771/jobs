@@ -1,0 +1,51 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_replay_canonicalizes_policy_before_any_poll_of_legacy_canary _______
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10c3997f0>
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10b58c640>
+
+    def test_replay_canonicalizes_policy_before_any_poll_of_legacy_canary(
+        db_session: Session, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        policy = ["Owner <OWNER+CANARY@example.com>"]
+        payload = _message(
+            "legacy-missed-canary", sender="a@b.com;c@d.com", to="owner+canary@example.com",
+            subject="Recruiter followup", body="Can we discuss this role?", internal=NOW,
+        )
+        service = FakeGmailService([payload])
+        adapter = GmailAdapter(service=service)
+        request = _request(mailbox=CANDIDATE)
+    
+        # Produce a writer-shaped historical audit with the actual pre-repair parser.
+        # Its unchanged policy fingerprint must not authorize a new mailbox poll.
+        def legacy_addresses(values: Iterable[object]) -> set[str]:
+            return {
+                address.strip().lower()
+                for _, address in getaddresses([str(value) for value in values if value])
+                if "@" in address and address.strip()
+            }
+    
+        with monkeypatch.context() as historical:
+            historical.setattr(ingestion_module, "canonical_email_addresses", legacy_addresses)
+            initial = BoundedIngestionRunner(
+                db_session, adapter, canary_identities=policy, synthetic=True
+            ).run(request)
+        assert initial.status == "SUCCESS"
+        assert initial.canary_messages == 0
+        calls_before = len(service.list_calls)
+        runner = BoundedIngestionRunner(
+            db_session, adapter, canary_identities=policy, synthetic=True
+        )
+        assert runner.canary_policy_sha256 == initial.canary_policy_sha256
+>       with pytest.raises(BoundedIngestionError, match="REPLAY_EVIDENCE_CANARY_RECLASSIFIED"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE BoundedIngestionError
+
+tests/test_bounded_ingestion.py:966: Failed
+------------------------------ Captured log call -------------------------------
+WARNING  jobs_automation.ingestion.classifier:classifier.py:29 EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+WARNING  jobs_automation.ingestion.classifier:classifier.py:29 EmailClassifier initialized with no candidate emails; outbound detection confidence will be reduced.
+=========================== short test summary info ============================
+FAILED tests/test_bounded_ingestion.py::test_replay_canonicalizes_policy_before_any_poll_of_legacy_canary
+1 failed in 0.57s

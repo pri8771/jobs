@@ -1,0 +1,85 @@
+{
+  "candidate": {
+    "commit": "b462e17b48c286dc4bdee5b958217b42da8e701e",
+    "tree": "f0694f58e4feef9846c21a608dc7bbdeca4be39d",
+    "base": "832d85f5177ca82564c9d0b6c168790f26ea1dc3",
+    "git_clean_before_pg": true,
+    "git_clean_after_pg": true
+  },
+  "source_audit": {
+    "production_files_changed": [
+      "src/jobs_automation/dashboard/server.py"
+    ],
+    "production_numstat": {
+      "added": 13,
+      "deleted": 4
+    },
+    "health_py_changed": false,
+    "worker_py_changed": false,
+    "test_methods": 4,
+    "finding": "no concrete contract defect"
+  },
+  "checks": [
+    {
+      "name": "baseline new tests",
+      "result": "3 failed, 1 passed",
+      "exit": 1,
+      "log": "jobs-worker-history-tests-red.log"
+    },
+    {
+      "name": "new tests",
+      "result": "4 passed",
+      "exit": 0,
+      "log": "jobs-worker-history-tests-green.log"
+    },
+    {
+      "name": "existing focused",
+      "result": "37 passed",
+      "exit": 0,
+      "log": "jobs-worker-history-existing-focused.log"
+    },
+    {
+      "name": "first full",
+      "result": "466 passed, 1 failed, 1 skipped",
+      "exit": 1,
+      "superseded_reason": "venv child imported accepted jobs-source, proven by path readback",
+      "log": "jobs-worker-history-full.log"
+    },
+    {
+      "name": "exact-PYTHONPATH restart",
+      "result": "1 passed",
+      "exit": 0,
+      "log": "jobs-worker-history-restart-recheck.log"
+    },
+    {
+      "name": "superseding exact full",
+      "result": "467 passed, 1 skipped",
+      "exit": 0,
+      "log": "jobs-worker-history-full-exact.log"
+    },
+    {
+      "name": "ruff source",
+      "result": "All checks passed",
+      "exit": 0,
+      "log": "jobs-worker-history-ruff.log"
+    },
+    {
+      "name": "ruff tests",
+      "result": "All checks passed",
+      "exit": 0,
+      "log": "jobs-worker-history-tests-ruff.log"
+    },
+    {
+      "name": "mypy",
+      "result": "Success, 74 source files",
+      "exit": 0,
+      "log": "jobs-worker-history-mypy.log"
+    },
+    {
+      "name": "final actual PostgreSQL",
+      "result": "migration 0, workflow 0, cleanup0",
+      "exit": 0,
+      "log": "jobs-worker-history-pg-evidence-final-20260922/run-summary.json"
+    }
+  ]
+}

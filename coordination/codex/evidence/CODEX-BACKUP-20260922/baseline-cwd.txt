@@ -1,0 +1,13 @@
+SOURCE_SHA=8631b3edf15cdaa11eefbd6edffb1038bdbc5433
+SCRIPT_SHA256=72c207670a0f40195f4f1854ba9c4b12b621fb35fcb86cf385091f2b2f739f5c
+ARCHIVE=/tmp/jobs-v20-restore-cwd.kKhMGG/original/backups/jobs_backup_synthetic.sql.gz
+SIDECAR_CONTENT=e3c3221d5d0fe91eb7f79e811c367cb845cb67e1b096968e9abc0cfb0339fb99  backups/jobs_backup_synthetic.sql.gz
+DIRECT_HASH=e3c3221d5d0fe91eb7f79e811c367cb845cb67e1b096968e9abc0cfb0339fb99
+Verifying SHA-256 integrity checksum...
+shasum: backups/jobs_backup_synthetic.sql.gz: No such file or directory
+backups/jobs_backup_synthetic.sql.gz: FAILED open or read
+shasum: WARNING: 1 listed file could not be read
+RESTORE_EXIT=1
+OBSERVED=valid archive and matching sidecar fail verification when invoked outside checksum-recording cwd
+COMMAND=/tmp/jobs-v20-restore-cwd-repro-20260922.sh
+HARNESS_EXIT=0

@@ -1,0 +1,9 @@
+{
+  "source": "b2688eeabb5ca996767b27b78d0004678eeee756",
+  "tree": "6644f340b98eae517ae08ccde38a28da5f2c52a9",
+  "branch": "codex/jobs-v17-cli-gate-20260922",
+  "recommendation": "RECOMMEND_ACCEPT",
+  "formal_verdict": "PENDING",
+  "proof_kind": "ENGINEERING_ONLY",
+  "live_gates": "G14-G17 UNPASSED"
+}

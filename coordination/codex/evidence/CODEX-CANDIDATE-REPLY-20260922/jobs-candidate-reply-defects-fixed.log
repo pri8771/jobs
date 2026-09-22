@@ -1,0 +1,26 @@
+...............F...........                                              [100%]
+=================================== FAILURES ===================================
+_____________ test_classifier_identifies_outbound_candidate_reply ______________
+
+    def test_classifier_identifies_outbound_candidate_reply() -> None:
+        classifier = EmailClassifier(candidate_emails=["candidate@gmail.com"])
+        msg = RawEmailMessage(
+            provider_message_id="msg_reply_01",
+            provider_thread_id="thread_openai",
+            received_at=datetime.datetime.now(datetime.UTC),
+            sender="candidate@gmail.com",
+            recipients=["sarah.recruiter@openai.com"],
+            subject="Re: Exciting role at OpenAI - Staff Infrastructure Engineer",
+            body_text="Hi Sarah, thanks for reaching out. Yes, I would be delighted to speak. Here is my availability.",
+        )
+        res = classifier.classify(msg)
+>       assert res.classification == EmailClassification.CANDIDATE_REPLY
+E       AssertionError: assert <EmailClassif...IEW_REQUIRED'> == <EmailClassif...DIDATE_REPLY'>
+E         
+E         - CANDIDATE_REPLY
+E         + UNKNOWN_REVIEW_REQUIRED
+
+tests/test_ingestion_engine.py:107: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_ingestion_engine.py::test_classifier_identifies_outbound_candidate_reply
+1 failed, 26 passed in 0.44s

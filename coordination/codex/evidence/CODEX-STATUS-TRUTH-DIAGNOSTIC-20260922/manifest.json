@@ -1,0 +1,93 @@
+{
+  "artifact": "CODEX-JOBS-STATUS-TRUTH-DIAGNOSTIC-20260922",
+  "files": [
+    {
+      "bytes": 946,
+      "path": "checks.json",
+      "sha256": "eaafaa2cef4fcb642957eb1897ae4825a34b23b8530f55c41b35c536d7ecbc90"
+    },
+    {
+      "bytes": 545,
+      "path": "commands.txt",
+      "sha256": "1c8c294f34fdc116205e2f76ed519a7002043612814e990a1a1b44d34a87306a"
+    },
+    {
+      "bytes": 2844,
+      "path": "independent/jobs-control-center-status-truth-independent-run.py",
+      "sha256": "81a47759aaa5740d23962f51c988d13bb799299c04a5b5410ff69510897bfd9d"
+    },
+    {
+      "bytes": 229,
+      "path": "independent/jobs-control-center-status-truth-independent-wrapper.log",
+      "sha256": "9f77e575762405681e49574c0726dc4122b101c3a8e19ccbb6c28920d8de8f0d"
+    },
+    {
+      "bytes": 541,
+      "path": "independent/migration.log",
+      "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+    },
+    {
+      "bytes": 592,
+      "path": "independent/report.json",
+      "sha256": "af2f3b5da0d3182f4878edee3ebe1097504554a0f6b776d8dde0cc3062912eb9"
+    },
+    {
+      "bytes": 243,
+      "path": "independent/run.json",
+      "sha256": "e3fa264295b920b313a41dd97efa16b9fda8b8d4c7a813a1d262a9b927b09213"
+    },
+    {
+      "bytes": 592,
+      "path": "independent/workflow.log",
+      "sha256": "af2f3b5da0d3182f4878edee3ebe1097504554a0f6b776d8dde0cc3062912eb9"
+    },
+    {
+      "bytes": 3622,
+      "path": "jobs-control-center-status-truth-diagnostic.md",
+      "sha256": "39907608f8986142aa07be2ca734a731dc32190799a741847a459b97e82b09e0"
+    },
+    {
+      "bytes": 1803,
+      "path": "jobs-control-center-status-truth-repro.py",
+      "sha256": "814fa7f4453561b5669352d532ea8fbc406f7fdba23d7522c5f80834d7956bd9"
+    },
+    {
+      "bytes": 2837,
+      "path": "original/jobs-control-center-status-truth-run.py",
+      "sha256": "2abe8b48949600593ab3eb2f1f90f42edd0ecd823f140da8d70ec871e0ed1f6d"
+    },
+    {
+      "bytes": 229,
+      "path": "original/jobs-control-center-status-truth-wrapper.log",
+      "sha256": "36a8fc962fba78d11b6897ed7ef665345ad8f304f27f69f6bee21826042361c0"
+    },
+    {
+      "bytes": 541,
+      "path": "original/migration.log",
+      "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+    },
+    {
+      "bytes": 592,
+      "path": "original/report.json",
+      "sha256": "af2f3b5da0d3182f4878edee3ebe1097504554a0f6b776d8dde0cc3062912eb9"
+    },
+    {
+      "bytes": 243,
+      "path": "original/run.json",
+      "sha256": "d49d40f95b8b25ddf75520fc37a6caff9f9fa45c4567a5914d95a6f9bc32c93e"
+    },
+    {
+      "bytes": 592,
+      "path": "original/workflow.log",
+      "sha256": "af2f3b5da0d3182f4878edee3ebe1097504554a0f6b776d8dde0cc3062912eb9"
+    },
+    {
+      "bytes": 3397,
+      "path": "review.md",
+      "sha256": "9724ee125d05137b57fd86e9b0578b7259fea9429dce5872c6e637ca1c2471e8"
+    }
+  ],
+  "release_ref": "9e1723c118d521870f877df3fcee775d89b0e396",
+  "source_sha": "b462e17b48c286dc4bdee5b958217b42da8e701e",
+  "source_tree": "f0694f58e4feef9846c21a608dc7bbdeca4be39d"
+}

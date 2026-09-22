@@ -1,0 +1,43 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet ______
+
+db_session = <sqlalchemy.orm.session.Session object at 0x10a6dba10>
+candidate_profile = CandidateProfileConfig(version=1, identity=IdentityConfig(full_name='Priyansh Chordia', preferred_name='Priyansh', ema...'Do not use one generic resume across every role family.', 'Replace remaining null values only with confirmed facts.'])
+policy_config = PolicyRegistryConfig(version=1, default=DefaultPolicyConfig(capability='submit_application', decision=<PolicyDecision....L_ONLY: 'manual_only'>, reviewed_at='2026-09-20', review_due_at=None, evidence=['LinkedIn User Agreement'], notes=[])])
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10a8e1940>
+
+    def test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet(db_session, candidate_profile, policy_config, monkeypatch):
+        import datetime
+        from click.testing import CliRunner
+        import importlib
+        from jobs_automation.automation.auto_engine import ControlledAutoApplicationResult
+        from jobs_automation.db.base import utc_now
+        cli_module = importlib.import_module("jobs_automation.cli.main")
+        jobs, blocked_packet = _bound_packet_fixture(db_session)
+        eligible = ApplicationPacketModel(job_id=jobs[0].id, candidate_profile_version=1, resume_artifact_id=blocked_packet.resume_artifact_id, answers_json={}, unresolved_questions_json=[], packet_hash="eligible-fixture", created_at=utc_now()-datetime.timedelta(days=1))
+        db_session.add(eligible)
+        db_session.add(ApplicationModel(job_id=jobs[1].id, packet_id=blocked_packet.id, status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", policy_decision="auto_allowed", application_mode="auto"))
+        db_session.commit()
+        expected_id = jobs[0].id
+        monkeypatch.setattr(cli_module, "get_engine", lambda *_: db_session.get_bind())
+        monkeypatch.setattr(cli_module, "get_sessionmaker", lambda *_: lambda: db_session)
+        monkeypatch.setattr(ConfigLoader, "load_candidate_profile", lambda _: (candidate_profile, {}))
+        monkeypatch.setattr(ConfigLoader, "load_policy_registry", lambda _: (policy_config, {}))
+        seen = []
+        def record_selection(self, job_id, **kwargs):
+            seen.append(job_id)
+            return ControlledAutoApplicationResult(job_id=str(job_id), status="SUBMISSION_UNCONFIRMED", destination_domain="boards.greenhouse.io", message="Requires confirmation")
+        monkeypatch.setattr(ControlledAutoApplicationEngine, "execute_auto_apply", record_selection)
+        result = CliRunner().invoke(cli_module.cli, ["auto-apply", "--next"])
+        assert result.exit_code == 0, result.output
+>       assert seen == [expected_id]
+E       AssertionError: assert [UUID('0a9f8e...5a7027b6e80')] == [UUID('65901b...b82e71935d3')]
+E         
+E         At index 0 diff: UUID('0a9f8e17-1dbe-40be-bdf5-d5a7027b6e80') != UUID('65901b29-fa0c-49cf-bfa0-eb82e71935d3')
+E         Use -v to get more diff
+
+tests/test_auto_application.py:591: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_auto_application.py::test_auto_apply_next_skips_unconfirmed_and_selects_eligible_packet
+1 failed, 11 deselected in 0.20s

@@ -1,0 +1,39 @@
+{
+  "candidate": {
+    "commit": "1e54aafa61ef06ed2ef8a7a681c806ba89ef3268",
+    "release": "a0d07a5",
+    "tree": "8972a90de1f7aafd469fedde63926382c726319f"
+  },
+  "checks": [
+    {
+      "exit": 0,
+      "log": "route-source-lines.txt",
+      "name": "complete GET dispatcher inventory",
+      "result": "19 handled read paths including index; no ConfigLoader/validate_all projection"
+    },
+    {
+      "exit": 0,
+      "log": "review.md",
+      "name": "embedded tab inventory",
+      "result": "7 tabs; none config validation/status"
+    },
+    {
+      "exit": 0,
+      "log": "pg/report.json",
+      "name": "PostgreSQL handler controls and supporting probes",
+      "result": "jobs/policies 200; three illustrative unknown routes 404; migration0 workflow0 cleanup0"
+    },
+    {
+      "exit": 0,
+      "log": "independent-pg/report.json",
+      "name": "independent PostgreSQL handler repeat",
+      "result": "distinct DB; migration0 workflow0 cleanup0; same controls/probes"
+    }
+  ],
+  "disposition": "REWORK_FOUND subject to lead interpretation; endpoint name/schema not prescribed",
+  "limitations": [
+    "no source change authorized",
+    "remaining control-center criteria not fully verified",
+    "no browser/live/provider/mailbox/model action"
+  ]
+}

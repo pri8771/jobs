@@ -1,0 +1,47 @@
+unformatted: File would be reformatted
+    --> tests/test_dashboard.py:309:36
+     |
+308  |     # 13. GET /api/analytics/time-to-stage
+     -     h_an_tts = DummyRequestHandler("GET", "/api/analytics/time-to-stage", session_factory=session_factory)
+309  +     h_an_tts = DummyRequestHandler(
+310  +         "GET", "/api/analytics/time-to-stage", session_factory=session_factory
+311  +     )
+312  |     h_an_tts.do_GET()
+--------------------------------------------------------------------------------
+324  |     # 15. GET /api/offers-rejections
+     -     h_off_rej = DummyRequestHandler("GET", "/api/offers-rejections", session_factory=session_factory)
+325  +     h_off_rej = DummyRequestHandler(
+326  +         "GET", "/api/offers-rejections", session_factory=session_factory
+327  +     )
+328  |     h_off_rej.do_GET()
+--------------------------------------------------------------------------------
+642  |
+     -     db_session.add_all([
+     -         app_a, app_b, app_c, app_d,
+     -         ev_a_screen, ev_a_interview, ev_a_reject,
+     -         ev_b_offer, ev_b_withdraw,
+     -     ])
+643  +     db_session.add_all(
+644  +         [
+645  +             app_a,
+646  +             app_b,
+647  +             app_c,
+648  +             app_d,
+649  +             ev_a_screen,
+650  +             ev_a_interview,
+651  +             ev_a_reject,
+652  +             ev_b_offer,
+653  +             ev_b_withdraw,
+654  +         ]
+655  +     )
+656  |     db_session.commit()
+--------------------------------------------------------------------------------
+1168 |     assert summary["total_submitted"] == 1
+     -
+     -
+     -
+     -
+     -
+     |
+
+1 file would be reformatted, 2 files already formatted
