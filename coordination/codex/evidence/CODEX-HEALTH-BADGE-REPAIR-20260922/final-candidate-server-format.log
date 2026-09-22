@@ -1,0 +1,63 @@
+unformatted: File would be reformatted
+   --> src/jobs_automation/dashboard/server.py:560:69
+    |
+559 |                         "apply_url": j.apply_url,
+    -                         "first_seen_at": j.first_seen_at.isoformat()
+    -                         if j.first_seen_at
+    -                         else None,
+560 +                         "first_seen_at": j.first_seen_at.isoformat() if j.first_seen_at else None,
+561 |                     }
+--------------------------------------------------------------------------------
+588 |                 interviews = session.scalars(
+    -                     select(InterviewModel).order_by(
+    -                         InterviewModel.scheduled_start.desc()
+    -                     )
+589 +                     select(InterviewModel).order_by(InterviewModel.scheduled_start.desc())
+590 |                 ).all()
+--------------------------------------------------------------------------------
+600 |                         if i.scheduled_start
+    -                         else None,
+    -                         "scheduled_end": i.scheduled_end.isoformat()
+    -                         if i.scheduled_end
+601 |                         else None,
+602 +                         "scheduled_end": i.scheduled_end.isoformat() if i.scheduled_end else None,
+603 |                         "location_or_link": i.location_or_link,
+--------------------------------------------------------------------------------
+612 |                 contacts = session.scalars(
+    -                     select(ContactModel).order_by(
+    -                         ContactModel.last_contact_at.desc().nulls_last()
+    -                     )
+613 +                     select(ContactModel).order_by(ContactModel.last_contact_at.desc().nulls_last())
+614 |                 ).all()
+--------------------------------------------------------------------------------
+632 |                 entries = session.scalars(
+    -                     select(AuditLogModel)
+    -                     .order_by(AuditLogModel.occurred_at.desc())
+    -                     .limit(50)
+633 +                     select(AuditLogModel).order_by(AuditLogModel.occurred_at.desc()).limit(50)
+634 |                 ).all()
+--------------------------------------------------------------------------------
+748 |                         "closed_at": a.closed_at.isoformat() if a.closed_at else None,
+    -                         "last_activity_at": a.last_activity_at.isoformat() if a.last_activity_at else None,
+749 +                         "last_activity_at": a.last_activity_at.isoformat()
+750 +                         if a.last_activity_at
+751 +                         else None,
+752 |                     }
+--------------------------------------------------------------------------------
+834 |         # If no token configured, check for local trusted loopback mode
+    -         allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in ("true", "1", "yes")
+    -         client_ip = self.client_address[0] if hasattr(self, "client_address") and self.client_address else "127.0.0.1"
+835 +         allow_local = os.getenv("DASHBOARD_ALLOW_LOCAL_WRITE", "true").lower() in (
+836 +             "true",
+837 +             "1",
+838 +             "yes",
+839 +         )
+840 +         client_ip = (
+841 +             self.client_address[0]
+842 +             if hasattr(self, "client_address") and self.client_address
+843 +             else "127.0.0.1"
+844 +         )
+845 |
+    |
+
+1 file would be reformatted

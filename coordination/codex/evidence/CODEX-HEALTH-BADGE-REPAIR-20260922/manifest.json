@@ -1,0 +1,129 @@
+{
+  "artifact": "CODEX-HEALTH-BADGE-REPAIR-20260922",
+  "files": [
+    {
+      "bytes": 3529,
+      "path": "accepted-parent-server-format.log",
+      "sha256": "00d87b9ba804c5005aa82236e50295e7ac1c90bf53355d3b3daa34f1d56d8aba"
+    },
+    {
+      "bytes": 30784,
+      "path": "baseline-red.log",
+      "sha256": "e79a973efa35f0cd85843b897e3d9a802b45dfdeabc1f3b7b57e940e94b912b1"
+    },
+    {
+      "bytes": 421,
+      "path": "candidate-commit.txt",
+      "sha256": "4147a11a1c1c911e65c4c62ad695f63ebe23a9c47b1069c2227a534f0fd42f51"
+    },
+    {
+      "bytes": 10598,
+      "path": "candidate.patch",
+      "sha256": "54eb3e6f28f85e92164c5e53691f9e5cd228c8d21eea07014b8f4feac9c13851"
+    },
+    {
+      "bytes": 2146,
+      "path": "checks.json",
+      "sha256": "e07a741db823f3758a45111aa1162a775cb7df01f80676491a33ae1395b4b05d"
+    },
+    {
+      "bytes": 2533,
+      "path": "commands.txt",
+      "sha256": "bc4422ab767fb872b068d20529d09fea6656a66f95d581864ddd50c4cf2599d6"
+    },
+    {
+      "bytes": 3529,
+      "path": "final-candidate-server-format.log",
+      "sha256": "cac5c9c6f3a6bfc657db080ad5157b808bb4714aef9add7af936d189058487b4"
+    },
+    {
+      "bytes": 541,
+      "path": "final-pg/migration.log",
+      "sha256": "8a408b71374e3cfa735ae9dbcce6b698d0840be9b44940edb7ae25c4f046e150"
+    },
+    {
+      "bytes": 845,
+      "path": "final-pg/report.json",
+      "sha256": "96fd73297566a7d1712e493abc3f4603b6ed4c4c4c419238586723cd8a214ef8"
+    },
+    {
+      "bytes": 243,
+      "path": "final-pg/run.json",
+      "sha256": "cdc4167956e4dbe74596f48032bdbc6d39b5acf58b9884594233d94d7550dd34"
+    },
+    {
+      "bytes": 845,
+      "path": "final-pg/workflow.log",
+      "sha256": "96fd73297566a7d1712e493abc3f4603b6ed4c4c4c419238586723cd8a214ef8"
+    },
+    {
+      "bytes": 2033,
+      "path": "final-pg-harness.py",
+      "sha256": "e8bfff32f19f5f1c174b560241972148364848f71375dc19e918b367c695c37d"
+    },
+    {
+      "bytes": 229,
+      "path": "final-pg-wrapper.log",
+      "sha256": "483116c53eb6a38f6a145dc0d383129358b06eb467c792c265b4845d103ddfd2"
+    },
+    {
+      "bytes": 2812,
+      "path": "final-pg-wrapper.py",
+      "sha256": "265bd9cc64dd73f0f89904ed4869b8c8954b7793765383a8117525983c10cee5"
+    },
+    {
+      "bytes": 99,
+      "path": "focused-pre-test-format.log",
+      "sha256": "7ceceb441f10715aff86ac7a489863662f793af0b172c4ae4cca7b024a546cdb"
+    },
+    {
+      "bytes": 602,
+      "path": "full.log",
+      "sha256": "4cb2bb116a1afa5a26cbfd6cb679801c4618340037e523dd3163170fac91c469"
+    },
+    {
+      "bytes": 735,
+      "path": "initial-pg-diagnosis/README.md",
+      "sha256": "862c1d3fbb9e4256d5b2a2b5153fb4a6212546f86f4dacfa5f916f6bf50326c4"
+    },
+    {
+      "bytes": 846,
+      "path": "initial-pg-diagnosis/report.json",
+      "sha256": "1a47d6da4bedb0a0329e1d591fbeb644bf2d33ff98273f4e04a617ab91801d67"
+    },
+    {
+      "bytes": 44,
+      "path": "mypy.log",
+      "sha256": "4ef32b02733c640ba275e5de2c0f630d3ea2a6293bb124ad0dc2173d46e40541"
+    },
+    {
+      "bytes": 40,
+      "path": "pull-request.txt",
+      "sha256": "c86a5c5b64fe7c58243f6ec28e11046ccc0c97c54ffa29f173fbb888f19e1e84"
+    },
+    {
+      "bytes": 3399,
+      "path": "review.md",
+      "sha256": "025280b06c6294af17bde3be9a5298a28955ea9b2ea752360962adb7e4d218a9"
+    },
+    {
+      "bytes": 19,
+      "path": "ruff.log",
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "bytes": 465,
+      "path": "source-checksums.txt",
+      "sha256": "5e96fbcfc11eab5027cb6132467a5eb72b3185956447cb71d5843639fa569292"
+    },
+    {
+      "bytes": 25,
+      "path": "test-format.log",
+      "sha256": "fd2299c9f1c6dc869070883e281051bfe93aacf66c1a3b0069f45b4aa410ca50"
+    }
+  ],
+  "pull_request": "https://github.com/pri8771/jobs/pull/23",
+  "release_sha": "85659226d54b78f2a70d82b8bdba2d63404c6068",
+  "source_sha": "1e54aafa61ef06ed2ef8a7a681c806ba89ef3268",
+  "source_tree": "8972a90de1f7aafd469fedde63926382c726319f"
+}

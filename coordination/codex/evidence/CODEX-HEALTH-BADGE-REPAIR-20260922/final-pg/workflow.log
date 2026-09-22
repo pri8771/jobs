@@ -1,0 +1,33 @@
+{
+  "ats_live_capable": [],
+  "component_statuses": {
+    "adapters": "DEGRADED",
+    "database": "HEALTHY",
+    "gmail": "DEGRADED",
+    "kill_switches": "HEALTHY",
+    "policy_registry": "HEALTHY",
+    "worker": "DEGRADED"
+  },
+  "gmail_readiness": "NOT_CONFIGURED",
+  "header_claim": null,
+  "header_has_health_fetch": true,
+  "health_status": 200,
+  "index_status": 200,
+  "overall_health": "DEGRADED",
+  "rendered": {
+    "attributes": {
+      "aria-live": "polite",
+      "role": "status"
+    },
+    "calls": [
+      "/api/health",
+      "/api/funnel",
+      "/api/sources"
+    ],
+    "className": "status-badge health-degraded",
+    "text": "Degraded"
+  },
+  "result": "HEALTH_BADGE_MATCHES_ACTUAL_DEGRADED_HEALTH",
+  "source_sha": "1e54aafa61ef06ed2ef8a7a681c806ba89ef3268",
+  "source_tree": "8972a90de1f7aafd469fedde63926382c726319f"
+}
