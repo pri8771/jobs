@@ -50,6 +50,8 @@ def sanitize_error_message(err: Any, max_length: int = 256) -> str:
 def categorize_error(err: Any) -> str:
     """Categorizes error strings into safe bounded category codes."""
     err_lower = str(err).lower()
+    if err_lower.startswith("begin_record_failed:"):
+        return "BEGIN_RECORD_FAILED"
     if (
         "gmail adapter unavailable" in err_lower
         or "credentials" in err_lower
@@ -58,11 +60,21 @@ def categorize_error(err: Any) -> str:
         or "auth" in err_lower
     ):
         return "GMAIL_AUTH_ERROR"
-    if "gmail" in err_lower or "http" in err_lower or "timeout" in err_lower or "connection" in err_lower:
+    if (
+        "gmail" in err_lower
+        or "http" in err_lower
+        or "timeout" in err_lower
+        or "connection" in err_lower
+    ):
         return "GMAIL_API_ERROR"
     if "kill_switch" in err_lower:
         return "KILL_SWITCH_ACTIVE"
-    if "database" in err_lower or "sql" in err_lower or "session" in err_lower or "integrity" in err_lower:
+    if (
+        "database" in err_lower
+        or "sql" in err_lower
+        or "session" in err_lower
+        or "integrity" in err_lower
+    ):
         return "DB_ERROR"
     if "config" in err_lower or "profile" in err_lower:
         return "CONFIG_ERROR"
@@ -193,13 +205,23 @@ class WorkerDaemon:
                 begin_session.commit()
         except Exception as begin_exc:
             logger.error(
-                "Failed to write worker-run begin record for run %s: %s",
+                "Failed to write worker-run begin record for run %s (%s)",
                 run_id,
-                begin_exc,
-                exc_info=True,
+                type(begin_exc).__name__,
             )
             # FAIL CLOSED: do NOT proceed with pipeline sweep if operational begin cannot be persisted
             results["errors"].append("begin_record_failed: operational evidence store unavailable")
+            results["final_status"] = "FAILED"
+            results["operational_evidence_durable"] = self._finalize_run(
+                run_id=run_id,
+                final_status="FAILED",
+                results=results,
+                started_at=now,
+            )
+            if not results["operational_evidence_durable"]:
+                results["warnings"].append(
+                    "operational_evidence_undurable: failed attempt could not be persisted"
+                )
             return results
 
         # Check safety kill switch — must record KILLED if blocked
@@ -310,7 +332,8 @@ class WorkerDaemon:
         final_status: str,
         results: dict[str, Any],
         error_note: str | None = None,
-    ) -> None:
+        started_at: datetime.datetime | None = None,
+    ) -> bool:
         """Writes the finalize AuditLog record for a worker run in a dedicated session.
 
         This is intentionally isolated from the pipeline session so that a pipeline
@@ -338,6 +361,8 @@ class WorkerDaemon:
         }
         if error_note:
             metadata["error_note"] = sanitize_error_message(error_note)
+        if started_at is not None:
+            metadata["started_at"] = started_at.isoformat()
 
         try:
             with self.session_factory() as fin_session:
@@ -351,13 +376,14 @@ class WorkerDaemon:
                 )
                 fin_session.add(fin_audit)
                 fin_session.commit()
+            return True
         except Exception as fin_exc:
             logger.error(
-                "Failed to write worker-run finalize record for run %s: %s",
+                "Failed to write worker-run finalize record for run %s (%s)",
                 run_id,
-                fin_exc,
-                exc_info=True,
+                type(fin_exc).__name__,
             )
+            return False
 
     def start(self) -> None:
         """Starts the continuous worker daemon loop."""
