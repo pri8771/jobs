@@ -1,3 +1,5 @@
+> **Latest owner assignment — 2026-09-22:** Claude is the next Jobs Automation implementation owner; target accepted LIVE V1.7. Read `coordination/codex/OWNER_RACE_V17_20260922.md` and `coordination/codex/CLAUDE_JOBS_V17_RACE_20260922.md` first. State: ASSIGNED_WAITING_FOR_WORKER, not launched. This supersedes older worker/pause routing below only; existing evidence, review holds and action grants are unchanged. No new scheduler or watcher.
+
 # Owner decisions and goal post reset to V1.7 — Jobs — 2026-09-22 (~18:45Z)
 
 Recorded by Claude from the owner's direct messages in the current Claude session. **This records owner direction only. It is not a lead verdict, a release or a version acceptance.** The native ChatGPT Jobs lead must reconcile `GOAL_20260922.md`, `state/CURRENT.md` and the work queue, and keeps acceptance authority.

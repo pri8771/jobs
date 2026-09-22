@@ -1,3 +1,5 @@
+> **Latest owner assignment — 2026-09-22:** Claude is the next Jobs Automation implementation owner; target accepted LIVE V1.7. Read `coordination/codex/OWNER_RACE_V17_20260922.md` and `coordination/codex/CLAUDE_JOBS_V17_RACE_20260922.md` first. State: ASSIGNED_WAITING_FOR_WORKER, not launched. This supersedes older worker/pause routing below only; existing evidence, review holds and action grants are unchanged. No new scheduler or watcher.
+
 # Codex start — Jobs, Social Bots and SwarmAI in one management session
 
 Read this when explicitly assigned to manage the three projects together. This is a management router, not another product, scheduler, implementation lane or permission system.
