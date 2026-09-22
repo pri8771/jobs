@@ -1009,11 +1009,11 @@ def test_installed_entrypoints_run_restart_and_timeline_bounded_batch(tmp_path: 
     assert export["genuine_evidence"]["source_count"] == 2
     assert "sarah.connor" not in export_path.read_text(encoding="utf-8")
 
-    # The held CLI still offers mailbox-only replay; query-free V3 evidence cannot be
-    # reconstructed from it, so the installed entrypoint must fail closed without a new run.
-    legacy_replay = _run_cli([*common, "--replay-run", run_id], env)
-    assert legacy_replay.returncode == 1, legacy_replay.stdout + legacy_replay.stderr
-    assert "REPLAY_REQUEST_REQUIRED" in legacy_replay.stdout + legacy_replay.stderr
+    # A replay must choose --dry-run or explicit --apply-replay; otherwise the installed
+    # entrypoint fails closed before any config, database or provider access.
+    ambiguous_replay = _run_cli([*common, "--replay-run", run_id], env)
+    assert ambiguous_replay.returncode == 1, ambiguous_replay.stdout + ambiguous_replay.stderr
+    assert "replay requires --dry-run" in ambiguous_replay.stdout + ambiguous_replay.stderr
     engine = get_engine(db_url)
     try:
         with get_sessionmaker(engine)() as session:
@@ -1025,14 +1025,6 @@ def test_installed_entrypoints_run_restart_and_timeline_bounded_batch(tmp_path: 
         engine.dispose()
 
 
-@pytest.mark.xfail(
-    strict=True,
-    raises=AssertionError,
-    reason=(
-        "HELD DEPENDENCY: installed ingest-mailbox replay needs the accepted eec0ae3 "
-        "cli/main.py ingest_mailbox --apply-replay/request port (CLI not released in COMP-3A)"
-    ),
-)
 def test_installed_entrypoints_restart_and_replay_bounded_batch(tmp_path: Path) -> None:
     """Separate processes: run, restart, replay, inspect — identical logical state."""
     config_dir, db_url, env, app_id, common = _installed_bounded_setup(tmp_path)

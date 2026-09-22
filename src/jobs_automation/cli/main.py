@@ -1206,6 +1206,12 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
 )
 @click.option("--replay-run", default=None, help="Replay the recorded parameters of a run id.")
 @click.option(
+    "--apply-replay",
+    is_flag=True,
+    default=False,
+    help="Explicitly permit a stateful replay of a recorded non-dry run.",
+)
+@click.option(
     "--canary-identity",
     "canary_identities",
     multiple=True,
@@ -1221,6 +1227,7 @@ def ingest_mailbox(
     dry_run: bool,
     mock_fixtures: bool,
     replay_run: str | None,
+    apply_replay: bool,
     canary_identities: tuple[str, ...],
     config_dir: str,
 ) -> None:
@@ -1248,8 +1255,35 @@ def ingest_mailbox(
             raise click.ClickException(f"{label} must be ISO-8601: {exc}") from exc
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=datetime.UTC)
 
+    # Validate every operator-supplied boundary before loading configuration, opening the
+    # database, assessing OAuth readiness, or constructing GmailAdapter.  Constructing a
+    # live adapter may refresh an expired token, so malformed input must fail before that
+    # side effect is even reachable.
+    try:
+        request = BoundedIngestionRequest(
+            mailbox=mailbox,
+            query=query,
+            window_start=_parse_window(window_start, "--window-start"),
+            window_end=_parse_window(window_end, "--window-end"),
+            cap=cap,
+            dry_run=dry_run,
+        ).validated()
+    except (BoundedIngestionError, ValueError) as exc:
+        raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
+
+    if apply_replay and not replay_run:
+        raise click.ClickException("--apply-replay requires --replay-run")
+    if replay_run and dry_run and apply_replay:
+        raise click.ClickException("--dry-run and --apply-replay cannot be combined")
+    if replay_run and not (dry_run or apply_replay):
+        raise click.ClickException(
+            "replay requires --dry-run for a non-mutating check or --apply-replay for a "
+            "stateful replay"
+        )
+
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
+    platforms, _ = loader.load_platforms()
     candidate_emails = [profile.identity.email] if profile.identity.email else []
 
     settings = AppSettings()
@@ -1286,22 +1320,18 @@ def ingest_mailbox(
             session,
             adapter,
             candidate_emails=candidate_emails,
-            canary_identities=list(canary_identities),
+            canary_identities=[*platforms.email.canary_identities, *canary_identities],
             adapter_kind=adapter_kind,
             synthetic=synthetic,
         )
         try:
             if replay_run:
-                result = runner.replay(replay_run, mailbox)
-            else:
-                request = BoundedIngestionRequest(
-                    mailbox=mailbox,
-                    query=query,
-                    window_start=_parse_window(window_start, "--window-start"),
-                    window_end=_parse_window(window_end, "--window-end"),
-                    cap=cap,
-                    dry_run=dry_run,
+                result = runner.replay(
+                    replay_run,
+                    request,
+                    allow_stateful_replay=apply_replay,
                 )
+            else:
                 result = runner.run(request)
         except BoundedIngestionError as exc:
             raise click.ClickException(f"bounded ingestion rejected: {exc}") from exc
