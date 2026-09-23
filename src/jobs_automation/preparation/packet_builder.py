@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from jobs_automation.core.job_search import JobSearchConfig
+
 import hashlib
 import json
 import uuid
@@ -96,6 +100,7 @@ class ApplicationPacketBuilder:
         candidate_profile: CandidateProfileConfig,
         model_gateway: ModelGateway,
         artifact_store: ArtifactStore | None = None,
+        config: JobSearchConfig | None = None,
     ) -> None:
         self.session = session
         self.profile = candidate_profile
@@ -103,6 +108,7 @@ class ApplicationPacketBuilder:
         self.artifact_store = artifact_store or ArtifactStore("artifacts")
         self.cover_letter_drafter = CoverLetterDrafter(model_gateway)
         self.question_service = ScreeningQuestionAnsweringService(model_gateway)
+        self.config = config
 
     def build_packet(
         self,
@@ -118,7 +124,7 @@ class ApplicationPacketBuilder:
         - Materializes and verifies SHA-256 for all stored artifacts.
         """
         # 1. Select targeted resume variant and resolve exact source path (J14-01, J14-02)
-        variant_name = ResumeVariantSelector.select_variant(job, matched_role_family)
+        variant_name = ResumeVariantSelector.select_variant(job, matched_role_family, session=self.session, config=self.config)
         source_path = self.profile.resume.resolve_source_path(variant_name)
 
         if not source_path:

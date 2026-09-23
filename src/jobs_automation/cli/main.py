@@ -509,6 +509,7 @@ def prepare_packets(config_dir: str, limit: int) -> None:
 
     loader = ConfigLoader(config_dir)
     profile, _ = loader.load_candidate_profile()
+    search_config, _ = loader.load_job_search_config()
 
     from sqlalchemy import select
 
@@ -525,6 +526,7 @@ def prepare_packets(config_dir: str, limit: int) -> None:
             session=session,
             candidate_profile=profile,
             model_gateway=MockModelGateway(),
+            config=search_config,
         )
 
         stmt = (

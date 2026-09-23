@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from jobs_automation.core import CandidateProfileConfig, JobSearchConfig
+from jobs_automation.core.candidate_profile import CandidateProfileConfig
 from jobs_automation.db.models import JobEvaluationModel, JobModel, TaskModel
 from jobs_automation.evaluation.filters import FilterDecisionStatus, HardFilterService
 from jobs_automation.evaluation.scorer import SemanticScorer

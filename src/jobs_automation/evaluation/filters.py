@@ -6,8 +6,10 @@ from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from jobs_automation.core import CandidateProfileConfig, JobSearchConfig
-from jobs_automation.db.models import JobModel
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from jobs_automation.core.job_search import JobSearchConfig
+    from jobs_automation.db.models import JobModel
 
 
 class FilterDecisionStatus(StrEnum):
