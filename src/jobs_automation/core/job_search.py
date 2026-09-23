@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from jobs_automation.intelligence.strategy import StrategyGuardrails
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -104,3 +105,4 @@ class JobSearchConfig(BaseModel):
     hard_reject: HardRejectCriteria = Field(default_factory=HardRejectCriteria)
     role_families: list[RoleFamilyConfig] = Field(default_factory=list)
     scoring: ScoringConfig = Field(default_factory=ScoringConfig)
+    strategy_guardrails: StrategyGuardrails = Field(default_factory=StrategyGuardrails)
