@@ -369,3 +369,12 @@ def test_resolve_best_profile():
     assert res[0][0].id == c2_id
     assert res[1][0].id == c1_id
 
+
+def test_intelligence_exports():
+    import jobs_automation.intelligence as intel
+    assert hasattr(intel, "OpportunityGraphService")
+    assert hasattr(intel, "OpportunityNode")
+    assert hasattr(intel, "OpportunityEdge")
+    assert hasattr(intel, "OpportunityGraph")
+    assert hasattr(intel, "RoleFamilyClassifier")
+
