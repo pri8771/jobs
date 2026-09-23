@@ -1,6 +1,7 @@
 """Job evaluation engine coordinating hard filtering and semantic scoring."""
 
 from __future__ import annotations
+OPEN_JOB_STATUSES = {"discovered", "needs_review", "shortlisted", "packet_prepared", "packet_prepared_review_needed"}
 
 import datetime
 
@@ -170,3 +171,4 @@ class JobEvaluationEngine:
 
         summary.completed_at = datetime.datetime.now(datetime.UTC)
         return summary
+

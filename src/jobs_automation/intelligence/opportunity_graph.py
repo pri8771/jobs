@@ -6,6 +6,8 @@ Implements typed, evidence-preserving queries adhering to docs/V2_3_OPPORTUNITY_
 """
 
 from __future__ import annotations
+from jobs_automation.evaluation.engine import OPEN_JOB_STATUSES
+from jobs_automation.lifecycle.crm import RecruiterCRMService
 
 import datetime
 import hashlib
@@ -92,6 +94,9 @@ class OpportunityEdge(BaseModel):
     source_reference: str | None = None
     confidence: float = 1.0
     evidence_hash: str | None = None
+    observed_at: datetime.datetime
+    method: str
+    inferred: bool
     valid_from: datetime.datetime
     valid_to: datetime.datetime | None = None
     status: EdgeStatus = EdgeStatus.ASSERTED
@@ -251,6 +256,9 @@ class OpportunityGraphService:
             confidence: float = 1.0,
             status: EdgeStatus = EdgeStatus.ASSERTED,
             valid_from: datetime.datetime | None = None,
+            observed_at: datetime.datetime | None = None,
+            method: str = "fk_projection",
+            inferred: bool = False,
         ) -> None:
             edge_id = _make_edge_id(subject_type.value, subject_id, predicate.value, object_type.value, object_id)
             if edge_id in edge_map:
@@ -269,6 +277,9 @@ class OpportunityGraphService:
                 source_reference=source_reference,
                 confidence=confidence,
                 evidence_hash=ev_hash,
+                observed_at=observed_at or valid_from or now,
+                method=method,
+                inferred=inferred,
                 valid_from=valid_from or now,
                 valid_to=None,
                 status=status,
@@ -628,12 +639,16 @@ class OpportunityGraphService:
                         confidence=lk.confidence,
                         status=status,
                         valid_from=lk.created_at,
+                        observed_at=lk.created_at,
+                        method=getattr(lk, "method", "fk_projection"),
+                        inferred=(lk.confidence < 0.8),
                     )
 
                     # If message is linked to application and matches a contact by sender email:
-                    sender_clean = msg.sender.lower()
+                    _, sender_address = RecruiterCRMService(self.session).parse_sender(msg.sender)
+                    sender_address = (sender_address or "").lower()
                     for email, ct in contact_by_email.items():
-                        if email in sender_clean and lk.application_id:
+                        if sender_address == email and lk.application_id:
                             add_edge(
                                 subject_type=NodeType.CONTACT,
                                 subject_id=str(ct.id),
@@ -645,6 +660,9 @@ class OpportunityGraphService:
                                 confidence=lk.confidence,
                                 status=status,
                                 valid_from=msg.received_at,
+                                observed_at=msg.received_at,
+                                method="sender_address_match",
+                                inferred=True,
                             )
 
         return OpportunityGraph(nodes=nodes, edges=list(edge_map.values()))
@@ -716,7 +734,7 @@ class OpportunityGraphService:
             for c in contacts
         ]
 
-    def applications_for_contact(self, contact_id: uuid.UUID | str) -> list[ContactApplicationRecord]:
+    def applications_with_contact(self, contact_id: uuid.UUID | str) -> list[ContactApplicationRecord]:
         """Finds applications where a contact was touched or associated."""
         ct_id = uuid.UUID(str(contact_id))
         contact = self.session.get(ContactModel, ct_id)
@@ -836,7 +854,7 @@ class OpportunityGraphService:
         # Find active / discovered jobs
         jobs = self.session.scalars(
             select(JobModel)
-            .where(JobModel.status.in_(("discovered", "evaluated", "shortlisted")))
+            .where(JobModel.status.in_(OPEN_JOB_STATUSES))
             .options(joinedload(JobModel.company))
         ).unique().all()
 
