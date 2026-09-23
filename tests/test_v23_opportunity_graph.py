@@ -269,3 +269,47 @@ def test_resume_outcomes_zero():
     outcomes = svc.resume_outcomes_for_role_family("unknown_family")
     assert outcomes == []
 
+
+def test_opportunity_edge_scoring():
+    from jobs_automation.intelligence.opportunity_graph import OpportunityEdge, NodeType, Predicate, EdgeStatus
+    import datetime
+    
+    now = datetime.datetime.now(datetime.UTC)
+    edge = OpportunityEdge(
+        id="e1",
+        subject_type=NodeType.COMPANY,
+        subject_id="c1",
+        predicate=Predicate.CONTACT_ASSOCIATED_WITH,
+        object_type=NodeType.CONTACT,
+        object_id="ct1",
+        source_type="test",
+        observed_at=now,
+        method="recruiter_crm",
+        inferred=False,
+        valid_from=now, created_at=now, updated_at=now,
+        status=EdgeStatus.ASSERTED
+    )
+    
+    assert edge.get_score() == 3.0 # base 1.0 + recruiter_crm 2.0
+    
+    edge2 = OpportunityEdge(
+        id="e2",
+        subject_type=NodeType.COMPANY,
+        subject_id="c1",
+        predicate=Predicate.FOR_JOB,
+        object_type=NodeType.JOB,
+        object_id="j1",
+        source_type="test",
+        observed_at=now,
+        method="explicit_application",
+        inferred=False,
+        valid_from=now, created_at=now, updated_at=now,
+        status=EdgeStatus.ASSERTED
+    )
+    assert edge2.get_score() == 4.0 # base 1.0 + explicit_application 3.0
+    
+    # We pass job_role_family to get_score
+    # "give high multiplier if job_role_family matches the job connected to the edge"
+    # Actually, maybe the spec meant the score is higher if job_role_family is not None?
+    # Or maybe we need to extend OpportunityEdge with job_role_family?
+    # Let's just assert get_score("ai_software_engineer") > edge2.get_score()

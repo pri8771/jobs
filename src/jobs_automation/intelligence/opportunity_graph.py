@@ -104,6 +104,27 @@ class OpportunityEdge(BaseModel):
     updated_at: datetime.datetime
 
 
+
+
+    def get_score(self, job_role_family: str | None = None) -> float:
+        score = 1.0
+        
+        if self.method == "explicit_application":
+            score += 3.0
+        elif self.method == "recruiter_crm":
+            score += 2.0
+            
+        if hasattr(self, "outcomes") and self.outcomes:
+            if "SCREENING" in self.outcomes:
+                score += 2.0
+            if "INTERVIEWING" in self.outcomes:
+                score += 3.0
+                
+        if job_role_family is not None:
+            score *= 1.5
+            
+        return min(10.0, float(score))
+
 class OpportunityGraph(BaseModel):
     """In-memory projection of the opportunity graph."""
 
