@@ -411,3 +411,56 @@ class AuditLogModel(Base):
         UTCDateTime, default=utc_now, nullable=False
     )
     metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+
+class AgentTaskModel(Base):
+    __tablename__ = "agent_task"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    task_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    requested_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    assigned_agent: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    input_artifact_refs_json: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    goal: Mapped[str | None] = mapped_column(Text, nullable=True)
+    constraints_json: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    permission_scope: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="READY", nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    completed_at: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    output_artifact_refs_json: Mapped[list[str]] = mapped_column(JSONType, default=list, nullable=False)
+    error_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class AgentCheckpointModel(Base):
+    __tablename__ = "agent_checkpoint"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agent_task.id"), index=True, nullable=False)
+    thread_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    checkpoint_id: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    checkpoint_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    metadata_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    parent_checkpoint_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+
+
+class AgentMemoryModel(Base):
+    __tablename__ = "agent_memory"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    agent_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    memory_key: Mapped[str] = mapped_column(String(128), index=True, nullable=False)
+    memory_value_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+
+
+class AgentTraceEventModel(Base):
+    __tablename__ = "agent_trace_event"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_task.id"), index=True, nullable=True)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    event_payload_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)

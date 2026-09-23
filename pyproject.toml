@@ -27,6 +27,8 @@ dependencies = [
     # Executed JSON Schema format assertions for the real-proof verifier (date-time, uri).
     "rfc3339-validator>=0.1.4",
     "rfc3986-validator>=0.1.1",
+    "langgraph>=0.0.30",
+    "langchain-core>=0.1.40",
 ]
 
 [project.optional-dependencies]
