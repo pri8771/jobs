@@ -114,3 +114,67 @@ def test_other_strategies_empty(db_session):
     assert svc.source_strategy() == []
     assert svc.role_strategy() == []
     assert svc.company_strategy() == []
+
+def test_get_best_resume_variant(db_session):
+    from jobs_automation.intelligence.strategy import StrategyLearningService, StrategyGuardrails
+    from jobs_automation.db.models import ResumeVariantModel, ApplicationPacketModel, ApplicationModel, JobModel, CompanyModel, ApplicationEventModel
+    import datetime
+    
+    now = datetime.datetime.now(datetime.UTC)
+    g = StrategyGuardrails(min_n_descriptive=2)
+    svc = StrategyLearningService(db_session, g)
+    
+    comp = CompanyModel(normalized_name="ACME2")
+    db_session.add(comp)
+    db_session.flush()
+    job = JobModel(normalized_title="engineer2", company_id=comp.id)
+    db_session.add(job)
+    db_session.flush()
+    
+    # 2 variants in family 'data'
+    v1 = ResumeVariantModel(resume_family="data", name="d1", version=1, content_hash="hash-d1")
+    v2 = ResumeVariantModel(resume_family="data", name="d2", version=1, content_hash="hash-d2")
+    db_session.add_all([v1, v2])
+    db_session.flush()
+    
+    # Give v1 N=2 with 1 interview (50% rate)
+    p1_a = ApplicationPacketModel(resume_variant_id=v1.id, job_id=job.id, candidate_profile_version=1, packet_hash="pkt-d1-a")
+    p1_b = ApplicationPacketModel(resume_variant_id=v1.id, job_id=job.id, candidate_profile_version=1, packet_hash="pkt-d1-b")
+    # Give v2 N=1 with 1 interview (100% rate, but N=1 < min_n=2)
+    p2_a = ApplicationPacketModel(resume_variant_id=v2.id, job_id=job.id, candidate_profile_version=1, packet_hash="pkt-d2-a")
+    db_session.add_all([p1_a, p1_b, p2_a])
+    db_session.flush()
+    
+    app1 = ApplicationModel(job_id=job.id, packet_id=p1_a.id, status="REJECTED", applied_at=now)
+    app2 = ApplicationModel(job_id=job.id, packet_id=p1_b.id, status="INTERVIEWING", applied_at=now)
+    app3 = ApplicationModel(job_id=job.id, packet_id=p2_a.id, status="INTERVIEWING", applied_at=now)
+    db_session.add_all([app1, app2, app3])
+    db_session.flush()
+
+    # Need events to trigger outcomes
+    ev2 = ApplicationEventModel(application_id=app2.id, event_type="INTERVIEW_REQUESTED", occurred_at=now, source="email")
+    ev3 = ApplicationEventModel(application_id=app3.id, event_type="INTERVIEW_REQUESTED", occurred_at=now, source="email")
+    db_session.add_all([ev2, ev3])
+    db_session.commit()
+    
+    # 'highest_conversion' should pick v1 because it has N=2 >= min_n=2
+    rec = svc.get_best_resume_variant(job.id, "data", strategy="highest_conversion")
+    assert rec.resume_variant_id == str(v1.id)
+    assert rec.strategy_used == "highest_conversion"
+    assert rec.confidence == "HIGH"
+    
+    # 'explore' should pick v2 because it has lowest N
+    rec_exp = svc.get_best_resume_variant(job.id, "data", strategy="explore")
+    assert rec_exp.resume_variant_id == str(v2.id)
+    assert rec_exp.strategy_used == "explore"
+    assert rec_exp.confidence == "LOW"
+    
+    # Add another variant with no applications
+    v3 = ResumeVariantModel(resume_family="data", name="d3", version=1, content_hash="hash-d3")
+    db_session.add(v3)
+    db_session.commit()
+    
+    # Now 'explore' should pick v3
+    rec_exp2 = svc.get_best_resume_variant(job.id, "data", strategy="explore")
+    assert rec_exp2.resume_variant_id == str(v3.id)
+    
