@@ -1,7 +1,7 @@
-from jobs_automation.intelligence.role_family import RoleFamilyClassifier
 """Analytics and metrics service for application funnels, sources, roles, and resume performance."""
 
 from __future__ import annotations
+from jobs_automation.intelligence.role_family import RoleFamilyClassifier
 
 import uuid
 from typing import Any
@@ -367,7 +367,7 @@ class FunnelAnalyticsService:
             )
         return performance
 
-    def get_role_family_performance(self) -> list[dict[str, Any]]:
+    def get_role_family_performance(self, window_days: int | None = None) -> list[dict[str, Any]]:
         """Calculates conversion and historical outcome distribution by target role/title family."""
         all_apps = self.session.scalars(select(ApplicationModel)).all()
 
@@ -428,7 +428,7 @@ class FunnelAnalyticsService:
             )
         return results
 
-    def get_resume_performance(self) -> list[dict[str, Any]]:
+    def get_resume_performance(self, window_days: int | None = None) -> list[dict[str, Any]]:
         """Calculates funnel efficacy grouped by immutable resume variant and resume family."""
         variants = self.session.scalars(select(ResumeVariantModel)).all()
 
@@ -486,7 +486,7 @@ class FunnelAnalyticsService:
             )
         return results
 
-    def get_time_to_stage(self) -> dict[str, Any]:
+    def get_time_to_stage(self, window_days: int | None = None) -> dict[str, Any]:
         """Calculates average latency in days from application submission to various lifecycle stages."""
         apps = self.session.scalars(
             select(ApplicationModel).where(ApplicationModel.applied_at.is_not(None))

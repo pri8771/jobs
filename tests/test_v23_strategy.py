@@ -4,6 +4,19 @@ from jobs_automation.intelligence.strategy import StrategyGuardrails
 from jobs_automation.core.job_search import JobSearchConfig
 import yaml
 
+from typing import Generator
+from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from jobs_automation.db.models import Base
+
+@pytest.fixture
+def db_session() -> Generator[Session, None, None]:
+    engine = create_engine("sqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    with Session(engine) as session:
+        yield session
+
+
 def test_strategy_guardrails_defaults():
     g = StrategyGuardrails()
     assert g.min_n_descriptive == 5
@@ -41,3 +54,63 @@ global:
     config = JobSearchConfig(**data)
     assert config.strategy_guardrails.min_n_descriptive == 5
 
+
+def test_resume_strategy(db_session):
+    from jobs_automation.intelligence.strategy import StrategyLearningService, StrategyGuardrails
+    from jobs_automation.db.models import ResumeVariantModel, ApplicationPacketModel, ApplicationModel, JobModel, CompanyModel
+    import datetime
+    
+    now = datetime.datetime.now(datetime.UTC)
+    g = StrategyGuardrails(min_n_descriptive=2)
+    svc = StrategyLearningService(db_session, g)
+    
+    comp = CompanyModel(normalized_name="ACME")
+    db_session.add(comp)
+    db_session.flush()
+    job = JobModel(normalized_title="engineer", company_id=comp.id)
+    db_session.add(job)
+    db_session.flush()
+    
+    # 2 families, 3 variants total
+    v1 = ResumeVariantModel(resume_family="backend", name="b1", version=1, content_hash="1")
+    v2 = ResumeVariantModel(resume_family="backend", name="b2", version=2, content_hash="2")
+    v3 = ResumeVariantModel(resume_family="frontend", name="f1", version=1, content_hash="3")
+    db_session.add_all([v1, v2, v3])
+    db_session.flush()
+    
+    p1 = ApplicationPacketModel(resume_variant_id=v1.id, job_id=job.id, candidate_profile_version=1, packet_hash="1")
+    p2 = ApplicationPacketModel(resume_variant_id=v2.id, job_id=job.id, candidate_profile_version=1, packet_hash="2")
+    p3 = ApplicationPacketModel(resume_variant_id=v3.id, job_id=job.id, candidate_profile_version=1, packet_hash="3")
+    p_old = ApplicationPacketModel(resume_variant_id=v1.id, job_id=job.id, candidate_profile_version=1, packet_hash="4")
+    db_session.add_all([p1, p2, p3, p_old])
+    db_session.flush()
+    
+    # apps
+    a1 = ApplicationModel(job_id=job.id, packet_id=p1.id, status="SUBMITTED", application_mode="auto", applied_at=now)
+    a2 = ApplicationModel(job_id=job.id, packet_id=p2.id, status="SUBMITTED", application_mode="auto", applied_at=now)
+    a3 = ApplicationModel(job_id=job.id, packet_id=p3.id, status="SUBMITTED", application_mode="auto", applied_at=now)
+    
+    # old app (outside 90 day window)
+    old_date = now - datetime.timedelta(days=100)
+    a_old = ApplicationModel(job_id=job.id, packet_id=p_old.id, status="SUBMITTED", application_mode="auto", applied_at=old_date)
+    
+    db_session.add_all([a1, a2, a3, a_old])
+    db_session.commit()
+    
+    res = svc.resume_strategy(window_days=90)
+    assert len(res) == 3
+    
+    # verify window excludes old
+    for row in res:
+        if row.resume_variant_id == str(v1.id):
+            assert row.response.n == 1 # a1 only, not a_old
+            
+        assert not row.rollup
+        assert row.response.n == row.response.denominator
+def test_other_strategies_empty(db_session):
+    from jobs_automation.intelligence.strategy import StrategyLearningService, StrategyGuardrails
+    g = StrategyGuardrails()
+    svc = StrategyLearningService(db_session, g)
+    assert svc.source_strategy() == []
+    assert svc.role_strategy() == []
+    assert svc.company_strategy() == []

@@ -350,7 +350,7 @@ def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
     job1 = JobModel(
         id=uuid.uuid4(),
         company_id=comp.id,
-        normalized_title="Research Engineer",
+        normalized_title="Software Engineer",
         description_text="AI models",
         status="ACTIVE",
     )
@@ -480,7 +480,7 @@ def test_funnel_analytics_advanced_metrics(db_session: Session) -> None:
     # Test get_role_family_performance()
     roles = analytics.get_role_family_performance()
     assert len(roles) == 2
-    re_role = next(r for r in roles if r["role_family"] == "Research Engineer")
+    re_role = next(r for r in roles if r["role_family"] == "ai_software_engineer")
     assert re_role["applications_count"] == 1
     assert re_role["interviews"] == 1
     assert re_role["low_sample_size"] is True
@@ -941,7 +941,7 @@ def test_final_interview_evidence_and_accepted_rates(db_session: Session) -> Non
     job = JobModel(
         id=uuid.uuid4(),
         company_id=company.id,
-        normalized_title="Safety Engineer",
+        normalized_title="ai_software_engineer",
     )
     db_session.add(job)
     db_session.flush()
@@ -1021,7 +1021,7 @@ def test_final_interview_evidence_and_accepted_rates(db_session: Session) -> Non
     assert gh_perf["accept_rate_pct"] == 50.0
 
     role_perf = service.get_role_family_performance()
-    safety_perf = next(p for p in role_perf if p["role_family"] == "Safety Engineer")
+    safety_perf = next(p for p in role_perf if p["role_family"] == "ai_software_engineer")
     assert safety_perf["applications_count"] == 2
     assert safety_perf["final_interviews"] == 1
     assert safety_perf["accepted"] == 1
