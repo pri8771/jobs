@@ -14,7 +14,17 @@ from jobs_automation.db.models import JobModel
 logger = logging.getLogger(__name__)
 
 
+
+ROLE_FAMILY_KEYWORDS: dict[str, list[str]] = {
+    "sap_btp": ["sap"],
+    "mobile_ios": ["ios", "mobile", "swift", "apple"],
+    "technical_product": ["product", "platform product", "technical product"],
+    "ai_software_engineer": ["software", "ai automation", "applied ai", "python"],
+    "enterprise_automation": []
+}
+
 class ResumeVariantSelector:
+
     """Selects the most targeted base resume variant and resolves exact resume family attribution."""
 
     VARIANT_FAMILY_MAP: dict[str, str] = {
@@ -30,17 +40,17 @@ class ResumeVariantSelector:
         title_lower = (job.normalized_title or "").lower()
         fam_lower = (matched_role_family or "").lower()
 
-        if "sap" in title_lower or "sap" in fam_lower:
+        if any(k in title_lower or k in fam_lower for k in ROLE_FAMILY_KEYWORDS["sap_btp"]):
             return "resume_sap_btp"
-        elif any(k in title_lower for k in ["ios", "mobile", "swift", "apple"]):
+        elif any(k in title_lower for k in ROLE_FAMILY_KEYWORDS["mobile_ios"]):
             return "resume_mobile_ios"
-        elif any(k in title_lower for k in ["product", "platform product", "technical product"]):
+        elif any(k in title_lower for k in ROLE_FAMILY_KEYWORDS["technical_product"]):
             return "resume_technical_product"
-        elif any(k in title_lower for k in ["software", "ai automation", "applied ai", "python"]):
+        elif any(k in title_lower for k in ROLE_FAMILY_KEYWORDS["ai_software_engineer"]):
             return "resume_ai_software_engineer"
         else:
-            # Default to primary high-value positioning
             return "resume_enterprise_automation"
+
 
     @classmethod
     def get_resume_family(

@@ -1,3 +1,4 @@
+from jobs_automation.intelligence.role_family import RoleFamilyClassifier
 """Analytics and metrics service for application funnels, sources, roles, and resume performance."""
 
 from __future__ import annotations
@@ -370,13 +371,15 @@ class FunnelAnalyticsService:
         """Calculates conversion and historical outcome distribution by target role/title family."""
         all_apps = self.session.scalars(select(ApplicationModel)).all()
 
-        # Group applications by normalized job title
+        # Group applications by role family
         apps_by_role: dict[str, list[ApplicationModel]] = {}
+        classifier = RoleFamilyClassifier()
         for a in all_apps:
             title = a.job.normalized_title if a.job and a.job.normalized_title else "Unspecified"
-            if title not in apps_by_role:
-                apps_by_role[title] = []
-            apps_by_role[title].append(a)
+            family = classifier.classify(title)
+            if family not in apps_by_role:
+                apps_by_role[family] = []
+            apps_by_role[family].append(a)
 
         results: list[dict[str, Any]] = []
         for role, apps in sorted(apps_by_role.items(), key=lambda x: len(x[1]), reverse=True):

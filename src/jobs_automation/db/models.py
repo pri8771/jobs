@@ -322,6 +322,7 @@ class MessageLinkModel(Base):
     inbound_message_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("inbound_message.id"), nullable=False
     )
+    contact_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contact.id"), index=True, nullable=True)
     job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("job.id"), nullable=True)
     application_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("application.id"), nullable=True
@@ -464,3 +465,116 @@ class AgentTraceEventModel(Base):
     event_type: Mapped[str] = mapped_column(String(64), nullable=False)
     event_payload_json: Mapped[dict[str, Any]] = mapped_column(JSONType, default=dict, nullable=False)
     created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, default=utc_now, nullable=False)
+
+from sqlalchemy import UniqueConstraint, Index
+
+class OpportunityEdgeModel(Base):
+    __tablename__ = "opportunity_edge"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    subject_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    subject_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    predicate: Mapped[str] = mapped_column(String(64), nullable=False)
+    object_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    object_id: Mapped[uuid.UUID] = mapped_column(nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_reference: Mapped[str] = mapped_column(String(512), nullable=False)
+    method: Mapped[str] = mapped_column(String(64), nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    inferred: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="true")
+    evidence_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    observed_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False)
+    valid_from: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False)
+    valid_to: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, server_default="'REVIEW_REQUIRED'")
+    invalidated_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "subject_type", "subject_id", "predicate", "object_type", "object_id",
+            "source_type", "source_reference",
+            name="uq_opportunity_edge_evidence"
+        ),
+        Index("ix_opportunity_edge_subject", "subject_type", "subject_id"),
+        Index("ix_opportunity_edge_object", "object_type", "object_id"),
+        Index("ix_opportunity_edge_predicate_status", "predicate", "status"),
+        Index("ix_opportunity_edge_source_reference", "source_reference"),
+    )
+
+class TargetCompanyModel(Base):
+    __tablename__ = "target_company"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    company_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("company.id"), nullable=True)
+    canonical_name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, server_default="3")
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    target_role_families: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=list)
+    compensation_floor: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    location_constraints: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    watch_status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="'PAUSED'")
+    source_config: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+    updated_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+
+    __table_args__ = (
+        Index("ix_target_company_watch_status", "watch_status"),
+    )
+
+class TargetCompanyObservationModel(Base):
+    __tablename__ = "target_company_observation"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    target_company_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("target_company.id"), nullable=False)
+    observation_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_reference: Mapped[str] = mapped_column(String(512), nullable=False)
+    observed_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False)
+    confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    normalized_payload: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    dedupe_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    job_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("job.id"), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="'NEW'")
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+
+    __table_args__ = (
+        UniqueConstraint("target_company_id", "dedupe_key", name="uq_target_company_observation_dedupe"),
+        Index("ix_target_company_observation_company_time", "target_company_id", "observed_at"),
+        Index("ix_target_company_observation_job", "job_id"),
+    )
+
+class StrategyExperimentModel(Base):
+    __tablename__ = "strategy_experiment"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    name: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    hypothesis: Mapped[str] = mapped_column(Text, nullable=False)
+    target_population_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    metric_definition_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, server_default="'DRAFT'")
+    created_by: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False, default=utc_now)
+    started_at: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+    ended_at: Mapped[datetime.datetime | None] = mapped_column(UTCDateTime, nullable=True)
+
+class StrategyExperimentAssignmentModel(Base):
+    __tablename__ = "strategy_experiment_assignment"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=generate_uuid)
+    experiment_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("strategy_experiment.id"), nullable=False)
+    job_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("job.id"), nullable=False)
+    application_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("application.id"), nullable=True)
+    treatment_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    resume_variant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("resume_variant.id"), nullable=True)
+    treatment_payload_json: Mapped[dict[str, Any]] = mapped_column(JSONType, nullable=False, default=dict)
+    treatment_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    assigned_at: Mapped[datetime.datetime] = mapped_column(UTCDateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("experiment_id", "job_id", name="uq_strategy_experiment_assignment_job"),
+        Index("ix_strategy_experiment_assignment_app", "application_id"),
+    )

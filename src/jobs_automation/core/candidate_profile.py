@@ -1,8 +1,9 @@
 """Candidate profile configuration models and validation."""
 
 from __future__ import annotations
+from datetime import datetime
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -75,11 +76,18 @@ class CurrentRole(BaseModel):
     start: str | None = None
 
 
+
+class ProjectConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    skills: list[str] = Field(default_factory=list)
+
 class ExperienceConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     current_role: CurrentRole | None = None
     roles: list[ExperienceRole] = Field(default_factory=list)
+    projects: list[ProjectConfig] = Field(default_factory=list)
 
 
 class EducationItem(BaseModel):
@@ -179,6 +187,13 @@ class DemographicAnswersConfig(BaseModel):
         return self
 
 
+
+class ProvenanceItem(BaseModel):
+    provenance_class: Literal["user_confirmed", "source_document", "inferred", "unknown"] = "unknown"
+    source_reference: str | None = None
+    verified_at: datetime | None = None
+    reviewer: str | None = None
+
 class CandidateProfileConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -195,6 +210,7 @@ class CandidateProfileConfig(BaseModel):
     application_answers: ApplicationAnswersConfig = Field(default_factory=ApplicationAnswersConfig)
     demographic_answers: DemographicAnswersConfig = Field(default_factory=DemographicAnswersConfig)
     notes: list[str] = Field(default_factory=list)
+    provenance: dict[str, ProvenanceItem] = Field(default_factory=dict)
 
     def check_unresolved_facts(self) -> dict[str, list[str]]:
         """Identify fields that are currently unresolved (null / unknown).

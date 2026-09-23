@@ -56,6 +56,11 @@ work_authorization:
   notes: null
 
 experience:
+  projects:
+    - name: "Antigravity Agent"
+      skills:
+        - "Python"
+        - "LLMs"
   current_role:
     company: "Viatris"
     role: "Contractor - SAP BTP / Enterprise Automation"
