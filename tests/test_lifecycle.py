@@ -1587,3 +1587,45 @@ def test_v23_engine_sets_contact_id_on_link(db_session: Session) -> None:
     contact = db_session.get(ContactModel, link.contact_id)
     assert contact.email == "recruiter@acme.com"
 
+
+def test_v23_get_best_contact_for_message(db_session: Session) -> None:
+    from jobs_automation.intelligence.opportunity_graph import OpportunityGraphService
+    crm = RecruiterCRMService(db_session)
+    
+    comp = CompanyModel(normalized_name="ACME Corp")
+    db_session.add(comp)
+    db_session.flush()
+    
+    ct = ContactModel(name="Jordan", email="jordan@acme.com", company_id=comp.id)
+    db_session.add(ct)
+    
+    job = JobModel(normalized_title="engineer", company_id=comp.id)
+    db_session.add(job)
+    db_session.flush()
+    
+    app = ApplicationModel(job_id=job.id, status="SCREENING")
+    db_session.add(app)
+    db_session.flush()
+    
+    msg = InboundMessageModel(
+        provider_message_id="msg123",
+        provider_thread_id="th123",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="Jordan <jordan@acme.com>",
+        subject="Interview",
+        classification="interview_invitation",
+        direction="inbound",
+        body_text=""
+    )
+    db_session.add(msg)
+    db_session.flush()
+    
+    link = MessageLinkModel(inbound_message_id=msg.id, application_id=app.id, confidence=0.95, method="explicit_application")
+    db_session.add(link)
+    db_session.commit()
+    
+    # We have a graph path from CT -> MSG_LINK -> APP -> JOB
+    contact = crm.get_best_contact_for_message(msg, str(job.id))
+    assert contact is not None
+    assert contact.id == ct.id
+

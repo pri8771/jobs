@@ -65,6 +65,26 @@ class RecruiterCRMService:
 
         return contact
 
+
+    def get_best_contact_for_message(self, message: InboundMessageModel, job_id: str) -> ContactModel | None:
+        """Uses the Opportunity Graph to resolve the best contact/profile when email alone is ambiguous."""
+        from jobs_automation.intelligence.opportunity_graph import OpportunityGraphService
+        
+        # Build graph
+        svc = OpportunityGraphService(self.session)
+        graph = svc.project_graph()
+        
+        # Resolve
+        best_profiles = graph.resolve_best_profile(job_id)
+        if not best_profiles:
+            return None
+            
+        # Get the top profile (ContactNode)
+        best_contact_node, _ = best_profiles[0]
+        
+        contact = self.session.get(ContactModel, uuid.UUID(best_contact_node.id))
+        return contact
+
     def record_touchpoint(
         self,
         contact: ContactModel,
