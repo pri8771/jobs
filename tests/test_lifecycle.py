@@ -1552,3 +1552,38 @@ def test_background_check_does_not_fabricate_offer_when_already_offered(db_sessi
 
 
 
+
+def test_v23_engine_sets_contact_id_on_link(db_session: Session) -> None:
+    engine = LifecycleEngine(db_session)
+    job = JobModel(normalized_title="Engineer")
+    db_session.add(job)
+    db_session.flush()
+    app = ApplicationModel(job_id=job.id, status="SCREENING")
+    db_session.add(app)
+    db_session.flush()
+    
+    msg = InboundMessageModel(
+        provider_message_id="msg123",
+        provider_thread_id="th123",
+        received_at=datetime.datetime.now(datetime.UTC),
+        sender="Recruiter <recruiter@acme.com>",
+        subject="Interview",
+        classification="interview_invitation",
+        direction="inbound",
+        body_text=""
+    )
+    db_session.add(msg)
+    db_session.flush()
+    
+    link = MessageLinkModel(inbound_message_id=msg.id, application_id=app.id, confidence=0.95, method="heuristic_email_match")
+    db_session.add(link)
+    db_session.commit()
+    
+    engine.process_message(msg)
+    
+    # Assert contact_id is set
+    assert link.contact_id is not None
+    
+    contact = db_session.get(ContactModel, link.contact_id)
+    assert contact.email == "recruiter@acme.com"
+

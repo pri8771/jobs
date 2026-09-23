@@ -165,6 +165,10 @@ class LifecycleEngine:
                 company_id=company_id,
             )
             self.crm.record_touchpoint(contact, message)
+            
+            # V23-OG-05: Record explicit FK for evidence projection
+            if link.contact_id is None and contact is not None:
+                link.contact_id = contact.id
 
         classification = message.classification
 

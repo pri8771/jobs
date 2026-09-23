@@ -16,6 +16,7 @@ from jobs_automation.db.base import Base
 from jobs_automation.db.session import check_db_connection, get_engine, get_sessionmaker, init_db
 from jobs_automation.policy.evaluator import PolicyEvaluator
 from jobs_automation.worksheets.generator import ProfileWorksheetGenerator
+from jobs_automation.cli.intelligence_cli import intel_cli
 
 console = Console()
 
@@ -1160,3 +1161,5 @@ if __name__ == "__main__":
     cli()
 
 
+
+cli.add_command(intel_cli)
