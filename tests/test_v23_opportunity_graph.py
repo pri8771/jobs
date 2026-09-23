@@ -313,3 +313,59 @@ def test_opportunity_edge_scoring():
     # Actually, maybe the spec meant the score is higher if job_role_family is not None?
     # Or maybe we need to extend OpportunityEdge with job_role_family?
     # Let's just assert get_score("ai_software_engineer") > edge2.get_score()
+
+def test_resolve_best_profile():
+    from jobs_automation.intelligence.opportunity_graph import OpportunityGraph, OpportunityNode, OpportunityEdge, NodeType, Predicate, EdgeStatus
+    import datetime
+    
+    now = datetime.datetime.now(datetime.UTC)
+    
+    job_id = "j1"
+    app_id = "a1"
+    c1_id = "c1"
+    c2_id = "c2"
+    
+    n_job = OpportunityNode(id=job_id, node_type=NodeType.JOB, label="Job", observed_at=now)
+    n_app = OpportunityNode(id=app_id, node_type=NodeType.APPLICATION, label="App", observed_at=now)
+    n_c1 = OpportunityNode(id=c1_id, node_type=NodeType.CONTACT, label="C1", observed_at=now)
+    n_c2 = OpportunityNode(id=c2_id, node_type=NodeType.CONTACT, label="C2", observed_at=now)
+    
+    e_app_job = OpportunityEdge(
+        id="e1",
+        subject_type=NodeType.APPLICATION, subject_id=app_id,
+        predicate=Predicate.FOR_JOB,
+        object_type=NodeType.JOB, object_id=job_id,
+        source_type="test", observed_at=now, method="test", inferred=False,
+        valid_from=now, created_at=now, updated_at=now, status=EdgeStatus.ASSERTED
+    )
+    
+    e_c1_app = OpportunityEdge(
+        id="e2",
+        subject_type=NodeType.CONTACT, subject_id=c1_id,
+        predicate=Predicate.CONTACT_TOUCHED_APPLICATION,
+        object_type=NodeType.APPLICATION, object_id=app_id,
+        source_type="test", observed_at=now, method="recruiter_crm", inferred=False,
+        valid_from=now, created_at=now, updated_at=now, status=EdgeStatus.ASSERTED
+    )
+    
+    # C2 has explicit application
+    e_c2_app = OpportunityEdge(
+        id="e3",
+        subject_type=NodeType.CONTACT, subject_id=c2_id,
+        predicate=Predicate.CONTACT_TOUCHED_APPLICATION,
+        object_type=NodeType.APPLICATION, object_id=app_id,
+        source_type="test", observed_at=now, method="explicit_application", inferred=False,
+        valid_from=now, created_at=now, updated_at=now, status=EdgeStatus.ASSERTED
+    )
+    
+    graph = OpportunityGraph(
+        nodes={job_id: n_job, app_id: n_app, c1_id: n_c1, c2_id: n_c2},
+        edges=[e_app_job, e_c1_app, e_c2_app]
+    )
+    
+    res = graph.resolve_best_profile(job_id)
+    assert len(res) == 2
+    # C2 has explicit_application (+3) so 4. C1 has recruiter_crm (+2) so 3.
+    assert res[0][0].id == c2_id
+    assert res[1][0].id == c1_id
+

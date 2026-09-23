@@ -149,6 +149,22 @@ class OpportunityGraph(BaseModel):
         ]
 
 
+
+    def resolve_best_profile(self, job_id: str, role_family: str | None = None) -> list[tuple["OpportunityNode", float]]:
+        apps = [e.subject_id for e in self.edges_to(job_id, Predicate.FOR_JOB)]
+        contact_scores: dict[str, float] = {}
+        for app_id in apps:
+            for e in self.edges_to(app_id, Predicate.CONTACT_TOUCHED_APPLICATION):
+                score = e.get_score(role_family)
+                contact_scores[e.subject_id] = contact_scores.get(e.subject_id, 0.0) + score
+        results = []
+        for cid, score in contact_scores.items():
+            node = self.get_node(cid)
+            if node:
+                results.append((node, score))
+        results.sort(key=lambda x: x[1], reverse=True)
+        return results
+
 # --- Typed Query Result Models ---
 
 
@@ -246,6 +262,10 @@ class ReferralPathRecord(BaseModel):
 def _make_edge_id(subject_type: str, subject_id: str, predicate: str, object_type: str, object_id: str) -> str:
     raw = f"{subject_type}:{subject_id}->{predicate}->{object_type}:{object_id}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+
+
 
 
 class OpportunityGraphService:
