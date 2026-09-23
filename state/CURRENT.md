@@ -1,43 +1,80 @@
-# Current Jobs state — V1.7 live campaign
+# Current Jobs state — V2.3 implementation
 
-Owner scope: **get V1.7 live and stop**. One Fable/Claude implementation worker/session and one owned five-minute worker heartbeat. ChatGPT is lead/acceptor. Historical multi-lane and V2/V3 execution plans are inactive inventory and must not be restarted.
+Last updated: 2026-09-23
 
-Current `main` engineering integration: PR #12 merged as `7c0fa73bf350392a88b47442455359a43cf926b0`; lead review record: `coordination/reviews/V17_LEAD_REVIEW_20260922.md`.
+Owner directive: **get V2.3 working live**. Antigravity is the primary implementation workhorse. ChatGPT is lead/reviewer.
 
-## Accepted engineering
+## Version history (accepted engineering)
 
-- **V1.4 P0A proof-tool integrity — ENGINEERING ACCEPTED.** Exact P0A source: `8491dd98154ff750f49cbb64d2a79eca5cb06069`.
-- **V1.5 assisted-browser engineering — ENGINEERING ACCEPTED.** Exact consolidated source: `47fefd1b0ca354360353577685f6619a94f00f42`.
-- The coherent P0A + V1.5 batch was integrated through PR #12. Acceptance used the documented `CI_BLOCKED_ACCOUNT` lead engineering exception after actual code/test review; hosted CI was blocked before steps and is **not** called green.
-- Fable's exact-head worker-host handoff reports 395 tests, including real PostgreSQL producer-to-consumer proof-path tests and real headless Playwright engineering forms, plus clean Ruff and mypy.
-- A bounded `worker-pc` exact-head check independently confirmed `47fefd...`, but its non-interactive harness denied all Python execution, so it contributes zero test counts and should not be retried unchanged.
+| Version | Status | Key commit(s) |
+|---------|--------|---------------|
+| V1.4 P0A | ENGINEERING ACCEPTED | `8491dd9` |
+| V1.5 | ENGINEERING ACCEPTED | `47fefd1` |
+| V1.7 | ENGINEERING ACCEPTED (PR #12) | `7c0fa73` |
+| V2.0 | Complete (merged into V2.3 scope) | — |
+| V3.0 | Scaffolding complete | `9681d99` |
 
-## Formal live-gate state
+## V2.3 task graph progress
 
-- **G14 / V1.4: UNPASSED.** P0A is accepted, but no approved genuine private profile + exact selected resume + current real job has produced a runtime candidate plus independently validated receipt. `coordination/proofs/` contains no accepted runtime proof bundle. V1.4 is not COMPLETE.
-- **G15 / V1.5: UNPASSED.** Engineering is accepted, but there has been no scoped owner-authorized real visible-browser prefill/upload run using an accepted G14 packet. Any G15 run must stop before submit. V1.5 is not COMPLETE.
-- **G16 / V1.6: UNPASSED.** V1.6 authorization/idempotency/preflight/confirmation/hygiene/eligible-transport engineering is the next safe independent engineering surface. There is no explicit exact job/packet/method submission approval and no correlated external confirmation. V1.6 is not COMPLETE.
-- **G17 / V1.7: UNPASSED.** Merged PR #3 lifecycle/CRM code remains reusable, but there is no authorized bounded genuine recruiting evidence ingestion/lifecycle/replay proof. V1.7 is not COMPLETE.
+Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
 
-V1.7 requires accepted engineering plus genuine G14, G15, G16 and G17. No test, mock, canary, manual report or public GET substitutes for a required live gate.
+### Section 1 — Foundation (F01–F05): ✅ COMPLETE
+- F01 DerivedArtifactEnvelope — `f055485`
+- F02 UntrustedTextSanitizer — `f055485`
+- F03 V2.3 schema/model extensions — `78ac8ac`
+- F04 RoleFamilyClassifier extraction — `78ac8ac`
+- F05 CandidateEvidenceService — `78ac8ac`
 
-## Active worker / heartbeat
+### Section 2 — Opportunity Graph (OG-01–OG-10): ✅ COMPLETE
+- OG-01 OpportunityGraphService core — `a589874`
+- OG-02 EdgeTraversal & evidence queries — `5d99724`
+- OG-03 CompanyRelationshipProjection — `5d99724`
+- OG-04 Deduplication integration — `5d99724`
+- OG-05 MessageLinkContactWrites — `3be1fb4`
+- OG-06 CandidateRoleMatching — `a0d391b`
+- OG-07 OpportunityEdgeScoringAPI — `0555a2e`
+- OG-08 ProfileResolutionEngine — `e2e5b94`
+- OG-09 RecruiterCRMService adaptation — `0e1c96d`
+- OG-10 Intelligence API surface — `0475d20`
 
-- Active implementation worker: one Fable/Claude session. The last reviewed code branch was `claude/serene-brown-g6uij0`; after PR #12 integration it must synchronize latest `main` before further reviewable work.
-- Exactly one worker watcher remains: `FIVE_MIN_2026_09_21` / `ACTIVE_5M`, published from watcher-only branch `worker/v14-real-proof` for this same Fable session.
-- Latest verified heartbeat at this lead sync: **#40 at `2026-09-22T01:56:01Z`**, reporting P0A/V1.5 READY_FOR_LEAD_REVIEW and continued permitted V1.7 engineering. The heartbeat stream was on five-minute cadence at review time.
-- A process check on another host cannot prove watcher ownership; repository heartbeat timestamps remain the evidence surface.
+### Section 3 — Strategy Learning (SL-01–SL-05): ✅ COMPLETE
+- SL-01 StrategyGuardrails config — `ae5b0cc`
+- SL-02 Descriptive performance rates — `2bf2b1b`
+- SL-03 Strategy recommendation engine — `77b464d`
+- SL-04 Adaptive resume variant selection — `2c8213b`
+- SL-05 Guardrails wiring in job_search.py — `2c8213b`
 
-## CI / infrastructure
+### Section 4 — Target Company Watch (TW-01–TW-07): 🔶 IN PROGRESS
+- TW-01 PublicJobSource protocol + Greenhouse — staged, untested in CI
+- TW-02 Lever postings client — staged, untested in CI
+- TW-03 TargetCompanyService — NOT STARTED
+- TW-04 WatchRunner — NOT STARTED
+- TW-05 Fit/suppression/paused semantics — NOT STARTED
+- TW-06 Watch CLI + worker hook — NOT STARTED
+- TW-07 Watch adversarial tests — NOT STARTED
 
-Hosted Actions for the reviewed code remain blocked before executable steps begin by the observed account/runner startup condition. Treat this as `CI_BLOCKED_ACCOUNT`, not green CI and not a code-test failure. The engineering exception does not bypass protected checks or waive real proof.
+### Section 5 — Interview Intelligence (II-01–II-07): NOT STARTED
+### Section 6 — Agent Tools (TL-01–TL-08): NOT STARTED
+### Section 7 — Career Briefing (CB-01–CB-05): NOT STARTED
+### Section 8 — Acceptance Campaign (AC-01–AC-04): NOT STARTED
 
-## Immediate next action
+## Test health
 
-1. Fable synchronizes latest `main` and keeps exactly one owned five-minute watcher.
-2. **G14 is now the first live gate**, but the current Fable host previously reported it does not have the genuine private profile, exact selected resume bytes, owner browser session, or usable public Greenhouse egress. Do not fabricate or substitute inputs and do not run private proof until approved genuine inputs are actually available on an eligible host.
-3. While G14 is input-blocked, Fable continues only the safe independent **V1.6 engineering** authorized by `docs/FABLE_V17_LIVE.md`: authorization, idempotency, preflight, external-confirmation truth, hygiene, eligible transport, and especially unsafe fallback/retry/confirmation semantics.
-4. Return the next coherent engineering batch for lead review. G15/G16/G17 live actions remain closed until their exact prerequisites and owner grants exist.
-5. After accepted engineering plus genuine G14/G15/G16/G17: mark **V1.7 COMPLETE, STOP, and await new owner scope**.
+- Total tests: ~440
+- Passing: 438 (as of checkpoint)
+- Failing: 1 (pre-existing `test_real_proof_integration` — requires production services)
+- Skipped: 2
 
-No Gmail access, real employer-page prefill, submission, messaging, calendar action, spending, CAPTCHA/MFA handling, or fabricated candidate facts is authorized by this state.
+## Active worker
+
+- Worker: Antigravity (this session)
+- Last checkpoint commit: 2026-09-23
+- Branch: `main`
+
+## Immediate next tasks when resumed
+
+1. Complete V23-TW-03 through TW-07 (Target Company Watch)
+2. V23-II-01 through II-07 (Interview Intelligence)
+3. V23-TL-01 through TL-08 (Agent Tools)
+4. V23-CB-01 through CB-05 (Career Briefing)
+5. V23-AC-01 through AC-04 (Acceptance Campaign)

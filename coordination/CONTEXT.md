@@ -2,7 +2,7 @@
 
 Purpose: compact durable memory for ChatGPT and implementation workers. Keep execution truth in Git, not chat history.
 
-Last updated: 2026-09-21
+Last updated: 2026-09-23
 
 ## Ownership model
 
@@ -59,6 +59,24 @@ Formal program milestones:
 V1.5/V1.6 remain required application-execution capabilities even though the formal reporting milestones jump from V1.7 to V2.0.
 
 Downstream planning/preparation may continue while the active implementation session is blocked, but Antigravity implementation is sequential and official completed-version claims cannot advance past a missing required real proof.
+
+## Active implementation — V2.3 Career Intelligence & Optimization
+
+Task graph: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP).
+
+Completed sections (22 tasks):
+- Foundation (F01–F05): envelope, sanitizer, schema extensions, role classifier, candidate evidence
+- Opportunity Graph (OG-01–OG-10): graph service, edge traversal, company projection, dedup, contacts, role matching, scoring, profile resolution, CRM adaptation, API surface
+- Strategy Learning (SL-01–SL-05): guardrails, performance rates, recommendation engine, adaptive tailoring, config wiring
+
+In progress:
+- Target Company Watch (TW-01–TW-07): TW-01/02 staged (Greenhouse + Lever source clients), TW-03–07 not started
+
+Remaining sections (not started):
+- Interview Intelligence (II-01–II-07)
+- Agent Tools (TL-01–TL-08)
+- Career Briefing (CB-01–CB-05)
+- Acceptance Campaign (AC-01–AC-04)
 
 ## Current P0 — V1.4 real proof
 

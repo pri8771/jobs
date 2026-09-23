@@ -772,3 +772,38 @@ Key architectural prep decisions:
 - schema changes are staged by phase instead of pre-creating speculative V3 tables.
 
 No live OAuth, browser action, submission, messaging, calendar mutation, spending, or private-data proof was performed.
+
+### 2026-09-23 14:18 ET — ANTIGRAVITY
+
+**Done**
+- Completed V2.3 Strategy Learning section (SL-01 through SL-05):
+  - SL-01: StrategyGuardrails config with validation
+  - SL-02: Descriptive performance rates (RateWithN, per-variant interview/response rates)
+  - SL-03: Strategy recommendation engine (get_best_resume_variant with highest_conversion/explore modes)
+  - SL-04: Adaptive resume variant selection wired into ResumeVariantSelector + ApplicationPacketBuilder
+  - SL-05: Guardrails config in JobSearchConfig, CLI integration
+- Started Target Company Watch section (TW-01, TW-02):
+  - TW-01: PublicJobSource protocol, Transport protocol, PublicPosting/SourceFetchResult models, GreenhouseBoardSource client, refactored import_v14_proof_job.py
+  - TW-02: LeverPostingsSource client, source registry with get_source()
+- Fixed circular import chain (tailoring -> role_family -> config -> job_search -> strategy)
+- Fixed ApplicationPacketBuilder to accept optional config parameter
+- All existing tests passing: 438 passed, 1 pre-existing failure, 2 skipped
+- Cleaned up temp patch scripts from repo
+
+**Commits**
+- `ae5b0cc` feat: V23-SL-01 strategy guardrails config
+- `2bf2b1b` feat: V23-SL-02 strategy learning service rates with N
+- `77b464d` feat: V23-SL-03 strategy recommendation and rule engine
+- `2c8213b` feat: V23-SL-04/05 adaptive tailoring and auto engine integration
+
+**Next (when resumed)**
+- Complete TW-03 through TW-07 (Target Company Watch)
+- Interview Intelligence (II-01 through II-07)
+- Agent Tools, Career Briefing, Acceptance Campaign
+
+**Blockers/Risks**
+- None. Session stopped at user request at TW checkpoint boundary.
+
+**Requested action from ChatGPT**
+- None urgent. Review commits at leisure. Work queue updated.
+

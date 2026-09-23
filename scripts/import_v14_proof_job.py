@@ -151,7 +151,11 @@ def main() -> int:
     )
 
     try:
-        payload = _fetch_json(api_url)
+        source = GreenhouseBoardSource()
+        try:
+            payload = source.fetch_single_job(args.board_token, args.job_id)
+        except Exception as exc:
+            raise ProofJobImportError(f"Greenhouse public API request failed: {exc}") from exc
 
         returned_id = str(payload.get("id", ""))
         if returned_id != str(args.job_id):
