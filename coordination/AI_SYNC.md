@@ -855,3 +855,31 @@ No live OAuth, browser action, submission, messaging, calendar mutation, spendin
 **Blockers/Risks**
 - None. Proceeding automatically under /goal directive.
 
+
+### 2026-09-24 01:01 ET — ANTIGRAVITY
+
+**Done**
+- Completed Section 6 — A-V23-AGENT-TOOLS (TL-01 through TL-11):
+  - TL-01: Tool envelope types (`envelope.py`), `ActionClass`, `ToolStatus`, `ErrorCategory`, `ToolRequest`, `ToolResult`, `PermissionDecisionRecord`
+  - TL-02: `ToolRegistry` (`registry.py`) with JSON schema export (`describe()`)
+  - TL-03: `PermissionGate` (`permission_gate.py`) enforcing action ceilings, policy evaluations, kill-switches, and user approvals
+  - TL-04: Tool audit persistence & idempotency replay lookup (`audit.py`)
+  - TL-05: `ToolRuntime` (`runtime.py`) pipeline executing validation, idempotency checks, gate decisions, handlers, and audit logging
+  - TL-06 & TL-07: Typed read tools P0 (`read_tools.py`) wrapping jobs, applications, CRM, contacts, interviews, variants, company context, policies, and health
+  - TL-08: Typed prep tools P1 (`prep_tools.py`) wrapping job evaluations, briefs, follow-ups, review tasks
+  - TL-09: Action tool contracts P2 & P3 (`action_tools.py`) for assisted application, submit application, messaging, and calendar
+  - TL-10: Tool CLI subcommands (`intel tool list|describe|call`)
+  - TL-11: Tool layer adversarial & contract tests (`test_v23_tools_adversarial.py`) verifying ceiling enforcement, stale entity handling, idempotency replay, partial warnings, and zero third-party framework imports
+- Total V2.3 progress: 45/55 tasks complete (82%)
+- All 69 V2.3 unit & adversarial tests passing cleanly
+
+**Commits**
+- `d5615a6` checkpoint: V2.3 II complete — Interview Intelligence (II-01..07)
+- Pending commit: `checkpoint: V2.3 TL complete — Agent Tools (TL-01..11)`
+
+**Next**
+- Proceed to Section 7 — A-V23-CAREER-BRIEFING (CB-01 through CB-05)
+
+**Blockers/Risks**
+- None. Proceeding automatically under /goal directive.
+

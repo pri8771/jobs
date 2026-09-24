@@ -70,12 +70,12 @@ Completed sections (22 tasks):
 - Strategy Learning (SL-01–SL-05): guardrails, performance rates, recommendation engine, adaptive tailoring, config wiring
 - Target Company Watch (TW-01–TW-07): public job source protocol, Greenhouse/Lever clients, TargetCompanyService, WatchRunner, fit evaluation, intelligence CLI, worker daemon hook, adversarial tests
 - Interview Intelligence (II-01–II-07): typed models, requirement extraction, InterviewIntelligenceService, CandidateStoryMap, FollowupPackage, CLI & REST endpoints, adversarial tests
+- Agent Tools (TL-01–TL-11): tool envelopes, registry, PermissionGate, audit persistence, runtime invoke pipeline, read tools P0, prep tools P1, action tool contracts P2/P3, CLI, adversarial tests
 
 In progress:
-- Agent Tools (TL-01–TL-08)
+- Career Briefing (CB-01–CB-05)
 
 Remaining sections (not started):
-- Career Briefing (CB-01–CB-05)
 - Acceptance Campaign (AC-01–AC-04)
 
 ## Current P0 — V1.4 real proof

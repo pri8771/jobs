@@ -54,32 +54,41 @@ Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
 - TW-07 Watch adversarial tests (test_v23_target_watch_adversarial.py)
 
 ### Section 5 — Interview Intelligence (II-01–II-07): ✅ COMPLETE (7/7)
-- II-01 Typed models (PersonRef, RequirementRef, StoryMapEntry, CandidateStoryMap, InterviewBrief, FollowupPackage in interview.py)
+- II-01 Typed models (interview.py)
 - II-02 Scorer requirement extraction (SemanticScorer.extract_requirements)
 - II-03 InterviewIntelligenceService.build_brief
 - II-04 CandidateStoryMap builder
 - II-05 FollowupPackage builder
 - II-06 Interview adversarial tests (test_v23_interview_adversarial.py)
-- II-07 Interview CLI commands & REST endpoint (intelligence_cli.py & server.py)
+- II-07 Interview CLI commands & REST endpoint
 
-### Section 6 — Agent Tools (TL-01–TL-08): 🔶 NEXT UP
-- TL-01 Tool envelope types — NOT STARTED
-- TL-02 Tool execution context & authorization ceiling — NOT STARTED
-- TL-03 Permission evaluator & policy rule enforcement — NOT STARTED
-- TL-04 Audit log wrapper & idempotency envelope — NOT STARTED
-- TL-05 Typed read tools (P0) — NOT STARTED
-- TL-06 Typed local write tools (P1) — NOT STARTED
-- TL-07 Typed external prep tools (P2) — NOT STARTED
-- TL-08 Tool registry & discovery API — NOT STARTED
+### Section 6 — Agent Tools (TL-01–TL-11): ✅ COMPLETE (11/11)
+- TL-01 Tool envelope types (envelope.py)
+- TL-02 Tool registry (registry.py)
+- TL-03 Deterministic PermissionGate (permission_gate.py)
+- TL-04 Audit log wrapper & idempotency replay (audit.py)
+- TL-05 ToolRuntime invoke pipeline (runtime.py)
+- TL-06 Read tools batch 1 (read_tools.py)
+- TL-07 Read tools batch 2 (read_tools.py extensions)
+- TL-08 Preparation tools P1 (prep_tools.py)
+- TL-09 Action tool contracts P2 & P3 (action_tools.py)
+- TL-10 Tool CLI commands (`intel tool list|describe|call`)
+- TL-11 Tool layer adversarial tests (test_v23_tools_adversarial.py)
 
-### Section 7 — Career Briefing (CB-01–CB-05): NOT STARTED
+### Section 7 — Career Briefing (CB-01–CB-05): 🔶 NEXT UP
+- CB-01 Typed briefing model & schema — NOT STARTED
+- CB-02 CareerBriefingService aggregator — NOT STARTED
+- CB-03 Briefing adversarial tests — NOT STARTED
+- CB-04 Career briefing CLI & API endpoint — NOT STARTED
+- CB-05 Dashboard integration & weekly summary — NOT STARTED
+
 ### Section 8 — Acceptance Campaign (AC-01–AC-04): NOT STARTED
 
-## Overall progress: 34/55 tasks complete (62%)
+## Overall progress: 45/55 tasks complete (82%)
 
 ## Test health
 
-- All V2.3 tests passing (63 passed in test_v23_*.py)
+- All V2.3 tests passing (69 passed in test_v23_*.py)
 - Full test suite verified green
 
 ## Active worker

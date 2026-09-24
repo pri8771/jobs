@@ -208,3 +208,99 @@ def followup_package(application_id: str, contact_id: str | None, output_json: b
                 console.print(f"Send performed: {pkg.send_performed}")
         except LookupError as e:
             console.print(f"[red]Error:[/red] {e}")
+
+
+@intel_cli.group(name="tool")
+def tool_cli() -> None:
+    """Agent tool framework commands."""
+    pass
+
+
+@tool_cli.command("list")
+def list_tools() -> None:
+    """List all registered agent tools."""
+    from jobs_automation.tools import get_default_tool_registry
+
+    registry = get_default_tool_registry()
+    table = Table(title="Registered Agent Tools")
+    table.add_column("Name", style="bold cyan")
+    table.add_column("Version", style="dim")
+    table.add_column("Action Class", style="yellow")
+    table.add_column("Capability")
+    table.add_column("Requires Destination")
+
+    for spec in registry.list():
+        table.add_row(
+            spec.name,
+            spec.version,
+            spec.action_class.value,
+            spec.capability or "",
+            "Yes" if spec.requires_destination else "No",
+        )
+    console.print(table)
+
+
+@tool_cli.command("describe")
+@click.argument("name")
+@click.option("--version", default="1.0", help="Tool version")
+def describe_tool(name: str, version: str) -> None:
+    """Export JSON schema description for a tool."""
+    from jobs_automation.tools import get_default_tool_registry
+
+    registry = get_default_tool_registry()
+    spec = registry.get(name, version)
+    if not spec:
+        console.print(f"[red]Tool not found:[/red] {name} (v{version})")
+        raise click.ClickException(f"Tool not found: {name}")
+
+    desc = {
+        "name": spec.name,
+        "version": spec.version,
+        "action_class": spec.action_class.value,
+        "capability": spec.capability,
+        "requires_destination": spec.requires_destination,
+        "input_schema": spec.input_model.model_json_schema(),
+        "output_schema": spec.output_model.model_json_schema(),
+    }
+    console.print(JSON(json.dumps(desc)))
+
+
+@tool_cli.command("call")
+@click.argument("name")
+@click.option("--json", "payload_json", default="{}", help="Input payload JSON string")
+@click.option("--actor", default="USER", help="Actor name")
+@click.option("--ceiling", default="P1_LOCAL_WRITE", help="Caller ceiling ActionClass")
+@click.option("--allow-external-prep", is_flag=True, help="Set allow_external_prep flag")
+@click.option("--approval-id", default=None, help="Optional approval UUID")
+def call_tool(name: str, payload_json: str, actor: str, ceiling: str, allow_external_prep: bool, approval_id: str | None) -> None:
+    """Invoke an agent tool directly via ToolRuntime."""
+    from jobs_automation.db.session import get_engine, get_sessionmaker
+    from jobs_automation.core.config import AppSettings
+    from jobs_automation.tools import (
+        ActionClass,
+        PermissionContext,
+        ToolRuntime,
+        get_default_tool_registry,
+    )
+
+    settings = AppSettings()
+    engine = get_engine(settings.database_url)
+    SessionLocal = get_sessionmaker(engine)
+    registry = get_default_tool_registry()
+
+    runtime = ToolRuntime(SessionLocal, registry)
+    payload = json.loads(payload_json)
+
+    context = PermissionContext(
+        actor=actor,
+        actor_kind="USER" if actor == "USER" else "AGENT",
+        caller_ceiling=ActionClass(ceiling),
+        allow_external_prep=allow_external_prep,
+        approval_id=uuid.UUID(approval_id) if approval_id else None,
+    )
+
+    result = runtime.invoke(name, payload, context)
+    console.print(JSON(result.model_dump_json()))
+
+    if result.status in (ToolStatus.BLOCKED, ToolStatus.NEEDS_REVIEW, ToolStatus.FAILED):
+        raise click.ClickException(f"Tool invocation result: {result.status.value}")

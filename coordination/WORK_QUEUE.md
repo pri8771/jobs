@@ -15,28 +15,25 @@ Canonical task graph: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP).
 | Strategy Learning (SL-01–SL-05) | 5/5 | ✅ COMPLETE |
 | Target Company Watch (TW-01–TW-07) | 7/7 | ✅ COMPLETE |
 | Interview Intelligence (II-01–II-07) | 7/7 | ✅ COMPLETE |
+| Agent Tools (TL-01–TL-11) | 11/11 | ✅ COMPLETE |
 
-## Current active checkpoint — Agent Tools (TL-01–TL-08)
+## Current active checkpoint — Career Briefing (CB-01–CB-05)
 
-**V23-TL-01** — Tool envelope types (`src/jobs_automation/tools/envelope.py`)
-**V23-TL-02** — Tool execution context & authorization ceiling (`src/jobs_automation/tools/context.py`)
-**V23-TL-03** — Permission evaluator & policy rule enforcement (`src/jobs_automation/tools/permissions.py`)
-**V23-TL-04** — Audit log wrapper & idempotency envelope (`src/jobs_automation/tools/audit.py`)
-**V23-TL-05** — Typed read tools P0 (`src/jobs_automation/tools/read_tools.py`)
-**V23-TL-06** — Typed local write tools P1 (`src/jobs_automation/tools/write_tools.py`)
-**V23-TL-07** — Typed external prep tools P2 (`src/jobs_automation/tools/prep_tools.py`)
-**V23-TL-08** — Tool registry & discovery API (`src/jobs_automation/tools/registry.py`)
+**V23-CB-01** — Typed briefing model & envelope schema (`src/jobs_automation/intelligence/career_briefing.py`)
+**V23-CB-02** — `CareerBriefingService` aggregator
+**V23-CB-03** — Briefing adversarial tests (`tests/test_v23_career_briefing_adversarial.py`)
+**V23-CB-04** — Career briefing CLI (`intel career-briefing`) & REST endpoint (`GET /api/briefing`)
+**V23-CB-05** — Dashboard integration & weekly summary pass
 
 ## Remaining sections (not started)
 
 | Section | Tasks | Status |
 |---------|-------|--------|
-| Career Briefing (CB-01–CB-05) | 0/5 | NOT STARTED |
 | Acceptance Campaign (AC-01–AC-04) | 0/4 | NOT STARTED |
 
-## Overall progress: 34/55 tasks complete (62%)
+## Overall progress: 45/55 tasks complete (82%)
 
 ## Test health
 
-- All V2.3 tests passing (63 passed in `test_v23_*.py`)
+- All V2.3 tests passing (69 passed in `test_v23_*.py`)
 - Full test suite verified green
