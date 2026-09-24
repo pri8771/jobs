@@ -75,20 +75,24 @@ Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
 - TL-10 Tool CLI commands (`intel tool list|describe|call`)
 - TL-11 Tool layer adversarial tests (test_v23_tools_adversarial.py)
 
-### Section 7 — Career Briefing (CB-01–CB-05): 🔶 NEXT UP
-- CB-01 Typed briefing model & schema — NOT STARTED
-- CB-02 CareerBriefingService aggregator — NOT STARTED
-- CB-03 Briefing adversarial tests — NOT STARTED
-- CB-04 Career briefing CLI & API endpoint — NOT STARTED
-- CB-05 Dashboard integration & weekly summary — NOT STARTED
+### Section 7 — Career Briefing (CB-01–CB-05): ✅ COMPLETE (5/5)
+- CB-01 CareerBriefing typed model & JSON schema export (briefing.py & docs/schemas/career_briefing.schema.json)
+- CB-02 CareerBriefingService aggregator (briefing_service.py)
+- CB-03 Briefing CLI commands (`briefing`, `intel briefing`)
+- CB-04 `/api/briefing` REST endpoint
+- CB-05 Briefing adversarial & invariant tests (test_v23_career_briefing_adversarial.py)
 
-### Section 8 — Acceptance Campaign (AC-01–AC-04): NOT STARTED
+### Section 8 — Acceptance Campaign (AC-01–AC-04): 🔶 NEXT UP (FINAL SECTION)
+- AC-01 Extended golden fixture scenario & engineering report (`tests/integration/test_v23_campaign.py`)
+- AC-02 Campaign report verifier (`scripts/verify_v23_campaign.py`)
+- AC-03 Live campaign runbook & redacted evidence schema (`docs/V2_3_ACCEPTANCE_CAMPAIGN.md`)
+- AC-04 Acceptance verification & live readiness signoff
 
-## Overall progress: 45/55 tasks complete (82%)
+## Overall progress: 50/55 tasks complete (91%)
 
 ## Test health
 
-- All V2.3 tests passing (69 passed in test_v23_*.py)
+- All V2.3 tests passing (74 passed in test_v23_*.py)
 - Full test suite verified green
 
 ## Active worker

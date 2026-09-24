@@ -210,6 +210,28 @@ def followup_package(application_id: str, contact_id: str | None, output_json: b
             console.print(f"[red]Error:[/red] {e}")
 
 
+@intel_cli.command("briefing")
+@click.option("--json", "output_json", is_flag=True, help="Output JSON format")
+@click.option("--limit", default=10, type=int, help="Max top opportunities")
+def briefing_cmd(output_json: bool, limit: int) -> None:
+    """Generate comprehensive CareerBriefing artifact."""
+    from jobs_automation.intelligence.briefing_service import CareerBriefingService
+
+    SessionLocal = get_sessionmaker()
+    with SessionLocal() as session:
+        svc = CareerBriefingService(session)
+        brief = svc.build(limit=limit)
+        if output_json:
+            console.print(JSON(brief.model_dump_json()))
+        else:
+            console.print("[bold blue]Career Briefing Summary[/bold blue]")
+            console.print(f"Top Opportunities: {len(brief.top_opportunities)}")
+            console.print(f"Upcoming Interviews: {len(brief.interviews_upcoming)}")
+            console.print(f"Data Gaps: {len(brief.data_gaps)}")
+            for gap in brief.data_gaps:
+                console.print(f"  - [yellow]{gap}[/yellow]")
+
+
 @intel_cli.group(name="tool")
 def tool_cli() -> None:
     """Agent tool framework commands."""

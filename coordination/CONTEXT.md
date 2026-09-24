@@ -71,11 +71,9 @@ Completed sections (22 tasks):
 - Target Company Watch (TW-01–TW-07): public job source protocol, Greenhouse/Lever clients, TargetCompanyService, WatchRunner, fit evaluation, intelligence CLI, worker daemon hook, adversarial tests
 - Interview Intelligence (II-01–II-07): typed models, requirement extraction, InterviewIntelligenceService, CandidateStoryMap, FollowupPackage, CLI & REST endpoints, adversarial tests
 - Agent Tools (TL-01–TL-11): tool envelopes, registry, PermissionGate, audit persistence, runtime invoke pipeline, read tools P0, prep tools P1, action tool contracts P2/P3, CLI, adversarial tests
+- Career Briefing (CB-01–CB-05): typed models, JSON schema export, CareerBriefingService, CLI & REST endpoints, adversarial tests
 
 In progress:
-- Career Briefing (CB-01–CB-05)
-
-Remaining sections (not started):
 - Acceptance Campaign (AC-01–AC-04)
 
 ## Current P0 — V1.4 real proof

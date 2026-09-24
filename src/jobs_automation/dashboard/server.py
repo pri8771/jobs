@@ -679,6 +679,14 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(followup_data)
                 return
 
+            if path == "/api/briefing":
+                from jobs_automation.intelligence.briefing_service import CareerBriefingService
+                limit = int(params.get("limit", [10])[0]) if params.get("limit") else 10
+                svc = CareerBriefingService(session)
+                brief = svc.build(limit=limit)
+                self._send_json(json.loads(brief.model_dump_json()))
+                return
+
             if path == "/api/analytics/sources":
                 service = FunnelAnalyticsService(session)
                 self._send_json(service.get_source_performance())

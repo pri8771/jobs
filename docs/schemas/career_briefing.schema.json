@@ -1,0 +1,701 @@
+{
+  "$defs": {
+    "DataFreshness": {
+      "properties": {
+        "last_ingestion_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Ingestion At"
+        },
+        "last_worker_run_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Worker Run At"
+        },
+        "gmail_mode": {
+          "default": "REAL",
+          "enum": [
+            "REAL",
+            "UNAVAILABLE",
+            "MOCK"
+          ],
+          "title": "Gmail Mode",
+          "type": "string"
+        },
+        "last_watch_run_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Watch Run At"
+        }
+      },
+      "title": "DataFreshness",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "properties": {
+        "ref_type": {
+          "enum": [
+            "job",
+            "job_source",
+            "application",
+            "application_event",
+            "message",
+            "message_link",
+            "contact",
+            "company",
+            "interview",
+            "task",
+            "artifact",
+            "packet",
+            "resume_variant",
+            "evaluation",
+            "edge",
+            "observation",
+            "experiment",
+            "audit",
+            "public_source",
+            "candidate_field"
+          ],
+          "title": "Ref Type",
+          "type": "string"
+        },
+        "ref_id": {
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "ref_type",
+        "ref_id"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "OpportunityCard": {
+      "properties": {
+        "job_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "company_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "company_name": {
+          "title": "Company Name",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
+        "reasons": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "relationship_signal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationshipSignal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recommended_resume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResumeRecommendation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "next_action": {
+          "default": "EVALUATE",
+          "enum": [
+            "EVALUATE",
+            "PREPARE_PACKET",
+            "RESOLVE_UNRESOLVED",
+            "APPLY_MANUAL",
+            "ASSISTED_PREFILL",
+            "AWAIT_APPROVAL",
+            "FOLLOW_UP",
+            "NONE"
+          ],
+          "title": "Next Action",
+          "type": "string"
+        },
+        "policy_decision": {
+          "default": "MANUAL_ONLY",
+          "title": "Policy Decision",
+          "type": "string"
+        },
+        "posting_age_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Posting Age Days"
+        },
+        "stale": {
+          "default": false,
+          "title": "Stale",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "job_ref",
+        "company_ref",
+        "title",
+        "company_name"
+      ],
+      "title": "OpportunityCard",
+      "type": "object"
+    },
+    "RateWithN": {
+      "properties": {
+        "numerator": {
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "denominator": {
+          "title": "Denominator",
+          "type": "integer"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rate"
+        },
+        "n": {
+          "default": 0,
+          "title": "N",
+          "type": "integer"
+        },
+        "min_n": {
+          "default": 0,
+          "title": "Min N",
+          "type": "integer"
+        },
+        "low_n": {
+          "default": false,
+          "title": "Low N",
+          "type": "boolean"
+        },
+        "window_days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window Days"
+        },
+        "window_start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window Start"
+        },
+        "window_end": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window End"
+        },
+        "evidence_class": {
+          "default": "DESCRIPTIVE",
+          "enum": [
+            "DESCRIPTIVE",
+            "EXPERIMENTAL"
+          ],
+          "title": "Evidence Class",
+          "type": "string"
+        }
+      },
+      "required": [
+        "numerator",
+        "denominator"
+      ],
+      "title": "RateWithN",
+      "type": "object"
+    },
+    "RelationshipSignal": {
+      "properties": {
+        "artifact_type": {
+          "const": "relationship_signal",
+          "default": "relationship_signal",
+          "title": "Artifact Type",
+          "type": "string"
+        },
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "generator": {
+          "title": "Generator",
+          "type": "string"
+        },
+        "generator_version": {
+          "title": "Generator Version",
+          "type": "string"
+        },
+        "code_sha": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code Sha"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "confidence": {
+          "anyOf": [
+            {
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confidence"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "review_items": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Review Items",
+          "type": "array"
+        },
+        "valid_until": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Valid Until"
+        },
+        "supersedes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes"
+        },
+        "stale": {
+          "default": false,
+          "title": "Stale",
+          "type": "boolean"
+        },
+        "simulated": {
+          "default": false,
+          "title": "Simulated",
+          "type": "boolean"
+        },
+        "known_contacts": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Known Contacts",
+          "type": "array"
+        },
+        "prior_applications": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Prior Applications",
+          "type": "array"
+        },
+        "prior_responses": {
+          "default": false,
+          "title": "Prior Responses",
+          "type": "boolean"
+        },
+        "referral_paths": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Referral Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generated_at",
+        "generator",
+        "generator_version",
+        "source_refs"
+      ],
+      "title": "RelationshipSignal",
+      "type": "object"
+    },
+    "ResumeRecommendation": {
+      "properties": {
+        "variant_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant Id"
+        },
+        "family": {
+          "default": "general",
+          "title": "Family",
+          "type": "string"
+        },
+        "basis": {
+          "default": "selector",
+          "enum": [
+            "selector",
+            "strategy"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "rates": {
+          "items": {
+            "$ref": "#/$defs/RateWithN"
+          },
+          "title": "Rates",
+          "type": "array"
+        },
+        "action": {
+          "default": "GATHER_MORE_DATA",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "title": "ResumeRecommendation",
+      "type": "object"
+    }
+  },
+  "properties": {
+    "artifact_type": {
+      "const": "career_briefing",
+      "default": "career_briefing",
+      "title": "Artifact Type",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "generator": {
+      "title": "Generator",
+      "type": "string"
+    },
+    "generator_version": {
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "code_sha": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Code Sha"
+    },
+    "source_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Source Refs",
+      "type": "array"
+    },
+    "confidence": {
+      "anyOf": [
+        {
+          "enum": [
+            "LOW",
+            "MEDIUM",
+            "HIGH"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Confidence"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "review_items": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Review Items",
+      "type": "array"
+    },
+    "valid_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Valid Until"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes"
+    },
+    "stale": {
+      "default": false,
+      "title": "Stale",
+      "type": "boolean"
+    },
+    "simulated": {
+      "default": false,
+      "title": "Simulated",
+      "type": "boolean"
+    },
+    "profile_version": {
+      "default": 1,
+      "title": "Profile Version",
+      "type": "integer"
+    },
+    "data_freshness": {
+      "$ref": "#/$defs/DataFreshness"
+    },
+    "top_opportunities": {
+      "items": {
+        "$ref": "#/$defs/OpportunityCard"
+      },
+      "title": "Top Opportunities",
+      "type": "array"
+    },
+    "relationships": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "interviews_upcoming": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Interviews Upcoming",
+      "type": "array"
+    },
+    "followups_due": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Followups Due",
+      "type": "array"
+    },
+    "review_queue_summary": {
+      "additionalProperties": true,
+      "title": "Review Queue Summary",
+      "type": "object"
+    },
+    "strategy": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Strategy",
+      "type": "array"
+    },
+    "watch_highlights": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Watch Highlights",
+      "type": "array"
+    },
+    "data_gaps": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Data Gaps",
+      "type": "array"
+    },
+    "uncertainty_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Uncertainty Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "generated_at",
+    "generator",
+    "generator_version",
+    "source_refs"
+  ],
+  "title": "CareerBriefing",
+  "type": "object"
+}
