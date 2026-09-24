@@ -12,7 +12,7 @@ Owner directive: **get V2.3 working live**. Antigravity is the primary implement
 | V1.5 | ENGINEERING ACCEPTED | `47fefd1` |
 | V1.7 | ENGINEERING ACCEPTED (PR #12) | `7c0fa73` |
 | V2.0 | Complete (merged into V2.3 scope) | — |
-| V2.3 | ENGINEERING ACCEPTED (55/55 tasks complete) | `PENDING_COMMIT` |
+| V2.3 | ENGINEERING ACCEPTED (55/55 tasks complete) | `8cb6909` |
 | V3.0 | Scaffolding complete | `9681d99` |
 
 ## V2.3 task graph progress
