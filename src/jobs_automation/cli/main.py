@@ -1129,7 +1129,15 @@ def health_check() -> None:
     default=False,
     help="Force 48-hour reconciliation pass for single sweep.",
 )
-def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reconcile: bool) -> None:
+@click.option(
+    "--watch-targets",
+    is_flag=True,
+    default=False,
+    help="Run target company watch sweep during worker cycles.",
+)
+def worker(
+    once: bool, interval: int, mock_fixtures: bool, config_dir: str, reconcile: bool, watch_targets: bool
+) -> None:
     """Run scheduled background worker for ingestion, lifecycle updates, and alerting."""
     console.print(Panel.fit("[bold blue]Jobs Automation — Scheduled Worker Daemon[/bold blue]"))
     from jobs_automation.worker import WorkerDaemon
@@ -1151,6 +1159,7 @@ def worker(once: bool, interval: int, mock_fixtures: bool, config_dir: str, reco
         poll_interval_seconds=interval,
         config_dir=config_dir,
         email_adapter=email_adapter,
+        watch_targets=watch_targets,
     )
     if once:
         res = daemon.run_sweep(reconcile=True if reconcile else None)

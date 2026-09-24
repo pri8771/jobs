@@ -82,6 +82,7 @@ class WorkerDaemon:
         email_adapter: EmailAdapter | None = None,
         candidate_emails: list[str] | None = None,
         reconciliation_interval_seconds: int = 86400,  # 24 hours default
+        watch_targets: bool = False,
     ) -> None:
         self.session_factory = session_factory
         self.poll_interval_seconds = poll_interval_seconds
@@ -89,6 +90,7 @@ class WorkerDaemon:
         self.email_adapter = email_adapter
         self.candidate_emails = candidate_emails
         self.reconciliation_interval_seconds = reconciliation_interval_seconds
+        self.watch_targets = watch_targets
         self.last_reconciliation_at: datetime.datetime | None = None
         self._running = False
 
@@ -272,6 +274,28 @@ class WorkerDaemon:
                     res = lifecycle_engine.process_message(msg)
                     if res:
                         results["lifecycle_transitions"] += 1
+
+                # 4. Target Company Watch sweep (if enabled)
+                if self.watch_targets:
+                    try:
+                        from jobs_automation.ingestion.sources import get_source
+                        from jobs_automation.intelligence.watch_runner import WatchRunner
+
+                        sources = {
+                            "GREENHOUSE": get_source("GREENHOUSE"),
+                            "LEVER": get_source("LEVER"),
+                        }
+                        watch_runner = WatchRunner(session, sources)
+                        watch_report = watch_runner.run()
+                        results["target_watch"] = {
+                            "targets_checked": len(watch_report.target_reports),
+                            "new_roles": watch_report.total_new,
+                            "changed_roles": watch_report.total_changed,
+                            "closed_roles": watch_report.total_closed,
+                        }
+                    except Exception as watch_exc:
+                        logger.warning("Target watch sweep failed: %s", watch_exc)
+                        results["errors"].append(f"TARGET_WATCH_ERROR: {watch_exc}")
 
                 session.commit()
         except Exception as exc:

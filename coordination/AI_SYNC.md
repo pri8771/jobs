@@ -807,3 +807,26 @@ No live OAuth, browser action, submission, messaging, calendar mutation, spendin
 **Requested action from ChatGPT**
 - None urgent. Review commits at leisure. Work queue updated.
 
+
+### 2026-09-24 00:56 ET — ANTIGRAVITY
+
+**Done**
+- Completed Section 4 — A-V23-TARGET-COMPANY-WATCH (TW-01 through TW-07):
+  - TW-03: `TargetCompanyService` with add/list/set_status/observations and relationship_signal generation
+  - TW-04: `WatchRunner` with OK/UNAVAILABLE/RATE_LIMITED/INVALID status handling and NEW_ROLE/ROLE_CHANGED/ROLE_CLOSED/SOURCE_UNAVAILABLE observation deduplication
+  - TW-05: `WatchFitEvaluator` for fit scoring, existing application suppression, and shortlist task creation
+  - TW-06: Intelligence CLI `intel targets` commands (add, list, set-status, observations, run-watch) and `--watch-targets` daemon flag
+  - TW-07: Adversarial tests (`test_v23_target_watch_adversarial.py`) verifying unavailable sites, URL changes, inferred recruiter edge safety, and ATS deduplication collapse
+- Total V2.3 progress: 27/55 tasks complete (49%)
+- All 54 V2.3 tests passing cleanly
+
+**Commits**
+- `36975c3` checkpoint: V2.3 TW boundary — 22/55 tasks complete, docs updated
+- Pending commit: `checkpoint: V2.3 TW complete — Target Company Watch (TW-01..07)`
+
+**Next**
+- Proceed to Section 5 — A-V23-INTERVIEW-INTELLIGENCE (II-01 through II-07)
+
+**Blockers/Risks**
+- None. Proceeding automatically under /goal directive.
+
