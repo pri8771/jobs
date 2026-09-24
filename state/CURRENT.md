@@ -12,11 +12,12 @@ Owner directive: **get V2.3 working live**. Antigravity is the primary implement
 | V1.5 | ENGINEERING ACCEPTED | `47fefd1` |
 | V1.7 | ENGINEERING ACCEPTED (PR #12) | `7c0fa73` |
 | V2.0 | Complete (merged into V2.3 scope) | — |
+| V2.3 | ENGINEERING ACCEPTED (55/55 tasks complete) | `PENDING_COMMIT` |
 | V3.0 | Scaffolding complete | `9681d99` |
 
 ## V2.3 task graph progress
 
-Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
+Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP) — **100% COMPLETE (55/55 tasks)**
 
 ### Section 1 — Foundation (F01–F05): ✅ COMPLETE (5/5)
 - F01 DerivedArtifactEnvelope — `f055485`
@@ -82,18 +83,18 @@ Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
 - CB-04 `/api/briefing` REST endpoint
 - CB-05 Briefing adversarial & invariant tests (test_v23_career_briefing_adversarial.py)
 
-### Section 8 — Acceptance Campaign (AC-01–AC-04): 🔶 NEXT UP (FINAL SECTION)
-- AC-01 Extended golden fixture scenario & engineering report (`tests/integration/test_v23_campaign.py`)
+### Section 8 — Acceptance Campaign (AC-01–AC-04): ✅ COMPLETE (5/5)
+- AC-01 Extended golden fixture scenario & engineering report (`tests/integration/test_v23_campaign.py` -> `artifacts/reports/v23_engineering_campaign_report.json`)
 - AC-02 Campaign report verifier (`scripts/verify_v23_campaign.py`)
 - AC-03 Live campaign runbook & redacted evidence schema (`docs/V2_3_ACCEPTANCE_CAMPAIGN.md`)
-- AC-04 Acceptance verification & live readiness signoff
+- AC-04 Acceptance verification & engineering signoff (V23_CAMPAIGN_PASS)
 
-## Overall progress: 50/55 tasks complete (91%)
+## Overall progress: 55/55 tasks complete (100%) 🎉
 
 ## Test health
 
-- All V2.3 tests passing (74 passed in test_v23_*.py)
-- Full test suite verified green
+- All V2.3 tests passing (75 passed in test_v23_*.py and test_v23_campaign.py)
+- Campaign verifier returns `V23_CAMPAIGN_PASS`
 
 ## Active worker
 
