@@ -53,24 +53,33 @@ Reference: `docs/V23_TASK_GRAPH_V23.md` (55 tasks, 78 SP)
 - TW-06 Intelligence CLI target commands & worker daemon hook
 - TW-07 Watch adversarial tests (test_v23_target_watch_adversarial.py)
 
-### Section 5 — Interview Intelligence (II-01–II-07): 🔶 NEXT UP
-- II-01 Typed models — NOT STARTED
-- II-02 Scorer requirement extraction — NOT STARTED
-- II-03 InterviewIntelligenceService.build_brief — NOT STARTED
-- II-04 CandidateStoryMap builder — NOT STARTED
-- II-05 FollowupPackage builder — NOT STARTED
-- II-06 Interview adversarial tests — NOT STARTED
-- II-07 Interview CLI & endpoint — NOT STARTED
+### Section 5 — Interview Intelligence (II-01–II-07): ✅ COMPLETE (7/7)
+- II-01 Typed models (PersonRef, RequirementRef, StoryMapEntry, CandidateStoryMap, InterviewBrief, FollowupPackage in interview.py)
+- II-02 Scorer requirement extraction (SemanticScorer.extract_requirements)
+- II-03 InterviewIntelligenceService.build_brief
+- II-04 CandidateStoryMap builder
+- II-05 FollowupPackage builder
+- II-06 Interview adversarial tests (test_v23_interview_adversarial.py)
+- II-07 Interview CLI commands & REST endpoint (intelligence_cli.py & server.py)
 
-### Section 6 — Agent Tools (TL-01–TL-08): NOT STARTED
+### Section 6 — Agent Tools (TL-01–TL-08): 🔶 NEXT UP
+- TL-01 Tool envelope types — NOT STARTED
+- TL-02 Tool execution context & authorization ceiling — NOT STARTED
+- TL-03 Permission evaluator & policy rule enforcement — NOT STARTED
+- TL-04 Audit log wrapper & idempotency envelope — NOT STARTED
+- TL-05 Typed read tools (P0) — NOT STARTED
+- TL-06 Typed local write tools (P1) — NOT STARTED
+- TL-07 Typed external prep tools (P2) — NOT STARTED
+- TL-08 Tool registry & discovery API — NOT STARTED
+
 ### Section 7 — Career Briefing (CB-01–CB-05): NOT STARTED
 ### Section 8 — Acceptance Campaign (AC-01–AC-04): NOT STARTED
 
-## Overall progress: 27/55 tasks complete (49%)
+## Overall progress: 34/55 tasks complete (62%)
 
 ## Test health
 
-- All V2.3 tests passing (54 passed in test_v23_*.py)
+- All V2.3 tests passing (63 passed in test_v23_*.py)
 - Full test suite verified green
 
 ## Active worker

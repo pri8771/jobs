@@ -588,6 +588,23 @@ class DashboardRequestHandler(BaseHTTPRequestHandler):
                 self._send_json(data)
                 return
 
+            if path.startswith("/api/interviews/") and path.endswith("/brief"):
+                parts = path.split("/")
+                if len(parts) == 5:
+                    app_id_str = parts[3]
+                    try:
+                        from jobs_automation.intelligence.interview_service import InterviewIntelligenceService
+                        svc = InterviewIntelligenceService(session)
+                        brief = svc.build_brief(app_id_str)
+                        self._send_json(json.loads(brief.model_dump_json()))
+                        return
+                    except LookupError as e:
+                        self._send_json({"error": str(e)}, status=HTTPStatus.NOT_FOUND)
+                        return
+                    except Exception as e:
+                        self._send_json({"error": str(e)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+                        return
+
             if path == "/api/contacts":
                 contacts = session.scalars(
                     select(ContactModel).order_by(

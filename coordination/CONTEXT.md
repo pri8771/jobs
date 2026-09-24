@@ -69,12 +69,12 @@ Completed sections (22 tasks):
 - Opportunity Graph (OG-01–OG-10): graph service, edge traversal, company projection, dedup, contacts, role matching, scoring, profile resolution, CRM adaptation, API surface
 - Strategy Learning (SL-01–SL-05): guardrails, performance rates, recommendation engine, adaptive tailoring, config wiring
 - Target Company Watch (TW-01–TW-07): public job source protocol, Greenhouse/Lever clients, TargetCompanyService, WatchRunner, fit evaluation, intelligence CLI, worker daemon hook, adversarial tests
+- Interview Intelligence (II-01–II-07): typed models, requirement extraction, InterviewIntelligenceService, CandidateStoryMap, FollowupPackage, CLI & REST endpoints, adversarial tests
 
 In progress:
-- Interview Intelligence (II-01–II-07)
+- Agent Tools (TL-01–TL-08)
 
 Remaining sections (not started):
-- Agent Tools (TL-01–TL-08)
 - Career Briefing (CB-01–CB-05)
 - Acceptance Campaign (AC-01–AC-04)
 

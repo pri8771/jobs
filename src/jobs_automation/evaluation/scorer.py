@@ -252,3 +252,35 @@ class SemanticScorer:
             reason_codes=reason_codes,
             explanation=explanation,
         )
+
+    def extract_requirements(self, job: JobModel) -> list[tuple[str, list[str]]]:
+        """Extract requirement phrases and matched skill keywords from job description."""
+        text = job.description_text or job.normalized_title or ""
+        if not text:
+            return []
+
+        # Split into lines / sentence chunks
+        lines = [line.strip() for line in re.split(r"[\r\n\•\*\-\;]+", text) if line.strip()]
+
+        all_skills = list(self.profile.skills.primary) + list(self.profile.skills.secondary)
+        extracted: list[tuple[str, list[str]]] = []
+
+        for line in lines:
+            if len(line) < 10:
+                continue
+            matched: list[str] = []
+            for sk in all_skills:
+                pattern = rf"\b{re.escape(sk.lower())}\b"
+                if re.search(pattern, line.lower()):
+                    matched.append(sk)
+            if matched:
+                extracted.append((line, matched))
+
+        # If no skills matched line-by-line, fallback to lines with requirement keywords
+        if not extracted:
+            req_keywords = ["experience", "required", "responsible", "qualification", "degree", "build", "lead", "manage", "design"]
+            for line in lines:
+                if len(line) >= 15 and any(kw in line.lower() for kw in req_keywords):
+                    extracted.append((line, []))
+
+        return extracted

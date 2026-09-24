@@ -157,3 +157,54 @@ def run_watch(target_id: str | None, dry_run: bool) -> None:
         console.print(f"  New Roles: {report.total_new}")
         console.print(f"  Changed Roles: {report.total_changed}")
         console.print(f"  Closed Roles: {report.total_closed}")
+
+
+@intel_cli.command("interview-brief")
+@click.argument("application_id")
+@click.option("--json", "output_json", is_flag=True, help="Output JSON format")
+def interview_brief(application_id: str, output_json: bool) -> None:
+    """Generate interview brief for an application."""
+    from jobs_automation.intelligence.interview_service import InterviewIntelligenceService
+
+    SessionLocal = get_sessionmaker()
+    with SessionLocal() as session:
+        service = InterviewIntelligenceService(session)
+        try:
+            brief = service.build_brief(application_id)
+            if output_json:
+                console.print(JSON(brief.model_dump_json()))
+            else:
+                console.print(f"[bold blue]Interview Brief for Application {application_id}[/bold blue]")
+                console.print(f"Stage: {brief.interview_stage}")
+                console.print(f"Role: {brief.role_summary}")
+                console.print(f"Requirements count: {len(brief.key_requirements)}")
+                if brief.conflicts:
+                    console.print(f"[yellow]Conflicts: {', '.join(brief.conflicts)}[/yellow]")
+                if brief.security_signals:
+                    console.print(f"[red]Security Signals: {', '.join(brief.security_signals)}[/red]")
+        except LookupError as e:
+            console.print(f"[red]Error:[/red] {e}")
+
+
+@intel_cli.command("followup-package")
+@click.argument("application_id")
+@click.option("--contact-id", default=None, help="Optional contact UUID")
+@click.option("--json", "output_json", is_flag=True, help="Output JSON format")
+def followup_package(application_id: str, contact_id: str | None, output_json: bool) -> None:
+    """Generate follow-up package for an application."""
+    from jobs_automation.intelligence.interview_service import InterviewIntelligenceService
+
+    SessionLocal = get_sessionmaker()
+    with SessionLocal() as session:
+        service = InterviewIntelligenceService(session)
+        try:
+            pkg = service.build_followup(application_id, contact_id=contact_id)
+            if output_json:
+                console.print(JSON(pkg.model_dump_json()))
+            else:
+                console.print(f"[bold blue]Followup Package for Application {application_id}[/bold blue]")
+                console.print(f"Context: {pkg.stage_context}")
+                console.print(f"Facts count: {len(pkg.facts)}")
+                console.print(f"Send performed: {pkg.send_performed}")
+        except LookupError as e:
+            console.print(f"[red]Error:[/red] {e}")

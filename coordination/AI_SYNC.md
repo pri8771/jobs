@@ -830,3 +830,28 @@ No live OAuth, browser action, submission, messaging, calendar mutation, spendin
 **Blockers/Risks**
 - None. Proceeding automatically under /goal directive.
 
+
+### 2026-09-24 00:59 ET — ANTIGRAVITY
+
+**Done**
+- Completed Section 5 — A-V23-INTERVIEW-INTELLIGENCE (II-01 through II-07):
+  - II-01: Typed models (`PersonRef`, `RequirementRef`, `StoryMapEntry`, `CandidateStoryMap`, `InterviewBrief`, `FollowupPackage`) in `intelligence/interview.py` with `send_performed=False` validator
+  - II-02: `SemanticScorer.extract_requirements(job)` exposing requirement extraction from job description
+  - II-03: `InterviewIntelligenceService.build_brief` generating evidence-backed briefs with staleness, prompt injection detection, and conflict warnings
+  - II-04: `CandidateStoryMap` builder linking requirements to profile evidence claims
+  - II-05: `FollowupPackage` builder producing structured follow-up data
+  - II-06: Adversarial & contract tests (`test_v23_interview_adversarial.py`) verifying all 10 contract cases
+  - II-07: CLI commands (`intel interview-brief`, `intel followup-package`) and REST endpoint (`GET /api/interviews/{application_id}/brief`)
+- Total V2.3 progress: 34/55 tasks complete (62%)
+- All 63 V2.3 unit & adversarial tests passing cleanly
+
+**Commits**
+- `aa4d76b` checkpoint: V2.3 TW complete — Target Company Watch (TW-01..07)
+- Pending commit: `checkpoint: V2.3 II complete — Interview Intelligence (II-01..07)`
+
+**Next**
+- Proceed to Section 6 — A-V23-AGENT-TOOLS (TL-01 through TL-08)
+
+**Blockers/Risks**
+- None. Proceeding automatically under /goal directive.
+
