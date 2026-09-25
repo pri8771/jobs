@@ -1,5 +1,7 @@
 # Jobs Automation
 
+> **2026-09-25 owner direction:** migrate this mission to an n8n crew on the R730. Current code and the older runtime description below are reference material for feature and evidence preservation. See [the n8n crew migration specification](docs/N8N_CREW_MIGRATION.md). No cutover is claimed.
+
 Portable, auditable job-search automation that can be continued from Antigravity, Cursor, Claude, ChatGPT, Codex, or another IDE/agent without relying on chat history.
 
 ## Goal
