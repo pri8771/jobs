@@ -1,5 +1,9 @@
 # Jobs Automation — canonical agent contract
 
+## New owner direction — 2026-09-25
+
+The owner now wants the Jobs mission rebuilt as an n8n crew; see `docs/N8N_CREW_MIGRATION.md`. This supersedes the older V1.7-only destination for future architecture. The historical V1.7/V2.3 contracts remain evidence and feature references, not proof that the n8n migration or any live gate is complete. Preserve their private-data, truthful-outcome, platform-policy, and action-authorization rules during migration. Do not stop a current worker or retire a runtime merely because this documentation changed. The older execution contract below applies to work on that existing runtime until its active owner and cutover state are verified.
+
 ## Current owner scope
 
 Latest explicit owner instruction: **get V1.7 live and stop**. The execution contract is `docs/FABLE_V17_LIVE.md`. This replaces historical three-lane operation and earlier V1.5-only/V2.3/V3 delivery targets, not their applicable safety or technical acceptance criteria.
